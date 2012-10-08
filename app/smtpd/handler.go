@@ -56,6 +56,7 @@ type Session struct {
 	server     *Server
 	id         int
 	conn       net.Conn
+	remoteHost string
 	sendError  error
 	state      State
 	reader     *bufio.Reader
@@ -65,7 +66,8 @@ type Session struct {
 
 func NewSession(server *Server, id int, conn net.Conn) *Session {
 	reader := bufio.NewReader(conn)
-	return &Session{server: server, id: id, conn: conn, state: GREET, reader: reader}
+	host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+	return &Session{server: server, id: id, conn: conn, state: GREET, reader: reader, remoteHost: host}
 }
 
 func (ss *Session) String() string {
@@ -80,7 +82,7 @@ func (ss *Session) String() string {
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	s.trace("Starting session <%v>", id)
+	s.info("Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	defer conn.Close()
 
 	ss := NewSession(s, id, conn)
@@ -343,17 +345,17 @@ func (ss *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ss *Session) trace(msg string, args ...interface{}) {
-	ss.server.trace("<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	ss.server.trace("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) info(msg string, args ...interface{}) {
-	ss.server.info("<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	ss.server.info("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) warn(msg string, args ...interface{}) {
-	ss.server.warn("<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	ss.server.warn("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) error(msg string, args ...interface{}) {
-	ss.server.error("<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	ss.server.error("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }

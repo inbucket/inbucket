@@ -3,6 +3,7 @@ package smtpd
 import (
 	"fmt"
 	"net"
+	"github.com/robfig/revel"
 )
 
 // Real server code starts here
@@ -15,24 +16,24 @@ type Server struct {
 
 // Init a new Server object
 func New(domain string, port int) *Server {
-	return &Server{domain: domain, port: port, maxRecips: 3, maxIdleSeconds: 10}
+	return &Server{domain: domain, port: port, maxRecips: 100, maxIdleSeconds: 60}
 }
 
 // Loggers
 func (s *Server) trace(msg string, args ...interface{}) {
-	fmt.Printf("[trace] %s\n", fmt.Sprintf(msg, args...))
+	rev.TRACE.Printf(msg, args...)
 }
 
 func (s *Server) info(msg string, args ...interface{}) {
-	fmt.Printf("[info ] %s\n", fmt.Sprintf(msg, args...))
+	rev.INFO.Printf(msg, args...)
 }
 
 func (s *Server) warn(msg string, args ...interface{}) {
-	fmt.Printf("[warn ] %s\n", fmt.Sprintf(msg, args...))
+	rev.WARN.Printf(msg, args...)
 }
 
 func (s *Server) error(msg string, args ...interface{}) {
-	fmt.Printf("[error] %s\n", fmt.Sprintf(msg, args...))
+	rev.ERROR.Printf(msg, args...)
 }
 
 // Main listener loop

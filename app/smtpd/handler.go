@@ -7,6 +7,7 @@ import (
 	"net"
 	"strings"
 	"time"
+	"github.com/jhillyerd/inbucket/app/inbucket"
 )
 
 type State int
@@ -235,7 +236,16 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 
 // DATA
 func (ss *Session) dataHandler() {
-	var msgSize uint64 = 0
+	msgSize := uint64(0)
+
+	// Get a MailObject for each recipient
+	mailObjects := make([]*inbucket.MailObject, ss.recipients.Len())
+	i := 0
+	for e := ss.recipients.Front(); e != nil; e = e.Next() {
+		mailObjects[i] = ss.server.dataStore.NewMailObject(e.Value.(string))
+		i++
+	}
+
 	ss.send("354 Start mail input; end with <CRLF>.<CRLF>")
 	for {
 		line, err := ss.readLine()
@@ -251,6 +261,9 @@ func (ss *Session) dataHandler() {
 		}
 		if line == ".\r\n" || line == ".\n" {
 			// Mail data complete
+			for _, mo := range mailObjects {
+				mo.Close()
+			}
 			ss.send("250 Mail accepted for delivery")
 			ss.info("Message size %v bytes", msgSize)
 			ss.enterState(READY)
@@ -260,7 +273,16 @@ func (ss *Session) dataHandler() {
 			line = line[1:]
 		}
 		msgSize += uint64(len(line))
-		// TODO: Add variable line to something!
+		// Append to message objects
+		for _, mo := range mailObjects {
+			if err := mo.Append([]byte(line)); err != nil {
+				ss.error("Failed to append to mailbox %v: %v", mo.Mailbox(), err)
+				ss.send("554 Something went wrong")
+				ss.enterState(READY)
+				// TODO: Should really cleanup the crap on filesystem...
+				return
+			}
+		}
 	}
 }
 

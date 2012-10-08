@@ -2,8 +2,9 @@ package smtpd
 
 import (
 	"fmt"
-	"net"
+	"github.com/jhillyerd/inbucket/app/inbucket"
 	"github.com/robfig/revel"
+	"net"
 )
 
 // Real server code starts here
@@ -12,11 +13,14 @@ type Server struct {
 	port           int
 	maxRecips      int
 	maxIdleSeconds int
+	dataStore      *inbucket.DataStore
 }
 
 // Init a new Server object
 func New(domain string, port int) *Server {
-	return &Server{domain: domain, port: port, maxRecips: 100, maxIdleSeconds: 60}
+	ds := inbucket.NewDataStore()
+	return &Server{domain: domain, port: port, maxRecips: 100, maxIdleSeconds: 60,
+		dataStore: ds}
 }
 
 // Loggers

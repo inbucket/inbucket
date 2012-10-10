@@ -3,6 +3,9 @@
 # ~~~~
 
 GET     /                                       Application.Index
+GET		/mailbox/{name}							Mailbox.Index
+GET		/mailbox/list/{name}					Mailbox.List
+GET		/mailbox/show/{name}/{id}				Mailbox.Show
 
 # Ignore favicon requests
 GET     /favicon.ico                            404

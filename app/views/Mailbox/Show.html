@@ -1,0 +1,18 @@
+{{template "header.html" .}}
+
+<h1>{{.message.Subject}}</h1>
+<table>
+	<tr>
+		<th>From:</th>
+		<td>{{.message.From}}</td>
+	</tr>
+	<tr>
+		<th>Date:</th>
+		<td>{{.message.Date}}</td>
+	</tr>
+<table>
+
+<pre>{{.body}}</pre>
+
+{{template "footer.html" .}}
+

@@ -76,19 +76,54 @@ func (mb *Mailbox) String() string {
 	return mb.name + "[" + mb.dirName + "]"
 }
 
+// GetMessages scans the mailbox directory for .gob files and decodes them into
+// a slice of Message objects.
 func (mb *Mailbox) GetMessages() ([]*Message, error) {
 	files, err := ioutil.ReadDir(mb.path)
 	if err != nil {
 		return nil, err
 	}
-	// This is twice the size it needs to be, oh darn
-	messages := make([]*Message, len(files))
+	rev.TRACE.Printf("Scanning %v files for %v", len(files), mb)
+
+	messages := make([]*Message, 0, len(files))
 	for _, f := range files {
 		if (!f.IsDir()) && strings.HasSuffix(strings.ToLower(f.Name()), ".gob") {
-			// TODO: implement
+			// We have a gob file
+			file, err := os.Open(filepath.Join(mb.path, f.Name()))
+			if err != nil {
+				return nil, err
+			}
+			dec := gob.NewDecoder(bufio.NewReader(file))
+			msg := new(Message)
+			if err = dec.Decode(msg); err != nil {
+				return nil, err
+			}
+			file.Close()
+			msg.mailbox = mb
+			rev.TRACE.Printf("Found: %v", msg)
+			messages = append(messages, msg)
 		}
 	}
 	return messages, nil
+}
+
+// GetMessage decodes a single message by Id and returns a Message object
+func (mb *Mailbox) GetMessage(id string) (*Message, error) {
+	file, err := os.Open(filepath.Join(mb.path, id+".gob"))
+	if err != nil {
+		return nil, err
+	}
+
+	dec := gob.NewDecoder(bufio.NewReader(file))
+	msg := new(Message)
+	if err = dec.Decode(msg); err != nil {
+		return nil, err
+	}
+	file.Close()
+	msg.mailbox = mb
+	rev.TRACE.Printf("Found: %v", msg)
+
+	return msg, nil
 }
 
 // Message contains a little bit of data about a particular email message, and
@@ -122,6 +157,8 @@ func (m *Message) gobPath() string {
 }
 
 func (m *Message) rawPath() string {
+	rev.TRACE.Println(m.mailbox.path)
+	rev.TRACE.Println(m.Id)
 	return filepath.Join(m.mailbox.path, m.Id+".raw")
 }
 
@@ -135,6 +172,26 @@ func (m *Message) ReadHeader() (msg *mail.Message, err error) {
 	reader := bufio.NewReader(file)
 	msg, err = mail.ReadMessage(reader)
 	return msg, err
+}
+
+// ReadBody opens the .raw portion of a Message and returns a standard Go mail.Message object
+func (m *Message) ReadBody() (msg *mail.Message, body *string, err error) {
+	file, err := os.Open(m.rawPath())
+	defer file.Close()
+	if err != nil {
+		return nil, nil, err
+	}
+	reader := bufio.NewReader(file)
+	msg, err = mail.ReadMessage(reader)
+	if err != nil {
+		return nil, nil, err
+	}
+	bodyBytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, nil, err
+	}
+	bodyString := string(bodyBytes)
+	return msg, &bodyString, err
 }
 
 // Append data to a newly opened Message, this will fail on a pre-existing Message and

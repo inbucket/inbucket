@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"container/list"
 	"fmt"
+	"github.com/jhillyerd/inbucket/app/inbucket"
 	"net"
 	"strings"
 	"time"
-	"github.com/jhillyerd/inbucket/app/inbucket"
 )
 
 type State int
@@ -238,11 +238,21 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 func (ss *Session) dataHandler() {
 	msgSize := uint64(0)
 
-	// Get a MailObject for each recipient
-	mailObjects := make([]*inbucket.MailObject, ss.recipients.Len())
+	// Get a Mailbox and a new Message for each recipient
+	mailboxes := make([]*inbucket.Mailbox, ss.recipients.Len())
+	messages := make([]*inbucket.Message, ss.recipients.Len())
 	i := 0
 	for e := ss.recipients.Front(); e != nil; e = e.Next() {
-		mailObjects[i] = ss.server.dataStore.NewMailObject(e.Value.(string))
+		recip := e.Value.(string)
+		mb, err := ss.server.dataStore.MailboxFor(recip)
+		if err != nil {
+			ss.error("Failed to open mailbox for %v", recip)
+			ss.send(fmt.Sprintf("554 Failed to open mailbox for %v", recip))
+			ss.enterState(READY)
+			return
+		}
+		mailboxes[i] = mb
+		messages[i] = mb.NewMessage()
 		i++
 	}
 
@@ -261,22 +271,23 @@ func (ss *Session) dataHandler() {
 		}
 		if line == ".\r\n" || line == ".\n" {
 			// Mail data complete
-			for _, mo := range mailObjects {
-				mo.Close()
+			for _, m := range messages {
+				m.Close()
 			}
 			ss.send("250 Mail accepted for delivery")
 			ss.info("Message size %v bytes", msgSize)
 			ss.enterState(READY)
 			return
 		}
+		// SMTP RFC says remove leading periods from input
 		if line != "" && line[0] == '.' {
 			line = line[1:]
 		}
 		msgSize += uint64(len(line))
 		// Append to message objects
-		for _, mo := range mailObjects {
-			if err := mo.Append([]byte(line)); err != nil {
-				ss.error("Failed to append to mailbox %v: %v", mo.Mailbox(), err)
+		for i, m := range messages {
+			if err := m.Append([]byte(line)); err != nil {
+				ss.error("Failed to append to mailbox %v: %v", mailboxes[i], err)
 				ss.send("554 Something went wrong")
 				ss.enterState(READY)
 				// TODO: Should really cleanup the crap on filesystem...

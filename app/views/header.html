@@ -1,17 +1,34 @@
-<!DOCTYPE html>
-
-<html>
-  <head>
-    <title>{{.title}}</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <link rel="stylesheet" type="text/css" media="screen" href="/public/stylesheets/main.css">
-    <link rel="shortcut icon" type="image/png" href="/public/images/favicon.png">
-    <script src="/public/javascripts/jquery-1.5.2.min.js" type="text/javascript" charset="utf-8"></script>
-    {{range .moreStyles}}
-      <link rel="stylesheet" type="text/css" href="/public/{{.}}">
-    {{end}}
-    {{range .moreScripts}}
-      <script src="/public/{{.}}" type="text/javascript" charset="utf-8"></script>
-    {{end}}
-  </head>
-  <body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!--
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>{{.title}}</title>
+<link href="/public/stylesheets/main.css" rel="stylesheet" type="text/css" />
+<link rel="shortcut icon" type="image/png" href="/public/images/favicon.png">
+<script src="/public/javascripts/jquery-1.5.2.min.js" type="text/javascript" charset="utf-8"></script>
+{{range .moreStyles}}
+  <link rel="stylesheet" type="text/css" href="/public/{{.}}">
+{{end}}
+{{range .moreScripts}}
+  <script src="/public/{{.}}" type="text/javascript" charset="utf-8"></script>
+{{end}}
+</head>
+<body>
+<div id="header">
+	<ul id="menu">
+		<li><a href="/" accesskey="1" title="">Home</a></li>
+		<li><a href="/about" accesskey="2" title="">About</a></li>
+	</ul>
+	<form id="search" action="/mailbox" method="GET">
+		<fieldset>
+		<input name="name" type="text" id="input1" />
+		<input name="submit" type="submit" id="input2" value="Go" />
+		</fieldset>
+	</form>
+</div>
+<div id="content">

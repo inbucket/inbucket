@@ -1,22 +1,27 @@
 {{template "header.html" .}}
-
-<h1>Your Index Is Ready</h1>
 {{$name := .name}}
-<p>{{.name}} inbox</p>
+<div id="colOne">
+  <div id="logo">
+    <h1><a href="#">inbucket</a></h1>
+    <h2>mail for {{.name}}</h2>
+  </div>
 
-{{if .messages}}
-<ul>
-	{{range .messages}}
-	<li>
-		<a href="/mailbox/show/{{$name}}/{{.Id}}">{{.Subject}}</a>
-		from {{.From}}
-		({{.Date}})
-	</li>
-	{{end}}
-</ul>
-{{else}}
-<p>No messages!</p>
-{{end}}
+  {{range .messages}}
+  <div class="box listEntry">
+    <div class="subject">{{/*<a href="/mailbox/show/{{$name}}/{{.Id}}">*/}}{{.Subject}}</div>
+    <div class="from">{{.From}}</div>
+    <div class="date">{{.Date}}</div>
+  </div>
+  {{else}}
+  <div class="box">
+    No messages!
+  </div>
+  {{end}}
+</div>
+
+<div id="colTwo">
+  <p>Select a message at left, or enter a different username into the box on upper right.</p>
+</div>
 
 {{template "footer.html" .}}
 

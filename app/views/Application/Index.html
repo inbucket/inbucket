@@ -1,13 +1,16 @@
 {{set "title" "Inbucket" .}}
 {{template "header.html" .}}
+{{template "menu.html" .}}
 
-<h1>Inbucket</h1>
+<div id="colTwo">
+  <h1>Inbucket</h1>
 
-<form action="/mailbox" method="GET">
-  <b>Enter a username to view their mailbox</b>
-  <input type="text" name="name">
-  <input type=submit value="Go">
-</form>
+  <form action="/mailbox" method="GET">
+    <b>Enter a username to view their mailbox</b>
+    <input type="text" name="name">
+    <input type=submit value="Go">
+  </form>
+</div>
 
 {{template "footer.html" .}}
 

@@ -1,7 +1,13 @@
-{{set "title" "Home" .}}
+{{set "title" "Inbucket" .}}
 {{template "header.html" .}}
 
-<h1>Your Application Is Ready</h1>
+<h1>Inbucket</h1>
+
+<form action="/mailbox" method="GET">
+  <b>Enter a username to view their mailbox</b>
+  <input type="text" name="name">
+  <input type=submit value="Go">
+</form>
 
 {{template "footer.html" .}}
 

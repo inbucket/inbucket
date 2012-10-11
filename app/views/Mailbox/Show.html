@@ -1,7 +1,4 @@
-{{template "header.html" .}}
-
-<h1>{{.message.Subject}}</h1>
-<table>
+<table id="emailHeader">
 	<tr>
 		<th>From:</th>
 		<td>{{.message.From}}</td>
@@ -11,8 +8,7 @@
 		<td>{{.message.Date}}</td>
 	</tr>
 <table>
+<h3 id="emailSubject">{{.message.Subject}}</h3>
 
-<pre>{{.body}}</pre>
-
-{{template "footer.html" .}}
+<pre id="emailBody">{{.body}}</pre>
 

@@ -10,7 +10,7 @@ body {
 	margin: 20px 0;
 	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
 	font-size: 12px;
-	color: #A1A1A1;
+	color: #808080;
 }
 
 h1 {
@@ -253,3 +253,35 @@ a:hover {
   color: #2582A4;
   font-weight: bold;
 }
+
+.listEntrySelected {
+  background: #becf74;
+  color: #666;
+}
+
+.listEntryHover {
+  background: #8ac6dc;
+  color: #666;
+}
+
+#emailContent {
+  padding-bottom: 20px;
+}
+
+#emailHeader {
+  border-collapse: collapse;
+}
+
+#emailHeader th, #emailHeader td {
+  text-align: left;
+  padding: 0 3px 3px 0;
+}
+
+#emailSubject {
+  border-bottom: 1px #606060 solid;
+}
+
+#emailBody {
+  color: #000000;
+}
+

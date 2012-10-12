@@ -19,7 +19,7 @@ type Server struct {
 // Init a new Server object
 func New(domain string, port int) *Server {
 	ds := inbucket.NewDataStore()
-	return &Server{domain: domain, port: port, maxRecips: 100, maxIdleSeconds: 60,
+	return &Server{domain: domain, port: port, maxRecips: 100, maxIdleSeconds: 300,
 		dataStore: ds}
 }
 

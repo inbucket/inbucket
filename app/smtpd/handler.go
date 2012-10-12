@@ -2,10 +2,12 @@ package smtpd
 
 import (
 	"bufio"
+	"bytes"
 	"container/list"
 	"fmt"
 	"github.com/jhillyerd/inbucket/app/inbucket"
 	"net"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -38,6 +40,7 @@ func (s State) String() string {
 
 var commands = map[string]bool{
 	"HELO": true,
+	"EHLO": true,
 	"MAIL": true,
 	"RCPT": true,
 	"DATA": true,
@@ -111,10 +114,13 @@ func (s *Server) startSession(id int, conn net.Conn) {
 
 				// Commands we handle in any state
 				switch cmd {
-				case "SEND", "SOML", "SAML", "VRFY", "EXPN", "HELP", "TURN":
+				case "SEND", "SOML", "SAML", "EXPN", "HELP", "TURN":
 					// These commands are not implemented in any state
 					ss.send(fmt.Sprintf("502 %v command not implemented", cmd))
 					ss.warn("Command %v not implemented by Inbucket", cmd)
+					continue
+				case "VRFY":
+					ss.send("252 Cannot VRFY user, but will accept message")
 					continue
 				case "NOOP":
 					ss.send("250 I have sucessfully done nothing")
@@ -167,10 +173,15 @@ func (s *Server) startSession(id int, conn net.Conn) {
 
 // GREET state -> waiting for HELO
 func (ss *Session) greetHandler(cmd string, arg string) {
-	if cmd == "HELO" {
+	switch cmd {
+	case "HELO":
 		ss.send("250 Great, let's get this show on the road")
 		ss.enterState(READY)
-	} else {
+	case "EHLO":
+		ss.send("250-Great, let's get this show on the road")
+		ss.send("250 8BITMIME")
+		ss.enterState(READY)
+	default:
 		ss.ooSeq(cmd)
 	}
 }
@@ -178,13 +189,20 @@ func (ss *Session) greetHandler(cmd string, arg string) {
 // READY state -> waiting for MAIL
 func (ss *Session) readyHandler(cmd string, arg string) {
 	if cmd == "MAIL" {
-		if (len(arg) < 6) || (strings.ToUpper(arg[0:5]) != "FROM:") {
+		// (?i) makes the regex case insensitive
+		re := regexp.MustCompile("(?i)^FROM:<([^>]+)>( (\\w+)=(\\w+))?$")
+		m := re.FindStringSubmatch(arg)
+		if m == nil {
 			ss.send("501 Was expecting MAIL arg syntax of FROM:<address>")
 			ss.warn("Bad MAIL argument: \"%v\"", arg)
 			return
 		}
-		// This trim is probably too forgiving
-		from := strings.Trim(arg[5:], "<> ")
+		from := m[1]
+		// This is where the client may put BODY=8BITMIME, but we already
+		// ready the DATA as bytes, so it does not effect our processing.
+		pkey := m[3]
+		pval := m[4]
+		ss.trace("MAIL param: %v = %v", pkey, pval)
 		ss.from = from
 		ss.recipients = list.New()
 		ss.info("Mail from: %v", from)
@@ -247,7 +265,7 @@ func (ss *Session) dataHandler() {
 		mb, err := ss.server.dataStore.MailboxFor(recip)
 		if err != nil {
 			ss.error("Failed to open mailbox for %v", recip)
-			ss.send(fmt.Sprintf("554 Failed to open mailbox for %v", recip))
+			ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
 			ss.enterState(READY)
 			return
 		}
@@ -257,8 +275,10 @@ func (ss *Session) dataHandler() {
 	}
 
 	ss.send("354 Start mail input; end with <CRLF>.<CRLF>")
+	var buf bytes.Buffer
 	for {
-		line, err := ss.readLine()
+		buf.Reset()
+		err := ss.readByteLine(&buf)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
@@ -269,7 +289,8 @@ func (ss *Session) dataHandler() {
 			ss.enterState(QUIT)
 			return
 		}
-		if line == ".\r\n" || line == ".\n" {
+		line := buf.Bytes()
+		if string(line) == ".\r\n" {
 			// Mail data complete
 			for _, m := range messages {
 				m.Close()
@@ -280,13 +301,13 @@ func (ss *Session) dataHandler() {
 			return
 		}
 		// SMTP RFC says remove leading periods from input
-		if line != "" && line[0] == '.' {
+		if len(line) > 0 && line[0] == '.' {
 			line = line[1:]
 		}
 		msgSize += uint64(len(line))
 		// Append to message objects
 		for i, m := range messages {
-			if err := m.Append([]byte(line)); err != nil {
+			if err := m.Append(line); err != nil {
 				ss.error("Failed to append to mailbox %v: %v", mailboxes[i], err)
 				ss.send("554 Something went wrong")
 				ss.enterState(READY)
@@ -323,6 +344,34 @@ func (ss *Session) send(msg string) {
 		return
 	}
 	ss.trace("Sent: \"%v\"", msg)
+}
+
+// readByteLine reads a line of input into the provided buffer. Does
+// not reset the Buffer - please do so prior to calling.
+func (ss *Session) readByteLine(buf *bytes.Buffer) error {
+	if err := ss.conn.SetReadDeadline(ss.nextDeadline()); err != nil {
+		return err
+	}
+	for {
+		line, err := ss.reader.ReadBytes('\r')
+		if err != nil {
+			return err
+		}
+		buf.Write(line)
+		// Read the next byte looking for '\n'
+		c, err := ss.reader.ReadByte()
+		if err != nil {
+			return err
+		}
+		buf.WriteByte(c)
+		if c == '\n' {
+			// We've reached the end of the line, return
+			return nil
+		}
+		// Else, keep looking
+	}
+	// Should be unreachable
+	return nil
 }
 
 // Reads a line of input

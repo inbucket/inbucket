@@ -194,6 +194,22 @@ func (m *Message) ReadBody() (msg *mail.Message, body *string, err error) {
 	return msg, &bodyString, err
 }
 
+// ReadRaw opens the .raw portion of a Message and returns it as a string
+func (m *Message) ReadRaw() (raw *string, err error) {
+	file, err := os.Open(m.rawPath())
+	defer file.Close()
+	if err != nil {
+		return nil, err
+	}
+	reader := bufio.NewReader(file)
+	bodyBytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	bodyString := string(bodyBytes)
+	return &bodyString, nil
+}
+
 // Append data to a newly opened Message, this will fail on a pre-existing Message and
 // after Close() is called.
 func (m *Message) Append(data []byte) error {

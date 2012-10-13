@@ -78,3 +78,27 @@ func (c Mailbox) Delete(name string, id string) rev.Result {
 	}
 	return c.RenderText("OK")
 }
+
+func (c Mailbox) Source(name string, id string) rev.Result {
+	ds := inbucket.NewDataStore()
+	mb, err := ds.MailboxFor(name)
+	if err != nil {
+		rev.ERROR.Printf(err.Error())
+		c.Flash.Error(err.Error())
+		return c.Redirect(Application.Index)
+	}
+	message, err := mb.GetMessage(id)
+	if err != nil {
+		rev.ERROR.Printf(err.Error())
+		c.Flash.Error(err.Error())
+		return c.Redirect(Application.Index)
+	}
+	raw, err := message.ReadRaw()
+	if err != nil {
+		rev.ERROR.Printf(err.Error())
+		c.Flash.Error(err.Error())
+		return c.Redirect(Application.Index)
+	}
+
+	return c.RenderText(*raw)
+}

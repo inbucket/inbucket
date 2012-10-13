@@ -9,18 +9,19 @@ import (
 
 // Real server code starts here
 type Server struct {
-	domain         string
-	port           int
-	maxRecips      int
-	maxIdleSeconds int
-	dataStore      *inbucket.DataStore
+	domain          string
+	port            int
+	maxRecips       int
+	maxIdleSeconds  int
+	maxMessageBytes int
+	dataStore       *inbucket.DataStore
 }
 
 // Init a new Server object
 func New(domain string, port int) *Server {
 	ds := inbucket.NewDataStore()
 	return &Server{domain: domain, port: port, maxRecips: 100, maxIdleSeconds: 300,
-		dataStore: ds}
+		dataStore: ds, maxMessageBytes: 2048000}
 }
 
 // Loggers

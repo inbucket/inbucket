@@ -8,6 +8,7 @@ import (
 	"github.com/jhillyerd/inbucket/app/inbucket"
 	"net"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -127,7 +128,9 @@ func (s *Server) startSession(id int, conn net.Conn) {
 					continue
 				case "RSET":
 					// Reset session
+					ss.trace("Resetting session state on RSET request")
 					ss.reset()
+					ss.send("250 Session reset")
 					continue
 				case "QUIT":
 					ss.send("221 Goodnight and good luck")
@@ -179,7 +182,8 @@ func (ss *Session) greetHandler(cmd string, arg string) {
 		ss.enterState(READY)
 	case "EHLO":
 		ss.send("250-Great, let's get this show on the road")
-		ss.send("250 8BITMIME")
+		ss.send("250-8BITMIME")
+		ss.send(fmt.Sprintf("250 SIZE %v", ss.server.maxMessageBytes))
 		ss.enterState(READY)
 	default:
 		ss.ooSeq(cmd)
@@ -190,7 +194,7 @@ func (ss *Session) greetHandler(cmd string, arg string) {
 func (ss *Session) readyHandler(cmd string, arg string) {
 	if cmd == "MAIL" {
 		// (?i) makes the regex case insensitive
-		re := regexp.MustCompile("(?i)^FROM:<([^>]+)>( (\\w+)=(\\w+))?$")
+		re := regexp.MustCompile("(?i)^FROM:<([^>]+)>( [\\w= ]+)?$")
 		m := re.FindStringSubmatch(arg)
 		if m == nil {
 			ss.send("501 Was expecting MAIL arg syntax of FROM:<address>")
@@ -200,9 +204,27 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 		from := m[1]
 		// This is where the client may put BODY=8BITMIME, but we already
 		// ready the DATA as bytes, so it does not effect our processing.
-		pkey := m[3]
-		pval := m[4]
-		ss.trace("MAIL param: %v = %v", pkey, pval)
+		if m[2] != "" {
+			args, ok := ss.parseArgs(m[2])
+			if !ok {
+				ss.send("501 Unable to parse MAIL ESMTP parameters")
+				ss.warn("Bad MAIL argument: \"%v\"", arg)
+				return
+			}
+			if args["SIZE"] != "" {
+				size, err := strconv.ParseInt(args["SIZE"], 10, 32)
+				if err != nil {
+					ss.send("501 Unable to parse SIZE as an integer")
+					ss.error("Unable to parse SIZE '%v' as an integer", args["SIZE"])
+					return
+				}
+				if int(size) > ss.server.maxMessageBytes {
+					ss.send("552 Max message size exceeded")
+					ss.warn("Client wanted to send oversized message: %v", args["SIZE"])
+					return
+				}
+			}
+		}
 		ss.from = from
 		ss.recipients = list.New()
 		ss.info("Mail from: %v", from)
@@ -254,7 +276,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 
 // DATA
 func (ss *Session) dataHandler() {
-	msgSize := uint64(0)
+	msgSize := 0
 
 	// Get a Mailbox and a new Message for each recipient
 	mailboxes := make([]*inbucket.Mailbox, ss.recipients.Len())
@@ -266,7 +288,7 @@ func (ss *Session) dataHandler() {
 		if err != nil {
 			ss.error("Failed to open mailbox for %v", recip)
 			ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
-			ss.enterState(READY)
+			ss.reset()
 			return
 		}
 		mailboxes[i] = mb
@@ -297,20 +319,28 @@ func (ss *Session) dataHandler() {
 			}
 			ss.send("250 Mail accepted for delivery")
 			ss.info("Message size %v bytes", msgSize)
-			ss.enterState(READY)
+			ss.reset()
 			return
 		}
 		// SMTP RFC says remove leading periods from input
 		if len(line) > 0 && line[0] == '.' {
 			line = line[1:]
 		}
-		msgSize += uint64(len(line))
+		msgSize += len(line)
+		if msgSize > ss.server.maxMessageBytes {
+			// Max message size exceeded
+			ss.send("552 Maximum message size exceeded")
+			ss.error("Max message size exceeded while in DATA")
+			ss.reset()
+			// TODO: Should really cleanup the crap on filesystem...
+			return
+		}
 		// Append to message objects
 		for i, m := range messages {
 			if err := m.Append(line); err != nil {
 				ss.error("Failed to append to mailbox %v: %v", mailboxes[i], err)
 				ss.send("554 Something went wrong")
-				ss.enterState(READY)
+				ss.reset()
 				// TODO: Should really cleanup the crap on filesystem...
 				return
 			}
@@ -413,8 +443,27 @@ func (ss *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 	return strings.ToUpper(line[0:4]), strings.Trim(line[5:], " "), true
 }
 
+// parseArgs takes the arguments proceeding a command and files them
+// into a map[string]string after uppercasing each key.  Sample arg
+// string:
+//		" BODY=8BITMIME SIZE=1024"
+// The leading space is mandatory.
+func (ss *Session) parseArgs(arg string) (args map[string]string, ok bool) {
+	args = make(map[string]string)
+	re := regexp.MustCompile(" (\\w+)=(\\w+)")
+	pm := re.FindAllStringSubmatch(arg, -1)
+	if pm == nil {
+		ss.error("Failed to parse arg string: '%v'")
+		return nil, false
+	}
+	for _, m := range pm {
+		args[strings.ToUpper(m[1])] = m[2]
+	}
+	ss.trace("ESMTP params: %v", args)
+	return args, true
+}
+
 func (ss *Session) reset() {
-	ss.info("Resetting session state on RSET request")
 	ss.enterState(READY)
 	ss.from = ""
 	ss.recipients = nil

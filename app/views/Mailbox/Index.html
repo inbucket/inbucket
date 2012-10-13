@@ -1,0 +1,72 @@
+{{$title := printf "Inbucket for %v" .name}}
+{{set "title" $title .}}
+{{template "header.html" .}}
+{{$name := .name}}
+<script>
+	function listLoaded() { 
+		$('.listEntry').hover(
+		function() {
+			$(this).addClass("listEntryHover")
+		},
+		function() {
+			$(this).removeClass("listEntryHover")
+		}
+		).click(
+		function() {
+			$('.listEntry').removeClass("listEntrySelected")
+			$(this).addClass("listEntrySelected")
+			$('#emailContent').load('/mailbox/show/{{$name}}/' + this.id)
+		}
+		)
+		$("#messageList").slideDown()
+	}
+
+	function loadList() {
+		$('#messageList').load("/mailbox/list/{{$name}}", listLoaded)
+	}
+	
+	function reloadList() {
+		$('#messageList').slideUp()
+		loadList()
+	}
+
+	function listInit() {
+		$("#messageList").hide()
+		loadList()
+	}
+	
+	function deleteMessage(id) {
+		$('#emailContent').empty()
+		$.ajax({
+			type: 'POST',
+			url: '/mailbox/delete/{{$name}}/' + id,
+			success: reloadList
+		})
+	}
+
+	function messageSource(id) {
+		alert('delete')
+	}
+
+	$(document).ready(listInit)
+</script>
+
+<div id="colOne">
+  <div id="logo">
+    <h1><a href="#">inbucket</a></h1>
+    <h2>mail for {{.name}}</h2>
+  </div>
+  <div class="box" style="text-align:center; padding-bottom:10px;">
+	  <a href="javascript:reloadList()">Refresh List</a>
+  </div>
+  <div id="messageList"></div>
+</div>
+
+<div id="colTwo">
+  <div id="emailContent">
+    <p>Select a message at left, or enter a different username into the box on upper right.</p>
+  </div>
+</div>
+
+{{template "footer.html" .}}
+

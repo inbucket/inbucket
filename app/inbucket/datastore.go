@@ -239,6 +239,15 @@ func (m *Message) Close() error {
 	return m.createGob()
 }
 
+// Delete this Message from disk by removing both the gob and raw files
+func (m *Message) Delete() error {
+	err := os.Remove(m.gobPath())
+	if err != nil {
+		return err
+	}
+	return os.Remove(m.rawPath())
+}
+
 // createGob reads the .raw file to grab the From and Subject header entries,
 // then creates the .gob file.
 func (m *Message) createGob() error {

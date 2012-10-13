@@ -266,6 +266,7 @@ a:hover {
 
 #emailContent {
   padding-bottom: 20px;
+  min-height: 300px;
 }
 
 #emailHeader {
@@ -285,3 +286,19 @@ a:hover {
   color: #000000;
 }
 
+#emailActions {
+	padding: 5px 0;
+	margin: 0 0 10px 0;
+}
+
+#emailActions a {
+  background: #8ac6dc;
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 5px;
+}
+
+#emailActions a:hover {
+  background: #becf74;
+}

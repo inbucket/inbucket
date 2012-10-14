@@ -26,7 +26,7 @@
 	}
 	
 	function reloadList() {
-		$('#messageList').slideUp()
+		$('#messageList').hide()
 		loadList()
 	}
 
@@ -47,7 +47,7 @@
 	function messageSource(id) {
 		window.open('/mailbox/source/{{$name}}/' + id, '_blank',
 			'width=800,height=600,' +
-			'location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,toolbar=no')
+			'menubar=no,resizable=yes,scrollbars=yes,status=no,toolbar=no')
 	}
 
 	$(document).ready(listInit)

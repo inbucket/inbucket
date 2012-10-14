@@ -29,6 +29,7 @@ func (c Mailbox) List(name string) rev.Result {
 	}
 	rev.INFO.Printf("Got %v messsages", len(messages))
 
+	c.Response.Out.Header().Set("Expires", "-1")
 	return c.Render(name, messages)
 }
 
@@ -53,6 +54,7 @@ func (c Mailbox) Show(name string, id string) rev.Result {
 		return c.Redirect(Application.Index)
 	}
 
+	c.Response.Out.Header().Set("Expires", "-1")
 	return c.Render(name, message, body)
 }
 
@@ -100,5 +102,6 @@ func (c Mailbox) Source(name string, id string) rev.Result {
 		return c.Redirect(Application.Index)
 	}
 
+	c.Response.Out.Header().Set("Expires", "-1")
 	return c.RenderText(*raw)
 }

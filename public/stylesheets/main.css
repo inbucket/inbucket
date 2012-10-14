@@ -245,45 +245,47 @@ a:hover {
 }
 
 .listEntry {
-  color: #909090;
-  padding: 5px;
+	color: #909090;
+	padding: 5px;
 }
 
 .listEntry > .subject {
-  color: #2582A4;
-  font-weight: bold;
+	color: #2582A4;
+	font-weight: bold;
 }
 
 .listEntrySelected {
-  background: #becf74;
-  color: #666;
+	background: #becf74;
+	color: #666;
 }
 
 .listEntryHover {
-  background: #8ac6dc;
-  color: #666;
+	background: #8ac6dc;
+	color: #666;
 }
 
 #emailContent {
-  padding-bottom: 20px;
-  min-height: 300px;
+	padding-bottom: 20px;
+	min-height: 300px;
 }
 
 #emailHeader {
-  border-collapse: collapse;
+	border-collapse: collapse;
 }
 
 #emailHeader th, #emailHeader td {
-  text-align: left;
-  padding: 0 3px 3px 0;
+	text-align: left;
+	padding: 0 3px 3px 0;
 }
 
 #emailSubject {
-  border-bottom: 1px #606060 solid;
+	border-bottom: 1px #606060 solid;
+	margin: 0;
+	width: 617px;
 }
 
 #emailBody {
-  color: #000000;
+	color: #000000;
 }
 
 #emailActions {
@@ -292,13 +294,13 @@ a:hover {
 }
 
 #emailActions a {
-  background: #8ac6dc;
-  color: #fff;
-  text-decoration: none;
-  font-weight: bold;
-  padding: 5px;
+	background: #8ac6dc;
+	color: #fff;
+	text-decoration: none;
+	font-weight: bold;
+	padding: 5px;
 }
 
 #emailActions a:hover {
-  background: #becf74;
+	background: #becf74;
 }

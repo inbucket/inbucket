@@ -10,22 +10,34 @@ type Mailbox struct {
 }
 
 func (c Mailbox) Index(name string) rev.Result {
+	c.Validation.Required(name).Message("Account name is required")
+
+	if c.Validation.HasErrors() {
+		c.Validation.Keep()
+		c.FlashParams()
+		return c.Redirect(Application.Index)
+	}
+
 	return c.Render(name)
 }
 
 func (c Mailbox) List(name string) rev.Result {
+	c.Validation.Required(name).Message("Account name is required")
+
+	if c.Validation.HasErrors() {
+		c.Validation.Keep()
+		c.FlashParams()
+		return c.Redirect(Application.Index)
+	}
+
 	ds := inbucket.NewDataStore()
 	mb, err := ds.MailboxFor(name)
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 	messages, err := mb.GetMessages()
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 	rev.INFO.Printf("Got %v messsages", len(messages))
 
@@ -34,24 +46,27 @@ func (c Mailbox) List(name string) rev.Result {
 }
 
 func (c Mailbox) Show(name string, id string) rev.Result {
+	c.Validation.Required(name).Message("Account name is required")
+	c.Validation.Required(id).Message("Message ID is required")
+
+	if c.Validation.HasErrors() {
+		c.Validation.Keep()
+		c.FlashParams()
+		return c.Redirect(Application.Index)
+	}
+
 	ds := inbucket.NewDataStore()
 	mb, err := ds.MailboxFor(name)
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 	message, err := mb.GetMessage(id)
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 	_, body, err := message.ReadBody()
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 
 	c.Response.Out.Header().Set("Expires", "-1")
@@ -59,47 +74,53 @@ func (c Mailbox) Show(name string, id string) rev.Result {
 }
 
 func (c Mailbox) Delete(name string, id string) rev.Result {
+	c.Validation.Required(name).Message("Account name is required")
+	c.Validation.Required(id).Message("Message ID is required")
+
+	if c.Validation.HasErrors() {
+		c.Validation.Keep()
+		c.FlashParams()
+		return c.Redirect(Application.Index)
+	}
+
 	ds := inbucket.NewDataStore()
 	mb, err := ds.MailboxFor(name)
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 	message, err := mb.GetMessage(id)
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 	err = message.Delete()
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 	return c.RenderText("OK")
 }
 
 func (c Mailbox) Source(name string, id string) rev.Result {
+	c.Validation.Required(name).Message("Account name is required")
+	c.Validation.Required(id).Message("Message ID is required")
+
+	if c.Validation.HasErrors() {
+		c.Validation.Keep()
+		c.FlashParams()
+		return c.Redirect(Application.Index)
+	}
+
 	ds := inbucket.NewDataStore()
 	mb, err := ds.MailboxFor(name)
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 	message, err := mb.GetMessage(id)
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 	raw, err := message.ReadRaw()
 	if err != nil {
-		rev.ERROR.Printf(err.Error())
-		c.Flash.Error(err.Error())
-		return c.Redirect(Application.Index)
+		return c.RenderError(err)
 	}
 
 	c.Response.Out.Header().Set("Expires", "-1")

@@ -1,9 +1,9 @@
 {{$name := .name}}
 {{range .messages}}
 <div class="box listEntry" id="{{.Id}}">
-	<div class="subject">{{/*<a href="/mailbox/show/{{$name}}/{{.Id}}">*/}}{{.Subject}}</div>
+	<div class="subject">{{.Subject}}</div>
 	<div class="from">{{.From}}</div>
-	<div class="date">{{.Date}}</div>
+	<div class="date">{{friendlyTime .Date}}</div>
 </div>
 {{else}}
 <div class="box">

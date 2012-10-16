@@ -2,31 +2,54 @@ package inbucket
 
 import (
 	"bytes"
+	"container/list"
 	"fmt"
 	"io"
 	"mime"
 	"mime/multipart"
 	"net/mail"
-	"os"
 )
 
-const MIME_BUF_BYTES = 1024
-
-type MIMEMessage struct {
-	text string
-	html string
-}
+type MIMENodeMatcher func(node *MIMENode) bool
 
 type MIMENode struct {
 	Parent      *MIMENode
 	FirstChild  *MIMENode
 	NextSibling *MIMENode
 	Type        string
-	Content     *bytes.Buffer
+	Content     []byte
+}
+
+type MIMEMessage struct {
+	Text string
+	Html string
+	Root *MIMENode
 }
 
 func NewMIMENode(parent *MIMENode, contentType string) *MIMENode {
 	return &MIMENode{Parent: parent, Type: contentType}
+}
+
+func (n *MIMENode) BreadthFirstSearch(matcher MIMENodeMatcher) *MIMENode {
+	q := list.New()
+	q.PushBack(n)
+
+	// Push children onto queue and attempt to match in that order
+	for q.Len() > 0 {
+		e := q.Front()
+		n := e.Value.(*MIMENode)
+		if matcher(n) {
+			return n
+		}
+		q.Remove(e)
+		c := n.FirstChild
+		for c != nil {
+			q.PushBack(c)
+			c = c.NextSibling
+		}
+	}
+
+	return nil
 }
 
 func (n *MIMENode) String() string {
@@ -66,7 +89,30 @@ func ParseMIMEMessage(mailMsg *mail.Message) (*MIMEMessage, error) {
 
 	err = parseNodes(root, mailMsg.Body, boundary)
 	fmt.Println(root.String())
+
+	// Locate text body
+	match := root.BreadthFirstSearch(func(node *MIMENode) bool {
+		return node.Type == "text/plain"
+	})
+	if match != nil {
+		mimeMsg.Text = string(match.Content)
+	}
+
+	// Locate HTML body
+	match = root.BreadthFirstSearch(func(node *MIMENode) bool {
+		return node.Type == "text/html"
+	})
+	if match != nil {
+		mimeMsg.Html = string(match.Content)
+	}
+
+	fmt.Println(mimeMsg.String())
+
 	return mimeMsg, err
+}
+
+func (m *MIMEMessage) String() string {
+	return fmt.Sprintf("----TEXT----\n%v\n----HTML----\n%v\n----END----\n", m.Text, m.Html)
 }
 
 func parseNodes(parent *MIMENode, reader io.Reader, boundary string) error {
@@ -106,14 +152,12 @@ func parseNodes(parent *MIMENode, reader io.Reader, boundary string) error {
 			}
 		} else {
 			// Content is data, allocate a buffer
-			node.Content = new(bytes.Buffer)
-			_, err = io.Copy(node.Content, part)
+			buf := new(bytes.Buffer)
+			_, err = buf.ReadFrom(part)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("\n----\n")
-			io.Copy(os.Stdout, node.Content)
-			fmt.Printf("\n----\n")
+			node.Content = buf.Bytes()
 		}
 	}
 

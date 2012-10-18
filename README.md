@@ -14,20 +14,20 @@ disk - no external SMTP or database daemons required.
 
 Development Status
 ------------------
-Inbucket is currently in the early stages of development.
+Inbucket is currently alpha quality: it works but is not well tested.
 
 It can:
 
  * Receive SMTP and ESMTP messages and store them to disk
  * List subject, sender and date of messages for a particular mailbox
- * Display the content of a particular message (text only)
- * Display the source of a particular message (headers + body text)
+ * Parse MIME multipart emails
+ * Display the content of a particular message
+ * Display the source of a message (headers + body text)
+ * Display the HTML version of a message (in a new window)
  * Delete a message
 
 It does not yet:
 
- * Parse MIME multipart emails
- * Display HTML email
  * Display or download attachments
 
 Installation

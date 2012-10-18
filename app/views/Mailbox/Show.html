@@ -1,6 +1,9 @@
 <div id="emailActions">
 	<a href="javascript:deleteMessage('{{.message.Id}}');">Delete</a>
 	<a href="javascript:messageSource('{{.message.Id}}');">Source</a>
+	{{if .htmlAvailable}}
+	<a href="javascript:htmlView('{{.message.Id}}');">HTML</a>
+	{{end}}
 </div>
 <table id="emailHeader">
 	<tr>

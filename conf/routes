@@ -8,6 +8,7 @@ GET     /mailbox                                Mailbox.Index
 GET     /mailbox/list/{name}                    Mailbox.List
 GET     /mailbox/show/{name}/{id}               Mailbox.Show
 GET     /mailbox/source/{name}/{id}             Mailbox.Source
+GET     /mailbox/html/{name}/{id}               Mailbox.Html
 POST    /mailbox/delete/{name}/{id}             Mailbox.Delete
 
 # Ignore favicon requests

@@ -44,6 +44,12 @@
     })
   }
 
+  function htmlView(id) {
+    window.open('/mailbox/html/{{$name}}/' + id, '_blank',
+    'width=800,height=600,' +
+    'menubar=yes,resizable=yes,scrollbars=yes,status=yes,toolbar=yes')
+  }
+
   function messageSource(id) {
     window.open('/mailbox/source/{{$name}}/' + id, '_blank',
     'width=800,height=600,' +

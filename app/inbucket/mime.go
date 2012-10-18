@@ -64,6 +64,21 @@ func (n *MIMENode) String() string {
 	return fmt.Sprintf("[%v %v] %v", n.Type, children, siblings)
 }
 
+func IsMIMEMessage(mailMsg *mail.Message) bool {
+	// Parse top-level multipart
+	ctype := mailMsg.Header.Get("Content-Type")
+	mediatype, _, err := mime.ParseMediaType(ctype)
+	if err != nil {
+		return false
+	}
+	switch mediatype {
+	case "multipart/alternative":
+		return true
+	}
+
+	return false
+}
+
 func ParseMIMEMessage(mailMsg *mail.Message) (*MIMEMessage, error) {
 	mimeMsg := new(MIMEMessage)
 
@@ -86,9 +101,7 @@ func ParseMIMEMessage(mailMsg *mail.Message) (*MIMEMessage, error) {
 
 	// Root Node of our tree
 	root := NewMIMENode(nil, mediatype)
-
 	err = parseNodes(root, mailMsg.Body, boundary)
-	fmt.Println(root.String())
 
 	// Locate text body
 	match := root.BreadthFirstSearch(func(node *MIMENode) bool {
@@ -105,8 +118,6 @@ func ParseMIMEMessage(mailMsg *mail.Message) (*MIMEMessage, error) {
 	if match != nil {
 		mimeMsg.Html = string(match.Content)
 	}
-
-	fmt.Println(mimeMsg.String())
 
 	return mimeMsg, err
 }

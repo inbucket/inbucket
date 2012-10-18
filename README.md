@@ -14,7 +14,7 @@ disk - no external SMTP or database daemons required.
 
 Screenshots
 -----------
-![Screenshot 1](http://jhillyerd.github.com/inbucket/screenshots/inbucket-ss1.png)
+![Screenshot 1](http://cloud.github.com/downloads/jhillyerd/inbucket/inbucket-ss1.png)
 
 Development Status
 ------------------
@@ -55,7 +55,7 @@ Inbucket is written in [Google Go][1], and utilizes the [Revel framework][2]
 for its web interface.
 
 Inbucket is open source software released under the MIT License.  The latest
-version can be found at [github](https://github.com/jhillyerd/inbucket).
+version can be found at https://github.com/jhillyerd/inbucket
 
 [1]: http://golang.org/
 [2]: http://robfig.github.com/revel/ 

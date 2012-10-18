@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/mail"
@@ -20,7 +21,7 @@ type MIMENode struct {
 	Content     []byte
 }
 
-type MIMEMessage struct {
+type MIMEBody struct {
 	Text string
 	Html string
 	Root *MIMENode
@@ -79,50 +80,59 @@ func IsMIMEMessage(mailMsg *mail.Message) bool {
 	return false
 }
 
-func ParseMIMEMessage(mailMsg *mail.Message) (*MIMEMessage, error) {
-	mimeMsg := new(MIMEMessage)
+func ParseMIMEBody(mailMsg *mail.Message) (*MIMEBody, error) {
+	mimeMsg := new(MIMEBody)
 
-	// Parse top-level multipart
-	ctype := mailMsg.Header.Get("Content-Type")
-	mediatype, params, err := mime.ParseMediaType(ctype)
-	if err != nil {
-		return nil, err
-	}
-	switch mediatype {
-	case "multipart/alternative":
-		// Good
-	default:
-		return nil, fmt.Errorf("Unknown mediatype: %v", mediatype)
-	}
-	boundary := params["boundary"]
-	if boundary == "" {
-		return nil, fmt.Errorf("Unable to locate boundary param in Content-Type header")
+	if !IsMIMEMessage(mailMsg) {
+		// Parse as text only
+		bodyBytes, err := ioutil.ReadAll(mailMsg.Body)
+		if err != nil {
+			return nil, err
+		}
+		mimeMsg.Text = string(bodyBytes)
+	} else {
+		// Parse top-level multipart
+		ctype := mailMsg.Header.Get("Content-Type")
+		mediatype, params, err := mime.ParseMediaType(ctype)
+		if err != nil {
+			return nil, err
+		}
+		switch mediatype {
+		case "multipart/alternative":
+			// Good
+		default:
+			return nil, fmt.Errorf("Unknown mediatype: %v", mediatype)
+		}
+		boundary := params["boundary"]
+		if boundary == "" {
+			return nil, fmt.Errorf("Unable to locate boundary param in Content-Type header")
+		}
+
+		// Root Node of our tree
+		root := NewMIMENode(nil, mediatype)
+		err = parseNodes(root, mailMsg.Body, boundary)
+
+		// Locate text body
+		match := root.BreadthFirstSearch(func(node *MIMENode) bool {
+			return node.Type == "text/plain"
+		})
+		if match != nil {
+			mimeMsg.Text = string(match.Content)
+		}
+
+		// Locate HTML body
+		match = root.BreadthFirstSearch(func(node *MIMENode) bool {
+			return node.Type == "text/html"
+		})
+		if match != nil {
+			mimeMsg.Html = string(match.Content)
+		}
 	}
 
-	// Root Node of our tree
-	root := NewMIMENode(nil, mediatype)
-	err = parseNodes(root, mailMsg.Body, boundary)
-
-	// Locate text body
-	match := root.BreadthFirstSearch(func(node *MIMENode) bool {
-		return node.Type == "text/plain"
-	})
-	if match != nil {
-		mimeMsg.Text = string(match.Content)
-	}
-
-	// Locate HTML body
-	match = root.BreadthFirstSearch(func(node *MIMENode) bool {
-		return node.Type == "text/html"
-	})
-	if match != nil {
-		mimeMsg.Html = string(match.Content)
-	}
-
-	return mimeMsg, err
+	return mimeMsg, nil
 }
 
-func (m *MIMEMessage) String() string {
+func (m *MIMEBody) String() string {
 	return fmt.Sprintf("----TEXT----\n%v\n----HTML----\n%v\n----END----\n", m.Text, m.Html)
 }
 

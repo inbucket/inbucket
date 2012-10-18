@@ -174,8 +174,10 @@ func (m *Message) ReadHeader() (msg *mail.Message, err error) {
 	return msg, err
 }
 
-// ReadBody opens the .raw portion of a Message and returns a standard Go mail.Message object
-func (m *Message) ReadBody() (msg *mail.Message, body *string, err error) {
+// ReadBody opens the .raw portion of a Message and returns a MIMEBody object, along
+// with a free mail.Message containing the Headers, since we had to make one of those
+// anyway.
+func (m *Message) ReadBody() (msg *mail.Message, body *MIMEBody, err error) {
 	file, err := os.Open(m.rawPath())
 	defer file.Close()
 	if err != nil {
@@ -186,12 +188,11 @@ func (m *Message) ReadBody() (msg *mail.Message, body *string, err error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	bodyBytes, err := ioutil.ReadAll(reader)
+	mime, err := ParseMIMEBody(msg)
 	if err != nil {
 		return nil, nil, err
 	}
-	bodyString := string(bodyBytes)
-	return msg, &bodyString, err
+	return msg, mime, err
 }
 
 // ReadRaw opens the .raw portion of a Message and returns it as a string

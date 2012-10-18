@@ -23,16 +23,20 @@ func TestIdentifyMime(t *testing.T) {
 func TestParseNonMime(t *testing.T) {
 	msg := readMessage("non-mime.raw")
 
-	_, err := ParseMIMEMessage(msg)
-	assert.NotNil(t, err, "Expected error parsing a non-MIME message")
+	mime, err := ParseMIMEBody(msg)
+	if err != nil {
+		t.Fatalf("Failed to parse non-MIME: %v", err)
+	}
+
+	assert.Contains(t, mime.Text, "This is a test mailing")
 }
 
 func TestParseInlineText(t *testing.T) {
 	msg := readMessage("html-mime-inline.raw")
 
-	mime, err := ParseMIMEMessage(msg)
+	mime, err := ParseMIMEBody(msg)
 	if err != nil {
-		t.Fatalf("Failed to parse mime: %v", err)
+		t.Fatalf("Failed to parse MIME: %v", err)
 	}
 
 	assert.Equal(t, mime.Text, "Test of HTML section")
@@ -41,9 +45,9 @@ func TestParseInlineText(t *testing.T) {
 func TestParseInlineHtml(t *testing.T) {
 	msg := readMessage("html-mime-inline.raw")
 
-	mime, err := ParseMIMEMessage(msg)
+	mime, err := ParseMIMEBody(msg)
 	if err != nil {
-		t.Fatalf("Failed to parse mime: %v", err)
+		t.Fatalf("Failed to parse MIME: %v", err)
 	}
 
 	assert.Contains(t, mime.Html, "<html>")

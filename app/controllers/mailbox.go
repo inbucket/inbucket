@@ -64,10 +64,11 @@ func (c Mailbox) Show(name string, id string) rev.Result {
 	if err != nil {
 		return c.RenderError(err)
 	}
-	_, body, err := message.ReadBody()
+	_, mime, err := message.ReadBody()
 	if err != nil {
 		return c.RenderError(err)
 	}
+	body := mime.Text
 
 	c.Response.Out.Header().Set("Expires", "-1")
 	return c.Render(name, message, body)

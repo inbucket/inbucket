@@ -42,6 +42,28 @@ func TestParseInlineText(t *testing.T) {
 	assert.Equal(t, mime.Text, "Test of HTML section")
 }
 
+func TestParseQuotedPrintable(t *testing.T) {
+	msg := readMessage("quoted-printable.raw")
+
+	mime, err := ParseMIMEBody(msg)
+	if err != nil {
+		t.Fatalf("Failed to parse MIME: %v", err)
+	}
+
+	assert.Contains(t, mime.Text, "Phasellus sit amet arcu")
+}
+
+func TestParseQuotedPrintableMime(t *testing.T) {
+	msg := readMessage("quoted-printable-mime.raw")
+
+	mime, err := ParseMIMEBody(msg)
+	if err != nil {
+		t.Fatalf("Failed to parse MIME: %v", err)
+	}
+
+	assert.Contains(t, mime.Text, "Nullam venenatis ante")
+}
+
 func TestParseInlineHtml(t *testing.T) {
 	msg := readMessage("html-mime-inline.raw")
 

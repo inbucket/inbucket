@@ -3,6 +3,7 @@ package inbucket
 import (
   "crypto/sha1"
   "fmt"
+  "html"
   "io"
   "strings"
 )
@@ -24,5 +25,13 @@ func HashMailboxName(mailbox string) string {
   h := sha1.New()
   io.WriteString(h, mailbox)
   return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// TextToHtml takes plain text, escapes it and tries to pretty it up for
+// HTML display
+func TextToHtml(text string) string {
+	text = html.EscapeString(text)
+	replacer := strings.NewReplacer("\r\n", "<br/>\n", "\r", "<br/>\n", "\n", "<br/>\n")
+	return replacer.Replace(text)
 }
 

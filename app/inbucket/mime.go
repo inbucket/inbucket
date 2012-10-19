@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"github.com/sloonz/go-qprintable"
 	"io"
-	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/mail"
+	"strings"
 )
 
 type MIMENodeMatcher func(node *MIMENode) bool
@@ -85,7 +86,7 @@ func ParseMIMEBody(mailMsg *mail.Message) (*MIMEBody, error) {
 
 	if !IsMIMEMessage(mailMsg) {
 		// Parse as text only
-		bodyBytes, err := ioutil.ReadAll(mailMsg.Body)
+		bodyBytes, err := decodeSection(mailMsg.Header.Get("Content-Transfer-Encoding"), mailMsg.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -136,6 +137,29 @@ func (m *MIMEBody) String() string {
 	return fmt.Sprintf("----TEXT----\n%v\n----HTML----\n%v\n----END----\n", m.Text, m.Html)
 }
 
+// decodeSection attempts to decode the data from reader using the algorithm listed in
+// the Content-Transfer-Encoding header, returning the raw data if it does not know
+// the encoding type.
+func decodeSection(encoding string, reader io.Reader) ([]byte, error) {
+	switch strings.ToLower(encoding) {
+	case "quoted-printable":
+		decoder := qprintable.NewDecoder(qprintable.WindowsTextEncoding, reader)
+		buf := new(bytes.Buffer)
+		_, err := buf.ReadFrom(decoder)
+		if err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
+	// Don't know this type, just return bytes
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(reader)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 func parseNodes(parent *MIMENode, reader io.Reader, boundary string) error {
 	var prevSibling *MIMENode
 
@@ -172,13 +196,12 @@ func parseNodes(parent *MIMENode, reader io.Reader, boundary string) error {
 				return err
 			}
 		} else {
-			// Content is data, allocate a buffer
-			buf := new(bytes.Buffer)
-			_, err = buf.ReadFrom(part)
+			// Content is text or data, decode it
+			data, err := decodeSection(part.Header.Get("Content-Transfer-Encoding"), part)
 			if err != nil {
 				return err
 			}
-			node.Content = buf.Bytes()
+			node.Content = data
 		}
 	}
 

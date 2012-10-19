@@ -286,6 +286,7 @@ a:hover {
 
 #emailBody {
   color: #000000;
+  margin-top: 15px;
 }
 
 #emailActions {

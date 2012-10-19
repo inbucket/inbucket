@@ -69,7 +69,7 @@ func (c Mailbox) Show(name string, id string) rev.Result {
 	if err != nil {
 		return c.RenderError(err)
 	}
-	body := mime.Text
+	body := template.HTML(inbucket.TextToHtml(mime.Text))
 	htmlAvailable := mime.Html != ""
 
 	c.Response.Out.Header().Set("Expires", "-1")

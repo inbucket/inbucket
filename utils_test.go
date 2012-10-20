@@ -41,4 +41,3 @@ func TestTextToHtml(t *testing.T) {
 	assert.Equal(t, TextToHtml("line\r\nbreak"), "line<br/>\nbreak")
 	assert.Equal(t, TextToHtml("line\rbreak"), "line<br/>\nbreak")
 }
-

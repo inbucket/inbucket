@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/jhillyerd/inbucket"
 	"github.com/jhillyerd/inbucket/smtpd"
-	"log"
+	"github.com/jhillyerd/inbucket/web"
 	"os"
 )
 
@@ -32,15 +32,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Println("Logger test")
-	inbucket.Trace("trace test")
-	inbucket.Info("info test")
-	inbucket.Warn("warn test")
-	inbucket.Error("error test")
-
 	// Startup SMTP server
 	server := smtpd.New()
-	server.Start()
+	go server.Start()
+
+	web.Start()
 }
 
 func init() {

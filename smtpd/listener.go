@@ -34,7 +34,7 @@ func (s *Server) Start() {
 		panic(err)
 	}
 
-	inbucket.Info("Listening on TCP4 %v", addr)
+	inbucket.Info("SMTP listening on TCP4 %v", addr)
 	ln, err := net.ListenTCP("tcp4", addr)
 	if err != nil {
 		inbucket.Error("Failed to start tcp4 listener: %v", err)

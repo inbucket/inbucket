@@ -1,4 +1,4 @@
-package controllers
+package web
 
 import (
 	"github.com/jhillyerd/inbucket/app/inbucket"

@@ -16,13 +16,27 @@ type SmtpConfig struct {
 	Domain     string
 }
 
+type WebConfig struct {
+	Ip4address   net.IP
+	Ip4port      int
+	TemplatesDir string
+	PublicDir    string
+}
+
 var smtpConfig *SmtpConfig
+
+var webConfig *WebConfig
 
 var Config *config.Config
 
-// GetSmtpConfig returns a copy of the SmtpConfig
+// GetSmtpConfig returns a copy of the SmtpConfig object
 func GetSmtpConfig() SmtpConfig {
 	return *smtpConfig
+}
+
+// GetWebConfig returns a copy of the WebConfig object
+func GetWebConfig() WebConfig {
+	return *webConfig
 }
 
 // LoadConfig loads the specified configuration file into inbucket.Config
@@ -66,6 +80,11 @@ func LoadConfig(filename string) error {
 	}
 
 	err = parseSmtpConfig()
+	if err != nil {
+		return nil
+	}
+
+	err = parseWebConfig()
 
 	return err
 }
@@ -102,6 +121,49 @@ func parseSmtpConfig() error {
 		return fmt.Errorf("Failed to parse %v: %v", option, err)
 	}
 	smtpConfig.Domain = str
+
+	return nil
+}
+
+// parseWebConfig trying to catch config errors early
+func parseWebConfig() error {
+	webConfig = new(WebConfig)
+
+	// Parse IP4 address only, error on IP6.
+	option := "[web]ip4.address"
+	str, err := Config.String("web", "ip4.address")
+	if err != nil {
+		return fmt.Errorf("Failed to parse %v: %v", option, err)
+	}
+	addr := net.ParseIP(str)
+	if addr == nil {
+		return fmt.Errorf("Failed to parse %v '%v'", option, str)
+	}
+	addr = addr.To4()
+	if addr == nil {
+		return fmt.Errorf("Failed to parse %v '%v' not IPv4!", option, str)
+	}
+	webConfig.Ip4address = addr
+
+	option = "[web]ip4.port"
+	webConfig.Ip4port, err = Config.Int("web", "ip4.port")
+	if err != nil {
+		return fmt.Errorf("Failed to parse %v: %v", option, err)
+	}
+
+	option = "[web]templates.dir"
+	str, err = Config.String("web", "templates.dir")
+	if err != nil {
+		return fmt.Errorf("Failed to parse %v: %v", option, err)
+	}
+	webConfig.TemplatesDir = str
+
+	option = "[web]public.dir"
+	str, err = Config.String("web", "public.dir")
+	if err != nil {
+		return fmt.Errorf("Failed to parse %v: %v", option, err)
+	}
+	webConfig.PublicDir = str
 
 	return nil
 }

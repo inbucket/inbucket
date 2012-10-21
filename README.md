@@ -38,10 +38,19 @@ Installation
 ------------
 You will need a functioning [Go installation][1] for this to work. 
 
-    # From the base of your GOPATH...
-    go get github.com/jhillyerd/inbucket
-    go build github.com/jhillyerd/inbucket
-    bin/inbucketd src/github.com/jhillyerd/inbucket/conf/inbucket.conf
+Grab the Inbucket source code and compile the daemon:
+
+    go get -v github.com/jhillyerd/inbucket
+    go get -v github.com/gorilla/mux
+    go get -v github.com/gorilla/sessions
+    go get -v thegoods.biz/httpbuf
+    cd $GOPATH/src/github.com/jhillyerd/inbucket
+    go build main/inbucketd.go
+
+Edit conf/inbucket.conf and tailor to your environment.  It should work on most
+Unix and OS X machines as is.
+
+    ./inbucketd conf/inbucket.conf
 
 By default the SMTP server will be listening on localhost port 2500 and
 the web interface will be available at [localhost:9000](http://localhost:9000/).

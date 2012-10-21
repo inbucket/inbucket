@@ -1,52 +1,52 @@
 package web
 
 import (
-	"github.com/jhillyerd/inbucket/app/inbucket"
-	"github.com/robfig/revel"
-	"html/template"
+	"github.com/jhillyerd/inbucket"
+	"net/http"
 )
 
-type Mailbox struct {
-	*rev.Controller
-}
-
-func (c Mailbox) Index(name string) rev.Result {
-	c.Validation.Required(name).Message("Account name is required")
-
-	if c.Validation.HasErrors() {
-		c.Validation.Keep()
-		c.FlashParams()
-		return c.Redirect(Application.Index)
+func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	name := req.FormValue("name")
+	if len(name) == 0 {
+		ctx.Session.AddFlash("Account name is required", "errors")
+		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		return nil
 	}
 
-	return c.Render(name)
+	return RenderTemplate("mailbox/index.html", w, map[string]interface{}{
+		"ctx":  ctx,
+		"name": name,
+	})
 }
 
-func (c Mailbox) List(name string) rev.Result {
-	c.Validation.Required(name).Message("Account name is required")
-
-	if c.Validation.HasErrors() {
-		c.Validation.Keep()
-		c.FlashParams()
-		return c.Redirect(Application.Index)
+func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	name := ctx.Vars["name"]
+	if len(name) == 0 {
+		ctx.Session.AddFlash("Account name is required", "errors")
+		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		return nil
 	}
 
-	ds := inbucket.NewDataStore()
-	mb, err := ds.MailboxFor(name)
+	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return c.RenderError(err)
+		return err
 	}
 	messages, err := mb.GetMessages()
 	if err != nil {
-		return c.RenderError(err)
+		return err
 	}
-	rev.INFO.Printf("Got %v messsages", len(messages))
+	inbucket.Trace("Got %v messsages", len(messages))
 
-	c.Response.Out.Header().Set("Expires", "-1")
-	return c.Render(name, messages)
+	return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
+		"ctx":      ctx,
+		"name":     name,
+		"messages": messages,
+	})
 }
 
+/*
 func (c Mailbox) Show(name string, id string) rev.Result {
+func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	c.Validation.Required(name).Message("Account name is required")
 	c.Validation.Required(id).Message("Message ID is required")
 
@@ -77,6 +77,7 @@ func (c Mailbox) Show(name string, id string) rev.Result {
 }
 
 func (c Mailbox) Delete(name string, id string) rev.Result {
+func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	c.Validation.Required(name).Message("Account name is required")
 	c.Validation.Required(id).Message("Message ID is required")
 
@@ -104,6 +105,7 @@ func (c Mailbox) Delete(name string, id string) rev.Result {
 }
 
 func (c Mailbox) Html(name string, id string) rev.Result {
+func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	c.Validation.Required(name).Message("Account name is required")
 	c.Validation.Required(id).Message("Message ID is required")
 
@@ -135,6 +137,7 @@ func (c Mailbox) Html(name string, id string) rev.Result {
 }
 
 func (c Mailbox) Source(name string, id string) rev.Result {
+func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	c.Validation.Required(name).Message("Account name is required")
 	c.Validation.Required(id).Message("Message ID is required")
 
@@ -161,3 +164,4 @@ func (c Mailbox) Source(name string, id string) rev.Result {
 	c.Response.Out.Header().Set("Expires", "-1")
 	return c.RenderText(*raw)
 }
+*/

@@ -31,17 +31,19 @@ var Router *mux.Router
 var sessionStore sessions.Store
 
 func setupRoutes(cfg inbucket.WebConfig) {
-	r := mux.NewRouter()
-	Router = r
+	Router = mux.NewRouter()
 	inbucket.Info("Theme templates mapped to '%v'", cfg.TemplateDir)
 	inbucket.Info("Theme static content mapped to '%v'", cfg.PublicDir)
 
+	r := Router
 	// Static content
 	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
 		http.FileServer(http.Dir(cfg.PublicDir))))
 
 	// Root
-	r.Path("/").Handler(handler(RootIndex))
+	r.Path("/").Handler(handler(RootIndex)).Name("RootIndex").Methods("GET")
+	r.Path("/mailbox").Handler(handler(MailboxIndex)).Name("MailboxIndex").Methods("GET")
+	r.Path("/mailbox/list/{name}").Handler(handler(MailboxList)).Name("MailboxList").Methods("GET")
 }
 
 // Start() the web server

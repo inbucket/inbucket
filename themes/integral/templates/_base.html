@@ -4,42 +4,50 @@ Design by Free CSS Templates
 http://www.freecsstemplates.org
 Released for free under a Creative Commons Attribution 2.5 License
 -->
-{{define "col1menu"}}{{/* Used inside #content div */}}
-<div id="colOne">
-  <div id="logo">
-    <h1><a href="#">inbucket</a></h1>
-    <h2>email testing service</h2>
-  </div>
-</div>
-{{end}}
 <html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>{{template "title" .}}</title>
-<link href="/public/main.css" rel="stylesheet" type="text/css" />
-<link rel="shortcut icon" type="image/png" href="/public/images/favicon.png">
-<script src="/public/jquery-1.5.2.min.js" type="text/javascript" charset="utf-8"></script>
-</head>
-<body>
-<div id="header">
-	<ul id="menu">
-		<li><a href="/" accesskey="1" title="">Home</a></li>
-		<li><a href="/" accesskey="2" title="">About</a></li>
-	</ul>
-	<form id="search" action="/mailbox" method="GET">
-		<fieldset>
-		<input name="name" type="text" id="input1" />
-		<input name="submit" type="submit" id="input2" value="Go" />
-		</fieldset>
-	</form>
-</div>
-<div id="content">
-{{template "content" .}}
-</div>
-<div id="footer">
-  <p>Inbucket is an open source project hosted at
-  <a href="http://github.com/jhillyerd/inbucket/">github</a>.
-  Design by <a href="http://www.freecsstemplates.org/">FCT</a>.</p>
-</div>
-</body>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>{{template "title" .}}</title>
+    <link href="/public/main.css" rel="stylesheet" type="text/css" />
+    <link rel="shortcut icon" type="image/png" href="/public/images/favicon.png">
+    <script src="/public/jquery-1.5.2.min.js" type="text/javascript" charset="utf-8"></script>
+    {{template "script" .}}
+  </head>
+  <body>
+    <div id="header">
+      <ul id="menu">
+	<li><a href="/" accesskey="1" title="">Home</a></li>
+	<li><a href="/" accesskey="2" title="">About</a></li>
+      </ul>
+      <form id="search" action="{{reverse "MailboxIndex"}}" method="GET">
+	<fieldset>
+	  <input name="name" type="text" id="input1" />
+	  <input name="submit" type="submit" id="input2" value="Go" />
+	</fieldset>
+      </form>
+    </div>
+    <div id="content">
+      <div id="colOne">
+	{{template "menu" .}}
+      </div>
+      <div id="colTwo">
+	{{with .ctx.Session.Flashes "errors"}}
+	<div class="errors">
+	  <p>Please fix the following errors and resubmit:<p>
+	  <ul>
+	    {{range .}}
+	    <li>{{.}}</li>
+	    {{end}}
+	  </ul>
+	</div>
+	{{end}}
+	{{template "content" .}}
+      </div>
+    </div>
+    <div id="footer">
+      <p>Inbucket is an open source project hosted at
+      <a href="http://github.com/jhillyerd/inbucket/">github</a>.
+      Design by <a href="http://www.freecsstemplates.org/">FCT</a>.</p>
+    </div>
+  </body>
 </html>

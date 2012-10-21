@@ -141,6 +141,7 @@ a:hover {
 
 #content {
   width: 928px;
+  min-height: 300px;
   margin: 0 auto;
 }
 
@@ -266,7 +267,6 @@ a:hover {
 
 #emailContent {
   padding-bottom: 20px;
-  min-height: 300px;
 }
 
 #emailHeader {

@@ -17,10 +17,11 @@ type SmtpConfig struct {
 }
 
 type WebConfig struct {
-	Ip4address  net.IP
-	Ip4port     int
-	TemplateDir string
-	PublicDir   string
+	Ip4address    net.IP
+	Ip4port       int
+	TemplateDir   string
+	TemplateCache bool
+	PublicDir     string
 }
 
 var smtpConfig *SmtpConfig
@@ -69,6 +70,7 @@ func LoadConfig(filename string) error {
 	requireOption(messages, "web", "ip4.address")
 	requireOption(messages, "web", "ip4.port")
 	requireOption(messages, "web", "template.dir")
+	requireOption(messages, "web", "template.cache")
 	requireOption(messages, "web", "public.dir")
 	requireOption(messages, "datastore", "path")
 	if messages.Len() > 0 {
@@ -157,6 +159,13 @@ func parseWebConfig() error {
 		return fmt.Errorf("Failed to parse %v: %v", option, err)
 	}
 	webConfig.TemplateDir = str
+
+	option = "[web]template.cache"
+	flag, err := Config.Bool("web", "template.cache")
+	if err != nil {
+		return fmt.Errorf("Failed to parse %v: %v", option, err)
+	}
+	webConfig.TemplateCache = flag
 
 	option = "[web]public.dir"
 	str, err = Config.String("web", "public.dir")

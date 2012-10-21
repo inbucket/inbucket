@@ -1,7 +1,7 @@
-{{$title := printf "Inbucket for %v" .name}}
-{{set "title" $title .}}
-{{template "header.html" .}}
+{{define "title"}}{{printf "Inbucket for %v" .name}}{{end}}
 {{$name := .name}}
+
+{{define "script"}}
 <script>
   function listLoaded() { 
     $('.listEntry').hover(
@@ -15,14 +15,14 @@
     function() {
       $('.listEntry').removeClass("listEntrySelected")
       $(this).addClass("listEntrySelected")
-      $('#emailContent').load('/mailbox/show/{{$name}}/' + this.id)
+      $('#emailContent').load('/mailbox/show/{{.name}}/' + this.id)
     }
     )
     $("#messageList").slideDown()
   }
 
   function loadList() {
-    $('#messageList').load("/mailbox/list/{{$name}}", listLoaded)
+    $('#messageList').load("/mailbox/list/{{.name}}", listLoaded)
   }
 
   function reloadList() {
@@ -39,44 +39,41 @@
     $('#emailContent').empty()
     $.ajax({
       type: 'POST',
-      url: '/mailbox/delete/{{$name}}/' + id,
+      url: '/mailbox/delete/{{.name}}/' + id,
       success: reloadList
     })
   }
 
   function htmlView(id) {
-    window.open('/mailbox/html/{{$name}}/' + id, '_blank',
+    window.open('/mailbox/html/{{.name}}/' + id, '_blank',
     'width=800,height=600,' +
     'menubar=yes,resizable=yes,scrollbars=yes,status=yes,toolbar=yes')
   }
 
   function messageSource(id) {
-    window.open('/mailbox/source/{{$name}}/' + id, '_blank',
+    window.open('/mailbox/source/{{.name}}/' + id, '_blank',
     'width=800,height=600,' +
     'menubar=no,resizable=yes,scrollbars=yes,status=no,toolbar=no')
   }
 
   $(document).ready(listInit)
 </script>
+{{end}}
 
-<div id="colOne">
-  <div id="logo">
-    <h1><a href="#">inbucket</a></h1>
-    <h2>mail for {{.name}}</h2>
-  </div>
-  <div class="box" style="text-align:center; padding-bottom:10px;">
-    <a href="javascript:reloadList()">Refresh List</a>
-  </div>
-  <div id="messageList"></div>
+{{define "menu"}}
+<div id="logo">
+  <h1><a href="#">inbucket</a></h1>
+  <h2>mail for {{.name}}</h2>
 </div>
-
-<div id="colTwo">
-  {{template "errors.html" .}}
-
-  <div id="emailContent">
-    <p>Select a message at left, or enter a different username into the box on upper right.</p>
-  </div>
+<div class="box" style="text-align:center; padding-bottom:10px;">
+  <a href="javascript:reloadList()">Refresh List</a>
 </div>
+<div id="messageList"></div>
+{{end}}
 
-{{template "footer.html" .}}
+{{define "content"}}
+<div id="emailContent">
+  <p>Select a message at left, or enter a different username into the box on upper right.</p>
+</div>
+{{end}}
 

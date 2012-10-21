@@ -87,7 +87,7 @@ func (ss *Session) String() string {
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	s.info("Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
+	inbucket.Info("Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	defer conn.Close()
 
 	ss := NewSession(s, id, conn)
@@ -476,17 +476,17 @@ func (ss *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ss *Session) trace(msg string, args ...interface{}) {
-	ss.server.trace("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	inbucket.Trace("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) info(msg string, args ...interface{}) {
-	ss.server.info("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	inbucket.Info("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) warn(msg string, args ...interface{}) {
-	ss.server.warn("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	inbucket.Warn("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) error(msg string, args ...interface{}) {
-	ss.server.error("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	inbucket.Error("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }

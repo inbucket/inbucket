@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/jhillyerd/inbucket"
 	"github.com/jhillyerd/inbucket/smtpd"
+	"log"
 	"os"
 )
 
@@ -26,27 +27,25 @@ func main() {
 		os.Exit(1)
 	}
 	err := inbucket.LoadConfig(flag.Arg(0))
-	configError(err)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to parse config: %v\n", err)
+		os.Exit(1)
+	}
+
+	log.Println("Logger test")
+	inbucket.Trace("trace test")
+	inbucket.Info("info test")
+	inbucket.Warn("warn test")
+	inbucket.Error("error test")
 
 	// Startup SMTP server
-	domain, err := inbucket.Config.String("smtp", "domain")
-	configError(err)
-	port, err := inbucket.Config.Int("smtp", "ip4.port")
-	configError(err)
-	server := smtpd.New(domain, port)
-	go server.Start()
+	server := smtpd.New()
+	server.Start()
 }
 
 func init() {
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage of inbucketd [options] <conf file>:")
 		flag.PrintDefaults()
-	}
-}
-
-func configError(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing config file: %v\n", err)
-		os.Exit(1)
 	}
 }

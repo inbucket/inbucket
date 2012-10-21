@@ -4,10 +4,26 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/robfig/goconfig/config"
+	"net"
 	"os"
 )
 
+// SmtpConfig houses the SMTP server configuration - not using pointers
+// so that I can pass around copies of the object safely.
+type SmtpConfig struct {
+	Ip4address net.IP
+	Ip4port    int
+	Domain     string
+}
+
+var smtpConfig *SmtpConfig
+
 var Config *config.Config
+
+// GetSmtpConfig returns a copy of the SmtpConfig
+func GetSmtpConfig() SmtpConfig {
+	return *smtpConfig
+}
 
 // LoadConfig loads the specified configuration file into inbucket.Config
 // and performs validations on it.
@@ -48,6 +64,44 @@ func LoadConfig(filename string) error {
 		}
 		return fmt.Errorf("Failed to validate configuration")
 	}
+
+	err = parseSmtpConfig()
+
+	return err
+}
+
+// parseSmtpConfig trying to catch config errors early
+func parseSmtpConfig() error {
+	smtpConfig = new(SmtpConfig)
+
+	// Parse IP4 address only, error on IP6.
+	option := "[smtp]ip4.address"
+	str, err := Config.String("smtp", "ip4.address")
+	if err != nil {
+		return fmt.Errorf("Failed to parse %v: %v", option, err)
+	}
+	addr := net.ParseIP(str)
+	if addr == nil {
+		return fmt.Errorf("Failed to parse %v '%v'", option, str)
+	}
+	addr = addr.To4()
+	if addr == nil {
+		return fmt.Errorf("Failed to parse %v '%v' not IPv4!", option, str)
+	}
+	smtpConfig.Ip4address = addr
+
+	option = "[smtp]ip4.port"
+	smtpConfig.Ip4port, err = Config.Int("smtp", "ip4.port")
+	if err != nil {
+		return fmt.Errorf("Failed to parse %v: %v", option, err)
+	}
+
+	option = "[smtp]domain"
+	str, err = Config.String("smtp", "domain")
+	if err != nil {
+		return fmt.Errorf("Failed to parse %v: %v", option, err)
+	}
+	smtpConfig.Domain = str
 
 	return nil
 }

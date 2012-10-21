@@ -63,4 +63,3 @@ Inbucket is open source software released under the MIT License.  The latest
 version can be found at https://github.com/jhillyerd/inbucket
 
 [1]: http://golang.org/
-[2]: http://robfig.github.com/revel/ 

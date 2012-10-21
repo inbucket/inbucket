@@ -4,19 +4,21 @@ Design by Free CSS Templates
 http://www.freecsstemplates.org
 Released for free under a Creative Commons Attribution 2.5 License
 -->
+{{define "col1menu"}}{{/* Used inside #content div */}}
+<div id="colOne">
+  <div id="logo">
+    <h1><a href="#">inbucket</a></h1>
+    <h2>email testing service</h2>
+  </div>
+</div>
+{{end}}
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>{{.title}}</title>
-<link href="/public/stylesheets/main.css" rel="stylesheet" type="text/css" />
+<title>{{template "title" .}}</title>
+<link href="/public/main.css" rel="stylesheet" type="text/css" />
 <link rel="shortcut icon" type="image/png" href="/public/images/favicon.png">
-<script src="/public/js/jquery-1.5.2.min.js" type="text/javascript" charset="utf-8"></script>
-{{range .moreStyles}}
-  <link rel="stylesheet" type="text/css" href="/public/{{.}}">
-{{end}}
-{{range .moreScripts}}
-  <script src="/public/{{.}}" type="text/javascript" charset="utf-8"></script>
-{{end}}
+<script src="/public/jquery-1.5.2.min.js" type="text/javascript" charset="utf-8"></script>
 </head>
 <body>
 <div id="header">
@@ -32,3 +34,12 @@ Released for free under a Creative Commons Attribution 2.5 License
 	</form>
 </div>
 <div id="content">
+{{template "content" .}}
+</div>
+<div id="footer">
+  <p>Inbucket is an open source project hosted at
+  <a href="http://github.com/jhillyerd/inbucket/">github</a>.
+  Design by <a href="http://www.freecsstemplates.org/">FCT</a>.</p>
+</div>
+</body>
+</html>

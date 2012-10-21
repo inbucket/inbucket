@@ -1,15 +1,11 @@
-{{set "title" "Inbucket" .}}
-{{template "header.html" .}}
-{{template "menu.html" .}}
-
+{{define "title"}}Inbucket{{end}}
+{{define "content"}}
+{{template "col1menu" .}}
 <div id="colTwo">
-  {{template "errors.html" .}}
-
   <p>Inbucket is an email testing service; it will accept email for any email
   address and make it available to view without a password.</p>
   <p>To view email for a particular address, enter the username portion
   of the address into the box on the upper right and click <em>go</em>.</p>
 </div>
-
-{{template "footer.html" .}}
+{{end}}
 

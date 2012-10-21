@@ -160,8 +160,6 @@ func (m *Message) gobPath() string {
 }
 
 func (m *Message) rawPath() string {
-	Trace(m.mailbox.path)
-	Trace(m.Id)
 	return filepath.Join(m.mailbox.path, m.Id+".raw")
 }
 
@@ -261,10 +259,12 @@ func (m *Message) Close() error {
 
 // Delete this Message from disk by removing both the gob and raw files
 func (m *Message) Delete() error {
+	Trace("Deleting %v", m.gobPath())
 	err := os.Remove(m.gobPath())
 	if err != nil {
 		return err
 	}
+	Trace("Deleting %v", m.rawPath())
 	return os.Remove(m.rawPath())
 }
 

@@ -15,17 +15,6 @@ import (
 
 type handler func(http.ResponseWriter, *http.Request, *Context) error
 
-/*
-type WebServer struct {
-	thing string
-}
-
-// NewServer() returns a new web.Server instance
-func NewWebServer() *Server {
-	return &WebServer{}
-}
-*/
-
 var Router *mux.Router
 
 var sessionStore sessions.Store
@@ -44,6 +33,10 @@ func setupRoutes(cfg inbucket.WebConfig) {
 	r.Path("/").Handler(handler(RootIndex)).Name("RootIndex").Methods("GET")
 	r.Path("/mailbox").Handler(handler(MailboxIndex)).Name("MailboxIndex").Methods("GET")
 	r.Path("/mailbox/list/{name}").Handler(handler(MailboxList)).Name("MailboxList").Methods("GET")
+	r.Path("/mailbox/show/{name}/{id}").Handler(handler(MailboxShow)).Name("MailboxShow").Methods("GET")
+	r.Path("/mailbox/html/{name}/{id}").Handler(handler(MailboxHtml)).Name("MailboxHtml").Methods("GET")
+	r.Path("/mailbox/source/{name}/{id}").Handler(handler(MailboxSource)).Name("MailboxSource").Methods("GET")
+	r.Path("/mailbox/delete/{name}/{id}").Handler(handler(MailboxDelete)).Name("MailboxDelete").Methods("POST")
 }
 
 // Start() the web server
@@ -73,6 +66,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Create the context
 	ctx, err := NewContext(req)
 	if err != nil {
+		inbucket.Error("Failed to create context: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -80,6 +74,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Run the handler, grab the error, and report it
 	buf := new(httpbuf.Buffer)
+	inbucket.Trace("Web: %v %v %v %v", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
 	err = h(buf, req, ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -88,6 +83,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Save the session
 	if err = ctx.Session.Save(req, buf); err != nil {
+		inbucket.Error("Failed to save session: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

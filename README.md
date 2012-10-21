@@ -39,20 +39,16 @@ Installation
 You will need a functioning [Go installation][1] for this to work. 
 
     # From the base of your GOPATH...
-    go get github.com/robfig/revel
     go get github.com/jhillyerd/inbucket
-    go build -o bin/revel github.com/robfig/revel/cmd
-    bin/revel run github.com/jhillyerd/inbucket
+    go build github.com/jhillyerd/inbucket
+    bin/inbucketd src/github.com/jhillyerd/inbucket/conf/inbucket.conf
 
 By default the SMTP server will be listening on localhost port 2500 and
 the web interface will be available at [localhost:9000](http://localhost:9000/).
 
-Inbucket's configuration can be found in the `inbucket/conf/app.conf` file.
-
 About
 -----
-Inbucket is written in [Google Go][1], and utilizes the [Revel framework][2]
-for its web interface.
+Inbucket is written in [Google Go][1].
 
 Inbucket is open source software released under the MIT License.  The latest
 version can be found at https://github.com/jhillyerd/inbucket

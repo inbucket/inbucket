@@ -2,7 +2,7 @@ package smtpd
 
 import (
 	"fmt"
-	"github.com/jhillyerd/inbucket/app/inbucket"
+	"github.com/jhillyerd/inbucket"
 	"github.com/robfig/revel"
 	"net"
 )

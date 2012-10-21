@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"github.com/jhillyerd/inbucket/app/inbucket"
+	"github.com/jhillyerd/inbucket"
 	"net"
 	"regexp"
 	"strconv"

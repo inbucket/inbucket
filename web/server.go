@@ -5,12 +5,12 @@ package web
 
 import (
 	"fmt"
+	"github.com/goods/httpbuf"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 	"net/http"
-	"thegoods.biz/httpbuf"
 	"time"
 )
 

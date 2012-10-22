@@ -41,7 +41,7 @@ func main() {
 
 func init() {
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage of inbucketd [options] <conf file>:")
+		fmt.Fprintln(os.Stderr, "Usage of inbucket [options] <conf file>:")
 		flag.PrintDefaults()
 	}
 }

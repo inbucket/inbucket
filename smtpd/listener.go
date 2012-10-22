@@ -2,7 +2,7 @@ package smtpd
 
 import (
 	"fmt"
-	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 	"net"
 )
@@ -20,13 +20,13 @@ type Server struct {
 func New() *Server {
 	ds := NewDataStore()
 	// TODO Make more of these configurable
-	return &Server{domain: inbucket.GetSmtpConfig().Domain, maxRecips: 100, maxIdleSeconds: 300,
+	return &Server{domain: config.GetSmtpConfig().Domain, maxRecips: 100, maxIdleSeconds: 300,
 		dataStore: ds, maxMessageBytes: 2048000}
 }
 
 // Main listener loop
 func (s *Server) Start() {
-	cfg := inbucket.GetSmtpConfig()
+	cfg := config.GetSmtpConfig()
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
 		cfg.Ip4address, cfg.Ip4port))
 	if err != nil {

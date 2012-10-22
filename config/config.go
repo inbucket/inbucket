@@ -1,4 +1,4 @@
-package inbucket
+package config
 
 import (
 	"container/list"

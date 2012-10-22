@@ -1,7 +1,6 @@
 package web
 
 import (
-	"github.com/jhillyerd/inbucket"
 	"github.com/jhillyerd/inbucket/log"
 	"html/template"
 	"io"
@@ -73,7 +72,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	if err != nil {
 		return err
 	}
-	body := template.HTML(inbucket.TextToHtml(mime.Text))
+	body := template.HTML(textToHtml(mime.Text))
 	htmlAvailable := mime.Html != ""
 
 	return RenderPartial("mailbox/_show.html", w, map[string]interface{}{

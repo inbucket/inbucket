@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 	"net/http"
 	"thegoods.biz/httpbuf"
@@ -20,7 +20,7 @@ var Router *mux.Router
 
 var sessionStore sessions.Store
 
-func setupRoutes(cfg inbucket.WebConfig) {
+func setupRoutes(cfg config.WebConfig) {
 	Router = mux.NewRouter()
 	log.Info("Theme templates mapped to '%v'", cfg.TemplateDir)
 	log.Info("Theme static content mapped to '%v'", cfg.PublicDir)
@@ -42,7 +42,7 @@ func setupRoutes(cfg inbucket.WebConfig) {
 
 // Start() the web server
 func Start() {
-	cfg := inbucket.GetWebConfig()
+	cfg := config.GetWebConfig()
 	setupRoutes(cfg)
 
 	sessionStore = sessions.NewCookieStore([]byte("something-very-secret"))

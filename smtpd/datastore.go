@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 	"io/ioutil"
 	"net/mail"
@@ -42,7 +42,7 @@ type DataStore struct {
 // NewDataStore creates a new DataStore object.  It uses the inbucket.Config object to
 // construct it's path.
 func NewDataStore() *DataStore {
-	path, err := inbucket.Config.String("datastore", "path")
+	path, err := config.Config.String("datastore", "path")
 	if err != nil {
 		log.Error("Error getting datastore path: %v", err)
 		return nil

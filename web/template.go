@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 	"html/template"
 	"net/http"
@@ -49,7 +49,7 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 		return t, nil
 	}
 
-	cfg := inbucket.GetWebConfig()
+	cfg := config.GetWebConfig()
 	tempPath := strings.Replace(name, "/", string(filepath.Separator), -1)
 	tempFile := filepath.Join(cfg.TemplateDir, tempPath)
 	log.Trace("Parsing template %v", tempFile)

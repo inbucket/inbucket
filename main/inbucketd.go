@@ -6,7 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/smtpd"
 	"github.com/jhillyerd/inbucket/web"
 	"os"
@@ -26,7 +26,7 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-	err := inbucket.LoadConfig(flag.Arg(0))
+	err := config.LoadConfig(flag.Arg(0))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to parse config: %v\n", err)
 		os.Exit(1)

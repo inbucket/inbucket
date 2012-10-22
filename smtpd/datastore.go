@@ -1,10 +1,12 @@
-package inbucket
+package smtpd
 
 import (
 	"bufio"
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/log"
 	"io/ioutil"
 	"net/mail"
 	"os"
@@ -40,13 +42,13 @@ type DataStore struct {
 // NewDataStore creates a new DataStore object.  It uses the inbucket.Config object to
 // construct it's path.
 func NewDataStore() *DataStore {
-	path, err := Config.String("datastore", "path")
+	path, err := inbucket.Config.String("datastore", "path")
 	if err != nil {
-		Error("Error getting datastore path: %v", err)
+		log.Error("Error getting datastore path: %v", err)
 		return nil
 	}
 	if path == "" {
-		Error("No value configured for datastore path")
+		log.Error("No value configured for datastore path")
 		return nil
 	}
 	mailPath := filepath.Join(path, "mail")
@@ -60,7 +62,7 @@ func (ds *DataStore) MailboxFor(emailAddress string) (*Mailbox, error) {
 	dir := HashMailboxName(name)
 	path := filepath.Join(ds.mailPath, dir)
 	if err := os.MkdirAll(path, 0770); err != nil {
-		Error("Failed to create directory %v, %v", path, err)
+		log.Error("Failed to create directory %v, %v", path, err)
 		return nil, err
 	}
 	return &Mailbox{store: ds, name: name, dirName: dir, path: path}, nil
@@ -86,7 +88,7 @@ func (mb *Mailbox) GetMessages() ([]*Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	Trace("Scanning %v files for %v", len(files), mb)
+	log.Trace("Scanning %v files for %v", len(files), mb)
 
 	messages := make([]*Message, 0, len(files))
 	for _, f := range files {
@@ -103,7 +105,7 @@ func (mb *Mailbox) GetMessages() ([]*Message, error) {
 			}
 			file.Close()
 			msg.mailbox = mb
-			Trace("Found: %v", msg)
+			log.Trace("Found: %v", msg)
 			messages = append(messages, msg)
 		}
 	}
@@ -124,7 +126,7 @@ func (mb *Mailbox) GetMessage(id string) (*Message, error) {
 	}
 	file.Close()
 	msg.mailbox = mb
-	Trace("Found: %v", msg)
+	log.Trace("Found: %v", msg)
 
 	return msg, nil
 }
@@ -259,12 +261,12 @@ func (m *Message) Close() error {
 
 // Delete this Message from disk by removing both the gob and raw files
 func (m *Message) Delete() error {
-	Trace("Deleting %v", m.gobPath())
+	log.Trace("Deleting %v", m.gobPath())
 	err := os.Remove(m.gobPath())
 	if err != nil {
 		return err
 	}
-	Trace("Deleting %v", m.rawPath())
+	log.Trace("Deleting %v", m.rawPath())
 	return os.Remove(m.rawPath())
 }
 

@@ -2,7 +2,7 @@ package web
 
 import (
 	"fmt"
-	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/log"
 	"html/template"
 	"time"
 )
@@ -30,7 +30,7 @@ func reverse(name string, things ...interface{}) string {
 	// Grab the route
 	u, err := Router.Get(name).URL(strs...)
 	if err != nil {
-		inbucket.Error("Failed to reverse route: %v", err)
+		log.Error("Failed to reverse route: %v", err)
 		return "/ROUTE-ERROR"
 	}
 	return u.Path

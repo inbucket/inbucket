@@ -1,4 +1,4 @@
-package inbucket
+package smtpd
 
 import (
 	"github.com/stretchrcom/testify/assert"

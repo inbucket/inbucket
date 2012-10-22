@@ -2,6 +2,7 @@ package web
 
 import (
 	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/log"
 	"html/template"
 	"io"
 	"net/http"
@@ -37,7 +38,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	if err != nil {
 		return err
 	}
-	inbucket.Trace("Got %v messsages", len(messages))
+	log.Trace("Got %v messsages", len(messages))
 
 	return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
 		"ctx":      ctx,

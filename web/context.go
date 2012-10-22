@@ -3,14 +3,14 @@ package web
 import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/smtpd"
 	"net/http"
 )
 
 type Context struct {
 	Vars      map[string]string
 	Session   *sessions.Session
-	DataStore *inbucket.DataStore
+	DataStore *smtpd.DataStore
 }
 
 func (c *Context) Close() {
@@ -20,7 +20,7 @@ func (c *Context) Close() {
 func NewContext(req *http.Request) (*Context, error) {
 	vars := mux.Vars(req)
 	sess, err := sessionStore.Get(req, "inbucket")
-	ds := inbucket.NewDataStore()
+	ds := smtpd.NewDataStore()
 	ctx := &Context{
 		Vars:      vars,
 		Session:   sess,

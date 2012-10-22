@@ -2,6 +2,7 @@ package web
 
 import (
 	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/log"
 	"html/template"
 	"net/http"
 	"path"
@@ -19,7 +20,7 @@ var cachedPartials = map[string]*template.Template{}
 func RenderTemplate(name string, w http.ResponseWriter, data interface{}) error {
 	t, err := ParseTemplate(name, false)
 	if err != nil {
-		inbucket.Error("Error in template '%v': %v", name, err)
+		log.Error("Error in template '%v': %v", name, err)
 		return err
 	}
 	w.Header().Set("Expires", "-1")
@@ -31,7 +32,7 @@ func RenderTemplate(name string, w http.ResponseWriter, data interface{}) error 
 func RenderPartial(name string, w http.ResponseWriter, data interface{}) error {
 	t, err := ParseTemplate(name, true)
 	if err != nil {
-		inbucket.Error("Error in template '%v': %v", name, err)
+		log.Error("Error in template '%v': %v", name, err)
 		return err
 	}
 	w.Header().Set("Expires", "-1")
@@ -51,7 +52,7 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 	cfg := inbucket.GetWebConfig()
 	tempPath := strings.Replace(name, "/", string(filepath.Separator), -1)
 	tempFile := filepath.Join(cfg.TemplateDir, tempPath)
-	inbucket.Trace("Parsing template %v", tempFile)
+	log.Trace("Parsing template %v", tempFile)
 
 	var err error
 	var t *template.Template
@@ -71,10 +72,10 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 	// Allows us to disable caching for theme development
 	if cfg.TemplateCache {
 		if partial {
-			inbucket.Trace("Caching partial %v", name)
+			log.Trace("Caching partial %v", name)
 			cachedTemplates[name] = t
 		} else {
-			inbucket.Trace("Caching template %v", name)
+			log.Trace("Caching template %v", name)
 			cachedTemplates[name] = t
 		}
 	}

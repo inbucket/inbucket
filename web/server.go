@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/log"
 	"net/http"
 	"thegoods.biz/httpbuf"
 	"time"
@@ -21,8 +22,8 @@ var sessionStore sessions.Store
 
 func setupRoutes(cfg inbucket.WebConfig) {
 	Router = mux.NewRouter()
-	inbucket.Info("Theme templates mapped to '%v'", cfg.TemplateDir)
-	inbucket.Info("Theme static content mapped to '%v'", cfg.PublicDir)
+	log.Info("Theme templates mapped to '%v'", cfg.TemplateDir)
+	log.Info("Theme static content mapped to '%v'", cfg.PublicDir)
 
 	r := Router
 	// Static content
@@ -47,7 +48,7 @@ func Start() {
 	sessionStore = sessions.NewCookieStore([]byte("something-very-secret"))
 
 	addr := fmt.Sprintf("%v:%v", cfg.Ip4address, cfg.Ip4port)
-	inbucket.Info("HTTP listening on TCP4 %v", addr)
+	log.Info("HTTP listening on TCP4 %v", addr)
 	s := &http.Server{
 		Addr:         addr,
 		Handler:      Router,
@@ -57,7 +58,7 @@ func Start() {
 
 	err := s.ListenAndServe()
 	if err != nil {
-		inbucket.Error("HTTP server failed: %v", err)
+		log.Error("HTTP server failed: %v", err)
 	}
 }
 
@@ -66,7 +67,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Create the context
 	ctx, err := NewContext(req)
 	if err != nil {
-		inbucket.Error("Failed to create context: %v", err)
+		log.Error("Failed to create context: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -74,7 +75,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Run the handler, grab the error, and report it
 	buf := new(httpbuf.Buffer)
-	inbucket.Trace("Web: %v %v %v %v", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
+	log.Trace("Web: %v %v %v %v", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
 	err = h(buf, req, ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -83,7 +84,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Save the session
 	if err = ctx.Session.Save(req, buf); err != nil {
-		inbucket.Error("Failed to save session: %v", err)
+		log.Error("Failed to save session: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

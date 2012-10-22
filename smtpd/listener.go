@@ -3,6 +3,7 @@ package smtpd
 import (
 	"fmt"
 	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/log"
 	"net"
 )
 
@@ -12,12 +13,12 @@ type Server struct {
 	maxRecips       int
 	maxIdleSeconds  int
 	maxMessageBytes int
-	dataStore       *inbucket.DataStore
+	dataStore       *DataStore
 }
 
 // Init a new Server object
 func New() *Server {
-	ds := inbucket.NewDataStore()
+	ds := NewDataStore()
 	// TODO Make more of these configurable
 	return &Server{domain: inbucket.GetSmtpConfig().Domain, maxRecips: 100, maxIdleSeconds: 300,
 		dataStore: ds, maxMessageBytes: 2048000}
@@ -29,15 +30,15 @@ func (s *Server) Start() {
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
 		cfg.Ip4address, cfg.Ip4port))
 	if err != nil {
-		inbucket.Error("Failed to build tcp4 address: %v", err)
+		log.Error("Failed to build tcp4 address: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
 
-	inbucket.Info("SMTP listening on TCP4 %v", addr)
+	log.Info("SMTP listening on TCP4 %v", addr)
 	ln, err := net.ListenTCP("tcp4", addr)
 	if err != nil {
-		inbucket.Error("Failed to start tcp4 listener: %v", err)
+		log.Error("Failed to start tcp4 listener: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}

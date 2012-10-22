@@ -1,4 +1,4 @@
-package inbucket
+package log
 
 import (
 	"log"

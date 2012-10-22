@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"github.com/jhillyerd/inbucket"
+	"github.com/jhillyerd/inbucket/log"
 	"net"
 	"regexp"
 	"strconv"
@@ -87,7 +87,7 @@ func (ss *Session) String() string {
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	inbucket.Info("Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
+	log.Info("Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	defer conn.Close()
 
 	ss := NewSession(s, id, conn)
@@ -279,8 +279,8 @@ func (ss *Session) dataHandler() {
 	msgSize := 0
 
 	// Get a Mailbox and a new Message for each recipient
-	mailboxes := make([]*inbucket.Mailbox, ss.recipients.Len())
-	messages := make([]*inbucket.Message, ss.recipients.Len())
+	mailboxes := make([]*Mailbox, ss.recipients.Len())
+	messages := make([]*Message, ss.recipients.Len())
 	i := 0
 	for e := ss.recipients.Front(); e != nil; e = e.Next() {
 		recip := e.Value.(string)
@@ -476,17 +476,17 @@ func (ss *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ss *Session) trace(msg string, args ...interface{}) {
-	inbucket.Trace("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Trace("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) info(msg string, args ...interface{}) {
-	inbucket.Info("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Info("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) warn(msg string, args ...interface{}) {
-	inbucket.Warn("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Warn("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) error(msg string, args ...interface{}) {
-	inbucket.Error("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Error("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }

@@ -312,3 +312,9 @@ a:hover {
   padding: 5px 10px;
 }
 
+table.metrics {
+}
+
+.metrics th {
+  text-align: left;
+}

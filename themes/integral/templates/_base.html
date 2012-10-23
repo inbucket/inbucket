@@ -10,14 +10,15 @@ Released for free under a Creative Commons Attribution 2.5 License
     <title>{{template "title" .}}</title>
     <link href="/public/main.css" rel="stylesheet" type="text/css" />
     <link rel="shortcut icon" type="image/png" href="/public/images/favicon.png">
-    <script src="/public/jquery-1.5.2.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/jquery-1.8.2.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/jquery.color.js" type="text/javascript" charset="utf-8"></script>
     {{template "script" .}}
   </head>
   <body>
     <div id="header">
       <ul id="menu">
 	<li><a href="/" accesskey="1" title="">Home</a></li>
-	<li><a href="/" accesskey="2" title="">About</a></li>
+	<li><a href="/about" accesskey="2" title="">About</a></li>
       </ul>
       <form id="search" action="{{reverse "MailboxIndex"}}" method="GET">
 	<fieldset>

@@ -1,0 +1,129 @@
+{{define "title"}}About Inbucket{{end}}
+
+{{define "script"}}
+<script>
+  jQuery.ajaxSetup({ cache: false })
+  flashOn = jQuery.Color("rgba(255,255,0,1)")
+  flashOff = jQuery.Color("rgba(255,255,0,0)")
+
+  function timeFilter(seconds) {
+    if (seconds < 60) {
+      return seconds + " seconds"
+      } else if (seconds < 3600) {
+      return (seconds/60).toFixed(0) + " minute(s)"
+      } else if (seconds < 86400) {
+      return (seconds/3600).toFixed(1) + " hour(s)"
+    }
+    return (seconds/86400).toFixed(0) + " day(s)"
+  }
+
+  function sizeFilter(bytes) {
+    if (bytes < 1024) {
+      return bytes + " bytes"
+      } else if (bytes < 1048576) {
+      return (bytes/1024).toFixed(0) + " KB"
+      } else if (bytes < 1073741824) {
+      return (bytes/1048576).toFixed(2) + " MB"
+    }
+    return (bytes/1073741824).toFixed(2) + " GB"
+  }
+
+  function numberFilter(x) {
+    var parts = x.toString().split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join(".");
+  }
+
+  function metric(name, value) {
+    el = $('#m-' + name)
+    if (el.text() != value) {
+      el.text(value)
+      el.css('background-color', flashOn)
+      el.animate({ backgroundColor: flashOff }, 1500)
+    }
+  }
+
+  function displayMetrics(data, textStatus, jqXHR) {
+    metric('uptime', timeFilter(data.uptime))
+    metric('memstatsSys', sizeFilter(data.memstats.Sys))
+    metric('memstatsHeapAlloc', sizeFilter(data.memstats.HeapAlloc))
+    metric('memstatsHeapSys', sizeFilter(data.memstats.HeapSys))
+    metric('memstatsHeapObjects', numberFilter(data.memstats.HeapObjects))
+    metric('smtpConnectsTotal', numberFilter(data.smtp.connectsTotal))
+    metric('smtpConnectsCurrent', numberFilter(data.smtp.connectsCurrent))
+    metric('smtpDeliveredTotal', numberFilter(data.smtp.deliveredTotal))
+  }
+
+  function loadMetrics() {
+    // jQuery.getJSON( url [, data] [, success(data, textStatus, jqXHR)] )
+    jQuery.getJSON('/debug/vars', null, displayMetrics)
+  }
+
+  function aboutInit() {
+    loadMetrics()
+    setInterval(loadMetrics, 5000)
+  }
+
+  $(document).ready(aboutInit)
+</script>
+{{end}}
+
+{{define "menu"}}
+<div id="logo">
+  <h1><a href="/">inbucket</a></h1>
+  <h2>email testing service</h2>
+</div>
+{{end}}
+
+{{define "content"}}
+<h2>About Inbucket</h2>
+
+<p>Inbucket is an email testing service; it will accept email for any email
+address and make it available to view without a password.</p>
+
+<div class="box">
+  <h3>System Metrics</h3>
+  <table class="metrics">
+    <tr>
+      <th>Uptime:</th>
+      <td><span id="m-uptime">.</span></td>
+    </tr>
+    <tr>
+      <th>System Memory:</th>
+      <td><span id="m-memstatsSys">.</span></td>
+    </tr>
+    <tr>
+      <th>Heap Capacity:</th>
+      <td><span id="m-memstatsHeapSys">.</span></td>
+    </tr>
+    <tr>
+      <th>Heap In-Use:</th>
+      <td><span id="m-memstatsHeapAlloc">.</span></td>
+    </tr>
+    <tr>
+      <th>Heap # Objects:</th>
+      <td><span id="m-memstatsHeapObjects">.</span></td>
+    </tr>
+  </table>
+  <p class="last">&nbsp;</p>
+</div>
+<div class="box">
+  <h3>SMTP Metrics</h3>
+  <table class="metrics">
+    <tr>
+      <th>Total Connections:</th>
+      <td><span id="m-smtpConnectsTotal">.</span></td>
+    </tr>
+    <tr>
+      <th>Current Connections:</th>
+      <td><span id="m-smtpConnectsCurrent">.</span></td>
+    </tr>
+    <tr>
+      <th>Messages Delivered:</th>
+      <td><span id="m-smtpDeliveredTotal">.</span></td>
+    </tr>
+  </table>
+  <p class="last">&nbsp;</p>
+</div>
+{{end}}
+

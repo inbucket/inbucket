@@ -31,6 +31,7 @@ func setupRoutes(cfg config.WebConfig) {
 
 	// Root
 	r.Path("/").Handler(handler(RootIndex)).Name("RootIndex").Methods("GET")
+	r.Path("/about").Handler(handler(RootAbout)).Name("RootAbout").Methods("GET")
 	r.Path("/mailbox").Handler(handler(MailboxIndex)).Name("MailboxIndex").Methods("GET")
 	r.Path("/mailbox/list/{name}").Handler(handler(MailboxList)).Name("MailboxList").Methods("GET")
 	r.Path("/mailbox/show/{name}/{id}").Handler(handler(MailboxShow)).Name("MailboxShow").Methods("GET")

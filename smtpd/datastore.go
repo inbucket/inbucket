@@ -60,7 +60,8 @@ func NewDataStore() *DataStore {
 func (ds *DataStore) MailboxFor(emailAddress string) (*Mailbox, error) {
 	name := ParseMailboxName(emailAddress)
 	dir := HashMailboxName(name)
-	path := filepath.Join(ds.mailPath, dir)
+	section := dir[0:4]
+	path := filepath.Join(ds.mailPath, section, dir)
 	if err := os.MkdirAll(path, 0770); err != nil {
 		log.Error("Failed to create directory %v, %v", path, err)
 		return nil, err

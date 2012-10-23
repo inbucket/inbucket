@@ -1,10 +1,12 @@
 {{define "title"}}About Inbucket{{end}}
 
 {{define "script"}}
+<script src="/public/jquery.sparkline.min.js" type="text/javascript" charset="utf-8"></script>
 <script>
   jQuery.ajaxSetup({ cache: false })
   flashOn = jQuery.Color("rgba(255,255,0,1)")
   flashOff = jQuery.Color("rgba(255,255,0,0)")
+  dataHist = new Object()
 
   function timeFilter(seconds) {
     if (seconds < 60) {
@@ -34,8 +36,31 @@
     return parts.join(".");
   }
 
-  function metric(name, value) {
-    el = $('#m-' + name)
+  function appendHistory(name, value) {
+    var h = dataHist[name]
+    if (! h) {
+      h = new Array(0)
+    }
+    // Prevent array from growing
+    if (h.length >= 50) {
+      h = h.slice(1,50)
+    }
+    h.push(parseInt(value))
+    dataHist[name] = h
+    el = $('#s-' + name)
+    if (el) {
+      el.sparkline(dataHist[name])
+    }
+  }
+
+  function metric(name, value, filter, chartable) {
+    if (chartable) {
+      appendHistory(name, value)
+    }
+    if (filter) {
+      value = filter(value)
+    }
+    var el = $('#m-' + name)
     if (el.text() != value) {
       el.text(value)
       el.css('background-color', flashOn)
@@ -44,14 +69,14 @@
   }
 
   function displayMetrics(data, textStatus, jqXHR) {
-    metric('uptime', timeFilter(data.uptime))
-    metric('memstatsSys', sizeFilter(data.memstats.Sys))
-    metric('memstatsHeapAlloc', sizeFilter(data.memstats.HeapAlloc))
-    metric('memstatsHeapSys', sizeFilter(data.memstats.HeapSys))
-    metric('memstatsHeapObjects', numberFilter(data.memstats.HeapObjects))
-    metric('smtpConnectsTotal', numberFilter(data.smtp.connectsTotal))
-    metric('smtpConnectsCurrent', numberFilter(data.smtp.connectsCurrent))
-    metric('smtpDeliveredTotal', numberFilter(data.smtp.deliveredTotal))
+    metric('uptime', data.uptime, timeFilter, false)
+    metric('memstatsSys', data.memstats.Sys, sizeFilter, true)
+    metric('memstatsHeapAlloc', data.memstats.HeapAlloc, sizeFilter, true)
+    metric('memstatsHeapSys', data.memstats.HeapSys, sizeFilter, true)
+    metric('memstatsHeapObjects', data.memstats.HeapObjects, numberFilter, true)
+    metric('smtpConnectsTotal', data.smtp.connectsTotal, numberFilter, false)
+    metric('smtpConnectsCurrent', data.smtp.connectsCurrent, numberFilter, true)
+    metric('smtpDeliveredTotal', data.smtp.deliveredTotal, numberFilter, false)
   }
 
   function loadMetrics() {
@@ -91,18 +116,22 @@ address and make it available to view without a password.</p>
     <tr>
       <th>System Memory:</th>
       <td><span id="m-memstatsSys">.</span></td>
+      <td><span id="s-memstatsSys">.</span></td>
     </tr>
     <tr>
       <th>Heap Capacity:</th>
       <td><span id="m-memstatsHeapSys">.</span></td>
+      <td><span id="s-memstatsHeapSys">.</span></td>
     </tr>
     <tr>
       <th>Heap In-Use:</th>
       <td><span id="m-memstatsHeapAlloc">.</span></td>
+      <td><span id="s-memstatsHeapAlloc">.</span></td>
     </tr>
     <tr>
       <th>Heap # Objects:</th>
       <td><span id="m-memstatsHeapObjects">.</span></td>
+      <td><span id="s-memstatsHeapObjects">.</span></td>
     </tr>
   </table>
   <p class="last">&nbsp;</p>
@@ -111,12 +140,13 @@ address and make it available to view without a password.</p>
   <h3>SMTP Metrics</h3>
   <table class="metrics">
     <tr>
-      <th>Total Connections:</th>
-      <td><span id="m-smtpConnectsTotal">.</span></td>
-    </tr>
-    <tr>
       <th>Current Connections:</th>
       <td><span id="m-smtpConnectsCurrent">.</span></td>
+      <td><span id="s-smtpConnectsCurrent">.</span></td>
+    </tr>
+    <tr>
+      <th>Total Connections:</th>
+      <td><span id="m-smtpConnectsTotal">.</span></td>
     </tr>
     <tr>
       <th>Messages Delivered:</th>

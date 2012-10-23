@@ -88,7 +88,9 @@ func (ss *Session) String() string {
  */
 func (s *Server) startSession(id int, conn net.Conn) {
 	log.Info("Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
+	expConnectsCurrent.Add(1)
 	defer conn.Close()
+	defer expConnectsCurrent.Add(-1)
 
 	ss := NewSession(s, id, conn)
 	ss.greet()
@@ -316,6 +318,7 @@ func (ss *Session) dataHandler() {
 			// Mail data complete
 			for _, m := range messages {
 				m.Close()
+				expDeliveredTotal.Add(1)
 			}
 			ss.send("250 Mail accepted for delivery")
 			ss.info("Message size %v bytes", msgSize)

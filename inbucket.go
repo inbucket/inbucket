@@ -4,6 +4,7 @@
 package main
 
 import (
+	"expvar"
 	"flag"
 	"fmt"
 	"github.com/jhillyerd/inbucket/config"
@@ -11,9 +12,12 @@ import (
 	"github.com/jhillyerd/inbucket/smtpd"
 	"github.com/jhillyerd/inbucket/web"
 	"os"
+	"time"
 )
 
 var help = flag.Bool("help", false, "Displays this help")
+
+var startTime = time.Now()
 
 func main() {
 	flag.Parse()
@@ -49,4 +53,10 @@ func init() {
 		fmt.Fprintln(os.Stderr, "Usage of inbucket [options] <conf file>:")
 		flag.PrintDefaults()
 	}
+
+	expvar.Publish("uptime", expvar.Func(uptime))
+}
+
+func uptime() interface{} {
+	return time.Since(startTime) / time.Second
 }

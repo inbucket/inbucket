@@ -21,11 +21,10 @@ var Router *mux.Router
 var sessionStore sessions.Store
 
 func setupRoutes(cfg config.WebConfig) {
-	Router = mux.NewRouter()
 	log.Info("Theme templates mapped to '%v'", cfg.TemplateDir)
 	log.Info("Theme static content mapped to '%v'", cfg.PublicDir)
 
-	r := Router
+	r := mux.NewRouter()
 	// Static content
 	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
 		http.FileServer(http.Dir(cfg.PublicDir))))
@@ -38,6 +37,10 @@ func setupRoutes(cfg config.WebConfig) {
 	r.Path("/mailbox/html/{name}/{id}").Handler(handler(MailboxHtml)).Name("MailboxHtml").Methods("GET")
 	r.Path("/mailbox/source/{name}/{id}").Handler(handler(MailboxSource)).Name("MailboxSource").Methods("GET")
 	r.Path("/mailbox/delete/{name}/{id}").Handler(handler(MailboxDelete)).Name("MailboxDelete").Methods("POST")
+
+	// Register w/ HTTP
+	Router = r
+	http.Handle("/", Router)
 }
 
 // Start() the web server
@@ -51,7 +54,7 @@ func Start() {
 	log.Info("HTTP listening on TCP4 %v", addr)
 	s := &http.Server{
 		Addr:         addr,
-		Handler:      Router,
+		Handler:      nil,
 		ReadTimeout:  60 * time.Second,
 		WriteTimeout: 60 * time.Second,
 	}

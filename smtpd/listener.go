@@ -1,6 +1,7 @@
 package smtpd
 
 import (
+	"expvar"
 	"fmt"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
@@ -15,6 +16,10 @@ type Server struct {
 	maxMessageBytes int
 	dataStore       *DataStore
 }
+
+var expConnectsTotal = new(expvar.Int)
+var expConnectsCurrent = new(expvar.Int)
+var expDeliveredTotal = new(expvar.Int)
 
 // Init a new Server object
 func New() *Server {
@@ -49,7 +54,15 @@ func (s *Server) Start() {
 			// or maybe attempt to restart smtpd
 			panic(err)
 		} else {
+			expConnectsTotal.Add(1)
 			go s.startSession(sid, conn)
 		}
 	}
+}
+
+func init() {
+	m := expvar.NewMap("smtp")
+	m.Set("connectsTotal", expConnectsTotal)
+	m.Set("connectsCurrent", expConnectsCurrent)
+	m.Set("deliveredTotal", expDeliveredTotal)
 }

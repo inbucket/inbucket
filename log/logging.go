@@ -2,6 +2,7 @@ package log
 
 import (
 	"log"
+	"strings"
 )
 
 type LogLevel int
@@ -14,6 +15,24 @@ const (
 )
 
 var MaxLogLevel LogLevel = TRACE
+
+// SetLogLevel sets MaxLogLevel based on the provided string
+func SetLogLevel(level string) (ok bool) {
+	switch strings.ToUpper(level) {
+	case "ERROR":
+		MaxLogLevel = ERROR
+	case "WARN":
+		MaxLogLevel = WARN
+	case "INFO":
+		MaxLogLevel = INFO
+	case "TRACE":
+		MaxLogLevel = TRACE
+	default:
+		Error("Unknown log level requested: %v", level)
+		return false
+	}
+	return true
+}
 
 // Error logs a message to the 'standard' Logger (always)
 func Error(msg string, args ...interface{}) {

@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/smtpd"
 	"github.com/jhillyerd/inbucket/web"
 	"os"
@@ -31,6 +32,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Failed to parse config: %v\n", err)
 		os.Exit(1)
 	}
+
+	// Configure logging
+	level, _ := config.Config.String("logging", "level")
+	log.SetLogLevel(level)
 
 	// Startup SMTP server
 	server := smtpd.New()

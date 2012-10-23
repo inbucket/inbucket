@@ -6,6 +6,7 @@ import (
 	"github.com/robfig/goconfig/config"
 	"net"
 	"os"
+	"strings"
 )
 
 // SmtpConfig houses the SMTP server configuration - not using pointers
@@ -52,6 +53,7 @@ func LoadConfig(filename string) error {
 	messages := list.New()
 
 	// Validate sections
+	requireSection(messages, "logging")
 	requireSection(messages, "smtp")
 	requireSection(messages, "web")
 	requireSection(messages, "datastore")
@@ -64,6 +66,7 @@ func LoadConfig(filename string) error {
 	}
 
 	// Validate options
+	requireOption(messages, "logging", "level")
 	requireOption(messages, "smtp", "ip4.address")
 	requireOption(messages, "smtp", "ip4.port")
 	requireOption(messages, "smtp", "domain")
@@ -89,6 +92,21 @@ func LoadConfig(filename string) error {
 	err = parseWebConfig()
 
 	return err
+}
+
+// parseLoggingConfig trying to catch config errors early
+func parseLoggingConfig() error {
+	option := "[logging]level"
+	str, err := Config.String("logging", "level")
+	if err != nil {
+		return fmt.Errorf("Failed to parse %v: %v", option, err)
+	}
+	switch strings.ToUpper(str) {
+	case "TRACE", "INFO", "WARN", "ERROR":
+	default:
+		return fmt.Errorf("Invalid value provided for %v: %v", option, str)
+	}
+	return nil
 }
 
 // parseSmtpConfig trying to catch config errors early

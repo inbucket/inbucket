@@ -53,6 +53,20 @@
     }
   }
 
+  function setHistory(name, value) {
+    var h = value.split(",")
+    var prev = parseInt(h[0])
+    for (i=0; i<h.length; i++) {
+      var t = parseInt(h[i])
+      h[i] = t-prev
+      prev = t
+    }
+    el = $('#s-' + name)
+    if (el) {
+      el.sparkline(h)
+    }
+  }
+
   function metric(name, value, filter, chartable) {
     if (chartable) {
       appendHistory(name, value)
@@ -77,6 +91,8 @@
     metric('smtpConnectsTotal', data.smtp.connectsTotal, numberFilter, false)
     metric('smtpConnectsCurrent', data.smtp.connectsCurrent, numberFilter, true)
     metric('smtpDeliveredTotal', data.smtp.deliveredTotal, numberFilter, false)
+    setHistory('smtpConnectsTotal', data.smtp.connectsHist)
+    setHistory('smtpDeliveredTotal', data.smtp.deliveredHist)
   }
 
   function loadMetrics() {
@@ -116,22 +132,26 @@ address and make it available to view without a password.</p>
     <tr>
       <th>System Memory:</th>
       <td><span id="m-memstatsSys">.</span></td>
-      <td><span id="s-memstatsSys">.</span></td>
+      <td class="sparkline"><span id="s-memstatsSys">.</span></td>
+      <td>(5s)</td>
     </tr>
     <tr>
       <th>Heap Capacity:</th>
       <td><span id="m-memstatsHeapSys">.</span></td>
-      <td><span id="s-memstatsHeapSys">.</span></td>
+      <td class="sparkline"><span id="s-memstatsHeapSys">.</span></td>
+      <td>(5s)</td>
     </tr>
     <tr>
       <th>Heap In-Use:</th>
       <td><span id="m-memstatsHeapAlloc">.</span></td>
-      <td><span id="s-memstatsHeapAlloc">.</span></td>
+      <td class="sparkline"><span id="s-memstatsHeapAlloc">.</span></td>
+      <td>(5s)</td>
     </tr>
     <tr>
       <th>Heap # Objects:</th>
       <td><span id="m-memstatsHeapObjects">.</span></td>
-      <td><span id="s-memstatsHeapObjects">.</span></td>
+      <td class="sparkline"><span id="s-memstatsHeapObjects">.</span></td>
+      <td>(5s)</td>
     </tr>
   </table>
   <p class="last">&nbsp;</p>
@@ -142,15 +162,20 @@ address and make it available to view without a password.</p>
     <tr>
       <th>Current Connections:</th>
       <td><span id="m-smtpConnectsCurrent">.</span></td>
-      <td><span id="s-smtpConnectsCurrent">.</span></td>
+      <td class="sparkline"><span id="s-smtpConnectsCurrent">.</span></td>
+      <td>(5s)</td>
     </tr>
     <tr>
       <th>Total Connections:</th>
       <td><span id="m-smtpConnectsTotal">.</span></td>
+      <td class="sparkline"><span id="s-smtpConnectsTotal">.</span></td>
+      <td>(60s)</td>
     </tr>
     <tr>
       <th>Messages Delivered:</th>
       <td><span id="m-smtpDeliveredTotal">.</span></td>
+      <td class="sparkline"><span id="s-smtpDeliveredTotal">.</span></td>
+      <td>(60s)</td>
     </tr>
   </table>
   <p class="last">&nbsp;</p>

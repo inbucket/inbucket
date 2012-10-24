@@ -317,4 +317,13 @@ table.metrics {
 
 .metrics th {
   text-align: left;
+  width: 15em;
+}
+
+.metrics td {
+  width: 10em;
+}
+
+.metrics td.sparkline {
+  width: 170px;
 }

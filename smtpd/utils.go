@@ -1,6 +1,7 @@
 package smtpd
 
 import (
+	"container/list"
 	"crypto/sha1"
 	"fmt"
 	"io"
@@ -24,4 +25,16 @@ func HashMailboxName(mailbox string) string {
 	h := sha1.New()
 	io.WriteString(h, mailbox)
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// JoinStringList joins a List containing strings by commas
+func JoinStringList(listOfStrings *list.List) string {
+	if listOfStrings.Len() == 0 {
+		return ""
+	}
+	s := make([]string, 0, listOfStrings.Len())
+	for e := listOfStrings.Front(); e != nil; e = e.Next() {
+		s = append(s, e.Value.(string))
+	}
+	return strings.Join(s, ",")
 }

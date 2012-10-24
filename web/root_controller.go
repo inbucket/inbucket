@@ -10,8 +10,8 @@ func RootIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err erro
 	})
 }
 
-func RootAbout(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
-	return RenderTemplate("root/about.html", w, map[string]interface{}{
+func RootStatus(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	return RenderTemplate("root/status.html", w, map[string]interface{}{
 		"ctx": ctx,
 	})
 }

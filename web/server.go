@@ -31,7 +31,7 @@ func setupRoutes(cfg config.WebConfig) {
 
 	// Root
 	r.Path("/").Handler(handler(RootIndex)).Name("RootIndex").Methods("GET")
-	r.Path("/about").Handler(handler(RootAbout)).Name("RootAbout").Methods("GET")
+	r.Path("/status").Handler(handler(RootStatus)).Name("RootStatus").Methods("GET")
 	r.Path("/mailbox").Handler(handler(MailboxIndex)).Name("MailboxIndex").Methods("GET")
 	r.Path("/mailbox/list/{name}").Handler(handler(MailboxList)).Name("MailboxList").Methods("GET")
 	r.Path("/mailbox/show/{name}/{id}").Handler(handler(MailboxShow)).Name("MailboxShow").Methods("GET")
@@ -49,6 +49,7 @@ func Start() {
 	cfg := config.GetWebConfig()
 	setupRoutes(cfg)
 
+	// TODO Make configurable
 	sessionStore = sessions.NewCookieStore([]byte("something-very-secret"))
 
 	addr := fmt.Sprintf("%v:%v", cfg.Ip4address, cfg.Ip4port)

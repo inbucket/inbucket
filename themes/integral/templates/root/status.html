@@ -117,13 +117,14 @@
 {{end}}
 
 {{define "content"}}
-<h2>About Inbucket</h2>
+<h2>Inbucket Status</h2>
 
-<p>Inbucket is an email testing service; it will accept email for any email
-address and make it available to view without a password.</p>
+<p>Metrics are polled every 5 seconds.  Inbucket does not keep history for the
+graphs labeled <em>(5s)</em>, but your web browser will chart the last 50
+values over time.</p>
 
 <div class="box">
-  <h3>System Metrics</h3>
+  <h3>General Metrics</h3>
   <table class="metrics">
     <tr>
       <th>Uptime:</th>
@@ -136,7 +137,7 @@ address and make it available to view without a password.</p>
       <td>(5s)</td>
     </tr>
     <tr>
-      <th>Heap Capacity:</th>
+      <th>Heap Size:</th>
       <td><span id="m-memstatsHeapSys">.</span></td>
       <td class="sparkline"><span id="s-memstatsHeapSys">.</span></td>
       <td>(5s)</td>

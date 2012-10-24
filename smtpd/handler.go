@@ -6,6 +6,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/jhillyerd/inbucket/log"
+	"io"
 	"net"
 	"regexp"
 	"strconv"
@@ -160,6 +161,17 @@ func (s *Server) startSession(id int, conn net.Conn) {
 			}
 		} else {
 			// readLine() returned an error
+			if err == io.EOF {
+				switch ss.state {
+				case GREET, READY:
+					// EOF is common here
+					ss.info("Client closed connection (state %v)", ss.state)
+				default:
+					ss.warn("Got EOF while in state %v", ss.state)
+				}
+				break
+			}
+			// not an EOF
 			ss.warn("Connection error: %v", err)
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {

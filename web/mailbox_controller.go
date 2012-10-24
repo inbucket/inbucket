@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"github.com/jhillyerd/inbucket/log"
 	"html/template"
 	"io"
@@ -31,11 +32,11 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to get mailbox for %v: %v", name, err)
 	}
 	messages, err := mb.GetMessages()
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
 	}
 	log.Trace("Got %v messsages", len(messages))
 

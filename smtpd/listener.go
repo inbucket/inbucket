@@ -19,14 +19,24 @@ type Server struct {
 	dataStore       *DataStore
 }
 
+// Raw stat collectors
 var expConnectsTotal = new(expvar.Int)
 var expConnectsCurrent = new(expvar.Int)
-var expConnectsHist = new(expvar.String)
 var expDeliveredTotal = new(expvar.Int)
-var expDeliveredHist = new(expvar.String)
+var expErrorsTotal = new(expvar.Int)
+var expWarnsTotal = new(expvar.Int)
 
+// History of certain stats
 var deliveredHist = list.New()
 var connectsHist = list.New()
+var errorsHist = list.New()
+var warnsHist = list.New()
+
+// History rendered as comma delim string
+var expDeliveredHist = new(expvar.String)
+var expConnectsHist = new(expvar.String)
+var expErrorsHist = new(expvar.String)
+var expWarnsHist = new(expvar.String)
 
 // Init a new Server object
 func New() *Server {
@@ -74,6 +84,8 @@ func metricsTicker(t *time.Ticker) {
 		_, ok = <-t.C
 		expDeliveredHist.Set(pushMetric(deliveredHist, expDeliveredTotal))
 		expConnectsHist.Set(pushMetric(connectsHist, expConnectsTotal))
+		expErrorsHist.Set(pushMetric(errorsHist, expErrorsTotal))
+		expWarnsHist.Set(pushMetric(warnsHist, expWarnsTotal))
 	}
 }
 
@@ -89,11 +101,15 @@ func pushMetric(history *list.List, ev expvar.Var) string {
 
 func init() {
 	m := expvar.NewMap("smtp")
-	m.Set("connectsTotal", expConnectsTotal)
-	m.Set("connectsHist", expConnectsHist)
-	m.Set("connectsCurrent", expConnectsCurrent)
-	m.Set("deliveredTotal", expDeliveredTotal)
-	m.Set("deliveredHist", expDeliveredHist)
+	m.Set("ConnectsTotal", expConnectsTotal)
+	m.Set("ConnectsHist", expConnectsHist)
+	m.Set("ConnectsCurrent", expConnectsCurrent)
+	m.Set("DeliveredTotal", expDeliveredTotal)
+	m.Set("DeliveredHist", expDeliveredHist)
+	m.Set("ErrorsTotal", expErrorsTotal)
+	m.Set("ErrorsHist", expErrorsHist)
+	m.Set("WarnsTotal", expWarnsTotal)
+	m.Set("WarnsHist", expWarnsHist)
 
 	t := time.NewTicker(time.Minute)
 	go metricsTicker(t)

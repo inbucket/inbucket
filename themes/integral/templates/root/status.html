@@ -83,16 +83,25 @@
   }
 
   function displayMetrics(data, textStatus, jqXHR) {
+    // Non graphing
     metric('uptime', data.uptime, timeFilter, false)
+
+    // JavaScript history
     metric('memstatsSys', data.memstats.Sys, sizeFilter, true)
     metric('memstatsHeapAlloc', data.memstats.HeapAlloc, sizeFilter, true)
     metric('memstatsHeapSys', data.memstats.HeapSys, sizeFilter, true)
     metric('memstatsHeapObjects', data.memstats.HeapObjects, numberFilter, true)
-    metric('smtpConnectsTotal', data.smtp.connectsTotal, numberFilter, false)
-    metric('smtpConnectsCurrent', data.smtp.connectsCurrent, numberFilter, true)
-    metric('smtpDeliveredTotal', data.smtp.deliveredTotal, numberFilter, false)
-    setHistory('smtpConnectsTotal', data.smtp.connectsHist)
-    setHistory('smtpDeliveredTotal', data.smtp.deliveredHist)
+    metric('smtpConnectsCurrent', data.smtp.ConnectsCurrent, numberFilter, true)
+
+    // Server-side history
+    metric('smtpDeliveredTotal', data.smtp.DeliveredTotal, numberFilter, false)
+    setHistory('smtpDeliveredTotal', data.smtp.DeliveredHist)
+    metric('smtpConnectsTotal', data.smtp.ConnectsTotal, numberFilter, false)
+    setHistory('smtpConnectsTotal', data.smtp.ConnectsHist)
+    metric('smtpWarnsTotal', data.smtp.WarnsTotal, numberFilter, false)
+    setHistory('smtpWarnsTotal', data.smtp.WarnsHist)
+    metric('smtpErrorsTotal', data.smtp.ErrorsTotal, numberFilter, false)
+    setHistory('smtpErrorsTotal', data.smtp.ErrorsHist)
   }
 
   function loadMetrics() {
@@ -176,6 +185,18 @@ values over time.</p>
       <th>Messages Delivered:</th>
       <td><span id="m-smtpDeliveredTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpDeliveredTotal">.</span></td>
+      <td>(60s)</td>
+    </tr>
+    <tr>
+      <th>Errors Logged:</th>
+      <td><span id="m-smtpErrorsTotal">.</span></td>
+      <td class="sparkline"><span id="s-smtpErrorsTotal"></span></td>
+      <td>(60s)</td>
+    </tr>
+    <tr>
+      <th>Warnings Logged:</th>
+      <td><span id="m-smtpWarnsTotal">.</span></td>
+      <td class="sparkline"><span id="s-smtpWarnsTotal"></span></td>
       <td>(60s)</td>
     </tr>
   </table>

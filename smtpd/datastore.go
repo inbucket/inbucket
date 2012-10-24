@@ -60,8 +60,9 @@ func NewDataStore() *DataStore {
 func (ds *DataStore) MailboxFor(emailAddress string) (*Mailbox, error) {
 	name := ParseMailboxName(emailAddress)
 	dir := HashMailboxName(name)
-	section := dir[0:4]
-	path := filepath.Join(ds.mailPath, section, dir)
+	s1 := dir[0:3]
+	s2 := dir[0:6]
+	path := filepath.Join(ds.mailPath, s1, s2, dir)
 	if err := os.MkdirAll(path, 0770); err != nil {
 		log.Error("Failed to create directory %v, %v", path, err)
 		return nil, err
@@ -102,7 +103,7 @@ func (mb *Mailbox) GetMessages() ([]*Message, error) {
 			dec := gob.NewDecoder(bufio.NewReader(file))
 			msg := new(Message)
 			if err = dec.Decode(msg); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("While decoding message: %v", err)
 			}
 			file.Close()
 			msg.mailbox = mb
@@ -257,7 +258,13 @@ func (m *Message) Close() error {
 		}
 	}
 
-	return m.createGob()
+	err := m.createGob()
+	if err != nil {
+		log.Error("Failed to create gob: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 // Delete this Message from disk by removing both the gob and raw files

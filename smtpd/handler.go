@@ -112,6 +112,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				}
 				if !commands[cmd] {
 					ss.send(fmt.Sprintf("500 Syntax error, %v command unrecognized", cmd))
+					ss.warn("Unrecognized command: %v", cmd)
 					continue
 				}
 
@@ -159,7 +160,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 			}
 		} else {
 			// readLine() returned an error
-			ss.error("Connection error: %v", err)
+			ss.warn("Connection error: %v", err)
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
 					ss.send("221 Idle timeout, bye bye")
@@ -171,7 +172,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 		}
 	}
 	if ss.sendError != nil {
-		ss.error("Network send error: %v", ss.sendError)
+		ss.warn("Network send error: %v", ss.sendError)
 	}
 	ss.info("Closing connection")
 }
@@ -200,7 +201,7 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 		m := re.FindStringSubmatch(arg)
 		if m == nil {
 			ss.send("501 Was expecting MAIL arg syntax of FROM:<address>")
-			ss.warn("Bad MAIL argument: \"%v\"", arg)
+			ss.warn("Bad MAIL argument: '%v'", arg)
 			return
 		}
 		from := m[1]
@@ -210,14 +211,14 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 			args, ok := ss.parseArgs(m[2])
 			if !ok {
 				ss.send("501 Unable to parse MAIL ESMTP parameters")
-				ss.warn("Bad MAIL argument: \"%v\"", arg)
+				ss.warn("Bad MAIL argument: '%v'", arg)
 				return
 			}
 			if args["SIZE"] != "" {
 				size, err := strconv.ParseInt(args["SIZE"], 10, 32)
 				if err != nil {
 					ss.send("501 Unable to parse SIZE as an integer")
-					ss.error("Unable to parse SIZE '%v' as an integer", args["SIZE"])
+					ss.warn("Unable to parse SIZE '%v' as an integer", args["SIZE"])
 					return
 				}
 				if int(size) > ss.server.maxMessageBytes {
@@ -243,7 +244,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 	case "RCPT":
 		if (len(arg) < 4) || (strings.ToUpper(arg[0:3]) != "TO:") {
 			ss.send("501 Was expecting RCPT arg syntax of TO:<address>")
-			ss.warn("Bad RCPT argument: \"%v\"", arg)
+			ss.warn("Bad RCPT argument: '%v'", arg)
 			return
 		}
 		// This trim is probably too forgiving
@@ -260,7 +261,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 	case "DATA":
 		if arg != "" {
 			ss.send("501 DATA command should not have any arguments")
-			ss.warn("Got unexpected args on DATA: \"%v\"", arg)
+			ss.warn("Got unexpected args on DATA: '%v'", arg)
 			return
 		}
 		if ss.recipients.Len() > 0 {
@@ -309,7 +310,7 @@ func (ss *Session) dataHandler() {
 					ss.send("221 Idle timeout, bye bye")
 				}
 			}
-			ss.error("Error: %v while reading", err)
+			ss.warn("Error: %v while reading", err)
 			ss.enterState(QUIT)
 			return
 		}
@@ -333,7 +334,7 @@ func (ss *Session) dataHandler() {
 		if msgSize > ss.server.maxMessageBytes {
 			// Max message size exceeded
 			ss.send("552 Maximum message size exceeded")
-			ss.error("Max message size exceeded while in DATA")
+			ss.warn("Max message size exceeded while in DATA")
 			ss.reset()
 			// TODO: Should really cleanup the crap on filesystem...
 			return
@@ -373,10 +374,10 @@ func (ss *Session) send(msg string) {
 	}
 	if _, err := fmt.Fprint(ss.conn, msg+"\r\n"); err != nil {
 		ss.sendError = err
-		ss.error("Failed to send: \"%v\"", msg)
+		ss.warn("Failed to send: '%v'", msg)
 		return
 	}
-	ss.trace("Sent: \"%v\"", msg)
+	ss.trace(">> %v >>", msg)
 }
 
 // readByteLine reads a line of input into the provided buffer. Does
@@ -416,7 +417,7 @@ func (ss *Session) readLine() (line string, err error) {
 	if err != nil {
 		return "", err
 	}
-	ss.trace("Read: \"%v\"", strings.TrimRight(line, "\r\n"))
+	ss.trace("<< %v <<", strings.TrimRight(line, "\r\n"))
 	return line, nil
 }
 
@@ -427,19 +428,19 @@ func (ss *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 	case l == 0:
 		return "", "", true
 	case l < 4:
-		ss.error("Command too short: \"%v\"", line)
+		ss.warn("Command too short: '%v'", line)
 		return "", "", false
 	case l == 4:
 		return strings.ToUpper(line), "", true
 	case l == 5:
 		// Too long to be only command, too short to have args
-		ss.error("Mangled command: \"%v\"", line)
+		ss.warn("Mangled command: '%v'", line)
 		return "", "", false
 	}
 	// If we made it here, command is long enough to have args
 	if line[4] != ' ' {
 		// There wasn't a space after the command?
-		ss.error("Mangled command: \"%v\"", line)
+		ss.warn("Mangled command: '%v'", line)
 		return "", "", false
 	}
 	// I'm not sure if we should trim the args or not, but we will for now
@@ -456,7 +457,7 @@ func (ss *Session) parseArgs(arg string) (args map[string]string, ok bool) {
 	re := regexp.MustCompile(" (\\w+)=(\\w+)")
 	pm := re.FindAllStringSubmatch(arg, -1)
 	if pm == nil {
-		ss.error("Failed to parse arg string: '%v'")
+		ss.warn("Failed to parse arg string: '%v'")
 		return nil, false
 	}
 	for _, m := range pm {
@@ -487,9 +488,13 @@ func (ss *Session) info(msg string, args ...interface{}) {
 }
 
 func (ss *Session) warn(msg string, args ...interface{}) {
+	// Update metrics
+	expWarnsTotal.Add(1)
 	log.Warn("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) error(msg string, args ...interface{}) {
+	// Update metrics
+	expErrorsTotal.Add(1)
 	log.Error("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }

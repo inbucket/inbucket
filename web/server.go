@@ -83,6 +83,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	log.Trace("Web: %v %v %v %v", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
 	err = h(buf, req, ctx)
 	if err != nil {
+		log.Error("Error handling %v: %v", req.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

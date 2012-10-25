@@ -14,7 +14,11 @@ disk - no external SMTP or database daemons required.
 
 Screenshots
 -----------
-![Screenshot 1](http://cloud.github.com/downloads/jhillyerd/inbucket/inbucket-ss1.png)
+![An Email](http://cloud.github.com/downloads/jhillyerd/inbucket/inbucket-ss1.png)
+Viewing an email in Inbucket.
+
+![Metrics](http://cloud.github.com/downloads/jhillyerd/inbucket/inbucket-ss2.png)
+Metrics while Inbucket receives 4,500 messages per minute.
 
 Development Status
 ------------------

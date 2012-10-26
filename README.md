@@ -33,6 +33,7 @@ It can:
  * Display the source of a message (headers + body text)
  * Display the HTML version of a message (in a new window)
  * Delete a message
+ * Purge messages after a configurable amount of time
 
 It does not yet:
 

@@ -30,3 +30,4 @@ type Message interface {
 	Delete() error
 	String() string
 }
+

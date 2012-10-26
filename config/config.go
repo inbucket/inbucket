@@ -109,14 +109,19 @@ func LoadConfig(filename string) error {
 		return fmt.Errorf("Failed to validate configuration")
 	}
 
-	err = parseSmtpConfig()
-	if err != nil {
-		return nil
+	if err = parseSmtpConfig(); err != nil {
+		return err
 	}
 
-	err = parseWebConfig()
+	if err = parseWebConfig(); err != nil {
+		return err
+	}
 
-	return err
+	if err = parseDataStoreConfig(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // parseLoggingConfig trying to catch config errors early

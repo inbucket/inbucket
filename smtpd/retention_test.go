@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestRetentionScanner(t *testing.T) {
+func TestDoRetentionScan(t *testing.T) {
 	// Create mock objects
 	mds := &MockDataStore{}
 
@@ -33,7 +33,7 @@ func TestRetentionScanner(t *testing.T) {
 	mb3.On("GetMessages").Return([]Message{new3}, nil)
 
 	// Test 4 hour retention
-	retentionScan(mds, 4*time.Hour, 0)
+	doRetentionScan(mds, 4*time.Hour, 0)
 
 	// Check our assertions
 	mds.AssertExpectations(t)

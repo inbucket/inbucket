@@ -85,6 +85,7 @@
   function displayMetrics(data, textStatus, jqXHR) {
     // Non graphing
     metric('uptime', data.uptime, timeFilter, false)
+    metric('retentionScanCompleted', data.retention.SecondsSinceScanCompleted, timeFilter, false)
 
     // JavaScript history
     metric('memstatsSys', data.memstats.Sys, sizeFilter, true)
@@ -102,6 +103,8 @@
     setHistory('smtpWarnsTotal', data.smtp.WarnsHist)
     metric('smtpErrorsTotal', data.smtp.ErrorsTotal, numberFilter, false)
     setHistory('smtpErrorsTotal', data.smtp.ErrorsHist)
+    metric('retentionDeletesTotal', data.retention.DeletesTotal, numberFilter, false)
+    setHistory('retentionDeletesTotal', data.retention.DeletesHist)
   }
 
   function loadMetrics() {
@@ -197,6 +200,22 @@ values over time.</p>
       <th>Warnings Logged:</th>
       <td><span id="m-smtpWarnsTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpWarnsTotal"></span></td>
+      <td>(60s)</td>
+    </tr>
+  </table>
+  <p class="last">&nbsp;</p>
+</div>
+<div class="box">
+  <h3>Data Store Metrics</h3>
+  <table class="metrics">
+    <tr>
+      <th>Retention Scan:</th>
+      <td colspan="3">Completed <span id="m-retentionScanCompleted">.</span> ago</td>
+    </tr>
+    <tr>
+      <th>Retention Deletes:</th>
+      <td><span id="m-retentionDeletesTotal">.</span></td>
+      <td class="sparkline"><span id="s-retentionDeletesTotal"></span></td>
       <td>(60s)</td>
     </tr>
   </table>

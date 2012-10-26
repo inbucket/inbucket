@@ -65,6 +65,10 @@ func (s *Server) Start() {
 		panic(err)
 	}
 
+	// Start retention scanner
+	StartRetentionScanner(s.dataStore)
+
+	// Handle incoming connections
 	for sid := 1; ; sid++ {
 		if conn, err := ln.Accept(); err != nil {
 			// TODO Implement a max error counter before shutdown?
@@ -86,6 +90,7 @@ func metricsTicker(t *time.Ticker) {
 		expConnectsHist.Set(pushMetric(connectsHist, expConnectsTotal))
 		expErrorsHist.Set(pushMetric(errorsHist, expErrorsTotal))
 		expWarnsHist.Set(pushMetric(warnsHist, expWarnsTotal))
+		expRetentionDeletesHist.Set(pushMetric(retentionDeletesHist, expRetentionDeletesTotal))
 	}
 }
 

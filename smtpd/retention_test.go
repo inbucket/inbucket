@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestSometing(t *testing.T) {
+func TestRetentionScanner(t *testing.T) {
 	// Create mock objects
 	mds := &MockDataStore{}
 

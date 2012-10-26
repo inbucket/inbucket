@@ -72,7 +72,42 @@ func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
 
 // AllMailboxes returns a slice with all Mailboxes
 func (ds *FileDataStore) AllMailboxes() ([]Mailbox, error) {
-	return nil, nil
+	mailboxes := make([]Mailbox, 0, 100)
+	infos1, err := ioutil.ReadDir(ds.mailPath)
+	if err != nil {
+		return nil, err
+	}
+	// Loop over level 1 directories
+	for _, inf1 := range infos1 {
+		if inf1.IsDir() {
+			l1 := inf1.Name()
+			infos2, err := ioutil.ReadDir(filepath.Join(ds.mailPath, l1))
+			if err != nil {
+				return nil, err
+			}
+			// Loop over level 2 directories
+			for _, inf2 := range infos2 {
+				if inf2.IsDir() {
+					l2 := inf2.Name()
+					infos3, err := ioutil.ReadDir(filepath.Join(ds.mailPath, l1, l2))
+					if err != nil {
+						return nil, err
+					}
+					// Loop over mailboxes
+					for _, inf3 := range infos3 {
+						if inf3.IsDir() {
+							mbdir := inf3.Name()
+							mbpath := filepath.Join(ds.mailPath, l1, l2, mbdir)
+							mb := &FileMailbox{store: ds, dirName: mbdir, path: mbpath}
+							mailboxes = append(mailboxes, mb)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return mailboxes, nil
 }
 
 // A Mailbox manages the mail for a specific user and correlates to a particular

@@ -16,7 +16,7 @@ type Server struct {
 	maxRecips       int
 	maxIdleSeconds  int
 	maxMessageBytes int
-	dataStore       *DataStore
+	dataStore       DataStore
 }
 
 // Raw stat collectors
@@ -40,10 +40,10 @@ var expWarnsHist = new(expvar.String)
 
 // Init a new Server object
 func New() *Server {
-	ds := NewDataStore()
-	// TODO Make more of these configurable
-	return &Server{domain: config.GetSmtpConfig().Domain, maxRecips: 100, maxIdleSeconds: 300,
-		dataStore: ds, maxMessageBytes: 2048000}
+	ds := NewFileDataStore()
+	cfg := config.GetSmtpConfig()
+	return &Server{dataStore: ds, domain: cfg.Domain, maxRecips: cfg.MaxRecipients,
+		maxIdleSeconds: cfg.MaxIdleSeconds, maxMessageBytes: cfg.MaxMessageBytes}
 }
 
 // Main listener loop

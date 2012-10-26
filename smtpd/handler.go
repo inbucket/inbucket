@@ -294,8 +294,8 @@ func (ss *Session) dataHandler() {
 	msgSize := 0
 
 	// Get a Mailbox and a new Message for each recipient
-	mailboxes := make([]*Mailbox, ss.recipients.Len())
-	messages := make([]*Message, ss.recipients.Len())
+	mailboxes := make([]Mailbox, ss.recipients.Len())
+	messages := make([]Message, ss.recipients.Len())
 	i := 0
 	for e := ss.recipients.Front(); e != nil; e = e.Next() {
 		recip := e.Value.(string)

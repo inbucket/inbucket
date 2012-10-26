@@ -18,7 +18,7 @@ Screenshots
 *Viewing an email in Inbucket.*
 
 ![Metrics](http://cloud.github.com/downloads/jhillyerd/inbucket/inbucket-ss2.png)
-*Monitoring metrics while Inbucket receives approximately 4,500 messages per minute.*
+*Watching metrics while Inbucket handles over 4,000 messages per minute.*
 
 Development Status
 ------------------

@@ -10,7 +10,7 @@ import (
 type Context struct {
 	Vars      map[string]string
 	Session   *sessions.Session
-	DataStore *smtpd.DataStore
+	DataStore smtpd.DataStore
 }
 
 func (c *Context) Close() {
@@ -20,7 +20,7 @@ func (c *Context) Close() {
 func NewContext(req *http.Request) (*Context, error) {
 	vars := mux.Vars(req)
 	sess, err := sessionStore.Get(req, "inbucket")
-	ds := smtpd.NewDataStore()
+	ds := smtpd.NewFileDataStore()
 	ctx := &Context{
 		Vars:      vars,
 		Session:   sess,

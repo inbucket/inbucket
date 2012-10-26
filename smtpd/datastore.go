@@ -15,6 +15,31 @@ import (
 	"time"
 )
 
+type DataStore interface {
+	MailboxFor(emailAddress string) (Mailbox, error)
+}
+
+type Mailbox interface {
+	GetMessages() ([]Message, error)
+	GetMessage(id string) (Message, error)
+	NewMessage() Message
+	String() string
+}
+
+type Message interface {
+	Id() string
+	From() string
+	Date() time.Time
+	Subject() string
+	ReadHeader() (msg *mail.Message, err error)
+	ReadBody() (msg *mail.Message, body *MIMEBody, err error)
+	ReadRaw() (raw *string, err error)
+	Append(data []byte) error
+	Close() error
+	Delete() error
+	String() string
+}
+
 var ErrNotWritable = errors.New("Message not writable")
 
 // Global because we only want one regardless of the number of DataStore objects
@@ -34,14 +59,14 @@ func countGenerator(c chan int) {
 
 // A DataStore is the root of the mail storage hiearchy.  It provides access to
 // Mailbox objects
-type DataStore struct {
+type FileDataStore struct {
 	path     string
 	mailPath string
 }
 
 // NewDataStore creates a new DataStore object.  It uses the inbucket.Config object to
 // construct it's path.
-func NewDataStore() *DataStore {
+func NewFileDataStore() DataStore {
 	path, err := config.Config.String("datastore", "path")
 	if err != nil {
 		log.Error("Error getting datastore path: %v", err)
@@ -52,12 +77,12 @@ func NewDataStore() *DataStore {
 		return nil
 	}
 	mailPath := filepath.Join(path, "mail")
-	return &DataStore{path: path, mailPath: mailPath}
+	return &FileDataStore{path: path, mailPath: mailPath}
 }
 
 // Retrieves the Mailbox object for a specified email address, if the mailbox
 // does not exist, it will attempt to create it.
-func (ds *DataStore) MailboxFor(emailAddress string) (*Mailbox, error) {
+func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
 	name := ParseMailboxName(emailAddress)
 	dir := HashMailboxName(name)
 	s1 := dir[0:3]
@@ -67,32 +92,32 @@ func (ds *DataStore) MailboxFor(emailAddress string) (*Mailbox, error) {
 		log.Error("Failed to create directory %v, %v", path, err)
 		return nil, err
 	}
-	return &Mailbox{store: ds, name: name, dirName: dir, path: path}, nil
+	return &FileMailbox{store: ds, name: name, dirName: dir, path: path}, nil
 }
 
 // A Mailbox manages the mail for a specific user and correlates to a particular
 // directory on disk.
-type Mailbox struct {
-	store   *DataStore
+type FileMailbox struct {
+	store   *FileDataStore
 	name    string
 	dirName string
 	path    string
 }
 
-func (mb *Mailbox) String() string {
+func (mb *FileMailbox) String() string {
 	return mb.name + "[" + mb.dirName + "]"
 }
 
 // GetMessages scans the mailbox directory for .gob files and decodes them into
 // a slice of Message objects.
-func (mb *Mailbox) GetMessages() ([]*Message, error) {
+func (mb *FileMailbox) GetMessages() ([]Message, error) {
 	files, err := ioutil.ReadDir(mb.path)
 	if err != nil {
 		return nil, err
 	}
 	log.Trace("Scanning %v files for %v", len(files), mb)
 
-	messages := make([]*Message, 0, len(files))
+	messages := make([]Message, 0, len(files))
 	for _, f := range files {
 		if (!f.IsDir()) && strings.HasSuffix(strings.ToLower(f.Name()), ".gob") {
 			// We have a gob file
@@ -101,7 +126,7 @@ func (mb *Mailbox) GetMessages() ([]*Message, error) {
 				return nil, err
 			}
 			dec := gob.NewDecoder(bufio.NewReader(file))
-			msg := new(Message)
+			msg := new(FileMessage)
 			if err = dec.Decode(msg); err != nil {
 				return nil, fmt.Errorf("While decoding message: %v", err)
 			}
@@ -115,14 +140,14 @@ func (mb *Mailbox) GetMessages() ([]*Message, error) {
 }
 
 // GetMessage decodes a single message by Id and returns a Message object
-func (mb *Mailbox) GetMessage(id string) (*Message, error) {
+func (mb *FileMailbox) GetMessage(id string) (Message, error) {
 	file, err := os.Open(filepath.Join(mb.path, id+".gob"))
 	if err != nil {
 		return nil, err
 	}
 
 	dec := gob.NewDecoder(bufio.NewReader(file))
-	msg := new(Message)
+	msg := new(FileMessage)
 	if err = dec.Decode(msg); err != nil {
 		return nil, err
 	}
@@ -135,12 +160,13 @@ func (mb *Mailbox) GetMessage(id string) (*Message, error) {
 
 // Message contains a little bit of data about a particular email message, and
 // methods to retrieve the rest of it from disk.
-type Message struct {
-	mailbox *Mailbox
-	Id      string
-	Date    time.Time
-	From    string
-	Subject string
+type FileMessage struct {
+	mailbox *FileMailbox
+	// Stored in GOB
+	Fid      string
+	Fdate    time.Time
+	Ffrom    string
+	Fsubject string
 	// These are for creating new messages only
 	writable   bool
 	writerFile *os.File
@@ -148,27 +174,43 @@ type Message struct {
 }
 
 // NewMessage creates a new Message object and sets the Date and Id fields.
-func (mb *Mailbox) NewMessage() *Message {
+func (mb *FileMailbox) NewMessage() Message {
 	date := time.Now()
-	id := date.Format("20060102T150405") + "-" + fmt.Sprintf("%04d", <-countChannel)
+	id := generateId(date)
 
-	return &Message{mailbox: mb, Id: id, Date: date, writable: true}
+	return &FileMessage{mailbox: mb, Fid: id, Fdate: date, writable: true}
 }
 
-func (m *Message) String() string {
-	return fmt.Sprintf("\"%v\" from %v", m.Subject, m.From)
+func (m *FileMessage) Id() string {
+	return m.Fid
 }
 
-func (m *Message) gobPath() string {
-	return filepath.Join(m.mailbox.path, m.Id+".gob")
+func (m *FileMessage) Date() time.Time {
+	return m.Fdate
 }
 
-func (m *Message) rawPath() string {
-	return filepath.Join(m.mailbox.path, m.Id+".raw")
+func (m *FileMessage) From() string {
+	return m.Ffrom
+}
+
+func (m *FileMessage) Subject() string {
+	return m.Fsubject
+}
+
+func (m *FileMessage) String() string {
+	return fmt.Sprintf("\"%v\" from %v", m.Fsubject, m.Ffrom)
+}
+
+func (m *FileMessage) gobPath() string {
+	return filepath.Join(m.mailbox.path, m.Fid+".gob")
+}
+
+func (m *FileMessage) rawPath() string {
+	return filepath.Join(m.mailbox.path, m.Fid+".raw")
 }
 
 // ReadHeader opens the .raw portion of a Message and returns a standard Go mail.Message object
-func (m *Message) ReadHeader() (msg *mail.Message, err error) {
+func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
 	file, err := os.Open(m.rawPath())
 	defer file.Close()
 	if err != nil {
@@ -182,7 +224,7 @@ func (m *Message) ReadHeader() (msg *mail.Message, err error) {
 // ReadBody opens the .raw portion of a Message and returns a MIMEBody object, along
 // with a free mail.Message containing the Headers, since we had to make one of those
 // anyway.
-func (m *Message) ReadBody() (msg *mail.Message, body *MIMEBody, err error) {
+func (m *FileMessage) ReadBody() (msg *mail.Message, body *MIMEBody, err error) {
 	file, err := os.Open(m.rawPath())
 	defer file.Close()
 	if err != nil {
@@ -201,7 +243,7 @@ func (m *Message) ReadBody() (msg *mail.Message, body *MIMEBody, err error) {
 }
 
 // ReadRaw opens the .raw portion of a Message and returns it as a string
-func (m *Message) ReadRaw() (raw *string, err error) {
+func (m *FileMessage) ReadRaw() (raw *string, err error) {
 	file, err := os.Open(m.rawPath())
 	defer file.Close()
 	if err != nil {
@@ -218,7 +260,7 @@ func (m *Message) ReadRaw() (raw *string, err error) {
 
 // Append data to a newly opened Message, this will fail on a pre-existing Message and
 // after Close() is called.
-func (m *Message) Append(data []byte) error {
+func (m *FileMessage) Append(data []byte) error {
 	// Prevent Appending to a pre-existing Message
 	if !m.writable {
 		return ErrNotWritable
@@ -240,7 +282,7 @@ func (m *Message) Append(data []byte) error {
 
 // Close this Message for writing - no more data may be Appended.  Close() will also
 // trigger the creation of the .gob file.
-func (m *Message) Close() error {
+func (m *FileMessage) Close() error {
 	// nil out the writer fields so they can't be used
 	writer := m.writer
 	writerFile := m.writerFile
@@ -268,7 +310,7 @@ func (m *Message) Close() error {
 }
 
 // Delete this Message from disk by removing both the gob and raw files
-func (m *Message) Delete() error {
+func (m *FileMessage) Delete() error {
 	log.Trace("Deleting %v", m.gobPath())
 	err := os.Remove(m.gobPath())
 	if err != nil {
@@ -280,7 +322,7 @@ func (m *Message) Delete() error {
 
 // createGob reads the .raw file to grab the From and Subject header entries,
 // then creates the .gob file.
-func (m *Message) createGob() error {
+func (m *FileMessage) createGob() error {
 	// Open gob for writing
 	file, err := os.Create(m.gobPath())
 	defer file.Close()
@@ -296,8 +338,8 @@ func (m *Message) createGob() error {
 	}
 
 	// Only public fields are stored in gob
-	m.From = msg.Header.Get("From")
-	m.Subject = msg.Header.Get("Subject")
+	m.Ffrom = msg.Header.Get("From")
+	m.Fsubject = msg.Header.Get("Subject")
 
 	// Write & flush
 	enc := gob.NewEncoder(writer)
@@ -307,4 +349,17 @@ func (m *Message) createGob() error {
 	}
 	writer.Flush()
 	return nil
+}
+
+// generatePrefix converts a Time object into the ISO style format we use
+// as a prefix for message files.  Note:  It is used directly by unit
+// tests.
+func generatePrefix(date time.Time) string {
+	return date.Format("20060102T150405")
+}
+
+// generateId adds a 4-digit unique number onto the end of the string
+// returned by generatePrefix()
+func generateId(date time.Time) string {
+	return generatePrefix(date) + "-" + fmt.Sprintf("%04d", <-countChannel)
 }

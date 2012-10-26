@@ -17,6 +17,7 @@ import (
 
 type DataStore interface {
 	MailboxFor(emailAddress string) (Mailbox, error)
+	AllMailboxes() ([]Mailbox, error)
 }
 
 type Mailbox interface {
@@ -93,6 +94,11 @@ func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
 		return nil, err
 	}
 	return &FileMailbox{store: ds, name: name, dirName: dir, path: path}, nil
+}
+
+// AllMailboxes returns a slice with all Mailboxes
+func (ds *FileDataStore) AllMailboxes() ([]Mailbox, error) {
+	return nil, nil
 }
 
 // A Mailbox manages the mail for a specific user and correlates to a particular

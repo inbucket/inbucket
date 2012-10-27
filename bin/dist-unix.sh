@@ -1,7 +1,7 @@
 #!/bin/sh
 # Compile and package inbucket dist for unix
 
-if [ "$1x" == "x" ]; then
+if [ "${1}x" = "x" ]; then
   echo "Usage: $0 <version-label>" 1>&2
   exit 1
 fi
@@ -16,7 +16,7 @@ mkdir -p $tmpdir
 
 # Figure out our build env/target
 go env > $tmpdir/env
-source $tmpdir/env
+. $tmpdir/env
 distname="inbucket-${label}-${GOOS}_$GOARCH"
 distdir="$tmpdir/$distname"
 

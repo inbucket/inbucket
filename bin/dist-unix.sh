@@ -14,7 +14,6 @@ set -e
 tmpdir=/tmp/inbucket-dist.$$
 mkdir -p $tmpdir
 
-
 # Figure out our build env/target
 go env > $tmpdir/env
 source $tmpdir/env
@@ -34,5 +33,10 @@ echo "Tarballing..."
 tarball="$HOME/$distname.tbz2"
 cd $tmpdir
 tar cjvf $tarball $distname
+
+echo "Cleaning up..."
+if [ "$tmpdir" != "/" ]; then
+  rm -rf $tmpdir
+fi
 
 echo "Created $tarball"

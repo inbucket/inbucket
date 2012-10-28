@@ -18,6 +18,7 @@ type SmtpConfig struct {
 	MaxRecipients   int
 	MaxIdleSeconds  int
 	MaxMessageBytes int
+	StoreMessages   bool
 }
 
 type WebConfig struct {
@@ -91,6 +92,7 @@ func LoadConfig(filename string) error {
 	requireOption(messages, "smtp", "max.recipients")
 	requireOption(messages, "smtp", "max.idle.seconds")
 	requireOption(messages, "smtp", "max.message.bytes")
+	requireOption(messages, "smtp", "store.messages")
 	requireOption(messages, "web", "ip4.address")
 	requireOption(messages, "web", "ip4.port")
 	requireOption(messages, "web", "template.dir")
@@ -192,6 +194,13 @@ func parseSmtpConfig() error {
 	if err != nil {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}
+
+	option = "store.messages"
+	flag, err := Config.Bool(section, option)
+	if err != nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
+	smtpConfig.StoreMessages = flag
 
 	return nil
 }

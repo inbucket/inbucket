@@ -296,19 +296,21 @@ func (ss *Session) dataHandler() {
 	// Get a Mailbox and a new Message for each recipient
 	mailboxes := make([]Mailbox, ss.recipients.Len())
 	messages := make([]Message, ss.recipients.Len())
-	i := 0
-	for e := ss.recipients.Front(); e != nil; e = e.Next() {
-		recip := e.Value.(string)
-		mb, err := ss.server.dataStore.MailboxFor(recip)
-		if err != nil {
-			ss.error("Failed to open mailbox for %v", recip)
-			ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
-			ss.reset()
-			return
+	if ss.server.storeMessages {
+		i := 0
+		for e := ss.recipients.Front(); e != nil; e = e.Next() {
+			recip := e.Value.(string)
+			mb, err := ss.server.dataStore.MailboxFor(recip)
+			if err != nil {
+				ss.error("Failed to open mailbox for %v", recip)
+				ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
+				ss.reset()
+				return
+			}
+			mailboxes[i] = mb
+			messages[i] = mb.NewMessage()
+			i++
 		}
-		mailboxes[i] = mb
-		messages[i] = mb.NewMessage()
-		i++
 	}
 
 	ss.send("354 Start mail input; end with <CRLF>.<CRLF>")
@@ -329,8 +331,12 @@ func (ss *Session) dataHandler() {
 		line := buf.Bytes()
 		if string(line) == ".\r\n" {
 			// Mail data complete
-			for _, m := range messages {
-				m.Close()
+			if ss.server.storeMessages {
+				for _, m := range messages {
+					m.Close()
+					expDeliveredTotal.Add(1)
+				}
+			} else {
 				expDeliveredTotal.Add(1)
 			}
 			ss.send("250 Mail accepted for delivery")
@@ -352,13 +358,15 @@ func (ss *Session) dataHandler() {
 			return
 		}
 		// Append to message objects
-		for i, m := range messages {
-			if err := m.Append(line); err != nil {
-				ss.error("Failed to append to mailbox %v: %v", mailboxes[i], err)
-				ss.send("554 Something went wrong")
-				ss.reset()
-				// TODO: Should really cleanup the crap on filesystem...
-				return
+		if ss.server.storeMessages {
+			for i, m := range messages {
+				if err := m.Append(line); err != nil {
+					ss.error("Failed to append to mailbox %v: %v", mailboxes[i], err)
+					ss.send("554 Something went wrong")
+					ss.reset()
+					// TODO: Should really cleanup the crap on filesystem...
+					return
+				}
 			}
 		}
 	}

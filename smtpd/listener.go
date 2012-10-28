@@ -17,6 +17,7 @@ type Server struct {
 	maxIdleSeconds  int
 	maxMessageBytes int
 	dataStore       DataStore
+	storeMessages   bool
 }
 
 // Raw stat collectors
@@ -43,7 +44,8 @@ func New() *Server {
 	ds := NewFileDataStore()
 	cfg := config.GetSmtpConfig()
 	return &Server{dataStore: ds, domain: cfg.Domain, maxRecips: cfg.MaxRecipients,
-		maxIdleSeconds: cfg.MaxIdleSeconds, maxMessageBytes: cfg.MaxMessageBytes}
+		maxIdleSeconds: cfg.MaxIdleSeconds, maxMessageBytes: cfg.MaxMessageBytes,
+		storeMessages: cfg.StoreMessages}
 }
 
 // Main listener loop
@@ -63,6 +65,10 @@ func (s *Server) Start() {
 		log.Error("Failed to start tcp4 listener: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
+	}
+
+	if !s.storeMessages {
+		log.Info("Load test mode active, messages will not be stored")
 	}
 
 	// Start retention scanner

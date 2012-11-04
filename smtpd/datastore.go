@@ -1,6 +1,7 @@
 package smtpd
 
 import (
+	"github.com/jhillyerd/go.enmime"
 	"net/mail"
 	"time"
 )
@@ -23,11 +24,10 @@ type Message interface {
 	Date() time.Time
 	Subject() string
 	ReadHeader() (msg *mail.Message, err error)
-	ReadBody() (msg *mail.Message, body *MIMEBody, err error)
+	ReadBody() (msg *mail.Message, body *enmime.MIMEBody, err error)
 	ReadRaw() (raw *string, err error)
 	Append(data []byte) error
 	Close() error
 	Delete() error
 	String() string
 }
-

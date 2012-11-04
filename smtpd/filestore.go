@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"github.com/jhillyerd/go.enmime"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 	"io/ioutil"
@@ -239,7 +240,7 @@ func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
 // ReadBody opens the .raw portion of a Message and returns a MIMEBody object, along
 // with a free mail.Message containing the Headers, since we had to make one of those
 // anyway.
-func (m *FileMessage) ReadBody() (msg *mail.Message, body *MIMEBody, err error) {
+func (m *FileMessage) ReadBody() (msg *mail.Message, body *enmime.MIMEBody, err error) {
 	file, err := os.Open(m.rawPath())
 	defer file.Close()
 	if err != nil {
@@ -250,7 +251,7 @@ func (m *FileMessage) ReadBody() (msg *mail.Message, body *MIMEBody, err error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	mime, err := ParseMIMEBody(msg)
+	mime, err := enmime.ParseMIMEBody(msg)
 	if err != nil {
 		return nil, nil, err
 	}

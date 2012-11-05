@@ -32,7 +32,7 @@ cp -r themes $distdir/themes
 echo "Tarballing..."
 tarball="$HOME/$distname.tbz2"
 cd $tmpdir
-tar cjvf $tarball $distname
+tar --owner=root --group=root -cjvf $tarball $distname
 
 echo "Cleaning up..."
 if [ "$tmpdir" != "/" ]; then

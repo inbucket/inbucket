@@ -29,7 +29,7 @@
 RETVAL=0
 program=/opt/inbucket/inbucket
 prog=${program##*/}
-config=/opt/inbucket/etc/inbucket.conf
+config=/etc/opt/inbucket.conf
 runas=inbucket
 
 lockfile=/var/lock/subsys/$prog
@@ -77,6 +77,15 @@ stop() {
 	return $RETVAL
 }
 
+reload() {
+	[ "$EUID" != "0" ] && exit 4
+	echo -n $"Reloading $prog: "
+	killproc -p "$pidfile" "$program" -HUP
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
 # See how we were called.
 case "$1" in
   start)
@@ -86,6 +95,10 @@ case "$1" in
   stop)
 	[ -e $lockfile ] || exit 0
 	stop
+	;;
+  reload)
+	[ -e $lockfile ] || exit 0
+	reload
 	;;
   restart|force-reload)
 	stop

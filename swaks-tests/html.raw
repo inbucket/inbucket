@@ -1,0 +1,25 @@
+Date: %DATE%
+To: %TO_ADDRESS%
+From: %FROM_ADDRESS%
+Subject: Swaks HTML
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="----=_MIME_BOUNDARY_000_62717"
+
+------=_MIME_BOUNDARY_000_62717
+Content-Type: text/plain
+
+This is a test mailing.
+
+This should be clickable: http://google.com/
+
+------=_MIME_BOUNDARY_000_62717
+Content-Type: text/html
+Content-Transfer-Encoding: BASE64
+
+PGh0bWw+Cjxib2R5Pgo8cD5UaGlzIGlzIGEgdGVzdCBtYWlsaW5nIDxiPmluIEhUTUw8L2I+PC9w
+PgoKPHA+VGhpcyBzaG91bGQgYmUgY2xpY2thYmxlOiA8YSBocmVmPSJodHRwOi8vZ29vZ2xlLmNv
+bS8iPmdvb2dsZS5jb208L2E+PC9wPgo8L2JvZHk+CjwvaHRtbD4K
+
+------=_MIME_BOUNDARY_000_62717--
+
+

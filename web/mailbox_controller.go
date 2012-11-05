@@ -63,15 +63,15 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("MailboxFor('%v'): %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("GetMessage() failed: %v", err)
 	}
 	_, mime, err := message.ReadBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("ReadBody() failed: %v", err)
 	}
 	body := template.HTML(textToHtml(mime.Text))
 	htmlAvailable := mime.Html != ""

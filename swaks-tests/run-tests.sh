@@ -10,4 +10,4 @@ swaks --h-Subject: "Swaks Plain Text" --body text.txt
 swaks --h-Subject: "Swaks HTML" --data html.raw
 
 # Attachment test
-swaks --h-Subject: "Swaks Attachment" --attach-type image/png --attach favicon.png
+swaks --h-Subject: "Swaks Attachment" --attach-type image/png --attach favicon.png --body text.txt

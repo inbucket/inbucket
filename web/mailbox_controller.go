@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
@@ -23,12 +24,8 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 }
 
 func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	// Don't have to validate these aren't empty, Gorilla returns 404
 	name := ctx.Vars["name"]
-	if len(name) == 0 {
-		ctx.Session.AddFlash("Account name is required", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
-		return nil
-	}
 
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
@@ -48,18 +45,9 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 }
 
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	// Don't have to validate these aren't empty, Gorilla returns 404
 	name := ctx.Vars["name"]
 	id := ctx.Vars["id"]
-	if len(name) == 0 {
-		ctx.Session.AddFlash("Account name is required", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
-		return nil
-	}
-	if len(id) == 0 {
-		ctx.Session.AddFlash("Message ID is required", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
-		return nil
-	}
 
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
@@ -82,22 +70,14 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 		"message":       message,
 		"body":          body,
 		"htmlAvailable": htmlAvailable,
+		"attachments":   mime.Attachments,
 	})
 }
 
 func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	// Don't have to validate these aren't empty, Gorilla returns 404
 	name := ctx.Vars["name"]
 	id := ctx.Vars["id"]
-	if len(name) == 0 {
-		ctx.Session.AddFlash("Account name is required", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
-		return nil
-	}
-	if len(id) == 0 {
-		ctx.Session.AddFlash("Message ID is required", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
-		return nil
-	}
 
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
@@ -122,18 +102,9 @@ func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 }
 
 func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	// Don't have to validate these aren't empty, Gorilla returns 404
 	name := ctx.Vars["name"]
 	id := ctx.Vars["id"]
-	if len(name) == 0 {
-		ctx.Session.AddFlash("Account name is required", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
-		return nil
-	}
-	if len(id) == 0 {
-		ctx.Session.AddFlash("Message ID is required", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
-		return nil
-	}
 
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
@@ -153,19 +124,83 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 	return nil
 }
 
-func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	// Don't have to validate these aren't empty, Gorilla returns 404
 	name := ctx.Vars["name"]
 	id := ctx.Vars["id"]
-	if len(name) == 0 {
-		ctx.Session.AddFlash("Account name is required", "errors")
+	numStr := ctx.Vars["num"]
+	num, err := strconv.ParseUint(numStr, 10, 32)
+	if err != nil {
+		ctx.Session.AddFlash("Attachment number must be unsigned numeric", "errors")
 		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	if len(id) == 0 {
-		ctx.Session.AddFlash("Message ID is required", "errors")
+
+	mb, err := ctx.DataStore.MailboxFor(name)
+	if err != nil {
+		return err
+	}
+	message, err := mb.GetMessage(id)
+	if err != nil {
+		return err
+	}
+	_, body, err := message.ReadBody()
+	if err != nil {
+		return err
+	}
+	if int(num) >= len(body.Attachments) {
+		ctx.Session.AddFlash("Attachment number too high", "errors")
 		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
+	part := body.Attachments[num]
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "attachment")
+	w.Write(part.Content())
+	return nil
+}
+
+func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	// Don't have to validate these aren't empty, Gorilla returns 404
+	name := ctx.Vars["name"]
+	id := ctx.Vars["id"]
+	numStr := ctx.Vars["num"]
+	num, err := strconv.ParseUint(numStr, 10, 32)
+	if err != nil {
+		ctx.Session.AddFlash("Attachment number must be unsigned numeric", "errors")
+		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
+
+	mb, err := ctx.DataStore.MailboxFor(name)
+	if err != nil {
+		return err
+	}
+	message, err := mb.GetMessage(id)
+	if err != nil {
+		return err
+	}
+	_, body, err := message.ReadBody()
+	if err != nil {
+		return err
+	}
+	if int(num) >= len(body.Attachments) {
+		ctx.Session.AddFlash("Attachment number too high", "errors")
+		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
+	part := body.Attachments[num]
+
+	w.Header().Set("Content-Type", part.ContentType())
+	w.Write(part.Content())
+	return nil
+}
+
+func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	// Don't have to validate these aren't empty, Gorilla returns 404
+	name := ctx.Vars["name"]
+	id := ctx.Vars["id"]
 
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {

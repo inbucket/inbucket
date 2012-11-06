@@ -46,6 +46,8 @@ perms_check() {
     chown $runas: /var/run/$prog
     touch $logfile
     chown $runas: $logfile
+    # Allow bind to ports under 1024
+    setcap 'cap_net_bind_service=+ep' $program
 }
 
 start() {

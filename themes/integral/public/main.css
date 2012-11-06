@@ -327,3 +327,28 @@ table.metrics {
 .metrics td.sparkline {
   width: 170px;
 }
+
+#emailAttachments {
+  border-collapse: collapse;
+}
+
+#emailAttachments th, #emailAttachments td {
+  text-align: left;
+  padding: 0 3px 3px 0;
+}
+
+#emailAttachments .fileName:before {
+  content: '\203A\00A0';
+}
+
+#emailAttachments a {
+  background: #8ac6dc;
+  color: #fff;
+  text-decoration: none;
+  padding: 0 5px;
+}
+
+#emailAttachments a:hover {
+  background: #becf74;
+}
+

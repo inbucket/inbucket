@@ -38,6 +38,8 @@ func setupRoutes(cfg config.WebConfig) {
 	r.Path("/mailbox/html/{name}/{id}").Handler(handler(MailboxHtml)).Name("MailboxHtml").Methods("GET")
 	r.Path("/mailbox/source/{name}/{id}").Handler(handler(MailboxSource)).Name("MailboxSource").Methods("GET")
 	r.Path("/mailbox/delete/{name}/{id}").Handler(handler(MailboxDelete)).Name("MailboxDelete").Methods("POST")
+	r.Path("/mailbox/dattach/{name}/{id}/{num}/{file}").Handler(handler(MailboxDownloadAttach)).Name("MailboxDownloadAttach").Methods("GET")
+	r.Path("/mailbox/vattach/{name}/{id}/{num}/{file}").Handler(handler(MailboxViewAttach)).Name("MailboxViewAttach").Methods("GET")
 
 	// Register w/ HTTP
 	Router = r

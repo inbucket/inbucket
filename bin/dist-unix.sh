@@ -10,6 +10,13 @@ label="$1"
 # Bail on error
 set -e
 
+# For OS X
+if [ -x /usr/bin/gnutar ]; then
+  tar=/usr/bin/gnutar
+else
+  tar=tar
+fi
+
 # Work directory
 tmpdir=/tmp/inbucket-dist.$$
 mkdir -p $tmpdir
@@ -32,7 +39,7 @@ cp -r themes $distdir/themes
 echo "Tarballing..."
 tarball="$HOME/$distname.tbz2"
 cd $tmpdir
-tar --owner=root --group=root -cjvf $tarball $distname
+$tar --owner=root --group=0 -cjvf $tarball $distname
 
 echo "Cleaning up..."
 if [ "$tmpdir" != "/" ]; then

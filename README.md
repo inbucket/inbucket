@@ -14,11 +14,12 @@ disk - no external SMTP or database daemons required.
 
 Features
 --------
- * Receive and store SMTP & ESMTP
+ * Receive and store E/SMTP messages
  * List messages in a mailbox
- * Display the text content of a particular message
- * Display the source of a message (headers + body text)
- * Display the HTML version of a message (in a new window)
+ * Displays:
+   - Text content of a particular message
+   - Source of a message (headers + body text)
+   - HTML version of a message (in a new window)
  * List MIME attachments with buttons to display or download
  * Delete a message
  * Purge messages after a configurable amount of time

@@ -7,12 +7,14 @@ import (
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 	"net"
+	"strings"
 	"time"
 )
 
 // Real server code starts here
 type Server struct {
 	domain          string
+	domainNoStore   string
 	maxRecips       int
 	maxIdleSeconds  int
 	maxMessageBytes int
@@ -45,7 +47,7 @@ func New() *Server {
 	cfg := config.GetSmtpConfig()
 	return &Server{dataStore: ds, domain: cfg.Domain, maxRecips: cfg.MaxRecipients,
 		maxIdleSeconds: cfg.MaxIdleSeconds, maxMessageBytes: cfg.MaxMessageBytes,
-		storeMessages: cfg.StoreMessages}
+		storeMessages: cfg.StoreMessages, domainNoStore: strings.ToLower(cfg.DomainNoStore)}
 }
 
 // Main listener loop
@@ -69,6 +71,8 @@ func (s *Server) Start() {
 
 	if !s.storeMessages {
 		log.Info("Load test mode active, messages will not be stored")
+	} else if s.domainNoStore != "" {
+		log.Info("Messages sent to domain '%v' will be discarded", s.domainNoStore)
 	}
 
 	// Start retention scanner

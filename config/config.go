@@ -15,6 +15,7 @@ type SmtpConfig struct {
 	Ip4address      net.IP
 	Ip4port         int
 	Domain          string
+	DomainNoStore   string
 	MaxRecipients   int
 	MaxIdleSeconds  int
 	MaxMessageBytes int
@@ -176,6 +177,15 @@ func parseSmtpConfig() error {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}
 	smtpConfig.Domain = str
+
+	option = "domain.nostore"
+	if Config.HasOption(section, option) {
+		str, err = Config.String(section, option)
+		if err != nil {
+			return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+		}
+		smtpConfig.DomainNoStore = str
+	}
 
 	option = "max.recipients"
 	smtpConfig.MaxRecipients, err = Config.Int(section, option)

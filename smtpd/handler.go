@@ -300,15 +300,20 @@ func (ss *Session) dataHandler() {
 		i := 0
 		for e := ss.recipients.Front(); e != nil; e = e.Next() {
 			recip := e.Value.(string)
-			mb, err := ss.server.dataStore.MailboxFor(recip)
-			if err != nil {
-				ss.error("Failed to open mailbox for %v", recip)
-				ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
-				ss.reset()
-				return
+			if !strings.HasSuffix(strings.ToLower(recip), "@" + ss.server.domainNoStore) {
+				// Not our "no store" domain, so store the message
+				mb, err := ss.server.dataStore.MailboxFor(recip)
+				if err != nil {
+					ss.error("Failed to open mailbox for %v", recip)
+					ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
+					ss.reset()
+					return
+				}
+				mailboxes[i] = mb
+				messages[i] = mb.NewMessage()
+			} else {
+				log.Trace("Not storing message for '%v'", recip)
 			}
-			mailboxes[i] = mb
-			messages[i] = mb.NewMessage()
 			i++
 		}
 	}
@@ -333,8 +338,10 @@ func (ss *Session) dataHandler() {
 			// Mail data complete
 			if ss.server.storeMessages {
 				for _, m := range messages {
-					m.Close()
-					expDeliveredTotal.Add(1)
+					if m != nil {
+						m.Close()
+						expDeliveredTotal.Add(1)
+					}
 				}
 			} else {
 				expDeliveredTotal.Add(1)
@@ -360,12 +367,14 @@ func (ss *Session) dataHandler() {
 		// Append to message objects
 		if ss.server.storeMessages {
 			for i, m := range messages {
-				if err := m.Append(line); err != nil {
-					ss.error("Failed to append to mailbox %v: %v", mailboxes[i], err)
-					ss.send("554 Something went wrong")
-					ss.reset()
-					// TODO: Should really cleanup the crap on filesystem...
-					return
+				if m != nil {
+					if err := m.Append(line); err != nil {
+						ss.error("Failed to append to mailbox %v: %v", mailboxes[i], err)
+						ss.send("554 Something went wrong")
+						ss.reset()
+						// TODO: Should really cleanup the crap on filesystem...
+						return
+					}
 				}
 			}
 		}

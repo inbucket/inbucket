@@ -13,6 +13,7 @@ var retentionScanCompleted time.Time
 var retentionScanCompletedMu sync.RWMutex
 
 var expRetentionDeletesTotal = new(expvar.Int)
+var expRetentionPeriod = new(expvar.Int)
 
 // History of certain stats
 var retentionDeletesHist = list.New()
@@ -22,6 +23,7 @@ var expRetentionDeletesHist = new(expvar.String)
 
 func StartRetentionScanner(ds DataStore) {
 	cfg := config.GetDataStoreConfig()
+	expRetentionPeriod.Set(int64(cfg.RetentionMinutes * 60))
 	if cfg.RetentionMinutes > 0 {
 		// Retention scanning enabled
 		log.Info("Retention configured for %v minutes", cfg.RetentionMinutes)
@@ -109,4 +111,5 @@ func init() {
 	rm.Set("SecondsSinceScanCompleted", expvar.Func(secondsSinceRetentionScanCompleted))
 	rm.Set("DeletesHist", expRetentionDeletesHist)
 	rm.Set("DeletesTotal", expRetentionDeletesTotal)
+	rm.Set("Period", expRetentionPeriod)
 }

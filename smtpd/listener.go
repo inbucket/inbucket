@@ -104,11 +104,12 @@ func metricsTicker(t *time.Ticker) {
 	}
 }
 
-// pushMetric adds the metric to the end of the list and returns a comma
-// separated string of the previous 50 entries
+// pushMetric adds the metric to the end of the list and returns a comma separated string of the
+// previous 61 entries.  We return 61 instead of 60 (an hour) because the chart on the client
+// tracks deltas between these values - there is nothing to compare the first value against.
 func pushMetric(history *list.List, ev expvar.Var) string {
 	history.PushBack(ev.String())
-	if history.Len() > 50 {
+	if history.Len() > 61 {
 		history.Remove(history.Front())
 	}
 	return JoinStringList(history)

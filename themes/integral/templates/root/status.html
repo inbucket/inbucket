@@ -42,8 +42,8 @@
       h = new Array(0)
     }
     // Prevent array from growing
-    if (h.length >= 50) {
-      h = h.slice(1,50)
+    if (h.length >= 60) {
+      h = h.slice(1,60)
     }
     h.push(parseInt(value))
     dataHist[name] = h
@@ -60,6 +60,10 @@
       var t = parseInt(h[i])
       h[i] = t-prev
       prev = t
+    }
+    // First value will always be zero
+    if (h.length > 0) {
+      h = h.slice(1)
     }
     el = $('#s-' + name)
     if (el) {
@@ -86,6 +90,7 @@
     // Non graphing
     metric('uptime', data.uptime, timeFilter, false)
     metric('retentionScanCompleted', data.retention.SecondsSinceScanCompleted, timeFilter, false)
+    metric('retentionPeriod', data.retention.Period, timeFilter, false)
 
     // JavaScript history
     metric('memstatsSys', data.memstats.Sys, sizeFilter, true)
@@ -114,7 +119,7 @@
 
   function aboutInit() {
     loadMetrics()
-    setInterval(loadMetrics, 5000)
+    setInterval(loadMetrics, 10000)
   }
 
   $(document).ready(aboutInit)
@@ -131,9 +136,8 @@
 {{define "content"}}
 <h2>Inbucket Status</h2>
 
-<p>Metrics are polled every 5 seconds.  Inbucket does not keep history for the
-graphs labeled <em>(5s)</em>, but your web browser will chart the last 50
-values over time.</p>
+<p>Metrics are polled every 10 seconds.  Inbucket does not keep history for the
+10 minute graphs, but your web browser will accumulate the data over time.</p>
 
 <div class="box">
   <h3>General Metrics</h3>
@@ -146,25 +150,25 @@ values over time.</p>
       <th>System Memory:</th>
       <td><span id="m-memstatsSys">.</span></td>
       <td class="sparkline"><span id="s-memstatsSys">.</span></td>
-      <td>(5s)</td>
+      <td>(10min)</td>
     </tr>
     <tr>
       <th>Heap Size:</th>
       <td><span id="m-memstatsHeapSys">.</span></td>
       <td class="sparkline"><span id="s-memstatsHeapSys">.</span></td>
-      <td>(5s)</td>
+      <td>(10min)</td>
     </tr>
     <tr>
       <th>Heap In-Use:</th>
       <td><span id="m-memstatsHeapAlloc">.</span></td>
       <td class="sparkline"><span id="s-memstatsHeapAlloc">.</span></td>
-      <td>(5s)</td>
+      <td>(10min)</td>
     </tr>
     <tr>
       <th>Heap # Objects:</th>
       <td><span id="m-memstatsHeapObjects">.</span></td>
       <td class="sparkline"><span id="s-memstatsHeapObjects">.</span></td>
-      <td>(5s)</td>
+      <td>(10min)</td>
     </tr>
   </table>
   <p class="last">&nbsp;</p>
@@ -176,31 +180,31 @@ values over time.</p>
       <th>Current Connections:</th>
       <td><span id="m-smtpConnectsCurrent">.</span></td>
       <td class="sparkline"><span id="s-smtpConnectsCurrent">.</span></td>
-      <td>(5s)</td>
+      <td>(10min)</td>
     </tr>
     <tr>
       <th>Total Connections:</th>
       <td><span id="m-smtpConnectsTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpConnectsTotal">.</span></td>
-      <td>(60s)</td>
+      <td>(60min)</td>
     </tr>
     <tr>
       <th>Messages Delivered:</th>
       <td><span id="m-smtpDeliveredTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpDeliveredTotal">.</span></td>
-      <td>(60s)</td>
+      <td>(60min)</td>
     </tr>
     <tr>
       <th>Errors Logged:</th>
       <td><span id="m-smtpErrorsTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpErrorsTotal"></span></td>
-      <td>(60s)</td>
+      <td>(60min)</td>
     </tr>
     <tr>
       <th>Warnings Logged:</th>
       <td><span id="m-smtpWarnsTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpWarnsTotal"></span></td>
-      <td>(60s)</td>
+      <td>(60min)</td>
     </tr>
   </table>
   <p class="last">&nbsp;</p>
@@ -209,14 +213,30 @@ values over time.</p>
   <h3>Data Store Metrics</h3>
   <table class="metrics">
     <tr>
+      <th>Retention Period:</th>
+      <td colspan="3">
+	{{if .retentionMinutes}}
+	<span id="m-retentionPeriod">.</span>
+	{{else}}
+	Disabled
+	{{end}}
+      </td>
+    </tr>
+    <tr>
       <th>Retention Scan:</th>
-      <td colspan="3">Completed <span id="m-retentionScanCompleted">.</span> ago</td>
+      <td colspan="3">
+	{{if .retentionMinutes}}
+	Completed <span id="m-retentionScanCompleted">.</span> ago
+	{{else}}
+	Disabled
+	{{end}}
+      </td>
     </tr>
     <tr>
       <th>Retention Deletes:</th>
       <td><span id="m-retentionDeletesTotal">.</span></td>
       <td class="sparkline"><span id="s-retentionDeletesTotal"></span></td>
-      <td>(60s)</td>
+      <td>(60min)</td>
     </tr>
   </table>
   <p class="last">&nbsp;</p>

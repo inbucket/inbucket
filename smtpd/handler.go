@@ -340,11 +340,11 @@ func (ss *Session) dataHandler() {
 				for _, m := range messages {
 					if m != nil {
 						m.Close()
-						expDeliveredTotal.Add(1)
+						expReceivedTotal.Add(1)
 					}
 				}
 			} else {
-				expDeliveredTotal.Add(1)
+				expReceivedTotal.Add(1)
 			}
 			ss.send("250 Mail accepted for delivery")
 			ss.info("Message size %v bytes", msgSize)

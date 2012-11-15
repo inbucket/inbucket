@@ -25,7 +25,7 @@ type Server struct {
 // Raw stat collectors
 var expConnectsTotal = new(expvar.Int)
 var expConnectsCurrent = new(expvar.Int)
-var expDeliveredTotal = new(expvar.Int)
+var expReceivedTotal = new(expvar.Int)
 var expErrorsTotal = new(expvar.Int)
 var expWarnsTotal = new(expvar.Int)
 
@@ -36,7 +36,7 @@ var errorsHist = list.New()
 var warnsHist = list.New()
 
 // History rendered as comma delim string
-var expDeliveredHist = new(expvar.String)
+var expReceivedHist = new(expvar.String)
 var expConnectsHist = new(expvar.String)
 var expErrorsHist = new(expvar.String)
 var expWarnsHist = new(expvar.String)
@@ -96,7 +96,7 @@ func metricsTicker(t *time.Ticker) {
 	ok := true
 	for ok {
 		_, ok = <-t.C
-		expDeliveredHist.Set(pushMetric(deliveredHist, expDeliveredTotal))
+		expReceivedHist.Set(pushMetric(deliveredHist, expReceivedTotal))
 		expConnectsHist.Set(pushMetric(connectsHist, expConnectsTotal))
 		expErrorsHist.Set(pushMetric(errorsHist, expErrorsTotal))
 		expWarnsHist.Set(pushMetric(warnsHist, expWarnsTotal))
@@ -120,8 +120,8 @@ func init() {
 	m.Set("ConnectsTotal", expConnectsTotal)
 	m.Set("ConnectsHist", expConnectsHist)
 	m.Set("ConnectsCurrent", expConnectsCurrent)
-	m.Set("DeliveredTotal", expDeliveredTotal)
-	m.Set("DeliveredHist", expDeliveredHist)
+	m.Set("ReceivedTotal", expReceivedTotal)
+	m.Set("ReceivedHist", expReceivedHist)
 	m.Set("ErrorsTotal", expErrorsTotal)
 	m.Set("ErrorsHist", expErrorsHist)
 	m.Set("WarnsTotal", expWarnsTotal)

@@ -100,8 +100,8 @@
     metric('smtpConnectsCurrent', data.smtp.ConnectsCurrent, numberFilter, true)
 
     // Server-side history
-    metric('smtpDeliveredTotal', data.smtp.DeliveredTotal, numberFilter, false)
-    setHistory('smtpDeliveredTotal', data.smtp.DeliveredHist)
+    metric('smtpReceivedTotal', data.smtp.ReceivedTotal, numberFilter, false)
+    setHistory('smtpReceivedTotal', data.smtp.ReceivedHist)
     metric('smtpConnectsTotal', data.smtp.ConnectsTotal, numberFilter, false)
     setHistory('smtpConnectsTotal', data.smtp.ConnectsHist)
     metric('smtpWarnsTotal', data.smtp.WarnsTotal, numberFilter, false)
@@ -189,9 +189,9 @@
       <td>(60min)</td>
     </tr>
     <tr>
-      <th>Messages Delivered:</th>
-      <td><span id="m-smtpDeliveredTotal">.</span></td>
-      <td class="sparkline"><span id="s-smtpDeliveredTotal">.</span></td>
+      <th>Messages Received:</th>
+      <td><span id="m-smtpReceivedTotal">.</span></td>
+      <td class="sparkline"><span id="s-smtpReceivedTotal">.</span></td>
       <td>(60min)</td>
     </tr>
     <tr>

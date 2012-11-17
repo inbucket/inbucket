@@ -1,35 +1,3 @@
-To setup on RedHat 6 or one of its clones:
+Please see the RedHat installation guide on our website:
 
-# Create a service account for the daemon to run as
-useradd -r -m inbucket
-
-# Create datastore directory
-mkdir /var/opt/inbucket
-chown inbucket: /var/opt/inbucket
-
-# Copy logrotate config into place
-cp inbucket.logrotate /etc/logrotate.d/logrotate
-chown root: /etc/logrotate.d/logrotate
-
-# Copy init script into place and activate
-cp inbucket-init.sh /etc/init.d
-chown root: /etc/init.d/inbucket
-chmod 755 /etc/init.d/inbucket
-chkconfig --add inbucket
-
-# Copy the sample config into place
-# NOTE: there is a "cap" command in the init script that allows inbucket
-#       to listen on privileged ports without running as root.
-cp ../unix-sample.conf /etc/opt/inbucket.conf
-chown root: /etc/opt/inbucket.conf
-
-(confirm /etc/opt/inbucket.conf is to your liking)
-
-# Start the daemon
-service inbucket start
-
-# Confirm it stayed running
-service inbucket status
-
-# Check inbucket's startup messages
-less /var/log/inbucket.log
+http://jhillyerd.github.com/inbucket/installation/redhat.html

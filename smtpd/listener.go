@@ -20,6 +20,8 @@ type Server struct {
 	maxMessageBytes int
 	dataStore       DataStore
 	storeMessages   bool
+	listener        net.Listener
+	shutdown        bool
 }
 
 // Raw stat collectors
@@ -62,9 +64,9 @@ func (s *Server) Start() {
 	}
 
 	log.Info("SMTP listening on TCP4 %v", addr)
-	ln, err := net.ListenTCP("tcp4", addr)
+	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
-		log.Error("Failed to start tcp4 listener: %v", err)
+		log.Error("SMTP failed to start tcp4 listener: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
@@ -79,16 +81,43 @@ func (s *Server) Start() {
 	StartRetentionScanner(s.dataStore)
 
 	// Handle incoming connections
+	var tempDelay time.Duration
 	for sid := 1; ; sid++ {
-		if conn, err := ln.Accept(); err != nil {
-			// TODO Implement a max error counter before shutdown?
-			// or maybe attempt to restart smtpd
-			panic(err)
+		if conn, err := s.listener.Accept(); err != nil {
+			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
+				// Temporary error, sleep for a bit and try again
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+				log.Error("SMTP accept error: %v; retrying in %v", err, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			} else {
+				if s.shutdown {
+					log.Trace("SMTP listener shutting down on request")
+					return
+				}
+				// TODO Implement a max error counter before shutdown?
+				// or maybe attempt to restart smtpd
+				panic(err)
+			}
 		} else {
+			tempDelay = 0
 			expConnectsTotal.Add(1)
 			go s.startSession(sid, conn)
 		}
 	}
+}
+
+func (s *Server) Stop() {
+	log.Trace("SMTP shutdown requested")
+	s.shutdown = true
+	s.listener.Close()
 }
 
 // When the provided Ticker ticks, we update our metrics history

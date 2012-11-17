@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
+	"net"
 	"net/http"
 	"time"
 )
@@ -17,8 +18,9 @@ import (
 type handler func(http.ResponseWriter, *http.Request, *Context) error
 
 var Router *mux.Router
-
+var listener net.Listener
 var sessionStore sessions.Store
+var shutdown bool
 
 func setupRoutes(cfg config.WebConfig) {
 	log.Info("Theme templates mapped to '%v'", cfg.TemplateDir)
@@ -55,17 +57,38 @@ func Start() {
 	sessionStore = sessions.NewCookieStore([]byte("something-very-secret"))
 
 	addr := fmt.Sprintf("%v:%v", cfg.Ip4address, cfg.Ip4port)
-	log.Info("HTTP listening on TCP4 %v", addr)
-	s := &http.Server{
+	server := &http.Server{
 		Addr:         addr,
 		Handler:      nil,
 		ReadTimeout:  60 * time.Second,
 		WriteTimeout: 60 * time.Second,
 	}
 
-	err := s.ListenAndServe()
+	// We don't use ListenAndServe because it lacks a way to close the listener
+	log.Info("HTTP listening on TCP4 %v", addr)
+	var err error
+	listener, err = net.Listen("tcp", addr)
 	if err != nil {
+		log.Error("HTTP failed to start TCP4 listener: %v", err)
+		// TODO More graceful early-shutdown procedure
+		panic(err)
+	}
+
+	err = server.Serve(listener)
+	if shutdown {
+		log.Trace("HTTP server shutting down on request")
+	} else if err != nil {
 		log.Error("HTTP server failed: %v", err)
+	}
+}
+
+func Stop() {
+	log.Trace("HTTP shutdown requested")
+	shutdown = true
+	if listener != nil {
+		listener.Close()
+	} else {
+		log.Error("HTTP listener was nil during shutdown")
 	}
 }
 

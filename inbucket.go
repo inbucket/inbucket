@@ -29,6 +29,8 @@ var startTime = time.Now()
 // The file we send log output to, will be nil for stderr or stdout
 var logf *os.File
 
+var smtpServer *smtpd.Server
+
 func main() {
 	flag.Parse()
 	if *help {
@@ -49,7 +51,7 @@ func main() {
 
 	// Setup signal handler
 	sigChan := make(chan os.Signal)
-	signal.Notify(sigChan, syscall.SIGHUP)
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM)
 	go signalProcessor(sigChan)
 
 	// Configure logging, close std* fds
@@ -91,8 +93,8 @@ func main() {
 	}
 
 	// Startup SMTP server
-	server := smtpd.New()
-	go server.Start()
+	smtpServer = smtpd.New()
+	go smtpServer.Start()
 
 	web.Start()
 }
@@ -130,6 +132,15 @@ func signalProcessor(c <-chan os.Signal) {
 			} else {
 				log.Info("Ignoring SIGHUP, logfile not configured")
 			}
+		case syscall.SIGTERM:
+			// Initiate shutdown
+			log.Info("Received SIGTERM, shutting down")
+			if smtpServer != nil {
+				smtpServer.Stop()
+			} else {
+				log.Error("smtpServer was nil during shutdown")
+			}
+			web.Stop()
 		}
 	}
 }

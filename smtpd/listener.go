@@ -8,6 +8,7 @@ import (
 	"github.com/jhillyerd/inbucket/log"
 	"net"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -22,6 +23,7 @@ type Server struct {
 	storeMessages   bool
 	listener        net.Listener
 	shutdown        bool
+	waitgroup       *sync.WaitGroup
 }
 
 // Raw stat collectors
@@ -49,7 +51,8 @@ func New() *Server {
 	cfg := config.GetSmtpConfig()
 	return &Server{dataStore: ds, domain: cfg.Domain, maxRecips: cfg.MaxRecipients,
 		maxIdleSeconds: cfg.MaxIdleSeconds, maxMessageBytes: cfg.MaxMessageBytes,
-		storeMessages: cfg.StoreMessages, domainNoStore: strings.ToLower(cfg.DomainNoStore)}
+		storeMessages: cfg.StoreMessages, domainNoStore: strings.ToLower(cfg.DomainNoStore),
+		waitgroup: new(sync.WaitGroup)}
 }
 
 // Main listener loop
@@ -109,15 +112,23 @@ func (s *Server) Start() {
 		} else {
 			tempDelay = 0
 			expConnectsTotal.Add(1)
+			s.waitgroup.Add(1)
 			go s.startSession(sid, conn)
 		}
 	}
 }
 
+// Stop requests the SMTP server closes it's listener
 func (s *Server) Stop() {
-	log.Trace("SMTP shutdown requested")
+	log.Trace("SMTP shutdown requested, connections will be drained")
 	s.shutdown = true
 	s.listener.Close()
+}
+
+// Drain causes the caller to block until all active SMTP sessions have finished
+func (s *Server) Drain() {
+	s.waitgroup.Wait()
+	log.Trace("SMTP connections drained")
 }
 
 // When the provided Ticker ticks, we update our metrics history

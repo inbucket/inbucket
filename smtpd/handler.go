@@ -90,8 +90,11 @@ func (ss *Session) String() string {
 func (s *Server) startSession(id int, conn net.Conn) {
 	log.Info("Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	expConnectsCurrent.Add(1)
-	defer conn.Close()
-	defer expConnectsCurrent.Add(-1)
+	defer func() {
+		conn.Close()
+		s.waitgroup.Done()
+		expConnectsCurrent.Add(-1)
+	}()
 
 	ss := NewSession(s, id, conn)
 	ss.greet()
@@ -300,7 +303,7 @@ func (ss *Session) dataHandler() {
 		i := 0
 		for e := ss.recipients.Front(); e != nil; e = e.Next() {
 			recip := e.Value.(string)
-			if !strings.HasSuffix(strings.ToLower(recip), "@" + ss.server.domainNoStore) {
+			if !strings.HasSuffix(strings.ToLower(recip), "@"+ss.server.domainNoStore) {
 				// Not our "no store" domain, so store the message
 				mb, err := ss.server.dataStore.MailboxFor(recip)
 				if err != nil {

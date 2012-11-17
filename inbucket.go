@@ -92,11 +92,14 @@ func main() {
 		fmt.Fprintf(pidf, "%v\n", os.Getpid())
 	}
 
-	// Startup SMTP server
-	smtpServer = smtpd.New()
-	go smtpServer.Start()
+	// Start HTTP server
+	go web.Start()
 
-	web.Start()
+	// Startup SMTP server, block until it exits
+	smtpServer = smtpd.New()
+	smtpServer.Start()
+	// Wait for active connections to finish
+	smtpServer.Drain()
 }
 
 // openLogFile creates or appends to the logfile passed on commandline
@@ -135,14 +138,22 @@ func signalProcessor(c <-chan os.Signal) {
 		case syscall.SIGTERM:
 			// Initiate shutdown
 			log.Info("Received SIGTERM, shutting down")
+			go timedExit()
+			web.Stop()
 			if smtpServer != nil {
 				smtpServer.Stop()
 			} else {
 				log.Error("smtpServer was nil during shutdown")
 			}
-			web.Stop()
 		}
 	}
+}
+
+// timedExit is called as a goroutine during shutdown, it will force an exit after 15 seconds
+func timedExit() {
+	time.Sleep(15 * time.Second)
+	log.Error("Inbucket clean shutdown timed out, forcing exit")
+	os.Exit(0)
 }
 
 func init() {

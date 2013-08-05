@@ -3,7 +3,7 @@ package config
 import (
 	"container/list"
 	"fmt"
-	"github.com/robfig/goconfig/config"
+	"github.com/robfig/config"
 	"net"
 	"os"
 	"strings"

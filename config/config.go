@@ -22,6 +22,12 @@ type SmtpConfig struct {
 	StoreMessages   bool
 }
 
+type Pop3Config struct {
+	Ip4address     net.IP
+	Ip4port        int
+	MaxIdleSeconds int
+}
+
 type WebConfig struct {
 	Ip4address    net.IP
 	Ip4port       int
@@ -42,6 +48,7 @@ var (
 
 	// Parsed specific configs
 	smtpConfig      *SmtpConfig
+	pop3Config      *Pop3Config
 	webConfig       *WebConfig
 	dataStoreConfig *DataStoreConfig
 )
@@ -49,6 +56,11 @@ var (
 // GetSmtpConfig returns a copy of the SmtpConfig object
 func GetSmtpConfig() SmtpConfig {
 	return *smtpConfig
+}
+
+// GetPop3Config returns a copy of the Pop3Config object
+func GetPop3Config() Pop3Config {
+	return *pop3Config
 }
 
 // GetWebConfig returns a copy of the WebConfig object
@@ -75,6 +87,7 @@ func LoadConfig(filename string) error {
 	// Validate sections
 	requireSection(messages, "logging")
 	requireSection(messages, "smtp")
+	requireSection(messages, "pop3")
 	requireSection(messages, "web")
 	requireSection(messages, "datastore")
 	if messages.Len() > 0 {
@@ -94,6 +107,9 @@ func LoadConfig(filename string) error {
 	requireOption(messages, "smtp", "max.idle.seconds")
 	requireOption(messages, "smtp", "max.message.bytes")
 	requireOption(messages, "smtp", "store.messages")
+	requireOption(messages, "pop3", "ip4.address")
+	requireOption(messages, "pop3", "ip4.port")
+	requireOption(messages, "pop3", "max.idle.seconds")
 	requireOption(messages, "web", "ip4.address")
 	requireOption(messages, "web", "ip4.port")
 	requireOption(messages, "web", "template.dir")
@@ -113,6 +129,10 @@ func LoadConfig(filename string) error {
 	}
 
 	if err = parseSmtpConfig(); err != nil {
+		return err
+	}
+
+	if err = parsePop3Config(); err != nil {
 		return err
 	}
 
@@ -211,6 +231,42 @@ func parseSmtpConfig() error {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}
 	smtpConfig.StoreMessages = flag
+
+	return nil
+}
+
+// parsePop3Config trying to catch config errors early
+func parsePop3Config() error {
+	pop3Config = new(Pop3Config)
+	section := "pop3"
+
+	// Parse IP4 address only, error on IP6.
+	option := "ip4.address"
+	str, err := Config.String(section, option)
+	if err != nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
+	addr := net.ParseIP(str)
+	if addr == nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
+	addr = addr.To4()
+	if addr == nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, err)
+	}
+	pop3Config.Ip4address = addr
+
+	option = "ip4.port"
+	pop3Config.Ip4port, err = Config.Int(section, option)
+	if err != nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
+
+	option = "max.idle.seconds"
+	pop3Config.MaxIdleSeconds, err = Config.Int(section, option)
+	if err != nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
 
 	return nil
 }

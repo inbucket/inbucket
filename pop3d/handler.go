@@ -6,9 +6,10 @@ import (
 	//"container/list"
 	"fmt"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/smtpd"
 	"io"
 	"net"
-	//"strconv"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,7 +19,6 @@ type State int
 const (
 	AUTHORIZATION State = iota // The client must now identify and authenticate
 	TRANSACTION                // Mailbox open, client may now issue commands
-	UPDATE                     // Purge deleted messages, cleanup
 	QUIT
 )
 
@@ -28,8 +28,6 @@ func (s State) String() string {
 		return "AUTHORIZATION"
 	case TRANSACTION:
 		return "TRANSACTION"
-	case UPDATE:
-		return "UPDATE"
 	case QUIT:
 		return "QUIT"
 	}
@@ -59,7 +57,9 @@ type Session struct {
 	sendError  error
 	state      State
 	reader     *bufio.Reader
-	user string
+	user       string
+	mailbox    smtpd.Mailbox
+	messages   []smtpd.Message
 }
 
 func NewSession(server *Server, id int, conn net.Conn) *Session {
@@ -81,7 +81,7 @@ func (ses *Session) String() string {
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	log.Info("Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
+	log.Info("POP3 connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	//expConnectsCurrent.Add(1)
 	defer func() {
 		conn.Close()
@@ -90,7 +90,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 	}()
 
 	ses := NewSession(s, id, conn)
-	ses.greet()
+	ses.send("+OK Inbucket POP3 server ready")
 
 	// This is our command reading loop
 	for ses.state != QUIT && ses.sendError == nil {
@@ -115,22 +115,6 @@ func (s *Server) startSession(id int, conn net.Conn) {
 					ses.send(fmt.Sprintf("-ERR %v command not implemented", cmd))
 					ses.warn("Command %v not implemented by Inbucket", cmd)
 					continue
-				case "NOOP":
-					// TODO move to transaction state
-					ses.send("+OK I have sucessfully done nothing")
-					continue
-				case "RSET":
-					// TODO move to transaction state
-					// Reset session
-					ses.trace("Resetting session state on RSET request")
-					ses.reset()
-					ses.send("+OK Session reset")
-					continue
-				case "QUIT":
-					// TODO should be handled differently by transaciton
-					ses.send("+OK Goodnight and good luck")
-					ses.enterState(QUIT)
-					continue
 				}
 
 				// Send command to handler for current state
@@ -139,10 +123,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 					ses.authorizationHandler(cmd, arg)
 					continue
 				case TRANSACTION:
-					//ses.transactionHandler(cmd, arg)
-					continue
-				case UPDATE:
-					//ses.updateHandler(cmd, arg)
+					ses.transactionHandler(cmd, arg)
 					continue
 				}
 				ses.error("Session entered unexpected state %v", ses.state)
@@ -181,27 +162,110 @@ func (s *Server) startSession(id int, conn net.Conn) {
 }
 
 // AUTHORIZATION state
-func (ses *Session) authorizationHandler(cmd string, arg []string) {
+func (ses *Session) authorizationHandler(cmd string, args []string) {
 	switch cmd {
-	case "HELO":
-		ses.send("250 Great, let's get this show on the road")
-		//ses.enterState(READY)
-	case "EHLO":
-		ses.send("250-Great, let's get this show on the road")
-		ses.send("250-8BITMIME")
-		//ses.enterState(READY)
+	case "QUIT":
+		ses.send("+OK Goodnight and good luck")
+		ses.enterState(QUIT)
+	case "USER":
+		if len(args) > 0 {
+			ses.user = args[0]
+			ses.send(fmt.Sprintf("+OK Hello %v, welcome to Inbucket", ses.user))
+		} else {
+			ses.send("-ERR Missing username argument")
+		}
+	case "PASS":
+		if ses.user == "" {
+			ses.ooSeq(cmd)
+		} else {
+			var err error
+			ses.mailbox, err = ses.server.dataStore.MailboxFor(ses.user)
+			if err != nil {
+				ses.error("Failed to open mailbox for %v", ses.user)
+				ses.send(fmt.Sprintf("-ERR Failed to open mailbox for %v", ses.user))
+				ses.enterState(QUIT)
+				return
+			}
+			ses.loadMailbox()
+			ses.send(fmt.Sprintf("+OK Found %v messages for %v", len(ses.messages), ses.user))
+			ses.enterState(TRANSACTION)
+		}
 	default:
 		ses.ooSeq(cmd)
 	}
 }
 
+// TRANSACTION state
+func (ses *Session) transactionHandler(cmd string, args []string) {
+	switch cmd {
+	case "LIST":
+		// TODO implement list argument
+		ses.send(fmt.Sprintf("+OK Listing %v messages", len(ses.messages)))
+		for i, msg := range ses.messages {
+			ses.send(fmt.Sprintf("%v %v", i+1, msg.Size()))
+		}
+		ses.send(".")
+	case "RETR":
+		if len(args) != 1 {
+			ses.warn("RETR command had invalid number of arguments")
+			ses.send("-ERR RETR command requires a single argument")
+			return
+		}
+		msgNum, err := strconv.ParseInt(args[0], 10, 32)
+		if err != nil {
+			ses.warn("RETR command argument was not an integer")
+			ses.send("-ERR RETR command requires an integer argument")
+			return
+		}
+		if msgNum < 1 {
+			ses.warn("RETR command argument was less than 1")
+			ses.send("-ERR RETR argument must be greater than 0")
+			return
+		}
+		if int(msgNum) > len(ses.messages) {
+			ses.warn("RETR command argument was greater than number of messages")
+			ses.send("-ERR RETR argument must not exceed the number of messages")
+			return
+		}
+
+		// TODO actually retrieve the message...
+		ses.send("+OK")
+	case "QUIT":
+		ses.send("+OK We will process your deletes")
+		ses.processDeletes()
+		ses.enterState(QUIT)
+	case "NOOP":
+		ses.send("+OK I have sucessfully done nothing")
+	case "RSET":
+		// Reset session, don't actually delete anything I told you to
+		ses.trace("Resetting session state on RSET request")
+		ses.reset()
+		ses.send("+OK Session reset")
+	default:
+		ses.ooSeq(cmd)
+	}
+}
+
+// Load the users mailbox
+func (ses *Session) loadMailbox() {
+	var err error
+	ses.messages, err = ses.mailbox.GetMessages()
+	if err != nil {
+		ses.error("Failed to load messages for %v", ses.user)
+	}
+}
+
+// This would be considered the "UPDATE" state in the RFC, but it does not fit
+// with our state-machine design here, since no commands are accepted - it just
+// indicates that the session was closed cleanly and that deletes should be
+// processed.
+func (ses *Session) processDeletes() {
+	ses.trace("Processing deletes")
+}
+
 func (ses *Session) enterState(state State) {
 	ses.state = state
 	ses.trace("Entering state %v", state)
-}
-
-func (ses *Session) greet() {
-	ses.send("+OK Inbucket POP3 server ready")
 }
 
 // Calculate the next read or write deadline based on maxIdleSeconds
@@ -266,7 +330,7 @@ func (ses *Session) readLine() (line string, err error) {
 
 func (ses *Session) parseCmd(line string) (cmd string, args []string, ok bool) {
 	line = strings.TrimRight(line, "\r\n")
-	if len(line) == 0 {
+	if line == "" {
 		return "", nil, true
 	}
 
@@ -285,21 +349,21 @@ func (ses *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ses *Session) trace(msg string, args ...interface{}) {
-	log.Trace("%v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Trace("POP3 %v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) info(msg string, args ...interface{}) {
-	log.Info("%v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Info("POP3 %v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) warn(msg string, args ...interface{}) {
 	// Update metrics
 	//expWarnsTotal.Add(1)
-	log.Warn("%v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Warn("POP3 %v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) error(msg string, args ...interface{}) {
 	// Update metrics
 	//expErrorsTotal.Add(1)
-	log.Error("%v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Error("POP3 %v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }

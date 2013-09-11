@@ -217,6 +217,14 @@ func (m *FileMessage) String() string {
 	return fmt.Sprintf("\"%v\" from %v", m.Fsubject, m.Ffrom)
 }
 
+func (m *FileMessage) Size() int64 {
+	fi, err := os.Stat(m.rawPath())
+	if err != nil {
+		return 0
+	}
+	return fi.Size()
+}
+
 func (m *FileMessage) gobPath() string {
 	return filepath.Join(m.mailbox.path, m.Fid+".gob")
 }

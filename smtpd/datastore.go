@@ -30,4 +30,5 @@ type Message interface {
 	Close() error
 	Delete() error
 	String() string
+	Size() int64
 }

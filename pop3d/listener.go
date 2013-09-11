@@ -34,7 +34,7 @@ func (s *Server) Start() {
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
 		cfg.Ip4address, cfg.Ip4port))
 	if err != nil {
-		log.Error("Failed to build tcp4 address: %v", err)
+		log.Error("POP3 Failed to build tcp4 address: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}

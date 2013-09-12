@@ -199,6 +199,21 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 // TRANSACTION state
 func (ses *Session) transactionHandler(cmd string, args []string) {
 	switch cmd {
+	case "STAT":
+		if len(args) != 0 {
+			ses.warn("STAT got an unexpected argument")
+			ses.send("-ERR STAT command must have no arguments")
+			return
+		}
+		var count int
+		var size int64
+		for i, msg := range ses.messages {
+			if ses.retain[i] {
+				count += 1
+				size += msg.Size()
+			}
+		}
+		ses.send(fmt.Sprintf("+OK %v %v", count, size))
 	case "LIST":
 		if len(args) > 1 {
 			ses.warn("LIST command had more than 1 argument")
@@ -327,6 +342,7 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 			ses.send("-ERR RETR argument must not exceed the number of messages")
 			return
 		}
+		ses.send(fmt.Sprintf("+OK %v bytes follows", ses.messages[msgNum-1].Size()))
 		ses.sendMessage(ses.messages[msgNum-1])
 	case "TOP":
 		if len(args) != 2 {
@@ -363,6 +379,7 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 			ses.send("-ERR TOP second argument must be non-negative")
 			return
 		}
+		ses.send("+OK Top of message follows")
 		ses.sendMessageTop(ses.messages[msgNum-1], int(lines))
 	case "QUIT":
 		ses.send("+OK We will process your deletes")

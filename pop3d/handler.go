@@ -3,7 +3,6 @@ package pop3d
 import (
 	"bufio"
 	"bytes"
-	//"container/list"
 	"fmt"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/smtpd"
@@ -50,16 +49,18 @@ var commands = map[string]bool{
 }
 
 type Session struct {
-	server     *Server
-	id         int
-	conn       net.Conn
-	remoteHost string
-	sendError  error
-	state      State
-	reader     *bufio.Reader
-	user       string
-	mailbox    smtpd.Mailbox
-	messages   []smtpd.Message
+	server     *Server         // Reference to the server we belong to
+	id         int             // Session ID number
+	conn       net.Conn        // Our network connection
+	remoteHost string          // IP address of client
+	sendError  error           // Used to bail out of read loop on send error
+	state      State           // Current session state
+	reader     *bufio.Reader   // Buffered reader for our net conn
+	user       string          // Mailbox name
+	mailbox    smtpd.Mailbox   // Mailbox instance
+	messages   []smtpd.Message // Slice of messages in mailbox
+	retain     []bool          // Messages to retain upon UPDATE (true=retain)
+	msgCount   int             // Number of undeleted messages
 }
 
 func NewSession(server *Server, id int, conn net.Conn) *Session {
@@ -110,7 +111,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 
 				// Commands we handle in any state
 				switch cmd {
-				case "APOP", "TOP":
+				case "APOP":
 					// These commands are not implemented in any state
 					ses.send(fmt.Sprintf("-ERR %v command not implemented", cmd))
 					ses.warn("Command %v not implemented by Inbucket", cmd)
@@ -187,7 +188,7 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 				return
 			}
 			ses.loadMailbox()
-			ses.send(fmt.Sprintf("+OK Found %v messages for %v", len(ses.messages), ses.user))
+			ses.send(fmt.Sprintf("+OK Found %v messages for %v", ses.msgCount, ses.user))
 			ses.enterState(TRANSACTION)
 		}
 	default:
@@ -199,12 +200,111 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 func (ses *Session) transactionHandler(cmd string, args []string) {
 	switch cmd {
 	case "LIST":
-		// TODO implement list argument
-		ses.send(fmt.Sprintf("+OK Listing %v messages", len(ses.messages)))
-		for i, msg := range ses.messages {
-			ses.send(fmt.Sprintf("%v %v", i+1, msg.Size()))
+		if len(args) > 1 {
+			ses.warn("LIST command had more than 1 argument")
+			ses.send("-ERR LIST command must have zero or one argument")
+			return
 		}
-		ses.send(".")
+		if len(args) == 1 {
+			msgNum, err := strconv.ParseInt(args[0], 10, 32)
+			if err != nil {
+				ses.warn("LIST command argument was not an integer")
+				ses.send("-ERR LIST command requires an integer argument")
+				return
+			}
+			if msgNum < 1 {
+				ses.warn("LIST command argument was less than 1")
+				ses.send("-ERR LIST argument must be greater than 0")
+				return
+			}
+			if int(msgNum) > len(ses.messages) {
+				ses.warn("LIST command argument was greater than number of messages")
+				ses.send("-ERR LIST argument must not exceed the number of messages")
+				return
+			}
+			if !ses.retain[msgNum-1] {
+				ses.warn("Client tried to LIST a message it had deleted")
+				ses.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
+				return
+			}
+			ses.send(fmt.Sprintf("+OK %v %v", msgNum, ses.messages[msgNum-1].Size()))
+		} else {
+			ses.send(fmt.Sprintf("+OK Listing %v messages", ses.msgCount))
+			for i, msg := range ses.messages {
+				if ses.retain[i] {
+					ses.send(fmt.Sprintf("%v %v", i+1, msg.Size()))
+				}
+			}
+			ses.send(".")
+		}
+	case "UIDL":
+		if len(args) > 1 {
+			ses.warn("UIDL command had more than 1 argument")
+			ses.send("-ERR UIDL command must have zero or one argument")
+			return
+		}
+		if len(args) == 1 {
+			msgNum, err := strconv.ParseInt(args[0], 10, 32)
+			if err != nil {
+				ses.warn("UIDL command argument was not an integer")
+				ses.send("-ERR UIDL command requires an integer argument")
+				return
+			}
+			if msgNum < 1 {
+				ses.warn("UIDL command argument was less than 1")
+				ses.send("-ERR UIDL argument must be greater than 0")
+				return
+			}
+			if int(msgNum) > len(ses.messages) {
+				ses.warn("UIDL command argument was greater than number of messages")
+				ses.send("-ERR UIDL argument must not exceed the number of messages")
+				return
+			}
+			if !ses.retain[msgNum-1] {
+				ses.warn("Client tried to UIDL a message it had deleted")
+				ses.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
+				return
+			}
+			ses.send(fmt.Sprintf("+OK %v %v", msgNum, ses.messages[msgNum-1].Id()))
+		} else {
+			ses.send(fmt.Sprintf("+OK Listing %v messages", ses.msgCount))
+			for i, msg := range ses.messages {
+				if ses.retain[i] {
+					ses.send(fmt.Sprintf("%v %v", i+1, msg.Id()))
+				}
+			}
+			ses.send(".")
+		}
+	case "DELE":
+		if len(args) != 1 {
+			ses.warn("DELE command had invalid number of arguments")
+			ses.send("-ERR DELE command requires a single argument")
+			return
+		}
+		msgNum, err := strconv.ParseInt(args[0], 10, 32)
+		if err != nil {
+			ses.warn("DELE command argument was not an integer")
+			ses.send("-ERR DELE command requires an integer argument")
+			return
+		}
+		if msgNum < 1 {
+			ses.warn("DELE command argument was less than 1")
+			ses.send("-ERR DELE argument must be greater than 0")
+			return
+		}
+		if int(msgNum) > len(ses.messages) {
+			ses.warn("DELE command argument was greater than number of messages")
+			ses.send("-ERR DELE argument must not exceed the number of messages")
+			return
+		}
+		if ses.retain[msgNum-1] {
+			ses.retain[msgNum-1] = false
+			ses.msgCount -= 1
+			ses.send(fmt.Sprintf("+OK Deleted message %v", msgNum))
+		} else {
+			ses.warn("Client tried to DELE an already deleted message")
+			ses.send(fmt.Sprintf("-ERR Message %v has already been deleted", msgNum))
+		}
 	case "RETR":
 		if len(args) != 1 {
 			ses.warn("RETR command had invalid number of arguments")
@@ -227,9 +327,43 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 			ses.send("-ERR RETR argument must not exceed the number of messages")
 			return
 		}
+		ses.sendMessage(ses.messages[msgNum-1])
+	case "TOP":
+		if len(args) != 2 {
+			ses.warn("TOP command had invalid number of arguments")
+			ses.send("-ERR TOP command requires two arguments")
+			return
+		}
+		msgNum, err := strconv.ParseInt(args[0], 10, 32)
+		if err != nil {
+			ses.warn("TOP command first argument was not an integer")
+			ses.send("-ERR TOP command requires an integer argument")
+			return
+		}
+		if msgNum < 1 {
+			ses.warn("TOP command first argument was less than 1")
+			ses.send("-ERR TOP first argument must be greater than 0")
+			return
+		}
+		if int(msgNum) > len(ses.messages) {
+			ses.warn("TOP command first argument was greater than number of messages")
+			ses.send("-ERR TOP first argument must not exceed the number of messages")
+			return
+		}
 
-		// TODO actually retrieve the message...
-		ses.send("+OK")
+		var lines int64
+		lines, err = strconv.ParseInt(args[1], 10, 32)
+		if err != nil {
+			ses.warn("TOP command second argument was not an integer")
+			ses.send("-ERR TOP command requires an integer argument")
+			return
+		}
+		if lines < 0 {
+			ses.warn("TOP command second argument was negative")
+			ses.send("-ERR TOP second argument must be non-negative")
+			return
+		}
+		ses.sendMessageTop(ses.messages[msgNum-1], int(lines))
 	case "QUIT":
 		ses.send("+OK We will process your deletes")
 		ses.processDeletes()
@@ -246,6 +380,76 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 	}
 }
 
+// Send the contents of the message to the client
+func (ses *Session) sendMessage(msg smtpd.Message) {
+	reader, err := msg.RawReader()
+	defer reader.Close()
+	if err != nil {
+		ses.error("Failed to read message for RETR command")
+		ses.send("-ERR Failed to RETR that message, internal error")
+		return
+	}
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Lines starting with . must be prefixed with another .
+		if strings.HasPrefix(line, ".") {
+			line = "." + line
+		}
+		ses.send(line)
+	}
+
+	if err = scanner.Err(); err != nil {
+		ses.error("Failed to read message for RETR command")
+		ses.send(".")
+		ses.send("-ERR Failed to RETR that message, internal error")
+		return
+	}
+	ses.send(".")
+}
+
+// Send the headers plus the top N lines to the client
+func (ses *Session) sendMessageTop(msg smtpd.Message, lineCount int) {
+	reader, err := msg.RawReader()
+	defer reader.Close()
+	if err != nil {
+		ses.error("Failed to read message for RETR command")
+		ses.send("-ERR Failed to RETR that message, internal error")
+		return
+	}
+	scanner := bufio.NewScanner(reader)
+	inBody := false
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Lines starting with . must be prefixed with another .
+		if strings.HasPrefix(line, ".") {
+			line = "." + line
+		}
+		if inBody {
+			// Check if we need to send anymore lines
+			if lineCount < 1 {
+				break
+			} else {
+				lineCount -= 1
+			}
+		} else {
+			if line == "" {
+				// We've hit the end of the header
+				inBody = true
+			}
+		}
+		ses.send(line)
+	}
+
+	if err = scanner.Err(); err != nil {
+		ses.error("Failed to read message for RETR command")
+		ses.send(".")
+		ses.send("-ERR Failed to RETR that message, internal error")
+		return
+	}
+	ses.send(".")
+}
+
 // Load the users mailbox
 func (ses *Session) loadMailbox() {
 	var err error
@@ -253,6 +457,17 @@ func (ses *Session) loadMailbox() {
 	if err != nil {
 		ses.error("Failed to load messages for %v", ses.user)
 	}
+
+	ses.retainAll()
+}
+
+// Reset retain flag to true for all messages
+func (ses *Session) retainAll() {
+	ses.retain = make([]bool, len(ses.messages))
+	for i, _ := range ses.retain {
+		ses.retain[i] = true
+	}
+	ses.msgCount = len(ses.messages)
 }
 
 // This would be considered the "UPDATE" state in the RFC, but it does not fit
@@ -339,7 +554,7 @@ func (ses *Session) parseCmd(line string) (cmd string, args []string, ok bool) {
 }
 
 func (ses *Session) reset() {
-	//ses.enterState(READY)
+	ses.retainAll()
 }
 
 func (ses *Session) ooSeq(cmd string) {
@@ -349,21 +564,21 @@ func (ses *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ses *Session) trace(msg string, args ...interface{}) {
-	log.Trace("POP3 %v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Trace("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) info(msg string, args ...interface{}) {
-	log.Info("POP3 %v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Info("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) warn(msg string, args ...interface{}) {
 	// Update metrics
 	//expWarnsTotal.Add(1)
-	log.Warn("POP3 %v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Warn("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) error(msg string, args ...interface{}) {
 	// Update metrics
 	//expErrorsTotal.Add(1)
-	log.Error("POP3 %v<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Error("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
 }

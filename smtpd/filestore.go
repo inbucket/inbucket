@@ -8,6 +8,7 @@ import (
 	"github.com/jhillyerd/go.enmime"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
+	"io"
 	"io/ioutil"
 	"net/mail"
 	"os"
@@ -266,15 +267,23 @@ func (m *FileMessage) ReadBody() (msg *mail.Message, body *enmime.MIMEBody, err 
 	return msg, mime, err
 }
 
-// ReadRaw opens the .raw portion of a Message and returns it as a string
-func (m *FileMessage) ReadRaw() (raw *string, err error) {
+// RawReader opens the .raw portion of a Message as an io.ReadCloser
+func (m *FileMessage) RawReader() (reader io.ReadCloser, err error) {
 	file, err := os.Open(m.rawPath())
-	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
-	reader := bufio.NewReader(file)
-	bodyBytes, err := ioutil.ReadAll(reader)
+	return file, nil
+}
+
+// ReadRaw opens the .raw portion of a Message and returns it as a string
+func (m *FileMessage) ReadRaw() (raw *string, err error) {
+	reader, err := m.RawReader()
+	defer reader.Close()
+	if err != nil {
+		return nil, err
+	}
+	bodyBytes, err := ioutil.ReadAll(bufio.NewReader(reader))
 	if err != nil {
 		return nil, err
 	}

@@ -83,12 +83,12 @@ func (ss *Session) String() string {
 /* Session flow:
  *  1. Send initial greeting
  *  2. Receive cmd
- *  3. If good cmd, respond, optionally change state 
+ *  3. If good cmd, respond, optionally change state
  *  4. If bad cmd, respond error
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	log.Info("Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
+	log.Info("SMTP Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	expConnectsCurrent.Add(1)
 	defer func() {
 		conn.Close()
@@ -512,21 +512,21 @@ func (ss *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ss *Session) trace(msg string, args ...interface{}) {
-	log.Trace("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Trace("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) info(msg string, args ...interface{}) {
-	log.Info("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Info("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) warn(msg string, args ...interface{}) {
 	// Update metrics
 	expWarnsTotal.Add(1)
-	log.Warn("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Warn("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) error(msg string, args ...interface{}) {
 	// Update metrics
 	expErrorsTotal.Add(1)
-	log.Error("%v<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Error("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
 }

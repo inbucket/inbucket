@@ -492,7 +492,13 @@ func (ses *Session) retainAll() {
 // indicates that the session was closed cleanly and that deletes should be
 // processed.
 func (ses *Session) processDeletes() {
-	ses.trace("Processing deletes")
+	ses.info("Processing deletes")
+	for i, msg := range ses.messages {
+		if !ses.retain[i] {
+			ses.trace("Deleting %v", msg)
+			msg.Delete()
+		}
+	}
 }
 
 func (ses *Session) enterState(state State) {

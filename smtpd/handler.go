@@ -212,7 +212,7 @@ func (ss *Session) greetHandler(cmd string, arg string) {
 func (ss *Session) readyHandler(cmd string, arg string) {
 	if cmd == "MAIL" {
 		// (?i) makes the regex case insensitive
-		re := regexp.MustCompile("(?i)^FROM:<([^>]+)>( [\\w= ]+)?$")
+		re := regexp.MustCompile("(?i)^FROM:\\s*<([^>]+)>( [\\w= ]+)?$")
 		m := re.FindStringSubmatch(arg)
 		if m == nil {
 			ss.send("501 Was expecting MAIL arg syntax of FROM:<address>")

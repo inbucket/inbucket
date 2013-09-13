@@ -8,6 +8,7 @@ import (
 	"github.com/jhillyerd/inbucket/smtpd"
 	"io"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -46,6 +47,7 @@ var commands = map[string]bool{
 	"USER": true,
 	"PASS": true,
 	"APOP": true,
+	"CAPA": true,
 }
 
 type Session struct {
@@ -91,7 +93,8 @@ func (s *Server) startSession(id int, conn net.Conn) {
 	}()
 
 	ses := NewSession(s, id, conn)
-	ses.send("+OK Inbucket POP3 server ready")
+	ses.send(fmt.Sprintf("+OK Inbucket POP3 server ready <%v.%v@%v>", os.Getpid(),
+		time.Now().Unix(), s.domain))
 
 	// This is our command reading loop
 	for ses.state != QUIT && ses.sendError == nil {
@@ -111,10 +114,14 @@ func (s *Server) startSession(id int, conn net.Conn) {
 
 				// Commands we handle in any state
 				switch cmd {
-				case "APOP":
-					// These commands are not implemented in any state
-					ses.send(fmt.Sprintf("-ERR %v command not implemented", cmd))
-					ses.warn("Command %v not implemented by Inbucket", cmd)
+				case "CAPA":
+					// List our capabilities per RFC2449
+					ses.send("+OK Capability list follows")
+					ses.send("TOP")
+					ses.send("USER")
+					ses.send("UIDL")
+					ses.send("IMPLEMENTATION Inbucket")
+					ses.send(".")
 					continue
 				}
 
@@ -191,6 +198,24 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 			ses.send(fmt.Sprintf("+OK Found %v messages for %v", ses.msgCount, ses.user))
 			ses.enterState(TRANSACTION)
 		}
+	case "APOP":
+		if len(args) != 2 {
+			ses.warn("Expected two arguments for APOP")
+			ses.send("-ERR APOP requires two arguments")
+			return
+		}
+		ses.user = args[0]
+		var err error
+		ses.mailbox, err = ses.server.dataStore.MailboxFor(ses.user)
+		if err != nil {
+			ses.error("Failed to open mailbox for %v", ses.user)
+			ses.send(fmt.Sprintf("-ERR Failed to open mailbox for %v", ses.user))
+			ses.enterState(QUIT)
+			return
+		}
+		ses.loadMailbox()
+		ses.send(fmt.Sprintf("+OK Found %v messages for %v", ses.msgCount, ses.user))
+		ses.enterState(TRANSACTION)
 	default:
 		ses.ooSeq(cmd)
 	}

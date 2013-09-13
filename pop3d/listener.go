@@ -12,11 +12,12 @@ import (
 
 // Real server code starts here
 type Server struct {
-	maxIdleSeconds  int
-	dataStore       smtpd.DataStore
-	listener        net.Listener
-	shutdown        bool
-	waitgroup       *sync.WaitGroup
+	domain         string
+	maxIdleSeconds int
+	dataStore      smtpd.DataStore
+	listener       net.Listener
+	shutdown       bool
+	waitgroup      *sync.WaitGroup
 }
 
 // Init a new Server object
@@ -24,7 +25,7 @@ func New() *Server {
 	// TODO is two filestores better/worse than sharing w/ smtpd?
 	ds := smtpd.NewFileDataStore()
 	cfg := config.GetPop3Config()
-	return &Server{dataStore: ds, maxIdleSeconds: cfg.MaxIdleSeconds,
+	return &Server{domain: cfg.Domain, dataStore: ds, maxIdleSeconds: cfg.MaxIdleSeconds,
 		waitgroup: new(sync.WaitGroup)}
 }
 

@@ -25,6 +25,7 @@ type SmtpConfig struct {
 type Pop3Config struct {
 	Ip4address     net.IP
 	Ip4port        int
+	Domain string
 	MaxIdleSeconds int
 }
 
@@ -109,6 +110,7 @@ func LoadConfig(filename string) error {
 	requireOption(messages, "smtp", "store.messages")
 	requireOption(messages, "pop3", "ip4.address")
 	requireOption(messages, "pop3", "ip4.port")
+	requireOption(messages, "pop3", "domain")
 	requireOption(messages, "pop3", "max.idle.seconds")
 	requireOption(messages, "web", "ip4.address")
 	requireOption(messages, "web", "ip4.port")
@@ -261,6 +263,13 @@ func parsePop3Config() error {
 	if err != nil {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}
+
+	option = "domain"
+	str, err = Config.String(section, option)
+	if err != nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
+	pop3Config.Domain = str
 
 	option = "max.idle.seconds"
 	pop3Config.MaxIdleSeconds, err = Config.Int(section, option)

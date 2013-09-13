@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/pop3d"
 	"github.com/jhillyerd/inbucket/smtpd"
 	"github.com/jhillyerd/inbucket/web"
 	golog "log"
@@ -30,6 +31,7 @@ var startTime = time.Now()
 var logf *os.File
 
 var smtpServer *smtpd.Server
+var pop3Server *pop3d.Server
 
 func main() {
 	flag.Parse()
@@ -95,11 +97,17 @@ func main() {
 	// Start HTTP server
 	go web.Start()
 
+	// Start POP3 server
+	pop3Server = pop3d.New()
+	go pop3Server.Start()
+
 	// Startup SMTP server, block until it exits
 	smtpServer = smtpd.New()
 	smtpServer.Start()
+
 	// Wait for active connections to finish
 	smtpServer.Drain()
+	pop3Server.Drain()
 }
 
 // openLogFile creates or appends to the logfile passed on commandline

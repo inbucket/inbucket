@@ -23,8 +23,8 @@ var sessionStore sessions.Store
 var shutdown bool
 
 func setupRoutes(cfg config.WebConfig) {
-	log.Info("Theme templates mapped to '%v'", cfg.TemplateDir)
-	log.Info("Theme static content mapped to '%v'", cfg.PublicDir)
+	log.LogInfo("Theme templates mapped to '%v'", cfg.TemplateDir)
+	log.LogInfo("Theme static content mapped to '%v'", cfg.PublicDir)
 
 	r := mux.NewRouter()
 	// Static content
@@ -65,30 +65,30 @@ func Start() {
 	}
 
 	// We don't use ListenAndServe because it lacks a way to close the listener
-	log.Info("HTTP listening on TCP4 %v", addr)
+	log.LogInfo("HTTP listening on TCP4 %v", addr)
 	var err error
 	listener, err = net.Listen("tcp", addr)
 	if err != nil {
-		log.Error("HTTP failed to start TCP4 listener: %v", err)
+		log.LogError("HTTP failed to start TCP4 listener: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
 
 	err = server.Serve(listener)
 	if shutdown {
-		log.Trace("HTTP server shutting down on request")
+		log.LogTrace("HTTP server shutting down on request")
 	} else if err != nil {
-		log.Error("HTTP server failed: %v", err)
+		log.LogError("HTTP server failed: %v", err)
 	}
 }
 
 func Stop() {
-	log.Trace("HTTP shutdown requested")
+	log.LogTrace("HTTP shutdown requested")
 	shutdown = true
 	if listener != nil {
 		listener.Close()
 	} else {
-		log.Error("HTTP listener was nil during shutdown")
+		log.LogError("HTTP listener was nil during shutdown")
 	}
 }
 
@@ -97,7 +97,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Create the context
 	ctx, err := NewContext(req)
 	if err != nil {
-		log.Error("Failed to create context: %v", err)
+		log.LogError("Failed to create context: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -105,17 +105,17 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Run the handler, grab the error, and report it
 	buf := new(httpbuf.Buffer)
-	log.Trace("Web: %v %v %v %v", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
+	log.LogTrace("Web: %v %v %v %v", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
 	err = h(buf, req, ctx)
 	if err != nil {
-		log.Error("Error handling %v: %v", req.RequestURI, err)
+		log.LogError("Error handling %v: %v", req.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Save the session
 	if err = ctx.Session.Save(req, buf); err != nil {
-		log.Error("Failed to save session: %v", err)
+		log.LogError("Failed to save session: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

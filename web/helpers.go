@@ -39,7 +39,7 @@ func reverse(name string, things ...interface{}) string {
 	// Grab the route
 	u, err := Router.Get(name).URL(strs...)
 	if err != nil {
-		log.Error("Failed to reverse route: %v", err)
+		log.LogError("Failed to reverse route: %v", err)
 		return "/ROUTE-ERROR"
 	}
 	return u.Path

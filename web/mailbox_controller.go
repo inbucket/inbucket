@@ -35,7 +35,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	if err != nil {
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
 	}
-	log.Trace("Got %v messsages", len(messages))
+	log.LogTrace("Got %v messsages", len(messages))
 
 	return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
 		"ctx":      ctx,

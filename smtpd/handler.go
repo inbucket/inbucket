@@ -88,7 +88,7 @@ func (ss *Session) String() string {
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	log.Info("SMTP Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
+	log.LogInfo("SMTP Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	expConnectsCurrent.Add(1)
 	defer func() {
 		conn.Close()
@@ -116,7 +116,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				}
 				if !commands[cmd] {
 					ss.send(fmt.Sprintf("500 Syntax error, %v command unrecognized", cmd))
-					ss.warn("Unrecognized command: %v", cmd)
+					ss.logWarn("Unrecognized command: %v", cmd)
 					continue
 				}
 
@@ -125,7 +125,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				case "SEND", "SOML", "SAML", "EXPN", "HELP", "TURN":
 					// These commands are not implemented in any state
 					ss.send(fmt.Sprintf("502 %v command not implemented", cmd))
-					ss.warn("Command %v not implemented by Inbucket", cmd)
+					ss.logWarn("Command %v not implemented by Inbucket", cmd)
 					continue
 				case "VRFY":
 					ss.send("252 Cannot VRFY user, but will accept message")
@@ -135,7 +135,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 					continue
 				case "RSET":
 					// Reset session
-					ss.trace("Resetting session state on RSET request")
+					ss.logTrace("Resetting session state on RSET request")
 					ss.reset()
 					ss.send("250 Session reset")
 					continue
@@ -157,7 +157,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 					ss.mailHandler(cmd, arg)
 					continue
 				}
-				ss.error("Session entered unexpected state %v", ss.state)
+				ss.logError("Session entered unexpected state %v", ss.state)
 				break
 			} else {
 				ss.send("500 Syntax error, command garbled")
@@ -168,14 +168,14 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				switch ss.state {
 				case GREET, READY:
 					// EOF is common here
-					ss.info("Client closed connection (state %v)", ss.state)
+					ss.logInfo("Client closed connection (state %v)", ss.state)
 				default:
-					ss.warn("Got EOF while in state %v", ss.state)
+					ss.logWarn("Got EOF while in state %v", ss.state)
 				}
 				break
 			}
 			// not an EOF
-			ss.warn("Connection error: %v", err)
+			ss.logWarn("Connection error: %v", err)
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
 					ss.send("221 Idle timeout, bye bye")
@@ -187,9 +187,9 @@ func (s *Server) startSession(id int, conn net.Conn) {
 		}
 	}
 	if ss.sendError != nil {
-		ss.warn("Network send error: %v", ss.sendError)
+		ss.logWarn("Network send error: %v", ss.sendError)
 	}
-	ss.info("Closing connection")
+	ss.logInfo("Closing connection")
 }
 
 // GREET state -> waiting for HELO
@@ -216,7 +216,7 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 		m := re.FindStringSubmatch(arg)
 		if m == nil {
 			ss.send("501 Was expecting MAIL arg syntax of FROM:<address>")
-			ss.warn("Bad MAIL argument: '%v'", arg)
+			ss.logWarn("Bad MAIL argument: '%v'", arg)
 			return
 		}
 		from := m[1]
@@ -226,26 +226,26 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 			args, ok := ss.parseArgs(m[2])
 			if !ok {
 				ss.send("501 Unable to parse MAIL ESMTP parameters")
-				ss.warn("Bad MAIL argument: '%v'", arg)
+				ss.logWarn("Bad MAIL argument: '%v'", arg)
 				return
 			}
 			if args["SIZE"] != "" {
 				size, err := strconv.ParseInt(args["SIZE"], 10, 32)
 				if err != nil {
 					ss.send("501 Unable to parse SIZE as an integer")
-					ss.warn("Unable to parse SIZE '%v' as an integer", args["SIZE"])
+					ss.logWarn("Unable to parse SIZE '%v' as an integer", args["SIZE"])
 					return
 				}
 				if int(size) > ss.server.maxMessageBytes {
 					ss.send("552 Max message size exceeded")
-					ss.warn("Client wanted to send oversized message: %v", args["SIZE"])
+					ss.logWarn("Client wanted to send oversized message: %v", args["SIZE"])
 					return
 				}
 			}
 		}
 		ss.from = from
 		ss.recipients = list.New()
-		ss.info("Mail from: %v", from)
+		ss.logInfo("Mail from: %v", from)
 		ss.send(fmt.Sprintf("250 Roger, accepting mail from <%v>", from))
 		ss.enterState(MAIL)
 	} else {
@@ -259,24 +259,24 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 	case "RCPT":
 		if (len(arg) < 4) || (strings.ToUpper(arg[0:3]) != "TO:") {
 			ss.send("501 Was expecting RCPT arg syntax of TO:<address>")
-			ss.warn("Bad RCPT argument: '%v'", arg)
+			ss.logWarn("Bad RCPT argument: '%v'", arg)
 			return
 		}
 		// This trim is probably too forgiving
 		recip := strings.Trim(arg[3:], "<> ")
 		if ss.recipients.Len() >= ss.server.maxRecips {
-			ss.warn("Maximum limit of %v recipients reached", ss.server.maxRecips)
+			ss.logWarn("Maximum limit of %v recipients reached", ss.server.maxRecips)
 			ss.send(fmt.Sprintf("552 Maximum limit of %v recipients reached", ss.server.maxRecips))
 			return
 		}
 		ss.recipients.PushBack(recip)
-		ss.info("Recipient: %v", recip)
+		ss.logInfo("Recipient: %v", recip)
 		ss.send(fmt.Sprintf("250 I'll make sure <%v> gets this", recip))
 		return
 	case "DATA":
 		if arg != "" {
 			ss.send("501 DATA command should not have any arguments")
-			ss.warn("Got unexpected args on DATA: '%v'", arg)
+			ss.logWarn("Got unexpected args on DATA: '%v'", arg)
 			return
 		}
 		if ss.recipients.Len() > 0 {
@@ -307,7 +307,7 @@ func (ss *Session) dataHandler() {
 				// Not our "no store" domain, so store the message
 				mb, err := ss.server.dataStore.MailboxFor(recip)
 				if err != nil {
-					ss.error("Failed to open mailbox for %v", recip)
+					ss.logError("Failed to open mailbox for %v", recip)
 					ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
 					ss.reset()
 					return
@@ -315,7 +315,7 @@ func (ss *Session) dataHandler() {
 				mailboxes[i] = mb
 				messages[i] = mb.NewMessage()
 			} else {
-				log.Trace("Not storing message for '%v'", recip)
+				log.LogTrace("Not storing message for '%v'", recip)
 			}
 			i++
 		}
@@ -332,7 +332,7 @@ func (ss *Session) dataHandler() {
 					ss.send("221 Idle timeout, bye bye")
 				}
 			}
-			ss.warn("Error: %v while reading", err)
+			ss.logWarn("Error: %v while reading", err)
 			ss.enterState(QUIT)
 			return
 		}
@@ -350,7 +350,7 @@ func (ss *Session) dataHandler() {
 				expReceivedTotal.Add(1)
 			}
 			ss.send("250 Mail accepted for delivery")
-			ss.info("Message size %v bytes", msgSize)
+			ss.logInfo("Message size %v bytes", msgSize)
 			ss.reset()
 			return
 		}
@@ -362,7 +362,7 @@ func (ss *Session) dataHandler() {
 		if msgSize > ss.server.maxMessageBytes {
 			// Max message size exceeded
 			ss.send("552 Maximum message size exceeded")
-			ss.warn("Max message size exceeded while in DATA")
+			ss.logWarn("Max message size exceeded while in DATA")
 			ss.reset()
 			// TODO: Should really cleanup the crap on filesystem...
 			return
@@ -372,7 +372,7 @@ func (ss *Session) dataHandler() {
 			for i, m := range messages {
 				if m != nil {
 					if err := m.Append(line); err != nil {
-						ss.error("Failed to append to mailbox %v: %v", mailboxes[i], err)
+						ss.logError("Failed to append to mailbox %v: %v", mailboxes[i], err)
 						ss.send("554 Something went wrong")
 						ss.reset()
 						// TODO: Should really cleanup the crap on filesystem...
@@ -386,7 +386,7 @@ func (ss *Session) dataHandler() {
 
 func (ss *Session) enterState(state State) {
 	ss.state = state
-	ss.trace("Entering state %v", state)
+	ss.logTrace("Entering state %v", state)
 }
 
 func (ss *Session) greet() {
@@ -406,10 +406,10 @@ func (ss *Session) send(msg string) {
 	}
 	if _, err := fmt.Fprint(ss.conn, msg+"\r\n"); err != nil {
 		ss.sendError = err
-		ss.warn("Failed to send: '%v'", msg)
+		ss.logWarn("Failed to send: '%v'", msg)
 		return
 	}
-	ss.trace(">> %v >>", msg)
+	ss.logTrace(">> %v >>", msg)
 }
 
 // readByteLine reads a line of input into the provided buffer. Does
@@ -437,7 +437,6 @@ func (ss *Session) readByteLine(buf *bytes.Buffer) error {
 		// Else, keep looking
 	}
 	// Should be unreachable
-	return nil
 }
 
 // Reads a line of input
@@ -449,7 +448,7 @@ func (ss *Session) readLine() (line string, err error) {
 	if err != nil {
 		return "", err
 	}
-	ss.trace("<< %v <<", strings.TrimRight(line, "\r\n"))
+	ss.logTrace("<< %v <<", strings.TrimRight(line, "\r\n"))
 	return line, nil
 }
 
@@ -460,19 +459,19 @@ func (ss *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 	case l == 0:
 		return "", "", true
 	case l < 4:
-		ss.warn("Command too short: '%v'", line)
+		ss.logWarn("Command too short: '%v'", line)
 		return "", "", false
 	case l == 4:
 		return strings.ToUpper(line), "", true
 	case l == 5:
 		// Too long to be only command, too short to have args
-		ss.warn("Mangled command: '%v'", line)
+		ss.logWarn("Mangled command: '%v'", line)
 		return "", "", false
 	}
 	// If we made it here, command is long enough to have args
 	if line[4] != ' ' {
 		// There wasn't a space after the command?
-		ss.warn("Mangled command: '%v'", line)
+		ss.logWarn("Mangled command: '%v'", line)
 		return "", "", false
 	}
 	// I'm not sure if we should trim the args or not, but we will for now
@@ -489,13 +488,13 @@ func (ss *Session) parseArgs(arg string) (args map[string]string, ok bool) {
 	re := regexp.MustCompile(" (\\w+)=(\\w+)")
 	pm := re.FindAllStringSubmatch(arg, -1)
 	if pm == nil {
-		ss.warn("Failed to parse arg string: '%v'")
+		ss.logWarn("Failed to parse arg string: '%v'")
 		return nil, false
 	}
 	for _, m := range pm {
 		args[strings.ToUpper(m[1])] = m[2]
 	}
-	ss.trace("ESMTP params: %v", args)
+	ss.logTrace("ESMTP params: %v", args)
 	return args, true
 }
 
@@ -507,26 +506,26 @@ func (ss *Session) reset() {
 
 func (ss *Session) ooSeq(cmd string) {
 	ss.send(fmt.Sprintf("503 Command %v is out of sequence", cmd))
-	ss.warn("Wasn't expecting %v here", cmd)
+	ss.logWarn("Wasn't expecting %v here", cmd)
 }
 
 // Session specific logging methods
-func (ss *Session) trace(msg string, args ...interface{}) {
-	log.Trace("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+func (ss *Session) logTrace(msg string, args ...interface{}) {
+	log.LogTrace("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
 }
 
-func (ss *Session) info(msg string, args ...interface{}) {
-	log.Info("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+func (ss *Session) logInfo(msg string, args ...interface{}) {
+	log.LogInfo("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
 }
 
-func (ss *Session) warn(msg string, args ...interface{}) {
+func (ss *Session) logWarn(msg string, args ...interface{}) {
 	// Update metrics
 	expWarnsTotal.Add(1)
-	log.Warn("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	log.LogWarn("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
 }
 
-func (ss *Session) error(msg string, args ...interface{}) {
+func (ss *Session) logError(msg string, args ...interface{}) {
 	// Update metrics
 	expErrorsTotal.Add(1)
-	log.Error("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	log.LogError("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
 }

@@ -84,7 +84,7 @@ func (ses *Session) String() string {
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	log.Info("POP3 connection from %v, starting session <%v>", conn.RemoteAddr(), id)
+	log.LogInfo("POP3 connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	//expConnectsCurrent.Add(1)
 	defer func() {
 		conn.Close()
@@ -108,7 +108,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				}
 				if !commands[cmd] {
 					ses.send(fmt.Sprintf("-ERR Syntax error, %v command unrecognized", cmd))
-					ses.warn("Unrecognized command: %v", cmd)
+					ses.logWarn("Unrecognized command: %v", cmd)
 					continue
 				}
 
@@ -134,7 +134,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 					ses.transactionHandler(cmd, arg)
 					continue
 				}
-				ses.error("Session entered unexpected state %v", ses.state)
+				ses.logError("Session entered unexpected state %v", ses.state)
 				break
 			} else {
 				ses.send("-ERR Syntax error, command garbled")
@@ -145,14 +145,14 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				switch ses.state {
 				case AUTHORIZATION:
 					// EOF is common here
-					ses.info("Client closed connection (state %v)", ses.state)
+					ses.logInfo("Client closed connection (state %v)", ses.state)
 				default:
-					ses.warn("Got EOF while in state %v", ses.state)
+					ses.logWarn("Got EOF while in state %v", ses.state)
 				}
 				break
 			}
 			// not an EOF
-			ses.warn("Connection error: %v", err)
+			ses.logWarn("Connection error: %v", err)
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
 					ses.send("-ERR Idle timeout, bye bye")
@@ -164,9 +164,9 @@ func (s *Server) startSession(id int, conn net.Conn) {
 		}
 	}
 	if ses.sendError != nil {
-		ses.warn("Network send error: %v", ses.sendError)
+		ses.logWarn("Network send error: %v", ses.sendError)
 	}
-	ses.info("Closing connection")
+	ses.logInfo("Closing connection")
 }
 
 // AUTHORIZATION state
@@ -189,7 +189,7 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 			var err error
 			ses.mailbox, err = ses.server.dataStore.MailboxFor(ses.user)
 			if err != nil {
-				ses.error("Failed to open mailbox for %v", ses.user)
+				ses.logError("Failed to open mailbox for %v", ses.user)
 				ses.send(fmt.Sprintf("-ERR Failed to open mailbox for %v", ses.user))
 				ses.enterState(QUIT)
 				return
@@ -200,7 +200,7 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 		}
 	case "APOP":
 		if len(args) != 2 {
-			ses.warn("Expected two arguments for APOP")
+			ses.logWarn("Expected two arguments for APOP")
 			ses.send("-ERR APOP requires two arguments")
 			return
 		}
@@ -208,7 +208,7 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 		var err error
 		ses.mailbox, err = ses.server.dataStore.MailboxFor(ses.user)
 		if err != nil {
-			ses.error("Failed to open mailbox for %v", ses.user)
+			ses.logError("Failed to open mailbox for %v", ses.user)
 			ses.send(fmt.Sprintf("-ERR Failed to open mailbox for %v", ses.user))
 			ses.enterState(QUIT)
 			return
@@ -226,7 +226,7 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 	switch cmd {
 	case "STAT":
 		if len(args) != 0 {
-			ses.warn("STAT got an unexpected argument")
+			ses.logWarn("STAT got an unexpected argument")
 			ses.send("-ERR STAT command must have no arguments")
 			return
 		}
@@ -241,29 +241,29 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 		ses.send(fmt.Sprintf("+OK %v %v", count, size))
 	case "LIST":
 		if len(args) > 1 {
-			ses.warn("LIST command had more than 1 argument")
+			ses.logWarn("LIST command had more than 1 argument")
 			ses.send("-ERR LIST command must have zero or one argument")
 			return
 		}
 		if len(args) == 1 {
 			msgNum, err := strconv.ParseInt(args[0], 10, 32)
 			if err != nil {
-				ses.warn("LIST command argument was not an integer")
+				ses.logWarn("LIST command argument was not an integer")
 				ses.send("-ERR LIST command requires an integer argument")
 				return
 			}
 			if msgNum < 1 {
-				ses.warn("LIST command argument was less than 1")
+				ses.logWarn("LIST command argument was less than 1")
 				ses.send("-ERR LIST argument must be greater than 0")
 				return
 			}
 			if int(msgNum) > len(ses.messages) {
-				ses.warn("LIST command argument was greater than number of messages")
+				ses.logWarn("LIST command argument was greater than number of messages")
 				ses.send("-ERR LIST argument must not exceed the number of messages")
 				return
 			}
 			if !ses.retain[msgNum-1] {
-				ses.warn("Client tried to LIST a message it had deleted")
+				ses.logWarn("Client tried to LIST a message it had deleted")
 				ses.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
 				return
 			}
@@ -279,29 +279,29 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 		}
 	case "UIDL":
 		if len(args) > 1 {
-			ses.warn("UIDL command had more than 1 argument")
+			ses.logWarn("UIDL command had more than 1 argument")
 			ses.send("-ERR UIDL command must have zero or one argument")
 			return
 		}
 		if len(args) == 1 {
 			msgNum, err := strconv.ParseInt(args[0], 10, 32)
 			if err != nil {
-				ses.warn("UIDL command argument was not an integer")
+				ses.logWarn("UIDL command argument was not an integer")
 				ses.send("-ERR UIDL command requires an integer argument")
 				return
 			}
 			if msgNum < 1 {
-				ses.warn("UIDL command argument was less than 1")
+				ses.logWarn("UIDL command argument was less than 1")
 				ses.send("-ERR UIDL argument must be greater than 0")
 				return
 			}
 			if int(msgNum) > len(ses.messages) {
-				ses.warn("UIDL command argument was greater than number of messages")
+				ses.logWarn("UIDL command argument was greater than number of messages")
 				ses.send("-ERR UIDL argument must not exceed the number of messages")
 				return
 			}
 			if !ses.retain[msgNum-1] {
-				ses.warn("Client tried to UIDL a message it had deleted")
+				ses.logWarn("Client tried to UIDL a message it had deleted")
 				ses.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
 				return
 			}
@@ -317,23 +317,23 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 		}
 	case "DELE":
 		if len(args) != 1 {
-			ses.warn("DELE command had invalid number of arguments")
+			ses.logWarn("DELE command had invalid number of arguments")
 			ses.send("-ERR DELE command requires a single argument")
 			return
 		}
 		msgNum, err := strconv.ParseInt(args[0], 10, 32)
 		if err != nil {
-			ses.warn("DELE command argument was not an integer")
+			ses.logWarn("DELE command argument was not an integer")
 			ses.send("-ERR DELE command requires an integer argument")
 			return
 		}
 		if msgNum < 1 {
-			ses.warn("DELE command argument was less than 1")
+			ses.logWarn("DELE command argument was less than 1")
 			ses.send("-ERR DELE argument must be greater than 0")
 			return
 		}
 		if int(msgNum) > len(ses.messages) {
-			ses.warn("DELE command argument was greater than number of messages")
+			ses.logWarn("DELE command argument was greater than number of messages")
 			ses.send("-ERR DELE argument must not exceed the number of messages")
 			return
 		}
@@ -342,28 +342,28 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 			ses.msgCount -= 1
 			ses.send(fmt.Sprintf("+OK Deleted message %v", msgNum))
 		} else {
-			ses.warn("Client tried to DELE an already deleted message")
+			ses.logWarn("Client tried to DELE an already deleted message")
 			ses.send(fmt.Sprintf("-ERR Message %v has already been deleted", msgNum))
 		}
 	case "RETR":
 		if len(args) != 1 {
-			ses.warn("RETR command had invalid number of arguments")
+			ses.logWarn("RETR command had invalid number of arguments")
 			ses.send("-ERR RETR command requires a single argument")
 			return
 		}
 		msgNum, err := strconv.ParseInt(args[0], 10, 32)
 		if err != nil {
-			ses.warn("RETR command argument was not an integer")
+			ses.logWarn("RETR command argument was not an integer")
 			ses.send("-ERR RETR command requires an integer argument")
 			return
 		}
 		if msgNum < 1 {
-			ses.warn("RETR command argument was less than 1")
+			ses.logWarn("RETR command argument was less than 1")
 			ses.send("-ERR RETR argument must be greater than 0")
 			return
 		}
 		if int(msgNum) > len(ses.messages) {
-			ses.warn("RETR command argument was greater than number of messages")
+			ses.logWarn("RETR command argument was greater than number of messages")
 			ses.send("-ERR RETR argument must not exceed the number of messages")
 			return
 		}
@@ -371,23 +371,23 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 		ses.sendMessage(ses.messages[msgNum-1])
 	case "TOP":
 		if len(args) != 2 {
-			ses.warn("TOP command had invalid number of arguments")
+			ses.logWarn("TOP command had invalid number of arguments")
 			ses.send("-ERR TOP command requires two arguments")
 			return
 		}
 		msgNum, err := strconv.ParseInt(args[0], 10, 32)
 		if err != nil {
-			ses.warn("TOP command first argument was not an integer")
+			ses.logWarn("TOP command first argument was not an integer")
 			ses.send("-ERR TOP command requires an integer argument")
 			return
 		}
 		if msgNum < 1 {
-			ses.warn("TOP command first argument was less than 1")
+			ses.logWarn("TOP command first argument was less than 1")
 			ses.send("-ERR TOP first argument must be greater than 0")
 			return
 		}
 		if int(msgNum) > len(ses.messages) {
-			ses.warn("TOP command first argument was greater than number of messages")
+			ses.logWarn("TOP command first argument was greater than number of messages")
 			ses.send("-ERR TOP first argument must not exceed the number of messages")
 			return
 		}
@@ -395,12 +395,12 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 		var lines int64
 		lines, err = strconv.ParseInt(args[1], 10, 32)
 		if err != nil {
-			ses.warn("TOP command second argument was not an integer")
+			ses.logWarn("TOP command second argument was not an integer")
 			ses.send("-ERR TOP command requires an integer argument")
 			return
 		}
 		if lines < 0 {
-			ses.warn("TOP command second argument was negative")
+			ses.logWarn("TOP command second argument was negative")
 			ses.send("-ERR TOP second argument must be non-negative")
 			return
 		}
@@ -414,7 +414,7 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 		ses.send("+OK I have sucessfully done nothing")
 	case "RSET":
 		// Reset session, don't actually delete anything I told you to
-		ses.trace("Resetting session state on RSET request")
+		ses.logTrace("Resetting session state on RSET request")
 		ses.reset()
 		ses.send("+OK Session reset")
 	default:
@@ -427,7 +427,7 @@ func (ses *Session) sendMessage(msg smtpd.Message) {
 	reader, err := msg.RawReader()
 	defer reader.Close()
 	if err != nil {
-		ses.error("Failed to read message for RETR command")
+		ses.logError("Failed to read message for RETR command")
 		ses.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
@@ -442,7 +442,7 @@ func (ses *Session) sendMessage(msg smtpd.Message) {
 	}
 
 	if err = scanner.Err(); err != nil {
-		ses.error("Failed to read message for RETR command")
+		ses.logError("Failed to read message for RETR command")
 		ses.send(".")
 		ses.send("-ERR Failed to RETR that message, internal error")
 		return
@@ -455,7 +455,7 @@ func (ses *Session) sendMessageTop(msg smtpd.Message, lineCount int) {
 	reader, err := msg.RawReader()
 	defer reader.Close()
 	if err != nil {
-		ses.error("Failed to read message for RETR command")
+		ses.logError("Failed to read message for RETR command")
 		ses.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
@@ -484,7 +484,7 @@ func (ses *Session) sendMessageTop(msg smtpd.Message, lineCount int) {
 	}
 
 	if err = scanner.Err(); err != nil {
-		ses.error("Failed to read message for RETR command")
+		ses.logError("Failed to read message for RETR command")
 		ses.send(".")
 		ses.send("-ERR Failed to RETR that message, internal error")
 		return
@@ -497,7 +497,7 @@ func (ses *Session) loadMailbox() {
 	var err error
 	ses.messages, err = ses.mailbox.GetMessages()
 	if err != nil {
-		ses.error("Failed to load messages for %v", ses.user)
+		ses.logError("Failed to load messages for %v", ses.user)
 	}
 
 	ses.retainAll()
@@ -517,10 +517,10 @@ func (ses *Session) retainAll() {
 // indicates that the session was closed cleanly and that deletes should be
 // processed.
 func (ses *Session) processDeletes() {
-	ses.info("Processing deletes")
+	ses.logInfo("Processing deletes")
 	for i, msg := range ses.messages {
 		if !ses.retain[i] {
-			ses.trace("Deleting %v", msg)
+			ses.logTrace("Deleting %v", msg)
 			msg.Delete()
 		}
 	}
@@ -528,7 +528,7 @@ func (ses *Session) processDeletes() {
 
 func (ses *Session) enterState(state State) {
 	ses.state = state
-	ses.trace("Entering state %v", state)
+	ses.logTrace("Entering state %v", state)
 }
 
 // Calculate the next read or write deadline based on maxIdleSeconds
@@ -544,10 +544,10 @@ func (ses *Session) send(msg string) {
 	}
 	if _, err := fmt.Fprint(ses.conn, msg+"\r\n"); err != nil {
 		ses.sendError = err
-		ses.warn("Failed to send: '%v'", msg)
+		ses.logWarn("Failed to send: '%v'", msg)
 		return
 	}
-	ses.trace(">> %v >>", msg)
+	ses.logTrace(">> %v >>", msg)
 }
 
 // readByteLine reads a line of input into the provided buffer. Does
@@ -575,7 +575,6 @@ func (ses *Session) readByteLine(buf *bytes.Buffer) error {
 		// Else, keep looking
 	}
 	// Should be unreachable
-	return nil
 }
 
 // Reads a line of input
@@ -587,7 +586,7 @@ func (ses *Session) readLine() (line string, err error) {
 	if err != nil {
 		return "", err
 	}
-	ses.trace("<< %v <<", strings.TrimRight(line, "\r\n"))
+	ses.logTrace("<< %v <<", strings.TrimRight(line, "\r\n"))
 	return line, nil
 }
 
@@ -607,26 +606,26 @@ func (ses *Session) reset() {
 
 func (ses *Session) ooSeq(cmd string) {
 	ses.send(fmt.Sprintf("-ERR Command %v is out of sequence", cmd))
-	ses.warn("Wasn't expecting %v here", cmd)
+	ses.logWarn("Wasn't expecting %v here", cmd)
 }
 
 // Session specific logging methods
-func (ses *Session) trace(msg string, args ...interface{}) {
-	log.Trace("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
+func (ses *Session) logTrace(msg string, args ...interface{}) {
+	log.LogTrace("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
 }
 
-func (ses *Session) info(msg string, args ...interface{}) {
-	log.Info("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
+func (ses *Session) logInfo(msg string, args ...interface{}) {
+	log.LogInfo("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
 }
 
-func (ses *Session) warn(msg string, args ...interface{}) {
+func (ses *Session) logWarn(msg string, args ...interface{}) {
 	// Update metrics
 	//expWarnsTotal.Add(1)
-	log.Warn("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
+	log.LogWarn("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
 }
 
-func (ses *Session) error(msg string, args ...interface{}) {
+func (ses *Session) logError(msg string, args ...interface{}) {
 	// Update metrics
 	//expErrorsTotal.Add(1)
-	log.Error("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
+	log.LogError("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
 }

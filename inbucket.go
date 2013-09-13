@@ -87,7 +87,7 @@ func main() {
 	if *pidfile != "none" {
 		pidf, err := os.Create(*pidfile)
 		if err != nil {
-			log.Error("Failed to create %v: %v", *pidfile, err)
+			log.LogError("Failed to create %v: %v", *pidfile, err)
 			os.Exit(1)
 		}
 		defer pidf.Close()
@@ -119,13 +119,13 @@ func openLogFile() error {
 		return fmt.Errorf("Failed to create %v: %v\n", *logfile, err)
 	}
 	golog.SetOutput(logf)
-	log.Trace("Opened new logfile")
+	log.LogTrace("Opened new logfile")
 	return nil
 }
 
 // closeLogFile closes the current logfile
 func closeLogFile() error {
-	log.Trace("Closing logfile")
+	log.LogTrace("Closing logfile")
 	return logf.Close()
 }
 
@@ -137,21 +137,21 @@ func signalProcessor(c <-chan os.Signal) {
 		case syscall.SIGHUP:
 			// Rotate logs if configured
 			if logf != nil {
-				log.Info("Recieved SIGHUP, cycling logfile")
+				log.LogInfo("Recieved SIGHUP, cycling logfile")
 				closeLogFile()
 				openLogFile()
 			} else {
-				log.Info("Ignoring SIGHUP, logfile not configured")
+				log.LogInfo("Ignoring SIGHUP, logfile not configured")
 			}
 		case syscall.SIGTERM:
 			// Initiate shutdown
-			log.Info("Received SIGTERM, shutting down")
+			log.LogInfo("Received SIGTERM, shutting down")
 			go timedExit()
 			web.Stop()
 			if smtpServer != nil {
 				smtpServer.Stop()
 			} else {
-				log.Error("smtpServer was nil during shutdown")
+				log.LogError("smtpServer was nil during shutdown")
 			}
 		}
 	}
@@ -160,7 +160,7 @@ func signalProcessor(c <-chan os.Signal) {
 // timedExit is called as a goroutine during shutdown, it will force an exit after 15 seconds
 func timedExit() {
 	time.Sleep(15 * time.Second)
-	log.Error("Inbucket clean shutdown timed out, forcing exit")
+	log.LogError("Inbucket clean shutdown timed out, forcing exit")
 	os.Exit(0)
 }
 

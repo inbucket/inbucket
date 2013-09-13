@@ -3,7 +3,8 @@ package smtpd
 import (
 	"fmt"
 	"github.com/jhillyerd/go.enmime"
-	"github.com/stretchrcom/testify/mock"
+	"github.com/stretchr/testify/mock"
+	"io"
 	"net/mail"
 	"testing"
 	"time"
@@ -139,6 +140,16 @@ func (m *MockMessage) ReadBody() (msg *mail.Message, body *enmime.MIMEBody, err 
 func (m *MockMessage) ReadRaw() (raw *string, err error) {
 	args := m.Called()
 	return args.Get(0).(*string), args.Error(1)
+}
+
+func (m *MockMessage) RawReader() (reader io.ReadCloser, err error) {
+	args := m.Called()
+	return args.Get(0).(io.ReadCloser), args.Error(1)
+}
+
+func (m *MockMessage) Size() (int64) {
+	args := m.Called()
+	return int64(args.Int(0))
 }
 
 func (m *MockMessage) Append(data []byte) error {

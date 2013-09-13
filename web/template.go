@@ -20,7 +20,7 @@ var cachedPartials = map[string]*template.Template{}
 func RenderTemplate(name string, w http.ResponseWriter, data interface{}) error {
 	t, err := ParseTemplate(name, false)
 	if err != nil {
-		log.Error("Error in template '%v': %v", name, err)
+		log.LogError("Error in template '%v': %v", name, err)
 		return err
 	}
 	w.Header().Set("Expires", "-1")
@@ -32,7 +32,7 @@ func RenderTemplate(name string, w http.ResponseWriter, data interface{}) error 
 func RenderPartial(name string, w http.ResponseWriter, data interface{}) error {
 	t, err := ParseTemplate(name, true)
 	if err != nil {
-		log.Error("Error in template '%v': %v", name, err)
+		log.LogError("Error in template '%v': %v", name, err)
 		return err
 	}
 	w.Header().Set("Expires", "-1")
@@ -52,7 +52,7 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 	cfg := config.GetWebConfig()
 	tempPath := strings.Replace(name, "/", string(filepath.Separator), -1)
 	tempFile := filepath.Join(cfg.TemplateDir, tempPath)
-	log.Trace("Parsing template %v", tempFile)
+	log.LogTrace("Parsing template %v", tempFile)
 
 	var err error
 	var t *template.Template
@@ -72,10 +72,10 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 	// Allows us to disable caching for theme development
 	if cfg.TemplateCache {
 		if partial {
-			log.Trace("Caching partial %v", name)
+			log.LogTrace("Caching partial %v", name)
 			cachedTemplates[name] = t
 		} else {
-			log.Trace("Caching template %v", name)
+			log.LogTrace("Caching template %v", name)
 			cachedTemplates[name] = t
 		}
 	}

@@ -28,20 +28,20 @@ func SetLogLevel(level string) (ok bool) {
 	case "TRACE":
 		MaxLogLevel = TRACE
 	default:
-		Error("Unknown log level requested: %v", level)
+		LogError("Unknown log level requested: %v", level)
 		return false
 	}
 	return true
 }
 
 // Error logs a message to the 'standard' Logger (always)
-func Error(msg string, args ...interface{}) {
+func LogError(msg string, args ...interface{}) {
 	msg = "[ERROR] " + msg
 	log.Printf(msg, args...)
 }
 
 // Warn logs a message to the 'standard' Logger if MaxLogLevel is >= WARN
-func Warn(msg string, args ...interface{}) {
+func LogWarn(msg string, args ...interface{}) {
 	if MaxLogLevel >= WARN {
 		msg = "[WARN ] " + msg
 		log.Printf(msg, args...)
@@ -49,7 +49,7 @@ func Warn(msg string, args ...interface{}) {
 }
 
 // Info logs a message to the 'standard' Logger if MaxLogLevel is >= INFO
-func Info(msg string, args ...interface{}) {
+func LogInfo(msg string, args ...interface{}) {
 	if MaxLogLevel >= INFO {
 		msg = "[INFO ] " + msg
 		log.Printf(msg, args...)
@@ -57,7 +57,7 @@ func Info(msg string, args ...interface{}) {
 }
 
 // Trace logs a message to the 'standard' Logger if MaxLogLevel is >= TRACE
-func Trace(msg string, args ...interface{}) {
+func LogTrace(msg string, args ...interface{}) {
 	if MaxLogLevel >= TRACE {
 		msg = "[TRACE] " + msg
 		log.Printf(msg, args...)

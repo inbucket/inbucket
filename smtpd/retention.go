@@ -26,11 +26,11 @@ func StartRetentionScanner(ds DataStore) {
 	expRetentionPeriod.Set(int64(cfg.RetentionMinutes * 60))
 	if cfg.RetentionMinutes > 0 {
 		// Retention scanning enabled
-		log.Info("Retention configured for %v minutes", cfg.RetentionMinutes)
+		log.LogInfo("Retention configured for %v minutes", cfg.RetentionMinutes)
 		go retentionScanner(ds, time.Duration(cfg.RetentionMinutes) * time.Minute,
 			time.Duration(cfg.RetentionSleep) * time.Millisecond)
 	} else {
-		log.Info("Retention scanner disabled")
+		log.LogInfo("Retention scanner disabled")
 	}
 }
 
@@ -41,21 +41,21 @@ func retentionScanner(ds DataStore, maxAge time.Duration, sleep time.Duration) {
 		since := time.Since(start)
 		if since < time.Minute {
 			dur := time.Minute - since
-			log.Trace("Retention scanner sleeping for %v", dur)
+			log.LogTrace("Retention scanner sleeping for %v", dur)
 			time.Sleep(dur)
 		}
 		start = time.Now()
 
 		// Kickoff scan
 		if err := doRetentionScan(ds, maxAge, sleep); err != nil {
-			log.Error("Error during retention scan: %v", err)
+			log.LogError("Error during retention scan: %v", err)
 		}
 	}
 }
 
 // doRetentionScan does a single pass of all mailboxes looking for messages that can be purged
 func doRetentionScan(ds DataStore, maxAge time.Duration, sleep time.Duration) error {
-	log.Trace("Starting retention scan")
+	log.LogTrace("Starting retention scan")
 	cutoff := time.Now().Add(-1 * maxAge)
 	mboxes, err := ds.AllMailboxes()
 	if err != nil {
@@ -69,11 +69,11 @@ func doRetentionScan(ds DataStore, maxAge time.Duration, sleep time.Duration) er
 		}
 		for _, msg := range messages {
 			if msg.Date().Before(cutoff) {
-				log.Trace("Purging expired message %v", msg.Id())
+				log.LogTrace("Purging expired message %v", msg.Id())
 				err = msg.Delete()
 				if err != nil {
 					// Log but don't abort
-					log.Error("Failed to purge message %v: %v", msg.Id(), err)
+					log.LogError("Failed to purge message %v: %v", msg.Id(), err)
 				} else {
 					expRetentionDeletesTotal.Add(1)
 				}

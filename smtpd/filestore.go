@@ -46,11 +46,11 @@ type FileDataStore struct {
 func NewFileDataStore() DataStore {
 	path, err := config.Config.String("datastore", "path")
 	if err != nil {
-		log.Error("Error getting datastore path: %v", err)
+		log.LogError("Error getting datastore path: %v", err)
 		return nil
 	}
 	if path == "" {
-		log.Error("No value configured for datastore path")
+		log.LogError("No value configured for datastore path")
 		return nil
 	}
 	mailPath := filepath.Join(path, "mail")
@@ -66,7 +66,7 @@ func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
 	s2 := dir[0:6]
 	path := filepath.Join(ds.mailPath, s1, s2, dir)
 	if err := os.MkdirAll(path, 0770); err != nil {
-		log.Error("Failed to create directory %v, %v", path, err)
+		log.LogError("Failed to create directory %v, %v", path, err)
 		return nil, err
 	}
 	return &FileMailbox{store: ds, name: name, dirName: dir, path: path}, nil
@@ -132,7 +132,7 @@ func (mb *FileMailbox) GetMessages() ([]Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Trace("Scanning %v files for %v", len(files), mb)
+	log.LogTrace("Scanning %v files for %v", len(files), mb)
 
 	messages := make([]Message, 0, len(files))
 	for _, f := range files {
@@ -149,7 +149,7 @@ func (mb *FileMailbox) GetMessages() ([]Message, error) {
 			}
 			file.Close()
 			msg.mailbox = mb
-			log.Trace("Found: %v", msg)
+			log.LogTrace("Found: %v", msg)
 			messages = append(messages, msg)
 		}
 	}
@@ -170,7 +170,7 @@ func (mb *FileMailbox) GetMessage(id string) (Message, error) {
 	}
 	file.Close()
 	msg.mailbox = mb
-	log.Trace("Found: %v", msg)
+	log.LogTrace("Found: %v", msg)
 
 	return msg, nil
 }
@@ -335,7 +335,7 @@ func (m *FileMessage) Close() error {
 
 	err := m.createGob()
 	if err != nil {
-		log.Error("Failed to create gob: %v", err)
+		log.LogError("Failed to create gob: %v", err)
 		return err
 	}
 
@@ -344,12 +344,12 @@ func (m *FileMessage) Close() error {
 
 // Delete this Message from disk by removing both the gob and raw files
 func (m *FileMessage) Delete() error {
-	log.Trace("Deleting %v", m.gobPath())
+	log.LogTrace("Deleting %v", m.gobPath())
 	err := os.Remove(m.gobPath())
 	if err != nil {
 		return err
 	}
-	log.Trace("Deleting %v", m.rawPath())
+	log.LogTrace("Deleting %v", m.rawPath())
 	return os.Remove(m.rawPath())
 }
 

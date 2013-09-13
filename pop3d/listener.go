@@ -35,15 +35,15 @@ func (s *Server) Start() {
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
 		cfg.Ip4address, cfg.Ip4port))
 	if err != nil {
-		log.Error("POP3 Failed to build tcp4 address: %v", err)
+		log.LogError("POP3 Failed to build tcp4 address: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
 
-	log.Info("POP3 listening on TCP4 %v", addr)
+	log.LogInfo("POP3 listening on TCP4 %v", addr)
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
-		log.Error("POP3 failed to start tcp4 listener: %v", err)
+		log.LogError("POP3 failed to start tcp4 listener: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
@@ -62,12 +62,12 @@ func (s *Server) Start() {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.Error("POP3 accept error: %v; retrying in %v", err, tempDelay)
+				log.LogError("POP3 accept error: %v; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			} else {
 				if s.shutdown {
-					log.Trace("POP3 listener shutting down on request")
+					log.LogTrace("POP3 listener shutting down on request")
 					return
 				}
 				// TODO Implement a max error counter before shutdown?
@@ -84,7 +84,7 @@ func (s *Server) Start() {
 
 // Stop requests the POP3 server closes it's listener
 func (s *Server) Stop() {
-	log.Trace("POP3 shutdown requested, connections will be drained")
+	log.LogTrace("POP3 shutdown requested, connections will be drained")
 	s.shutdown = true
 	s.listener.Close()
 }
@@ -92,5 +92,5 @@ func (s *Server) Stop() {
 // Drain causes the caller to block until all active POP3 sessions have finished
 func (s *Server) Drain() {
 	s.waitgroup.Wait()
-	log.Trace("POP3 connections drained")
+	log.LogTrace("POP3 connections drained")
 }

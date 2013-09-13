@@ -61,23 +61,23 @@ func (s *Server) Start() {
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
 		cfg.Ip4address, cfg.Ip4port))
 	if err != nil {
-		log.Error("Failed to build tcp4 address: %v", err)
+		log.LogError("Failed to build tcp4 address: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
 
-	log.Info("SMTP listening on TCP4 %v", addr)
+	log.LogInfo("SMTP listening on TCP4 %v", addr)
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
-		log.Error("SMTP failed to start tcp4 listener: %v", err)
+		log.LogError("SMTP failed to start tcp4 listener: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
 
 	if !s.storeMessages {
-		log.Info("Load test mode active, messages will not be stored")
+		log.LogInfo("Load test mode active, messages will not be stored")
 	} else if s.domainNoStore != "" {
-		log.Info("Messages sent to domain '%v' will be discarded", s.domainNoStore)
+		log.LogInfo("Messages sent to domain '%v' will be discarded", s.domainNoStore)
 	}
 
 	// Start retention scanner
@@ -97,12 +97,12 @@ func (s *Server) Start() {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.Error("SMTP accept error: %v; retrying in %v", err, tempDelay)
+				log.LogError("SMTP accept error: %v; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			} else {
 				if s.shutdown {
-					log.Trace("SMTP listener shutting down on request")
+					log.LogTrace("SMTP listener shutting down on request")
 					return
 				}
 				// TODO Implement a max error counter before shutdown?
@@ -120,7 +120,7 @@ func (s *Server) Start() {
 
 // Stop requests the SMTP server closes it's listener
 func (s *Server) Stop() {
-	log.Trace("SMTP shutdown requested, connections will be drained")
+	log.LogTrace("SMTP shutdown requested, connections will be drained")
 	s.shutdown = true
 	s.listener.Close()
 }
@@ -128,7 +128,7 @@ func (s *Server) Stop() {
 // Drain causes the caller to block until all active SMTP sessions have finished
 func (s *Server) Drain() {
 	s.waitgroup.Wait()
-	log.Trace("SMTP connections drained")
+	log.LogTrace("SMTP connections drained")
 }
 
 // When the provided Ticker ticks, we update our metrics history

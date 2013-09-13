@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/stretchrcom/testify/assert"
+	"github.com/stretchr/testify/assert"
 	"html/template"
 	"testing"
 )

@@ -1,0 +1,12 @@
+{
+	"TasksExclude": [
+		"pkg-build"
+	],
+	"Os": "darwin freebsd linux windows",
+	"Resources": {
+		"Include": "README*,LICENSE*,bin,etc,themes"
+	},
+	"PackageVersion": "0.1",
+	"PrereleaseInfo": "snapshot",
+	"FormatVersion": "0.8"
+}

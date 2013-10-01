@@ -12,7 +12,11 @@ no password is required to browse the content of the mailboxes.
 Inbucket has a built-in SMTP server and stores incoming mail as flat files on
 disk - no external SMTP or database daemons required.
 
-Read more at the [Inbucket website](http://jhillyerd.github.com/inbucket/).
+There is also a built-in POP3 server, which allows message rendering to be
+checked in multiple email programs or to verify message delivery as part of
+an integration test.
+
+Read more at the [Inbucket website](http://jhillyerd.github.io/inbucket/).
 
 Development Status
 ------------------
@@ -25,7 +29,7 @@ for more details.
 Installation from Source
 ------------------------
 
-You will need a functioning [Go installation][1] for this to work. 
+You will need a functioning [Go installation][1] for this to work.
 
 Grab the Inbucket source code and compile the daemon:
 

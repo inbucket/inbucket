@@ -132,9 +132,9 @@ func (m *MockMessage) ReadHeader() (msg *mail.Message, err error) {
 	return args.Get(0).(*mail.Message), args.Error(1)
 }
 
-func (m *MockMessage) ReadBody() (msg *mail.Message, body *enmime.MIMEBody, err error) {
+func (m *MockMessage) ReadBody() (body *enmime.MIMEBody, err error) {
 	args := m.Called()
-	return args.Get(0).(*mail.Message), args.Get(1).(*enmime.MIMEBody), args.Error(2)
+	return args.Get(0).(*enmime.MIMEBody), args.Error(1)
 }
 
 func (m *MockMessage) ReadRaw() (raw *string, err error) {
@@ -147,7 +147,7 @@ func (m *MockMessage) RawReader() (reader io.ReadCloser, err error) {
 	return args.Get(0).(io.ReadCloser), args.Error(1)
 }
 
-func (m *MockMessage) Size() (int64) {
+func (m *MockMessage) Size() int64 {
 	args := m.Called()
 	return int64(args.Int(0))
 }

@@ -26,7 +26,7 @@ type Message interface {
 	Subject() string
 	RawReader() (reader io.ReadCloser, err error)
 	ReadHeader() (msg *mail.Message, err error)
-	ReadBody() (msg *mail.Message, body *enmime.MIMEBody, err error)
+	ReadBody() (body *enmime.MIMEBody, err error)
 	ReadRaw() (raw *string, err error)
 	Append(data []byte) error
 	Close() error

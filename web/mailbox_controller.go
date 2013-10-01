@@ -57,7 +57,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	if err != nil {
 		return fmt.Errorf("GetMessage() failed: %v", err)
 	}
-	_, mime, err := message.ReadBody()
+	mime, err := message.ReadBody()
 	if err != nil {
 		return fmt.Errorf("ReadBody() failed: %v", err)
 	}
@@ -87,7 +87,7 @@ func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	if err != nil {
 		return err
 	}
-	_, mime, err := message.ReadBody()
+	mime, err := message.ReadBody()
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Contex
 	if err != nil {
 		return err
 	}
-	_, body, err := message.ReadBody()
+	body, err := message.ReadBody()
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (
 	if err != nil {
 		return err
 	}
-	_, body, err := message.ReadBody()
+	body, err := message.ReadBody()
 	if err != nil {
 		return err
 	}

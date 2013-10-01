@@ -246,25 +246,23 @@ func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
 	return msg, err
 }
 
-// ReadBody opens the .raw portion of a Message and returns a MIMEBody object, along
-// with a free mail.Message containing the Headers, since we had to make one of those
-// anyway.
-func (m *FileMessage) ReadBody() (msg *mail.Message, body *enmime.MIMEBody, err error) {
+// ReadBody opens the .raw portion of a Message and returns a MIMEBody object
+func (m *FileMessage) ReadBody() (body *enmime.MIMEBody, err error) {
 	file, err := os.Open(m.rawPath())
 	defer file.Close()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	reader := bufio.NewReader(file)
-	msg, err = mail.ReadMessage(reader)
+	msg, err := mail.ReadMessage(reader)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	mime, err := enmime.ParseMIMEBody(msg)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return msg, mime, err
+	return mime, err
 }
 
 // RawReader opens the .raw portion of a Message as an io.ReadCloser
@@ -365,14 +363,14 @@ func (m *FileMessage) createGob() error {
 	writer := bufio.NewWriter(file)
 
 	// Fetch headers
-	msg, err := m.ReadHeader()
+	body, err := m.ReadBody()
 	if err != nil {
 		return err
 	}
 
 	// Only public fields are stored in gob
-	m.Ffrom = msg.Header.Get("From")
-	m.Fsubject = msg.Header.Get("Subject")
+	m.Ffrom = body.GetHeader("From")
+	m.Fsubject = body.GetHeader("Subject")
 
 	// Write & flush
 	enc := gob.NewEncoder(writer)

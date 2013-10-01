@@ -11,3 +11,6 @@ swaks $* --h-Subject: "Swaks HTML" --data html.raw
 
 # Attachment test
 swaks $* --h-Subject: "Swaks Attachment" --attach-type image/png --attach favicon.png --body text.txt
+
+# Encoded subject line test
+swaks $* --data utf8-subject.txt

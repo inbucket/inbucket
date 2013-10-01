@@ -6,7 +6,7 @@
 	"Resources": {
 		"Include": "README*,LICENSE*,bin,etc,themes"
 	},
-	"PackageVersion": "0.1",
+	"PackageVersion": "20131001",
 	"PrereleaseInfo": "snapshot",
 	"FormatVersion": "0.8"
 }

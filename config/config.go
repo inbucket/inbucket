@@ -25,7 +25,7 @@ type SmtpConfig struct {
 type Pop3Config struct {
 	Ip4address     net.IP
 	Ip4port        int
-	Domain string
+	Domain         string
 	MaxIdleSeconds int
 }
 
@@ -35,6 +35,7 @@ type WebConfig struct {
 	TemplateDir   string
 	TemplateCache bool
 	PublicDir     string
+	GreetingFile  string
 }
 
 type DataStoreConfig struct {
@@ -327,6 +328,13 @@ func parseWebConfig() error {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}
 	webConfig.PublicDir = str
+
+	option = "greeting.file"
+	str, err = Config.String(section, option)
+	if err != nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
+	webConfig.GreetingFile = str
 
 	return nil
 }

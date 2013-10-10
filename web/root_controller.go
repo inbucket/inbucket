@@ -3,12 +3,20 @@ package web
 import (
 	"fmt"
 	"github.com/jhillyerd/inbucket/config"
+	"html/template"
+	"io/ioutil"
 	"net/http"
 )
 
 func RootIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	greeting, err := ioutil.ReadFile(config.GetWebConfig().GreetingFile)
+	if err != nil {
+		return fmt.Errorf("Failed to load greeting: %v", err)
+	}
+		
 	return RenderTemplate("root/index.html", w, map[string]interface{}{
 		"ctx": ctx,
+		"greeting": template.HTML(string(greeting)),
 	})
 }
 

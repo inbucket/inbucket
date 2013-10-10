@@ -13,9 +13,10 @@ import (
 	"net/mail"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
+
+const INDEX_FILE = "index.gob"
 
 var ErrNotWritable = errors.New("Message not writable")
 
@@ -65,11 +66,23 @@ func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
 	s1 := dir[0:3]
 	s2 := dir[0:6]
 	path := filepath.Join(ds.mailPath, s1, s2, dir)
+	indexPath := filepath.Join(path, INDEX_FILE)
 	if err := os.MkdirAll(path, 0770); err != nil {
 		log.LogError("Failed to create directory %v, %v", path, err)
 		return nil, err
 	}
-	return &FileMailbox{store: ds, name: name, dirName: dir, path: path}, nil
+	if _, err := os.Stat(indexPath); err != nil {
+		// index does not yet exist, create empty one
+		if file, err := os.Create(indexPath); err != nil {
+			log.LogError("Failed to create index %v, %v", indexPath, err)
+			return nil, err
+		} else {
+			file.Close()
+		}
+	}
+
+	return &FileMailbox{store: ds, name: name, dirName: dir, path: path,
+		indexPath: indexPath}, nil
 }
 
 // AllMailboxes returns a slice with all Mailboxes
@@ -100,7 +113,9 @@ func (ds *FileDataStore) AllMailboxes() ([]Mailbox, error) {
 						if inf3.IsDir() {
 							mbdir := inf3.Name()
 							mbpath := filepath.Join(ds.mailPath, l1, l2, mbdir)
-							mb := &FileMailbox{store: ds, dirName: mbdir, path: mbpath}
+							idx := filepath.Join(mbpath, INDEX_FILE)
+							mb := &FileMailbox{store: ds, dirName: mbdir, path: mbpath,
+								indexPath: idx}
 							mailboxes = append(mailboxes, mb)
 						}
 					}
@@ -115,10 +130,13 @@ func (ds *FileDataStore) AllMailboxes() ([]Mailbox, error) {
 // A Mailbox manages the mail for a specific user and correlates to a particular
 // directory on disk.
 type FileMailbox struct {
-	store   *FileDataStore
-	name    string
-	dirName string
-	path    string
+	store       *FileDataStore
+	name        string
+	dirName     string
+	path        string
+	indexLoaded bool
+	indexPath   string
+	messages    []*FileMessage
 }
 
 func (mb *FileMailbox) String() string {
@@ -128,51 +146,88 @@ func (mb *FileMailbox) String() string {
 // GetMessages scans the mailbox directory for .gob files and decodes them into
 // a slice of Message objects.
 func (mb *FileMailbox) GetMessages() ([]Message, error) {
-	files, err := ioutil.ReadDir(mb.path)
-	if err != nil {
-		return nil, err
-	}
-	log.LogTrace("Scanning %v files for %v", len(files), mb)
-
-	messages := make([]Message, 0, len(files))
-	for _, f := range files {
-		if (!f.IsDir()) && strings.HasSuffix(strings.ToLower(f.Name()), ".gob") {
-			// We have a gob file
-			file, err := os.Open(filepath.Join(mb.path, f.Name()))
-			if err != nil {
-				return nil, err
-			}
-			dec := gob.NewDecoder(bufio.NewReader(file))
-			msg := new(FileMessage)
-			if err = dec.Decode(msg); err != nil {
-				return nil, fmt.Errorf("While decoding message: %v", err)
-			}
-			file.Close()
-			msg.mailbox = mb
-			log.LogTrace("Found: %v", msg)
-			messages = append(messages, msg)
+	if !mb.indexLoaded {
+		if err := mb.readIndex(); err != nil {
+			return nil, err
 		}
+	}
+
+	messages := make([]Message, len(mb.messages))
+	for i, m := range mb.messages {
+		messages[i] = m
 	}
 	return messages, nil
 }
 
 // GetMessage decodes a single message by Id and returns a Message object
 func (mb *FileMailbox) GetMessage(id string) (Message, error) {
-	file, err := os.Open(filepath.Join(mb.path, id+".gob"))
+	if !mb.indexLoaded {
+		if err := mb.readIndex(); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, m := range mb.messages {
+		if m.Fid == id {
+			return m, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Message %s not in index", id)
+}
+
+// readIndex loads the mailbox index data from disk
+func (mb *FileMailbox) readIndex() error {
+	// Clear message slice, open index
+	mb.messages = mb.messages[:0]
+	file, err := os.Open(mb.indexPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	defer file.Close()
 
+	// Decode gob data
 	dec := gob.NewDecoder(bufio.NewReader(file))
-	msg := new(FileMessage)
-	if err = dec.Decode(msg); err != nil {
-		return nil, err
+	for {
+		// TODO Detect EOF
+		msg := new(FileMessage)
+		if err = dec.Decode(msg); err != nil {
+			if err == io.EOF {
+				// It's OK to get an EOF here
+				break
+			}
+			return fmt.Errorf("While decoding message: %v", err)
+		}
+		msg.mailbox = mb
+		log.LogTrace("Found: %v", msg)
+		mb.messages = append(mb.messages, msg)
 	}
-	file.Close()
-	msg.mailbox = mb
-	log.LogTrace("Found: %v", msg)
 
-	return msg, nil
+	mb.indexLoaded = true
+	return nil
+}
+
+// writeIndex overwrites the index on disk with the current mailbox data
+func (mb *FileMailbox) writeIndex() error {
+	// Open index for writing
+	file, err := os.Create(mb.indexPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	writer := bufio.NewWriter(file)
+
+	// Write each message and then flush
+	enc := gob.NewEncoder(writer)
+	for _, m := range mb.messages {
+		err = enc.Encode(m)
+		if err != nil {
+			return err
+		}
+	}
+	writer.Flush()
+
+	return nil
 }
 
 // Message contains a little bit of data about a particular email message, and
@@ -224,10 +279,6 @@ func (m *FileMessage) Size() int64 {
 		return 0
 	}
 	return fi.Size()
-}
-
-func (m *FileMessage) gobPath() string {
-	return filepath.Join(m.mailbox.path, m.Fid+".gob")
 }
 
 func (m *FileMessage) rawPath() string {
@@ -331,37 +382,6 @@ func (m *FileMessage) Close() error {
 		}
 	}
 
-	err := m.createGob()
-	if err != nil {
-		log.LogError("Failed to create gob: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-// Delete this Message from disk by removing both the gob and raw files
-func (m *FileMessage) Delete() error {
-	log.LogTrace("Deleting %v", m.gobPath())
-	err := os.Remove(m.gobPath())
-	if err != nil {
-		return err
-	}
-	log.LogTrace("Deleting %v", m.rawPath())
-	return os.Remove(m.rawPath())
-}
-
-// createGob reads the .raw file to grab the From and Subject header entries,
-// then creates the .gob file.
-func (m *FileMessage) createGob() error {
-	// Open gob for writing
-	file, err := os.Create(m.gobPath())
-	defer file.Close()
-	if err != nil {
-		return err
-	}
-	writer := bufio.NewWriter(file)
-
 	// Fetch headers
 	body, err := m.ReadBody()
 	if err != nil {
@@ -372,14 +392,30 @@ func (m *FileMessage) createGob() error {
 	m.Ffrom = body.GetHeader("From")
 	m.Fsubject = body.GetHeader("Subject")
 
-	// Write & flush
-	enc := gob.NewEncoder(writer)
-	err = enc.Encode(m)
+	// Refresh the index before adding our message
+	err = m.mailbox.readIndex()
 	if err != nil {
 		return err
 	}
-	writer.Flush()
-	return nil
+
+	// Made it this far without errors, add it to the index
+	m.mailbox.messages = append(m.mailbox.messages, m)
+	return m.mailbox.writeIndex()
+}
+
+// Delete this Message from disk by removing both the gob and raw files
+func (m *FileMessage) Delete() error {
+	messages := m.mailbox.messages
+	for i, mm := range messages {
+		if m == mm {
+			// Slice around message we are deleting
+			m.mailbox.messages = append(messages[:i], messages[i+1:]...)
+			break
+		}
+	}
+
+	log.LogTrace("Deleting %v", m.rawPath())
+	return os.Remove(m.rawPath())
 }
 
 // generatePrefix converts a Time object into the ISO style format we use

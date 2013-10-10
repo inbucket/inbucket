@@ -342,7 +342,10 @@ func (ss *Session) dataHandler() {
 			if ss.server.storeMessages {
 				for _, m := range messages {
 					if m != nil {
-						m.Close()
+						if err := m.Close(); err != nil {
+							ss.logError("Error: %v while writing message", err)
+							// TODO Report to client?
+						}
 						expReceivedTotal.Add(1)
 					}
 				}

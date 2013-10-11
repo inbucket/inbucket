@@ -7,10 +7,12 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type JsonMessageHeader struct {
-	From, Subject, Date string
+	Mailbox, Id, From, Subject string
+	Date                    time.Time
 }
 
 func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
@@ -45,9 +47,11 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 		jmessages := make([]*JsonMessageHeader, len(messages))
 		for i, msg := range messages {
 			jmessages[i] = &JsonMessageHeader{
+				Mailbox: name,
+				Id:      msg.Id(),
 				From:    msg.From(),
 				Subject: msg.Subject(),
-				Date:    msg.Date().String(),
+				Date:    msg.Date(),
 			}
 		}
 		return RenderJson(w, jmessages)

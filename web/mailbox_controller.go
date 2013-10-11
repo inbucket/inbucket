@@ -9,6 +9,10 @@ import (
 	"strconv"
 )
 
+type JsonMessageHeader struct {
+	From, Subject, Date string
+}
+
 func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	name := req.FormValue("name")
 	if len(name) == 0 {
@@ -37,11 +41,23 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	}
 	log.LogTrace("Got %v messsages", len(messages))
 
-	return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
-		"ctx":      ctx,
-		"name":     name,
-		"messages": messages,
-	})
+	if ctx.IsJson {
+		jmessages := make([]*JsonMessageHeader, len(messages))
+		for i, msg := range messages {
+			jmessages[i] = &JsonMessageHeader{
+				From:    msg.From(),
+				Subject: msg.Subject(),
+				Date:    msg.Date().String(),
+			}
+		}
+		return RenderJson(w, jmessages)
+	} else {
+		return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
+			"ctx":      ctx,
+			"name":     name,
+			"messages": messages,
+		})
+	}
 }
 
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {

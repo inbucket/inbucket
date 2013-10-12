@@ -7,7 +7,13 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 )
+
+type JsonMessageHeader struct {
+	Mailbox, Id, From, Subject string
+	Date                    time.Time
+}
 
 func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	name := req.FormValue("name")
@@ -36,6 +42,20 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
 	}
 	log.LogTrace("Got %v messsages", len(messages))
+
+	if ctx.IsJson {
+		jmessages := make([]*JsonMessageHeader, len(messages))
+		for i, msg := range messages {
+			jmessages[i] = &JsonMessageHeader{
+				Mailbox: name,
+				Id:      msg.Id(),
+				From:    msg.From(),
+				Subject: msg.Subject(),
+				Date:    msg.Date(),
+			}
+		}
+		return RenderJson(w, jmessages)
+	}
 
 	return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
 		"ctx":      ctx,
@@ -214,6 +234,11 @@ func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 	if err != nil {
 		return err
 	}
+
+	if ctx.IsJson {
+		return RenderJson(w, "OK")
+	}
+
 	w.Header().Set("Content-Type", "text/plain")
 	io.WriteString(w, "OK")
 	return nil

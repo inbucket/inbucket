@@ -15,14 +15,14 @@
     function() {
       $('.listEntry').removeClass("listEntrySelected")
       $(this).addClass("listEntrySelected")
-      $('#emailContent').load('/mailbox/show/{{.name}}/' + this.id)
+      $('#emailContent').load('/mailbox/{{.name}}/' + this.id)
     }
     )
     $("#messageList").slideDown()
   }
 
   function loadList() {
-    $('#messageList').load("/mailbox/list/{{.name}}", listLoaded)
+    $('#messageList').load("/mailbox/{{.name}}", listLoaded)
   }
 
   function reloadList() {
@@ -38,20 +38,20 @@
   function deleteMessage(id) {
     $('#emailContent').empty()
     $.ajax({
-      type: 'POST',
-      url: '/mailbox/delete/{{.name}}/' + id,
+      type: 'DELETE',
+      url: '/mailbox/{{.name}}/' + id,
       success: reloadList
     })
   }
 
   function htmlView(id) {
-    window.open('/mailbox/html/{{.name}}/' + id, '_blank',
+    window.open('/mailbox/{{.name}}/' + id + "/html", '_blank',
     'width=800,height=600,' +
     'menubar=yes,resizable=yes,scrollbars=yes,status=yes,toolbar=yes')
   }
 
   function messageSource(id) {
-    window.open('/mailbox/source/{{.name}}/' + id, '_blank',
+    window.open('/mailbox/{{.name}}/' + id + "/source", '_blank',
     'width=800,height=600,' +
     'menubar=no,resizable=yes,scrollbars=yes,status=no,toolbar=no')
   }

@@ -5,16 +5,35 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/smtpd"
 	"net/http"
+	"strings"
 )
 
 type Context struct {
 	Vars      map[string]string
 	Session   *sessions.Session
 	DataStore smtpd.DataStore
+	IsJson    bool
 }
 
 func (c *Context) Close() {
 	// Do nothing
+}
+
+// headerMatch returns true if the request header specified by name contains
+// the specified value.  Case is ignored.
+func headerMatch(req *http.Request, name string, value string) bool {
+	name = http.CanonicalHeaderKey(name)
+	value = strings.ToLower(value)
+
+	if header := req.Header[name]; header != nil {
+		for _, hv := range header {
+			if value == strings.ToLower(hv) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func NewContext(req *http.Request) (*Context, error) {
@@ -25,6 +44,7 @@ func NewContext(req *http.Request) (*Context, error) {
 		Vars:      vars,
 		Session:   sess,
 		DataStore: ds,
+		IsJson:    headerMatch(req, "Accept", "application/json"),
 	}
 	if err != nil {
 		return ctx, err

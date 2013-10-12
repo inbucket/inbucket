@@ -1,6 +1,7 @@
 package smtpd
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -9,105 +10,175 @@ import (
 	"time"
 )
 
-var mailboxNames = []string{"abby", "bill", "christa", "donald", "evelyn"}
-
+// Test FileDataStore.AllMailboxes()
 func TestFSAllMailboxes(t *testing.T) {
-	fds := setupDataStore()
-	defer teardownDataStore(fds)
+	ds := setupDataStore()
+	defer teardownDataStore(ds)
 
-	mboxes, err := fds.AllMailboxes()
+	for _, name := range []string{"abby", "bill", "christa", "donald", "evelyn"} {
+		// Create day old message
+		date := time.Now().Add(-24 * time.Hour)
+		deliverMessage(ds, name, "Old Message", date)
+
+		// Create current message
+		date = time.Now()
+		deliverMessage(ds, name, "New Message", date)
+	}
+
+	mboxes, err := ds.AllMailboxes()
 	assert.Nil(t, err)
 	assert.Equal(t, len(mboxes), 5)
 }
 
-// setupDataStore will build the following structure in a temporary
-// directory:
-//
-// /tmp/inbucket?????????
-// └── mail
-//     ├── 53e
-//     │   └── 53e11e
-//     │       └── 53e11eb7b24cc39e33733a0ff06640f1b39425ea
-//     │           ├── 20121024T164239-0000.gob
-//     │           ├── 20121024T164239-0000.raw
-//     │           ├── 20121025T164239-0000.gob
-//     │           └── 20121025T164239-0000.raw
-//     ├── 60c
-//     │   └── 60c596
-//     │       └── 60c5963a56da1425f133d28166ca4fe70dcb25f5
-//     │           ├── 20121024T164239-0000.gob
-//     │           ├── 20121024T164239-0000.raw
-//     │           ├── 20121025T164239-0000.gob
-//     │           └── 20121025T164239-0000.raw
-//     ├── 88d
-//     │   └── 88db92
-//     │       └── 88db9292c772b38311e1778f6f6b18216443abf0
-//     │           ├── 20121024T164239-0000.gob
-//     │           ├── 20121024T164239-0000.raw
-//     │           ├── 20121025T164239-0000.gob
-//     │           └── 20121025T164239-0000.raw
-//     ├── c69
-//     │   └── c692d6
-//     │       └── c692d6a10598e0a801576fdd4ecf3c37e45bfbc4
-//     │           ├── 20121024T164239-0000.gob
-//     │           ├── 20121024T164239-0000.raw
-//     │           ├── 20121025T164239-0000.gob
-//     │           └── 20121025T164239-0000.raw
-//     └── e76
-//         └── e76cef
-//             └── e76ceff3c47adb10f62b1acd7109f88fbd5e9ca7
-//                 ├── 20121024T164239-0000.gob
-//                 ├── 20121024T164239-0000.raw
-//                 ├── 20121025T164239-0000.gob
-//                 └── 20121025T164239-0000.raw
-func setupDataStore() *FileDataStore {
-	// Build fake SMTP message for delivery
-	testMsg := make([]byte, 0, 300)
-	testMsg = append(testMsg, []byte("To: somebody@host\r\n")...)
-	testMsg = append(testMsg, []byte("From: somebodyelse@host\r\n")...)
-	testMsg = append(testMsg, []byte("Subject: test message\r\n")...)
-	testMsg = append(testMsg, []byte("\r\n")...)
-	testMsg = append(testMsg, []byte("Test Body\r\n")...)
+// Test delivering several messages to the same mailbox, meanwhile querying its
+// contents with a new mailbox object each time
+func TestFSDeliverMany(t *testing.T) {
+	ds := setupDataStore()
+	defer teardownDataStore(ds)
 
+	mbName := "fred"
+	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
+
+	for i, subj := range subjects {
+		// Check number of messages
+		mb, err := ds.MailboxFor(mbName)
+		if err != nil {
+			panic(err)
+		}
+		msgs, err := mb.GetMessages()
+		if err != nil {
+			panic(err)
+		}
+		assert.Equal(t, i, len(msgs), "Expected %v message(s), but got %v", i, len(msgs))
+
+		// Add a message
+		deliverMessage(ds, mbName, subj, time.Now())
+	}
+
+	mb, err := ds.MailboxFor(mbName)
+	if err != nil {
+		panic(err)
+	}
+	msgs, err := mb.GetMessages()
+	if err != nil {
+		panic(err)
+	}
+	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
+		len(subjects), len(msgs))
+
+	// Confirm delivery order
+	for i, expect := range subjects {
+		subj := msgs[i].Subject()
+		assert.Equal(t, expect, subj, "Expected subject %q, got %q", expect, subj)
+	}
+}
+
+// Test deleting messages
+func TestFSDelete(t *testing.T) {
+	ds := setupDataStore()
+	defer teardownDataStore(ds)
+
+	mbName := "fred"
+	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
+
+	for _, subj := range subjects {
+		// Add a message
+		deliverMessage(ds, mbName, subj, time.Now())
+	}
+
+	mb, err := ds.MailboxFor(mbName)
+	if err != nil {
+		panic(err)
+	}
+	msgs, err := mb.GetMessages()
+	if err != nil {
+		panic(err)
+	}
+	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
+		len(subjects), len(msgs))
+
+	// Delete a couple messages
+	msgs[1].Delete()
+	msgs[3].Delete()
+
+	// Confirm deletion
+	mb, err = ds.MailboxFor(mbName)
+	if err != nil {
+		panic(err)
+	}
+	msgs, err = mb.GetMessages()
+	if err != nil {
+		panic(err)
+	}
+
+	subjects = []string{"alpha", "charlie", "echo"}
+	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
+		len(subjects), len(msgs))
+	for i, expect := range subjects {
+		subj := msgs[i].Subject()
+		assert.Equal(t, expect, subj, "Expected subject %q, got %q", expect, subj)
+	}
+
+	// Try appending one more
+	deliverMessage(ds, mbName, "foxtrot", time.Now())
+
+	mb, err = ds.MailboxFor(mbName)
+	if err != nil {
+		panic(err)
+	}
+	msgs, err = mb.GetMessages()
+	if err != nil {
+		panic(err)
+	}
+
+	subjects = []string{"alpha", "charlie", "echo", "foxtrot"}
+	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
+		len(subjects), len(msgs))
+	for i, expect := range subjects {
+		subj := msgs[i].Subject()
+		assert.Equal(t, expect, subj, "Expected subject %q, got %q", expect, subj)
+	}
+
+}
+
+// setupDataStore creates a new FileDataStore in a temporary directory
+func setupDataStore() *FileDataStore {
 	path, err := ioutil.TempDir("", "inbucket")
 	if err != nil {
 		panic(err)
 	}
 	mailPath := filepath.Join(path, "mail")
-	ds := &FileDataStore{path: path, mailPath: mailPath}
+	return &FileDataStore{path: path, mailPath: mailPath}
+}
 
-	for _, name := range mailboxNames {
-		mb, err := ds.MailboxFor(name)
-		if err != nil {
-			panic(err)
-		}
-		// Create day old message
-		date := time.Now().Add(-24 * time.Hour)
-		msg := &FileMessage{
-			mailbox:  mb.(*FileMailbox),
-			writable: true,
-			Fdate:    date,
-			Fid:      generatePrefix(date) + "-0000",
-		}
-		msg.Append(testMsg)
-		if err = msg.Close(); err != nil {
-			panic(err)
-		}
+// deliverMessage creates and delivers a message to the specific mailbox, returning
+// the size of the generated message.
+func deliverMessage(ds *FileDataStore, mbName string, subject string, date time.Time) int {
+	// Build fake SMTP message for delivery
+	testMsg := make([]byte, 0, 300)
+	testMsg = append(testMsg, []byte("To: somebody@host\r\n")...)
+	testMsg = append(testMsg, []byte("From: somebodyelse@host\r\n")...)
+	testMsg = append(testMsg, []byte(fmt.Sprintf("Subject: %s\r\n", subject))...)
+	testMsg = append(testMsg, []byte("\r\n")...)
+	testMsg = append(testMsg, []byte("Test Body\r\n")...)
 
-		// Create current message
-		date = time.Now()
-		msg = &FileMessage{
-			mailbox:  mb.(*FileMailbox),
-			writable: true,
-			Fdate:    date,
-			Fid:      generatePrefix(date) + "-0000",
-		}
-		msg.Append(testMsg)
-		if err = msg.Close(); err != nil {
-			panic(err)
-		}
+	mb, err := ds.MailboxFor(mbName)
+	if err != nil {
+		panic(err)
 	}
-	return ds
+	// Create day old message
+	msg := &FileMessage{
+		mailbox:  mb.(*FileMailbox),
+		writable: true,
+		Fdate:    date,
+		Fid:      generateId(date),
+	}
+	msg.Append(testMsg)
+	if err = msg.Close(); err != nil {
+		panic(err)
+	}
+
+	return len(testMsg)
 }
 
 func teardownDataStore(ds *FileDataStore) {

@@ -13,10 +13,16 @@ import (
 	"net/mail"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
+// Name of index file in each mailbox
 const INDEX_FILE = "index.gob"
+
+// We lock this when reading/writing an index file, this is a bottleneck because
+// it's a single lock even if we have a million index files
+var indexLock = new(sync.RWMutex)
 
 var ErrNotWritable = errors.New("Message not writable")
 
@@ -55,6 +61,10 @@ func NewFileDataStore() DataStore {
 		return nil
 	}
 	mailPath := filepath.Join(path, "mail")
+	if _, err := os.Stat(mailPath); err != nil {
+		// Mail datastore does not yet exist
+		os.MkdirAll(mailPath, 0770)
+	}
 	return &FileDataStore{path: path, mailPath: mailPath}
 }
 
@@ -67,19 +77,6 @@ func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
 	s2 := dir[0:6]
 	path := filepath.Join(ds.mailPath, s1, s2, dir)
 	indexPath := filepath.Join(path, INDEX_FILE)
-	if err := os.MkdirAll(path, 0770); err != nil {
-		log.LogError("Failed to create directory %v, %v", path, err)
-		return nil, err
-	}
-	if _, err := os.Stat(indexPath); err != nil {
-		// index does not yet exist, create empty one
-		if file, err := os.Create(indexPath); err != nil {
-			log.LogError("Failed to create index %v, %v", indexPath, err)
-			return nil, err
-		} else {
-			file.Close()
-		}
-	}
 
 	return &FileMailbox{store: ds, name: name, dirName: dir, path: path,
 		indexPath: indexPath}, nil
@@ -180,6 +177,16 @@ func (mb *FileMailbox) GetMessage(id string) (Message, error) {
 func (mb *FileMailbox) readIndex() error {
 	// Clear message slice, open index
 	mb.messages = mb.messages[:0]
+	// Lock for reading
+	indexLock.RLock()
+	defer indexLock.RUnlock()
+	// Check if index exists
+	if _, err := os.Stat(mb.indexPath); err != nil {
+		// Does not exist, but that's not an error in our world
+		log.LogTrace("Index %v does not exist (yet)", mb.indexPath)
+		mb.indexLoaded = true
+		return nil
+	}
 	file, err := os.Open(mb.indexPath)
 	if err != nil {
 		return err
@@ -207,8 +214,26 @@ func (mb *FileMailbox) readIndex() error {
 	return nil
 }
 
+// createDir checks for the presence of the path for this mailbox, creates it if needed
+func (mb *FileMailbox) createDir() error {
+	if _, err := os.Stat(mb.path); err != nil {
+		if err := os.MkdirAll(mb.path, 0770); err != nil {
+			log.LogError("Failed to create directory %v, %v", mb.path, err)
+			return err
+		}
+	}
+	return nil
+}
+
 // writeIndex overwrites the index on disk with the current mailbox data
 func (mb *FileMailbox) writeIndex() error {
+	// Lock for writing
+	indexLock.Lock()
+	defer indexLock.Unlock()
+	// Ensure mailbox directory exists
+	if err := mb.createDir(); err != nil {
+		return err
+	}
 	// Open index for writing
 	file, err := os.Create(mb.indexPath)
 	if err != nil {
@@ -349,6 +374,10 @@ func (m *FileMessage) Append(data []byte) error {
 	}
 	// Open file for writing if we haven't yet
 	if m.writer == nil {
+		// Ensure mailbox directory exists
+		if err := m.mailbox.createDir(); err != nil {
+			return err
+		}
 		file, err := os.Create(m.rawPath())
 		if err != nil {
 			// Set writable false just in case something calls me a million times
@@ -413,6 +442,7 @@ func (m *FileMessage) Delete() error {
 			break
 		}
 	}
+	m.mailbox.writeIndex()
 
 	log.LogTrace("Deleting %v", m.rawPath())
 	return os.Remove(m.rawPath())

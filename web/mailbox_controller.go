@@ -55,13 +55,13 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 			}
 		}
 		return RenderJson(w, jmessages)
-	} else {
-		return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
-			"ctx":      ctx,
-			"name":     name,
-			"messages": messages,
-		})
 	}
+
+	return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
+		"ctx":      ctx,
+		"name":     name,
+		"messages": messages,
+	})
 }
 
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
@@ -234,6 +234,11 @@ func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 	if err != nil {
 		return err
 	}
+
+	if ctx.IsJson {
+		return RenderJson(w, "OK")
+	}
+
 	w.Header().Set("Content-Type", "text/plain")
 	io.WriteString(w, "OK")
 	return nil

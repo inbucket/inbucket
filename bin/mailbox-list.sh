@@ -1,1 +1,1 @@
-curl -i -H "Accept: application/json" --noproxy localhost http://localhost:9000/mailbox/list/$1
+curl -i -H "Accept: application/json" --noproxy localhost http://localhost:9000/mailbox/$1

@@ -47,7 +47,7 @@ var expWarnsHist = new(expvar.String)
 
 // Init a new Server object
 func New() *Server {
-	ds := NewFileDataStore()
+	ds := DefaultFileDataStore()
 	cfg := config.GetSmtpConfig()
 	return &Server{dataStore: ds, domain: cfg.Domain, maxRecips: cfg.MaxRecipients,
 		maxIdleSeconds: cfg.MaxIdleSeconds, maxMessageBytes: cfg.MaxMessageBytes,

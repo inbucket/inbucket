@@ -23,7 +23,7 @@ type Server struct {
 // Init a new Server object
 func New() *Server {
 	// TODO is two filestores better/worse than sharing w/ smtpd?
-	ds := smtpd.NewFileDataStore()
+	ds := smtpd.DefaultFileDataStore()
 	cfg := config.GetPop3Config()
 	return &Server{domain: cfg.Domain, dataStore: ds, maxIdleSeconds: cfg.MaxIdleSeconds,
 		waitgroup: new(sync.WaitGroup)}

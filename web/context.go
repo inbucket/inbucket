@@ -39,7 +39,7 @@ func headerMatch(req *http.Request, name string, value string) bool {
 func NewContext(req *http.Request) (*Context, error) {
 	vars := mux.Vars(req)
 	sess, err := sessionStore.Get(req, "inbucket")
-	ds := smtpd.NewFileDataStore()
+	ds := smtpd.DefaultFileDataStore()
 	ctx := &Context{
 		Vars:      vars,
 		Session:   sess,

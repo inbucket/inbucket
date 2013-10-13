@@ -48,9 +48,19 @@ type FileDataStore struct {
 	mailPath string
 }
 
-// NewDataStore creates a new DataStore object.  It uses the inbucket.Config object to
+// NewFileDataStore creates a new DataStore object using the specified path
+func NewFileDataStore(path string) DataStore {
+	mailPath := filepath.Join(path, "mail")
+	if _, err := os.Stat(mailPath); err != nil {
+		// Mail datastore does not yet exist
+		os.MkdirAll(mailPath, 0770)
+	}
+	return &FileDataStore{path: path, mailPath: mailPath}
+}
+
+// DefaultFileDataStore creates a new DataStore object.  It uses the inbucket.Config object to
 // construct it's path.
-func NewFileDataStore() DataStore {
+func DefaultFileDataStore() DataStore {
 	path, err := config.Config.String("datastore", "path")
 	if err != nil {
 		log.LogError("Error getting datastore path: %v", err)
@@ -60,12 +70,7 @@ func NewFileDataStore() DataStore {
 		log.LogError("No value configured for datastore path")
 		return nil
 	}
-	mailPath := filepath.Join(path, "mail")
-	if _, err := os.Stat(mailPath); err != nil {
-		// Mail datastore does not yet exist
-		os.MkdirAll(mailPath, 0770)
-	}
-	return &FileDataStore{path: path, mailPath: mailPath}
+	return NewFileDataStore(path)
 }
 
 // Retrieves the Mailbox object for a specified email address, if the mailbox
@@ -230,27 +235,33 @@ func (mb *FileMailbox) writeIndex() error {
 	// Lock for writing
 	indexLock.Lock()
 	defer indexLock.Unlock()
-	// Ensure mailbox directory exists
-	if err := mb.createDir(); err != nil {
-		return err
-	}
-	// Open index for writing
-	file, err := os.Create(mb.indexPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	writer := bufio.NewWriter(file)
-
-	// Write each message and then flush
-	enc := gob.NewEncoder(writer)
-	for _, m := range mb.messages {
-		err = enc.Encode(m)
+	if len(mb.messages) > 0 {
+		// Ensure mailbox directory exists
+		if err := mb.createDir(); err != nil {
+			return err
+		}
+		// Open index for writing
+		file, err := os.Create(mb.indexPath)
 		if err != nil {
 			return err
 		}
+		defer file.Close()
+		writer := bufio.NewWriter(file)
+
+		// Write each message and then flush
+		enc := gob.NewEncoder(writer)
+		for _, m := range mb.messages {
+			err = enc.Encode(m)
+			if err != nil {
+				return err
+			}
+		}
+		writer.Flush()
+	} else {
+		// No messages, delete index+maildir
+		log.LogTrace("Removing mailbox %v", mb.path)
+		return os.RemoveAll(mb.path)
 	}
-	writer.Flush()
 
 	return nil
 }
@@ -444,6 +455,13 @@ func (m *FileMessage) Delete() error {
 	}
 	m.mailbox.writeIndex()
 
+	if len(m.mailbox.messages) == 0 {
+		// This was the last message, writeIndex() has removed the entire
+		// directory
+		return nil
+	}
+
+	// There are still messages in the index
 	log.LogTrace("Deleting %v", m.rawPath())
 	return os.Remove(m.rawPath())
 }

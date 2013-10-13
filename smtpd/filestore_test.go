@@ -10,6 +10,84 @@ import (
 	"time"
 )
 
+// Test directory structure created by filestore
+func TestFSDirStructure(t *testing.T) {
+	ds := setupDataStore()
+	defer teardownDataStore(ds)
+	root := ds.path
+
+	// james hashes to 474ba67bdb289c6263b36dfd8a7bed6c85b04943
+	mbName := "james"
+
+	// Check filestore root exists
+	assert.True(t, isDir(root), "Expected %q to be a directory", root)
+
+	// Check mail dir exists
+	expect := filepath.Join(root, "mail")
+	assert.True(t, isDir(expect), "Expected %q to be a directory", expect)
+
+	// Check first hash section does not exist
+	expect = filepath.Join(root, "mail", "474")
+	assert.False(t, isDir(expect), "Expected %q to not exist", expect)
+
+	// Deliver test message
+	id1, _ := deliverMessage(ds, mbName, "test", time.Now())
+
+	// Check path to message exists
+	assert.True(t, isDir(expect), "Expected %q to be a directory", expect)
+	expect = filepath.Join(expect, "474ba6")
+	assert.True(t, isDir(expect), "Expected %q to be a directory", expect)
+	expect = filepath.Join(expect, "474ba67bdb289c6263b36dfd8a7bed6c85b04943")
+	assert.True(t, isDir(expect), "Expected %q to be a directory", expect)
+
+	// Check files
+	mbPath := expect
+	expect = filepath.Join(mbPath, "index.gob")
+	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
+	expect = filepath.Join(mbPath, id1 + ".raw")
+	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
+
+	// Deliver second test message
+	id2, _ := deliverMessage(ds, mbName, "test 2", time.Now())
+
+	// Check files
+	expect = filepath.Join(mbPath, "index.gob")
+	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
+	expect = filepath.Join(mbPath, id2 + ".raw")
+	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
+
+	// Delete message
+	mb, err := ds.MailboxFor(mbName)
+	assert.Nil(t, err)
+	msg, err := mb.GetMessage(id1)
+	assert.Nil(t, err)
+	err = msg.Delete()
+	assert.Nil(t, err)
+
+	// Message should be removed
+	expect = filepath.Join(mbPath, id1 + ".raw")
+	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
+	expect = filepath.Join(mbPath, "index.gob")
+	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
+
+	// Delete message
+	msg, err = mb.GetMessage(id2)
+	assert.Nil(t, err)
+	err = msg.Delete()
+	assert.Nil(t, err)
+
+	// Message should be removed
+	expect = filepath.Join(mbPath, id2 + ".raw")
+	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
+
+	// No messages, index & maildir should be removed
+	expect = filepath.Join(mbPath, "index.gob")
+	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
+	expect = mbPath
+	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
+}
+
+
 // Test FileDataStore.AllMailboxes()
 func TestFSAllMailboxes(t *testing.T) {
 	ds := setupDataStore()
@@ -147,13 +225,12 @@ func setupDataStore() *FileDataStore {
 	if err != nil {
 		panic(err)
 	}
-	mailPath := filepath.Join(path, "mail")
-	return &FileDataStore{path: path, mailPath: mailPath}
+	return NewFileDataStore(path).(*FileDataStore)
 }
 
 // deliverMessage creates and delivers a message to the specific mailbox, returning
 // the size of the generated message.
-func deliverMessage(ds *FileDataStore, mbName string, subject string, date time.Time) int {
+func deliverMessage(ds *FileDataStore, mbName string, subject string, date time.Time) (id string, size int) {
 	// Build fake SMTP message for delivery
 	testMsg := make([]byte, 0, 300)
 	testMsg = append(testMsg, []byte("To: somebody@host\r\n")...)
@@ -166,19 +243,20 @@ func deliverMessage(ds *FileDataStore, mbName string, subject string, date time.
 	if err != nil {
 		panic(err)
 	}
-	// Create day old message
+	// Create message object
+	id = generateId(date)
 	msg := &FileMessage{
 		mailbox:  mb.(*FileMailbox),
 		writable: true,
 		Fdate:    date,
-		Fid:      generateId(date),
+		Fid:      id,
 	}
 	msg.Append(testMsg)
 	if err = msg.Close(); err != nil {
 		panic(err)
 	}
 
-	return len(testMsg)
+	return id, len(testMsg)
 }
 
 func teardownDataStore(ds *FileDataStore) {
@@ -186,3 +264,23 @@ func teardownDataStore(ds *FileDataStore) {
 		panic(err)
 	}
 }
+
+func isPresent(path string) bool {
+	_, err := os.Lstat(path)
+	return err == nil
+}
+
+func isFile(path string) bool {
+	if fi, err := os.Lstat(path); err == nil {
+		return !fi.IsDir()
+	}
+	return false
+}
+
+func isDir(path string) bool {
+	if fi, err := os.Lstat(path); err == nil {
+		return fi.IsDir()
+	}
+	return false
+}
+

@@ -44,7 +44,7 @@ func TestFSDirStructure(t *testing.T) {
 	mbPath := expect
 	expect = filepath.Join(mbPath, "index.gob")
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
-	expect = filepath.Join(mbPath, id1 + ".raw")
+	expect = filepath.Join(mbPath, id1+".raw")
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
 
 	// Deliver second test message
@@ -53,7 +53,7 @@ func TestFSDirStructure(t *testing.T) {
 	// Check files
 	expect = filepath.Join(mbPath, "index.gob")
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
-	expect = filepath.Join(mbPath, id2 + ".raw")
+	expect = filepath.Join(mbPath, id2+".raw")
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
 
 	// Delete message
@@ -65,7 +65,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Message should be removed
-	expect = filepath.Join(mbPath, id1 + ".raw")
+	expect = filepath.Join(mbPath, id1+".raw")
 	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
 	expect = filepath.Join(mbPath, "index.gob")
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
@@ -77,7 +77,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Message should be removed
-	expect = filepath.Join(mbPath, id2 + ".raw")
+	expect = filepath.Join(mbPath, id2+".raw")
 	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
 
 	// No messages, index & maildir should be removed
@@ -86,7 +86,6 @@ func TestFSDirStructure(t *testing.T) {
 	expect = mbPath
 	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
 }
-
 
 // Test FileDataStore.AllMailboxes()
 func TestFSAllMailboxes(t *testing.T) {
@@ -219,6 +218,37 @@ func TestFSDelete(t *testing.T) {
 
 }
 
+// Test message size calculation
+func TestFSSize(t *testing.T) {
+	ds := setupDataStore()
+	defer teardownDataStore(ds)
+
+	mbName := "fred"
+	subjects := []string{"a", "br", "much longer than the others"}
+	sentIds := make([]string, len(subjects))
+	sentSizes := make([]int, len(subjects))
+
+	for i, subj := range subjects {
+		// Add a message
+		id, size := deliverMessage(ds, mbName, subj, time.Now())
+		sentIds[i] = id
+		sentSizes[i] = size
+	}
+
+	mb, err := ds.MailboxFor(mbName)
+	if err != nil {
+		panic(err)
+	}
+	for i, id := range sentIds {
+		msg, err := mb.GetMessage(id)
+		assert.Nil(t, err)
+
+		expect := sentSizes[i]
+		size := msg.Size()
+		assert.Equal(t, expect, size, "Expected size of %v, got %v", expect, size)
+	}
+}
+
 // setupDataStore creates a new FileDataStore in a temporary directory
 func setupDataStore() *FileDataStore {
 	path, err := ioutil.TempDir("", "inbucket")
@@ -283,4 +313,3 @@ func isDir(path string) bool {
 	}
 	return false
 }
-

@@ -275,6 +275,7 @@ type FileMessage struct {
 	Fdate    time.Time
 	Ffrom    string
 	Fsubject string
+	Fsize    int64
 	// These are for creating new messages only
 	writable   bool
 	writerFile *os.File
@@ -310,11 +311,7 @@ func (m *FileMessage) String() string {
 }
 
 func (m *FileMessage) Size() int64 {
-	fi, err := os.Stat(m.rawPath())
-	if err != nil {
-		return 0
-	}
-	return fi.Size()
+	return m.Fsize
 }
 
 func (m *FileMessage) rawPath() string {
@@ -399,6 +396,7 @@ func (m *FileMessage) Append(data []byte) error {
 		m.writer = bufio.NewWriter(file)
 	}
 	_, err := m.writer.Write(data)
+	m.Fsize += int64(len(data))
 	return err
 }
 

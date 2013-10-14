@@ -120,11 +120,11 @@ func TestFSDeliverMany(t *testing.T) {
 		// Check number of messages
 		mb, err := ds.MailboxFor(mbName)
 		if err != nil {
-			panic(err)
+			t.Fatalf("Failed to MailboxFor(%q): %v", err)
 		}
 		msgs, err := mb.GetMessages()
 		if err != nil {
-			panic(err)
+			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 		}
 		assert.Equal(t, i, len(msgs), "Expected %v message(s), but got %v", i, len(msgs))
 
@@ -134,11 +134,11 @@ func TestFSDeliverMany(t *testing.T) {
 
 	mb, err := ds.MailboxFor(mbName)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", err)
 	}
 	msgs, err := mb.GetMessages()
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
 	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
 		len(subjects), len(msgs))
@@ -165,11 +165,11 @@ func TestFSDelete(t *testing.T) {
 
 	mb, err := ds.MailboxFor(mbName)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", err)
 	}
 	msgs, err := mb.GetMessages()
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
 	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
 		len(subjects), len(msgs))
@@ -181,11 +181,11 @@ func TestFSDelete(t *testing.T) {
 	// Confirm deletion
 	mb, err = ds.MailboxFor(mbName)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", err)
 	}
 	msgs, err = mb.GetMessages()
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
 
 	subjects = []string{"alpha", "charlie", "echo"}
@@ -201,11 +201,11 @@ func TestFSDelete(t *testing.T) {
 
 	mb, err = ds.MailboxFor(mbName)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", err)
 	}
 	msgs, err = mb.GetMessages()
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
 
 	subjects = []string{"alpha", "charlie", "echo", "foxtrot"}
@@ -233,11 +233,11 @@ func TestFSPurge(t *testing.T) {
 
 	mb, err := ds.MailboxFor(mbName)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", err)
 	}
 	msgs, err := mb.GetMessages()
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
 	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
 		len(subjects), len(msgs))
@@ -249,11 +249,11 @@ func TestFSPurge(t *testing.T) {
 	// Confirm deletion
 	mb, err = ds.MailboxFor(mbName)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", err)
 	}
 	msgs, err = mb.GetMessages()
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
 
 	assert.Equal(t, len(msgs), 0, "Expected mailbox to have zero messages, got %v", len(msgs))
@@ -278,7 +278,7 @@ func TestFSSize(t *testing.T) {
 
 	mb, err := ds.MailboxFor(mbName)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", err)
 	}
 	for i, id := range sentIds {
 		msg, err := mb.GetMessage(id)

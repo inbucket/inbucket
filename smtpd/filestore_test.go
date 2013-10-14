@@ -218,6 +218,47 @@ func TestFSDelete(t *testing.T) {
 
 }
 
+// Test purging a mailbox
+func TestFSPurge(t *testing.T) {
+	ds := setupDataStore()
+	defer teardownDataStore(ds)
+
+	mbName := "fred"
+	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
+
+	for _, subj := range subjects {
+		// Add a message
+		deliverMessage(ds, mbName, subj, time.Now())
+	}
+
+	mb, err := ds.MailboxFor(mbName)
+	if err != nil {
+		panic(err)
+	}
+	msgs, err := mb.GetMessages()
+	if err != nil {
+		panic(err)
+	}
+	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
+		len(subjects), len(msgs))
+
+	// Purge mailbox
+	err = mb.Purge()
+	assert.Nil(t, err)
+
+	// Confirm deletion
+	mb, err = ds.MailboxFor(mbName)
+	if err != nil {
+		panic(err)
+	}
+	msgs, err = mb.GetMessages()
+	if err != nil {
+		panic(err)
+	}
+
+	assert.Equal(t, len(msgs), 0, "Expected mailbox to have zero messages, got %v", len(msgs))
+}
+
 // Test message size calculation
 func TestFSSize(t *testing.T) {
 	ds := setupDataStore()

@@ -15,6 +15,7 @@ type DataStore interface {
 type Mailbox interface {
 	GetMessages() ([]Message, error)
 	GetMessage(id string) (Message, error)
+	Purge() error
 	NewMessage() Message
 	String() string
 }

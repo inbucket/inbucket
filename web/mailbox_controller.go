@@ -94,6 +94,28 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	})
 }
 
+func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	// Don't have to validate these aren't empty, Gorilla returns 404
+	name := ctx.Vars["name"]
+
+	mb, err := ctx.DataStore.MailboxFor(name)
+	if err != nil {
+		return fmt.Errorf("MailboxFor('%v'): %v", name, err)
+	}
+	if err := mb.Purge(); err != nil {
+		return fmt.Errorf("Mailbox(%q) Purge: %v", name, err)
+	}
+	log.LogTrace("Purged mailbox for %q", name)
+
+	if ctx.IsJson {
+		return RenderJson(w, "OK")
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	io.WriteString(w, "OK")
+	return nil
+}
+
 func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name := ctx.Vars["name"]

@@ -178,6 +178,12 @@ func (mb *FileMailbox) GetMessage(id string) (Message, error) {
 	return nil, fmt.Errorf("Message %s not in index", id)
 }
 
+// Delete all messages in this mailbox
+func (mb *FileMailbox) Purge() error {
+	mb.messages = mb.messages[:0]
+	return mb.writeIndex()
+}
+
 // readIndex loads the mailbox index data from disk
 func (mb *FileMailbox) readIndex() error {
 	// Clear message slice, open index

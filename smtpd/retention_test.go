@@ -92,6 +92,11 @@ func (m *MockMailbox) GetMessage(id string) (Message, error) {
 	return args.Get(0).(Message), args.Error(1)
 }
 
+func (m *MockMailbox) Purge() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 func (m *MockMailbox) NewMessage() Message {
 	args := m.Called()
 	return args.Get(0).(Message)

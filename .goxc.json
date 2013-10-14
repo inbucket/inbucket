@@ -2,9 +2,10 @@
 	"TasksExclude": [
 		"pkg-build"
 	],
+	"Arch": "amd64",
 	"Os": "darwin freebsd linux windows",
 	"Resources": {
-		"Include": "README*,LICENSE*,bin,etc,themes"
+		"Include": "README*,LICENSE*,inbucket.bat,etc,themes"
 	},
 	"PackageVersion": "20131013",
 	"PrereleaseInfo": "snapshot",

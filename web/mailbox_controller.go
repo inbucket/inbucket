@@ -12,7 +12,8 @@ import (
 
 type JsonMessageHeader struct {
 	Mailbox, Id, From, Subject string
-	Date                    time.Time
+	Date                       time.Time
+	Size                       int64
 }
 
 func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
@@ -52,6 +53,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 				From:    msg.From(),
 				Subject: msg.Subject(),
 				Date:    msg.Date(),
+				Size:    msg.Size(),
 			}
 		}
 		return RenderJson(w, jmessages)

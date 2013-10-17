@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/mail"
 	"strconv"
 	"time"
 )
@@ -14,6 +15,14 @@ type JsonMessageHeader struct {
 	Mailbox, Id, From, Subject string
 	Date                       time.Time
 	Size                       int64
+}
+
+type JsonMessage struct {
+	Mailbox, Id, From, Subject string
+	Date                       time.Time
+	Size                       int64
+	Body                       *JsonMessageBody
+	Header                     mail.Header
 }
 
 type JsonMessageBody struct {
@@ -83,28 +92,30 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	if err != nil {
 		return fmt.Errorf("GetMessage() failed: %v", err)
 	}
+	header, err := msg.ReadHeader()
+	if err != nil {
+		return fmt.Errorf("ReadHeader() failed: %v", err)
+	}
 	mime, err := msg.ReadBody()
 	if err != nil {
 		return fmt.Errorf("ReadBody() failed: %v", err)
 	}
 
 	if ctx.IsJson {
-		header := &JsonMessageHeader{
-			Mailbox: name,
-			Id:      msg.Id(),
-			From:    msg.From(),
-			Subject: msg.Subject(),
-			Date:    msg.Date(),
-			Size:    msg.Size(),
-		}
-		body := &JsonMessageBody{
-			Text: mime.Text,
-			Html: mime.Html,
-		}
-		return RenderJson(w, map[string]interface{}{
-			"Header": header,
-			"Body": body,
-		})
+		return RenderJson(w,
+			&JsonMessage{
+				Mailbox: name,
+				Id:      msg.Id(),
+				From:    msg.From(),
+				Subject: msg.Subject(),
+				Date:    msg.Date(),
+				Size:    msg.Size(),
+				Header:  header.Header,
+				Body: &JsonMessageBody{
+					Text: mime.Text,
+					Html: mime.Html,
+				},
+			})
 	}
 
 	body := template.HTML(textToHtml(mime.Text))

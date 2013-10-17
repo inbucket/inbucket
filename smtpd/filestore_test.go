@@ -120,7 +120,7 @@ func TestFSDeliverMany(t *testing.T) {
 		// Check number of messages
 		mb, err := ds.MailboxFor(mbName)
 		if err != nil {
-			t.Fatalf("Failed to MailboxFor(%q): %v", err)
+			t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
 		}
 		msgs, err := mb.GetMessages()
 		if err != nil {
@@ -134,7 +134,7 @@ func TestFSDeliverMany(t *testing.T) {
 
 	mb, err := ds.MailboxFor(mbName)
 	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
 	}
 	msgs, err := mb.GetMessages()
 	if err != nil {
@@ -165,7 +165,7 @@ func TestFSDelete(t *testing.T) {
 
 	mb, err := ds.MailboxFor(mbName)
 	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
 	}
 	msgs, err := mb.GetMessages()
 	if err != nil {
@@ -181,7 +181,7 @@ func TestFSDelete(t *testing.T) {
 	// Confirm deletion
 	mb, err = ds.MailboxFor(mbName)
 	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
 	}
 	msgs, err = mb.GetMessages()
 	if err != nil {
@@ -201,7 +201,7 @@ func TestFSDelete(t *testing.T) {
 
 	mb, err = ds.MailboxFor(mbName)
 	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
 	}
 	msgs, err = mb.GetMessages()
 	if err != nil {
@@ -233,7 +233,7 @@ func TestFSPurge(t *testing.T) {
 
 	mb, err := ds.MailboxFor(mbName)
 	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
 	}
 	msgs, err := mb.GetMessages()
 	if err != nil {
@@ -249,7 +249,7 @@ func TestFSPurge(t *testing.T) {
 	// Confirm deletion
 	mb, err = ds.MailboxFor(mbName)
 	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
 	}
 	msgs, err = mb.GetMessages()
 	if err != nil {
@@ -278,7 +278,7 @@ func TestFSSize(t *testing.T) {
 
 	mb, err := ds.MailboxFor(mbName)
 	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", err)
+		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
 	}
 	for i, id := range sentIds {
 		msg, err := mb.GetMessage(id)

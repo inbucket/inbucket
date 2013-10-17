@@ -7,7 +7,7 @@
 	"Resources": {
 		"Include": "README*,LICENSE*,inbucket.bat,etc,themes"
 	},
-	"PackageVersion": "20131013",
-	"PrereleaseInfo": "snapshot",
+	"PackageVersion": "1.0",
+	"PrereleaseInfo": "rc1",
 	"FormatVersion": "0.8"
 }

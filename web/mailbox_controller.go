@@ -16,6 +16,10 @@ type JsonMessageHeader struct {
 	Size                       int64
 }
 
+type JsonMessageBody struct {
+	Text, Html string
+}
+
 func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	name := req.FormValue("name")
 	if len(name) == 0 {
@@ -75,21 +79,41 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	if err != nil {
 		return fmt.Errorf("MailboxFor('%v'): %v", name, err)
 	}
-	message, err := mb.GetMessage(id)
+	msg, err := mb.GetMessage(id)
 	if err != nil {
 		return fmt.Errorf("GetMessage() failed: %v", err)
 	}
-	mime, err := message.ReadBody()
+	mime, err := msg.ReadBody()
 	if err != nil {
 		return fmt.Errorf("ReadBody() failed: %v", err)
 	}
+
+	if ctx.IsJson {
+		header := &JsonMessageHeader{
+			Mailbox: name,
+			Id:      msg.Id(),
+			From:    msg.From(),
+			Subject: msg.Subject(),
+			Date:    msg.Date(),
+			Size:    msg.Size(),
+		}
+		body := &JsonMessageBody{
+			Text: mime.Text,
+			Html: mime.Html,
+		}
+		return RenderJson(w, map[string]interface{}{
+			"Header": header,
+			"Body": body,
+		})
+	}
+
 	body := template.HTML(textToHtml(mime.Text))
 	htmlAvailable := mime.Html != ""
 
 	return RenderPartial("mailbox/_show.html", w, map[string]interface{}{
 		"ctx":           ctx,
 		"name":          name,
-		"message":       message,
+		"message":       msg,
 		"body":          body,
 		"htmlAvailable": htmlAvailable,
 		"attachments":   mime.Attachments,

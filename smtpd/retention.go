@@ -14,12 +14,15 @@ var retentionScanCompletedMu sync.RWMutex
 
 var expRetentionDeletesTotal = new(expvar.Int)
 var expRetentionPeriod = new(expvar.Int)
+var expRetainedCurrent = new(expvar.Int)
 
 // History of certain stats
 var retentionDeletesHist = list.New()
+var retainedHist = list.New()
 
 // History rendered as comma delim string
 var expRetentionDeletesHist = new(expvar.String)
+var expRetainedHist = new(expvar.String)
 
 func StartRetentionScanner(ds DataStore) {
 	cfg := config.GetDataStoreConfig()
@@ -62,6 +65,7 @@ func doRetentionScan(ds DataStore, maxAge time.Duration, sleep time.Duration) er
 		return err
 	}
 
+	retained := 0
 	for _, mb := range mboxes {
 		messages, err := mb.GetMessages()
 		if err != nil {
@@ -77,6 +81,8 @@ func doRetentionScan(ds DataStore, maxAge time.Duration, sleep time.Duration) er
 				} else {
 					expRetentionDeletesTotal.Add(1)
 				}
+			} else {
+				retained++
 			}
 		}
 		// Sleep after completing a mailbox
@@ -84,6 +90,7 @@ func doRetentionScan(ds DataStore, maxAge time.Duration, sleep time.Duration) er
 	}
 
 	setRetentionScanCompleted(time.Now())
+	expRetainedCurrent.Set(int64(retained))
 
 	return nil
 }
@@ -112,4 +119,6 @@ func init() {
 	rm.Set("DeletesHist", expRetentionDeletesHist)
 	rm.Set("DeletesTotal", expRetentionDeletesTotal)
 	rm.Set("Period", expRetentionPeriod)
+	rm.Set("RetainedHist", expRetainedHist)
+	rm.Set("RetainedCurrent", expRetainedCurrent)
 }

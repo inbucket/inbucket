@@ -141,6 +141,7 @@ func metricsTicker(t *time.Ticker) {
 		expErrorsHist.Set(pushMetric(errorsHist, expErrorsTotal))
 		expWarnsHist.Set(pushMetric(warnsHist, expWarnsTotal))
 		expRetentionDeletesHist.Set(pushMetric(retentionDeletesHist, expRetentionDeletesTotal))
+		expRetainedHist.Set(pushMetric(retainedHist, expRetainedCurrent))
 	}
 }
 

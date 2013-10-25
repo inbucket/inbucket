@@ -3,7 +3,8 @@
 
 {{define "script"}}
 <script>
-  function listLoaded() { 
+  var selected = "{{.selected}}"
+  function listLoaded() {
     $('.listEntry').hover(
     function() {
       $(this).addClass("listEntryHover")
@@ -19,6 +20,10 @@
     }
     )
     $("#messageList").slideDown()
+    if (selected != "") {
+      $("#" + selected).click()
+      selected = ""
+    }
   }
 
   function loadList() {

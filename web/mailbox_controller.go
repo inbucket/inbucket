@@ -31,6 +31,8 @@ type JsonMessageBody struct {
 
 func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	name := req.FormValue("name")
+	selected := req.FormValue("id")
+
 	if len(name) == 0 {
 		ctx.Session.AddFlash("Account name is required", "errors")
 		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
@@ -40,7 +42,17 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 	return RenderTemplate("mailbox/index.html", w, map[string]interface{}{
 		"ctx":  ctx,
 		"name": name,
+		"selected": selected,
 	})
+}
+
+func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	name := ctx.Vars["name"]
+	id := ctx.Vars["id"]
+
+	uri := fmt.Sprintf("%s?name=%s&id=%s", reverse("MailboxIndex"), name, id)
+	http.Redirect(w, req, uri, http.StatusSeeOther)
+	return nil
 }
 
 func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {

@@ -94,6 +94,9 @@ func main() {
 		fmt.Fprintf(pidf, "%v\n", os.Getpid())
 	}
 
+	// Grab our datastore
+	ds := smtpd.DefaultFileDataStore()
+
 	// Start HTTP server
 	go web.Start()
 
@@ -102,7 +105,7 @@ func main() {
 	go pop3Server.Start()
 
 	// Startup SMTP server, block until it exits
-	smtpServer = smtpd.New()
+	smtpServer = smtpd.NewSmtpServer(config.GetSmtpConfig(), ds)
 	smtpServer.Start()
 
 	// Wait for active connections to finish

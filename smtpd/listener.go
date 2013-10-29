@@ -46,9 +46,7 @@ var expErrorsHist = new(expvar.String)
 var expWarnsHist = new(expvar.String)
 
 // Init a new Server object
-func New() *Server {
-	ds := DefaultFileDataStore()
-	cfg := config.GetSmtpConfig()
+func NewSmtpServer(cfg config.SmtpConfig, ds DataStore) *Server {
 	return &Server{dataStore: ds, domain: cfg.Domain, maxRecips: cfg.MaxRecipients,
 		maxIdleSeconds: cfg.MaxIdleSeconds, maxMessageBytes: cfg.MaxMessageBytes,
 		storeMessages: cfg.StoreMessages, domainNoStore: strings.ToLower(cfg.DomainNoStore),

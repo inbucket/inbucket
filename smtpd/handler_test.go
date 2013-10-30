@@ -1,6 +1,7 @@
 package smtpd
 
 import (
+	"fmt"
 	"github.com/jhillyerd/inbucket/config"
 	"io/ioutil"
 	"net"
@@ -15,68 +16,201 @@ type scriptStep struct {
 	expect int
 }
 
-func TestHelo(t *testing.T) {
+// Test commands in GREET state
+func TestGreetState(t *testing.T) {
 	server := setupSmtpServer()
 	defer teardownSmtpServer(server)
+	var script []scriptStep
 
-	// Test out some manged HELOs
-	playSession(t, server, []scriptStep{
+	// Test out some mangled HELOs
+	script = []scriptStep{
 		{"HELLO", 500},
-	})
-	playSession(t, server, []scriptStep{
 		{"HELL", 500},
-	})
-	playSession(t, server, []scriptStep{
 		{"hello", 500},
-	})
+		{"Outlook", 500},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
 
 	// Valid HELOs
-	playSession(t, server, []scriptStep{
-		{"HELO", 250},
-	})
-	playSession(t, server, []scriptStep{
-		{"HELO mydomain", 250},
-	})
-	playSession(t, server, []scriptStep{
-		{"HELO mydom.com", 250},
-	})
-	playSession(t, server, []scriptStep{
-		{"HelO mydom.com", 250},
-	})
+	if err := playSession(t, server, []scriptStep{{"HELO", 250}}); err != nil {
+		t.Error(err)
+	}
+	if err := playSession(t, server, []scriptStep{{"HELO mydomain", 250}}); err != nil {
+		t.Error(err)
+	}
+	if err := playSession(t, server, []scriptStep{{"HELO mydom.com", 250}}); err != nil {
+		t.Error(err)
+	}
+	if err := playSession(t, server, []scriptStep{{"HelO mydom.com", 250}}); err != nil {
+		t.Error(err)
+	}
+}
+
+// Test commands in READY state
+func TestReadyState(t *testing.T) {
+	server := setupSmtpServer()
+	defer teardownSmtpServer(server)
+	var script []scriptStep
+
+	// Test out some mangled READY commands
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"FOOB", 500},
+		{"HELO", 503},
+		{"DATA", 503},
+		{"MAIL", 501},
+		{"MAIL FROM john@gmail.com", 501},
+		{"MAIL FROM:john@gmail.com", 501},
+		{"MAIL FROM:<john@gmail.com> SIZE=147KB", 501},
+		{"MAIL FROM: <john@gmail.com> SIZE147", 501},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	// Test out some valid MAIL commands
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RSET", 250},
+		{"MAIL FROM: <john@gmail.com>", 250},
+		{"RSET", 250},
+		{"MAIL FROM: <john@gmail.com> BODY=8BITMIME", 250},
+		{"RSET", 250},
+		{"MAIL FROM:<john@gmail.com> SIZE=1024", 250},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+}
+
+// Test commands in MAIL state
+func TestMailState(t *testing.T) {
+	server := setupSmtpServer()
+	defer teardownSmtpServer(server)
+	var script []scriptStep
+
+	// Test out some mangled READY commands
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"FOOB", 500},
+		{"HELO", 503},
+		{"DATA", 503},
+		{"MAIL", 503},
+		{"RCPT", 501},
+		{"RCPT TO", 501},
+		{"RCPT TO james@gmail.com", 501},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	// Test out some good RCPT commands
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<u1@gmail.com>", 250},
+		{"RCPT TO: <u2@gmail.com>", 250},
+		{"RCPT TO:u3@gmail.com", 250},
+		{"RCPT TO: u4@gmail.com", 250},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	// Test out recipient limit
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<u1@gmail.com>", 250},
+		{"RCPT TO:<u2@gmail.com>", 250},
+		{"RCPT TO:<u3@gmail.com>", 250},
+		{"RCPT TO:<u4@gmail.com>", 250},
+		{"RCPT TO:<u5@gmail.com>", 250},
+		{"RCPT TO:<u6@gmail.com>", 552},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	// Test DATA
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<u1@gmail.com>", 250},
+		{"DATA", 354},
+		{".", 250},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	// Test RSET
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<u1@gmail.com>", 250},
+		{"RSET", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	// Test QUIT
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<u1@gmail.com>", 250},
+		{"QUIT", 221},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
 }
 
 // playSession creates a new session, reads the greeting and then plays the script
-func playSession(t *testing.T, server *Server, script []scriptStep) {
+func playSession(t *testing.T, server *Server, script []scriptStep) error {
 	pipe := setupSmtpSession(server)
 	c := textproto.NewConn(pipe)
 
 	if code, _, err := c.ReadCodeLine(220); err != nil {
-		t.Fatalf("Expected a 220 greeting, got %v", code)
-		return
+		return fmt.Errorf("Expected a 220 greeting, got %v", code)
 	}
 
-	playScriptAgainst(t, c, script)
+	err := playScriptAgainst(t, c, script)
 
 	c.Cmd("QUIT")
 	c.ReadCodeLine(221)
+
+	return err
 }
 
 // playScriptAgainst an existing connection, does not handle server greeting
-func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) {
+func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) error {
 	for i, step := range script {
 		id, err := c.Cmd(step.send)
 		if err != nil {
-			t.Fatalf("Step %d, failed to send %q: %v", i, step.send, err)
-			return
+			return fmt.Errorf("Step %d, failed to send %q: %v", i, step.send, err)
 		}
 
 		c.StartResponse(id)
-		if code, msg, err := c.ReadCodeLine(step.expect); err != nil {
-			t.Errorf("Step %d, sent %q, expected %v, got %v: %q",
+		code, msg, err := c.ReadCodeLine(step.expect)
+		if err != nil {
+			err = fmt.Errorf("Step %d, sent %q, expected %v, got %v: %q",
 				i, step.send, step.expect, code, msg)
 		}
-		defer c.EndResponse(id)
+		c.EndResponse(id)
+
+		if err != nil {
+			// Return after c.EndResponse so we don't hang the connection
+			return err
+		}
 	}
+	return nil
 }
 
 // net.Pipe does not implement deadlines

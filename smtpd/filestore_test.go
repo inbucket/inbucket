@@ -1,9 +1,12 @@
 package smtpd
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,7 +15,7 @@ import (
 
 // Test directory structure created by filestore
 func TestFSDirStructure(t *testing.T) {
-	ds := setupDataStore()
+	ds, logbuf := setupDataStore()
 	defer teardownDataStore(ds)
 	root := ds.path
 
@@ -85,11 +88,16 @@ func TestFSDirStructure(t *testing.T) {
 	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
 	expect = mbPath
 	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
+
+	if t.Failed() {
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
 }
 
 // Test FileDataStore.AllMailboxes()
 func TestFSAllMailboxes(t *testing.T) {
-	ds := setupDataStore()
+	ds, logbuf := setupDataStore()
 	defer teardownDataStore(ds)
 
 	for _, name := range []string{"abby", "bill", "christa", "donald", "evelyn"} {
@@ -105,12 +113,17 @@ func TestFSAllMailboxes(t *testing.T) {
 	mboxes, err := ds.AllMailboxes()
 	assert.Nil(t, err)
 	assert.Equal(t, len(mboxes), 5)
+
+	if t.Failed() {
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
 }
 
 // Test delivering several messages to the same mailbox, meanwhile querying its
 // contents with a new mailbox object each time
 func TestFSDeliverMany(t *testing.T) {
-	ds := setupDataStore()
+	ds, logbuf := setupDataStore()
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -148,11 +161,16 @@ func TestFSDeliverMany(t *testing.T) {
 		subj := msgs[i].Subject()
 		assert.Equal(t, expect, subj, "Expected subject %q, got %q", expect, subj)
 	}
+
+	if t.Failed() {
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
 }
 
 // Test deleting messages
 func TestFSDelete(t *testing.T) {
-	ds := setupDataStore()
+	ds, logbuf := setupDataStore()
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -216,11 +234,15 @@ func TestFSDelete(t *testing.T) {
 		assert.Equal(t, expect, subj, "Expected subject %q, got %q", expect, subj)
 	}
 
+	if t.Failed() {
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
 }
 
 // Test purging a mailbox
 func TestFSPurge(t *testing.T) {
-	ds := setupDataStore()
+	ds, logbuf := setupDataStore()
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -257,11 +279,16 @@ func TestFSPurge(t *testing.T) {
 	}
 
 	assert.Equal(t, len(msgs), 0, "Expected mailbox to have zero messages, got %v", len(msgs))
+
+	if t.Failed() {
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
 }
 
 // Test message size calculation
 func TestFSSize(t *testing.T) {
-	ds := setupDataStore()
+	ds, logbuf := setupDataStore()
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -288,15 +315,25 @@ func TestFSSize(t *testing.T) {
 		size := msg.Size()
 		assert.Equal(t, expect, size, "Expected size of %v, got %v", expect, size)
 	}
+
+	if t.Failed() {
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
 }
 
 // setupDataStore creates a new FileDataStore in a temporary directory
-func setupDataStore() *FileDataStore {
+func setupDataStore() (*FileDataStore, *bytes.Buffer) {
 	path, err := ioutil.TempDir("", "inbucket")
 	if err != nil {
 		panic(err)
 	}
-	return NewFileDataStore(path).(*FileDataStore)
+
+	// Capture log output
+	buf := new(bytes.Buffer)
+	log.SetOutput(buf)
+
+	return NewFileDataStore(path).(*FileDataStore), buf
 }
 
 // deliverMessage creates and delivers a message to the specific mailbox, returning

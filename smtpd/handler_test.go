@@ -1,9 +1,12 @@
 package smtpd
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/jhillyerd/inbucket/config"
+	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/textproto"
 	"os"
@@ -18,7 +21,7 @@ type scriptStep struct {
 
 // Test commands in GREET state
 func TestGreetState(t *testing.T) {
-	server := setupSmtpServer()
+	server, logbuf := setupSmtpServer()
 	defer teardownSmtpServer(server)
 	var script []scriptStep
 
@@ -46,11 +49,16 @@ func TestGreetState(t *testing.T) {
 	if err := playSession(t, server, []scriptStep{{"HelO mydom.com", 250}}); err != nil {
 		t.Error(err)
 	}
+
+	if t.Failed() {
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
 }
 
 // Test commands in READY state
 func TestReadyState(t *testing.T) {
-	server := setupSmtpServer()
+	server, logbuf := setupSmtpServer()
 	defer teardownSmtpServer(server)
 	var script []scriptStep
 
@@ -84,11 +92,16 @@ func TestReadyState(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
+
+	if t.Failed() {
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
 }
 
 // Test commands in MAIL state
 func TestMailState(t *testing.T) {
-	server := setupSmtpServer()
+	server, logbuf := setupSmtpServer()
 	defer teardownSmtpServer(server)
 	var script []scriptStep
 
@@ -170,6 +183,11 @@ func TestMailState(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
+
+	if t.Failed() {
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
 }
 
 // playSession creates a new session, reads the greeting and then plays the script
@@ -222,7 +240,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupSmtpServer() *Server {
+func setupSmtpServer() (*Server, *bytes.Buffer) {
 	// Setup datastore
 	path, err := ioutil.TempDir("", "inbucket")
 	if err != nil {
@@ -242,8 +260,12 @@ func setupSmtpServer() *Server {
 		StoreMessages:   true,
 	}
 
+	// Capture log output
+	buf := new(bytes.Buffer)
+	log.SetOutput(buf)
+
 	// Create a server, don't start it
-	return NewSmtpServer(cfg, ds)
+	return NewSmtpServer(cfg, ds), buf
 }
 
 var sessionNum int
@@ -264,4 +286,5 @@ func teardownSmtpServer(server *Server) {
 	if err := os.RemoveAll(ds.path); err != nil {
 		panic(err)
 	}
+	//log.SetOutput(os.Stderr)
 }

@@ -339,10 +339,10 @@ func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
 // ReadBody opens the .raw portion of a Message and returns a MIMEBody object
 func (m *FileMessage) ReadBody() (body *enmime.MIMEBody, err error) {
 	file, err := os.Open(m.rawPath())
-	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 	reader := bufio.NewReader(file)
 	msg, err := mail.ReadMessage(reader)
 	if err != nil {

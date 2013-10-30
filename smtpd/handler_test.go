@@ -51,6 +51,8 @@ func TestGreetState(t *testing.T) {
 	}
 
 	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
 		io.Copy(os.Stderr, logbuf)
 	}
@@ -94,6 +96,8 @@ func TestReadyState(t *testing.T) {
 	}
 
 	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
 		io.Copy(os.Stderr, logbuf)
 	}
@@ -185,6 +189,51 @@ func TestMailState(t *testing.T) {
 	}
 
 	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
+}
+
+// Test commands in DATA state
+func TestDataState(t *testing.T) {
+	server, logbuf := setupSmtpServer()
+	defer teardownSmtpServer(server)
+	var script []scriptStep
+	pipe := setupSmtpSession(server)
+	c := textproto.NewConn(pipe)
+
+	// Get us into DATA state
+	if code, _, err := c.ReadCodeLine(220); err != nil {
+		t.Errorf("Expected a 220 greeting, got %v", code)
+	}
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<u1@gmail.com>", 250},
+		{"DATA", 354},
+	}
+	if err := playScriptAgainst(t, c, script); err != nil {
+		t.Error(err)
+	}
+	// Send a message
+	body := `To: u1@gmail.com
+From: john@gmail.com
+Subject: test
+
+Hi!
+`
+	dw := c.DotWriter()
+	io.WriteString(dw, body)
+	dw.Close()
+	if code, _, err := c.ReadCodeLine(250); err != nil {
+		t.Errorf("Expected a 250 greeting, got %v", code)
+	}
+
+	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
 		io.Copy(os.Stderr, logbuf)
 	}

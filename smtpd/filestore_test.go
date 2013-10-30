@@ -90,6 +90,8 @@ func TestFSDirStructure(t *testing.T) {
 	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
 
 	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
 		io.Copy(os.Stderr, logbuf)
 	}
@@ -115,6 +117,8 @@ func TestFSAllMailboxes(t *testing.T) {
 	assert.Equal(t, len(mboxes), 5)
 
 	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
 		io.Copy(os.Stderr, logbuf)
 	}
@@ -163,6 +167,8 @@ func TestFSDeliverMany(t *testing.T) {
 	}
 
 	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
 		io.Copy(os.Stderr, logbuf)
 	}
@@ -235,6 +241,8 @@ func TestFSDelete(t *testing.T) {
 	}
 
 	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
 		io.Copy(os.Stderr, logbuf)
 	}
@@ -281,6 +289,8 @@ func TestFSPurge(t *testing.T) {
 	assert.Equal(t, len(msgs), 0, "Expected mailbox to have zero messages, got %v", len(msgs))
 
 	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
 		io.Copy(os.Stderr, logbuf)
 	}
@@ -317,6 +327,8 @@ func TestFSSize(t *testing.T) {
 	}
 
 	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
 		io.Copy(os.Stderr, logbuf)
 	}

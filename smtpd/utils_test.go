@@ -17,9 +17,6 @@ func TestHashMailboxName(t *testing.T) {
 }
 
 func TestValidateDomain(t *testing.T) {
-	assert.True(t, ValidateDomainPart("jhillyerd.github.com"),
-		"Simple domain failed")
-	assert.False(t, ValidateDomainPart(""), "Empty domain is not valid")
 	assert.False(t, ValidateDomainPart(strings.Repeat("a", 256)),
 		"Max domain length is 255")
 	assert.False(t, ValidateDomainPart(strings.Repeat("a", 64)+".com"),
@@ -32,6 +29,7 @@ func TestValidateDomain(t *testing.T) {
 		expect bool
 		msg    string
 	}{
+		{"", false, "Empty domain is not valid"},
 		{"hostname", true, "Just a hostname is valid"},
 		{"github.com", true, "Two labels should be just fine"},
 		{"my-domain.com", true, "Hyphen is allowed mid-label"},
@@ -48,6 +46,37 @@ func TestValidateDomain(t *testing.T) {
 
 	for _, tt := range testTable {
 		if ValidateDomainPart(tt.input) != tt.expect {
+			t.Errorf("Expected %v for %q: %s", tt.expect, tt.input, tt.msg)
+		}
+	}
+}
+
+func TestValidateLocal(t *testing.T) {
+	var testTable = []struct {
+		input string
+		expect bool
+		msg string
+	}{
+		{"", false, "Empty local is not valid"},
+		{"a", true, "Single letter should be fine"},
+		{strings.Repeat("a", 65), false, "Only valid up to 64 characters"},
+		{"FirstLast", true, "Mixed case permitted"},
+		{"user123", true, "Numbers permitted"},
+		{"a!#$%&'*+-/=?^_`{|}~", true, "Any of !#$%&'*+-/=?^_`{|}~ are permitted"},
+		{"james@mail", false, "Unquoted @ not permitted"},
+		{"first.last", true, "Embedded period is permitted"},
+		{"first..last", false, "Sequence of periods is not allowed"},
+		{".user", false, "Cannot lead with a period"},
+		{"user.", false, "Cannot end with a period"},
+		{"user+mailbox", true, "RFC3696 test case should be valid"},
+		{"customer/department=shipping", true, "RFC3696 test case should be valid"},
+		{"$A12345", true, "RFC3696 test case should be valid"},
+		{"!def!xyz%abc", true, "RFC3696 test case should be valid"},
+		{"_somename", true, "RFC3696 test case should be valid"},
+	}
+
+	for _, tt := range testTable {
+		if ValidateLocalPart(tt.input) != tt.expect {
 			t.Errorf("Expected %v for %q: %s", tt.expect, tt.input, tt.msg)
 		}
 	}

@@ -1,6 +1,7 @@
 package smtpd
 
 import (
+	"bytes"
 	"container/list"
 	"crypto/sha1"
 	"fmt"
@@ -82,6 +83,43 @@ func ValidateDomainPart(domain string) bool {
 			hasLetters = false
 		default:
 			// Unknown character
+			return false
+		}
+		prev = c
+	}
+
+	return true
+}
+
+// ValidateLocalPart returns true if the string complies with RFC3696 recommendations
+func ValidateLocalPart(local string) bool {
+	length := len(local)
+	if 1 > length || length > 64 {
+		// Invalid length
+		return false
+	}
+	if local[length-1] == '.' {
+		// Cannot end with a period
+		return false
+	}
+
+	prev := byte('.')
+	for i := 0; i < length; i++ {
+		c := local[i]
+		switch {
+		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'):
+			// Letters are OK
+		case '0' <= c && c <= '9':
+			// Numbers are OK
+		case bytes.IndexByte([]byte("!#$%&'*+-/=?^_`{|}~"), c) >= 0:
+			// These specials can be used unquoted
+		case c == '.':
+			// A single period is OK
+			if prev == '.' {
+				// Sequence of periods is not permitted
+				return false
+			}
+		default:
 			return false
 		}
 		prev = c

@@ -105,6 +105,7 @@ func ValidateLocalPart(local string) bool {
 
 	prev := byte('.')
 	inCharQuote := false
+	inStringQuote := false
 	for i := 0; i < length; i++ {
 		c := local[i]
 		switch {
@@ -125,18 +126,25 @@ func ValidateLocalPart(local string) bool {
 			}
 		case c == '\\':
 			inCharQuote = true
+		case c == '"':
+			if inCharQuote {
+				inCharQuote = false
+			} else {
+				inStringQuote = !inStringQuote
+			}
 		case c > 127:
 			return false
 		default:
-			if ! inCharQuote {
-				return false
+			if inCharQuote || inStringQuote {
+				inCharQuote = false
+				return true
 			}
-			inCharQuote = false
+			return false
 		}
 		prev = c
 	}
-	if inCharQuote {
-		// Can't end with unused backslash quote
+	if inCharQuote || inStringQuote {
+		// Can't end with unused backslash quote or unterminated string quote
 		return false
 	}
 

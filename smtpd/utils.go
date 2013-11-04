@@ -104,25 +104,40 @@ func ValidateLocalPart(local string) bool {
 	}
 
 	prev := byte('.')
+	inCharQuote := false
 	for i := 0; i < length; i++ {
 		c := local[i]
 		switch {
 		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'):
 			// Letters are OK
+			inCharQuote = false
 		case '0' <= c && c <= '9':
 			// Numbers are OK
+			inCharQuote = false
 		case bytes.IndexByte([]byte("!#$%&'*+-/=?^_`{|}~"), c) >= 0:
 			// These specials can be used unquoted
+			inCharQuote = false
 		case c == '.':
 			// A single period is OK
 			if prev == '.' {
 				// Sequence of periods is not permitted
 				return false
 			}
-		default:
+		case c == '\\':
+			inCharQuote = true
+		case c > 127:
 			return false
+		default:
+			if ! inCharQuote {
+				return false
+			}
+			inCharQuote = false
 		}
 		prev = c
+	}
+	if inCharQuote {
+		// Can't end with unused backslash quote
+		return false
 	}
 
 	return true

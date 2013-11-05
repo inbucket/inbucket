@@ -1,4 +1,4 @@
-Inbucket
+Inbucket [![Build Status](https://travis-ci.org/jhillyerd/inbucket.png?branch=master)](https://travis-ci.org/jhillyerd/inbucket)
 ========
 
 Inbucket is an email testing service; it will accept messages for any email
@@ -21,7 +21,7 @@ Read more at the [Inbucket website](http://jhillyerd.github.io/inbucket/).
 Development Status
 ------------------
 
-Inbucket is currently beta quality: it works but is not well tested.
+Inbucket is currently release-candidate quality: it is being used for real work.
 
 Please check the [issues list](https://github.com/jhillyerd/inbucket/issues?state=open)
 for more details.

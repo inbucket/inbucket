@@ -211,29 +211,35 @@ func (ss *Session) greetHandler(cmd string, arg string) {
 // READY state -> waiting for MAIL
 func (ss *Session) readyHandler(cmd string, arg string) {
 	if cmd == "MAIL" {
-		// (?i) makes the regex case insensitive
-		re := regexp.MustCompile("(?i)^FROM:\\s*<([^>]+)>( [\\w= ]+)?$")
+		// Match FROM, while accepting '>' as quoted pair and in double quoted strings
+		// (?i) makes the regex case insensitive, (?:) is non-grouping sub-match
+		re := regexp.MustCompile("(?i)^FROM:\\s*<((?:\\\\>|[^>])+|\"[^\"]+\"@[^>]+)>( [\\w= ]+)?$")
 		m := re.FindStringSubmatch(arg)
 		if m == nil {
 			ss.send("501 Was expecting MAIL arg syntax of FROM:<address>")
-			ss.logWarn("Bad MAIL argument: '%v'", arg)
+			ss.logWarn("Bad MAIL argument: %q", arg)
 			return
 		}
 		from := m[1]
+		if _, _, err := ParseEmailAddress(from); err != nil {
+			ss.send("501 Bad sender address syntax")
+			ss.logWarn("Bad address as MAIL arg: %q, %s", from, err)
+			return
+		}
 		// This is where the client may put BODY=8BITMIME, but we already
-		// ready the DATA as bytes, so it does not effect our processing.
+		// read the DATA as bytes, so it does not effect our processing.
 		if m[2] != "" {
 			args, ok := ss.parseArgs(m[2])
 			if !ok {
 				ss.send("501 Unable to parse MAIL ESMTP parameters")
-				ss.logWarn("Bad MAIL argument: '%v'", arg)
+				ss.logWarn("Bad MAIL argument: %q", arg)
 				return
 			}
 			if args["SIZE"] != "" {
 				size, err := strconv.ParseInt(args["SIZE"], 10, 32)
 				if err != nil {
 					ss.send("501 Unable to parse SIZE as an integer")
-					ss.logWarn("Unable to parse SIZE '%v' as an integer", args["SIZE"])
+					ss.logWarn("Unable to parse SIZE %q as an integer", args["SIZE"])
 					return
 				}
 				if int(size) > ss.server.maxMessageBytes {
@@ -259,11 +265,16 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 	case "RCPT":
 		if (len(arg) < 4) || (strings.ToUpper(arg[0:3]) != "TO:") {
 			ss.send("501 Was expecting RCPT arg syntax of TO:<address>")
-			ss.logWarn("Bad RCPT argument: '%v'", arg)
+			ss.logWarn("Bad RCPT argument: %q", arg)
 			return
 		}
 		// This trim is probably too forgiving
 		recip := strings.Trim(arg[3:], "<> ")
+		if _, _, err := ParseEmailAddress(recip); err != nil {
+			ss.send("501 Bad recipient address syntax")
+			ss.logWarn("Bad address as RCPT arg: %q, %s", recip, err)
+			return
+		}
 		if ss.recipients.Len() >= ss.server.maxRecips {
 			ss.logWarn("Maximum limit of %v recipients reached", ss.server.maxRecips)
 			ss.send(fmt.Sprintf("552 Maximum limit of %v recipients reached", ss.server.maxRecips))
@@ -276,7 +287,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 	case "DATA":
 		if arg != "" {
 			ss.send("501 DATA command should not have any arguments")
-			ss.logWarn("Got unexpected args on DATA: '%v'", arg)
+			ss.logWarn("Got unexpected args on DATA: %q", arg)
 			return
 		}
 		if ss.recipients.Len() > 0 {
@@ -315,7 +326,7 @@ func (ss *Session) dataHandler() {
 				mailboxes[i] = mb
 				messages[i] = mb.NewMessage()
 			} else {
-				log.LogTrace("Not storing message for '%v'", recip)
+				log.LogTrace("Not storing message for %q", recip)
 			}
 			i++
 		}
@@ -409,7 +420,7 @@ func (ss *Session) send(msg string) {
 	}
 	if _, err := fmt.Fprint(ss.conn, msg+"\r\n"); err != nil {
 		ss.sendError = err
-		ss.logWarn("Failed to send: '%v'", msg)
+		ss.logWarn("Failed to send: %q", msg)
 		return
 	}
 	ss.logTrace(">> %v >>", msg)
@@ -462,19 +473,19 @@ func (ss *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 	case l == 0:
 		return "", "", true
 	case l < 4:
-		ss.logWarn("Command too short: '%v'", line)
+		ss.logWarn("Command too short: %q", line)
 		return "", "", false
 	case l == 4:
 		return strings.ToUpper(line), "", true
 	case l == 5:
 		// Too long to be only command, too short to have args
-		ss.logWarn("Mangled command: '%v'", line)
+		ss.logWarn("Mangled command: %q", line)
 		return "", "", false
 	}
 	// If we made it here, command is long enough to have args
 	if line[4] != ' ' {
 		// There wasn't a space after the command?
-		ss.logWarn("Mangled command: '%v'", line)
+		ss.logWarn("Mangled command: %q", line)
 		return "", "", false
 	}
 	// I'm not sure if we should trim the args or not, but we will for now
@@ -491,7 +502,7 @@ func (ss *Session) parseArgs(arg string) (args map[string]string, ok bool) {
 	re := regexp.MustCompile(" (\\w+)=(\\w+)")
 	pm := re.FindAllStringSubmatch(arg, -1)
 	if pm == nil {
-		ss.logWarn("Failed to parse arg string: '%v'")
+		ss.logWarn("Failed to parse arg string: %q")
 		return nil, false
 	}
 	for _, m := range pm {

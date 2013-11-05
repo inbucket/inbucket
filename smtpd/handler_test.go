@@ -75,6 +75,8 @@ func TestReadyState(t *testing.T) {
 		{"MAIL FROM:john@gmail.com", 501},
 		{"MAIL FROM:<john@gmail.com> SIZE=147KB", 501},
 		{"MAIL FROM: <john@gmail.com> SIZE147", 501},
+		{"MAIL FROM:<first@last@gmail.com>", 501},
+		{"MAIL FROM:<first last@gmail.com>", 501},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
@@ -90,6 +92,18 @@ func TestReadyState(t *testing.T) {
 		{"MAIL FROM: <john@gmail.com> BODY=8BITMIME", 250},
 		{"RSET", 250},
 		{"MAIL FROM:<john@gmail.com> SIZE=1024", 250},
+		{"RSET", 250},
+		{"MAIL FROM:<host!host!user/data@foo.com>", 250},
+		{"RSET", 250},
+		{"MAIL FROM:<\"first last\"@space.com>", 250},
+		{"RSET", 250},
+		{"MAIL FROM:<user\\@internal@external.com>", 250},
+		{"RSET", 250},
+		{"MAIL FROM:<user\\>name@host.com>", 250},
+		{"RSET", 250},
+		{"MAIL FROM:<\"user>name\"@host.com>", 250},
+		{"RSET", 250},
+		{"MAIL FROM:<\"user@internal\"@external.com>", 250},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
@@ -120,6 +134,8 @@ func TestMailState(t *testing.T) {
 		{"RCPT", 501},
 		{"RCPT TO", 501},
 		{"RCPT TO james@gmail.com", 501},
+		{"RCPT TO:<first last@host.com>", 501},
+		{"RCPT TO:<fred@fish@host.com", 501},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
@@ -133,6 +149,12 @@ func TestMailState(t *testing.T) {
 		{"RCPT TO: <u2@gmail.com>", 250},
 		{"RCPT TO:u3@gmail.com", 250},
 		{"RCPT TO: u4@gmail.com", 250},
+		{"RSET", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<user\\@internal@external.com", 250},
+		{"RCPT TO:<\"first last\"@host.com", 250},
+		{"RCPT TO:<user\\>name@host.com>", 250},
+		{"RCPT TO:<\"user>name\"@host.com>", 250},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)

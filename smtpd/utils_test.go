@@ -53,9 +53,9 @@ func TestValidateDomain(t *testing.T) {
 
 func TestValidateLocal(t *testing.T) {
 	var testTable = []struct {
-		input string
+		input  string
 		expect bool
-		msg string
+		msg    string
 	}{
 		{"", false, "Empty local is not valid"},
 		{"a", true, "Single letter should be fine"},
@@ -99,8 +99,36 @@ func TestValidateLocal(t *testing.T) {
 	}
 
 	for _, tt := range testTable {
-		if ValidateLocalPart(tt.input) != tt.expect {
+		_, _, err := ParseEmailAddress(tt.input + "@domain.com")
+		if (err != nil) == tt.expect {
+			if err != nil {
+				t.Logf("Got error: %s", err)
+			}
 			t.Errorf("Expected %v for %q: %s", tt.expect, tt.input, tt.msg)
+		}
+	}
+}
+
+func TestParseEmailAddress(t *testing.T) {
+	var testTable = []struct {
+		input, local, domain string
+	}{
+		{"root@localhost", "root", "localhost"},
+	}
+
+	for _, tt := range testTable {
+		local, domain, err := ParseEmailAddress(tt.input)
+		if err != nil {
+			t.Errorf("Error when parsing %q: %s", tt.input, err)
+		} else {
+			if tt.local != local {
+				t.Errorf("When parsing %q, expected local %q, got %q instead",
+					tt.input, tt.local, local)
+			}
+			if tt.domain != domain {
+				t.Errorf("When parsing %q, expected domain %q, got %q instead",
+					tt.input, tt.domain, domain)
+			}
 		}
 	}
 }

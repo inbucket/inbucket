@@ -69,6 +69,7 @@ func TestValidateLocal(t *testing.T) {
 		{"user.", false, "Cannot end with a period"},
 		{"james@mail", false, "Unquoted @ not permitted"},
 		{"first last", false, "Unquoted space not permitted"},
+		{"tricky\\. ", false, "Unquoted space not permitted"},
 		{"no,commas", false, "Unquoted comma not allowed"},
 		{"t[es]t", false, "Unquoted square brackets not allowed"},
 		{"james\\", false, "Cannot end with backslash quote"},
@@ -110,10 +111,26 @@ func TestValidateLocal(t *testing.T) {
 }
 
 func TestParseEmailAddress(t *testing.T) {
+	// Test some good email addresses
 	var testTable = []struct {
 		input, local, domain string
 	}{
 		{"root@localhost", "root", "localhost"},
+		{"FirstLast@domain.local", "FirstLast", "domain.local"},
+		{"route66@prodigy.net", "route66", "prodigy.net"},
+		{"lorbit!user@uucp", "lorbit!user", "uucp"},
+		{"user+spam@gmail.com", "user+spam", "gmail.com"},
+		{"first.last@domain.local", "first.last", "domain.local"},
+		{"first\\ last@_key.domain.com", "first last", "_key.domain.com"},
+		{"first\\\"last@a.b.c", "first\"last", "a.b.c"},
+		{"user\\@internal@myhost.ca", "user@internal", "myhost.ca"},
+		{"\"first last@evil\"@top-secret.gov", "first last@evil", "top-secret.gov"},
+		{"\"line\nfeed\"@linenoise.co.uk", "line\nfeed", "linenoise.co.uk"},
+		{"user+mailbox@host", "user+mailbox", "host"},
+		{"customer/department=shipping@host", "customer/department=shipping", "host"},
+		{"$A12345@host", "$A12345", "host"},
+		{"!def!xyz%abc@host", "!def!xyz%abc", "host"},
+		{"_somename@host", "_somename", "host"},
 	}
 
 	for _, tt := range testTable {
@@ -129,6 +146,29 @@ func TestParseEmailAddress(t *testing.T) {
 				t.Errorf("When parsing %q, expected domain %q, got %q instead",
 					tt.input, tt.domain, domain)
 			}
+		}
+	}
+
+	// Check that validations fail correctly
+	var badTable = []struct {
+		input, msg string
+	}{
+		{"", "Empty address not permitted"},
+		{"user", "Missing domain part"},
+		{"@host", "Missing local part"},
+		{"user\\@host", "Missing domain part"},
+		{"\"user@host\"", "Missing domain part"},
+		{"\"user@host", "Unterminated quoted string"},
+		{"first last@host", "Unquoted space"},
+		{"user@bad!domain", "Invalid domain"},
+		{".user@host", "Can't lead with a ."},
+		{"user.@host", "Can't end local with a dot"},
+		{"user@bad domain", "No spaces in domain permitted"},
+	}
+
+	for _, tt := range badTable {
+		if _, _, err := ParseEmailAddress(tt.input); err == nil {
+			t.Errorf("Did not get expected error when parsing %q: %s", tt.input, tt.msg)
 		}
 	}
 }

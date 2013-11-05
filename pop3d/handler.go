@@ -611,21 +611,21 @@ func (ses *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ses *Session) logTrace(msg string, args ...interface{}) {
-	log.LogTrace("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
+	log.LogTrace("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) logInfo(msg string, args ...interface{}) {
-	log.LogInfo("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
+	log.LogInfo("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) logWarn(msg string, args ...interface{}) {
 	// Update metrics
 	//expWarnsTotal.Add(1)
-	log.LogWarn("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
+	log.LogWarn("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) logError(msg string, args ...interface{}) {
 	// Update metrics
 	//expErrorsTotal.Add(1)
-	log.LogError("POP3<%v> %v", ses.id, fmt.Sprintf(msg, args...))
+	log.LogError("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }

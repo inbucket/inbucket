@@ -314,12 +314,19 @@ func (ss *Session) dataHandler() {
 		i := 0
 		for e := ss.recipients.Front(); e != nil; e = e.Next() {
 			recip := e.Value.(string)
-			if !strings.HasSuffix(strings.ToLower(recip), "@"+ss.server.domainNoStore) {
+			local, domain, err := ParseEmailAddress(recip)
+			if err != nil {
+				ss.logError("Failed to parse address for %q", recip)
+				ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
+				ss.reset()
+				return
+			}
+			if strings.ToLower(domain) != ss.server.domainNoStore {
 				// Not our "no store" domain, so store the message
-				mb, err := ss.server.dataStore.MailboxFor(recip)
+				mb, err := ss.server.dataStore.MailboxFor(local)
 				if err != nil {
-					ss.logError("Failed to open mailbox for %v", recip)
-					ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
+					ss.logError("Failed to open mailbox for %q", local)
+					ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", local))
 					ss.reset()
 					return
 				}
@@ -525,21 +532,21 @@ func (ss *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ss *Session) logTrace(msg string, args ...interface{}) {
-	log.LogTrace("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	log.LogTrace("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) logInfo(msg string, args ...interface{}) {
-	log.LogInfo("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	log.LogInfo("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) logWarn(msg string, args ...interface{}) {
 	// Update metrics
 	expWarnsTotal.Add(1)
-	log.LogWarn("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	log.LogWarn("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) logError(msg string, args ...interface{}) {
 	// Update metrics
 	expErrorsTotal.Add(1)
-	log.LogError("SMTP<%v> %v", ss.id, fmt.Sprintf(msg, args...))
+	log.LogError("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }

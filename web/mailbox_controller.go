@@ -41,19 +41,29 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 		return nil
 	}
 
-	name = smtpd.ParseMailboxName(name)
+	name, err = smtpd.ParseMailboxName(name)
+	if err != nil {
+		ctx.Session.AddFlash(err.Error(), "errors")
+		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
 
 	return RenderTemplate("mailbox/index.html", w, map[string]interface{}{
-		"ctx":  ctx,
-		"name": name,
+		"ctx":      ctx,
+		"name":     name,
 		"selected": selected,
 	})
 }
 
 func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name := smtpd.ParseMailboxName(ctx.Vars["name"])
 	id := ctx.Vars["id"]
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		ctx.Session.AddFlash(err.Error(), "errors")
+		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
 
 	uri := fmt.Sprintf("%s?name=%s&id=%s", reverse("MailboxIndex"), name, id)
 	http.Redirect(w, req, uri, http.StatusSeeOther)
@@ -62,8 +72,10 @@ func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 
 func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name := smtpd.ParseMailboxName(ctx.Vars["name"])
-
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		return err
+	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
 		return fmt.Errorf("Failed to get mailbox for %v: %v", name, err)
@@ -98,9 +110,11 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name := smtpd.ParseMailboxName(ctx.Vars["name"])
 	id := ctx.Vars["id"]
-
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		return err
+	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
 		return fmt.Errorf("MailboxFor('%v'): %v", name, err)
@@ -150,8 +164,10 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 
 func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name := smtpd.ParseMailboxName(ctx.Vars["name"])
-
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		return err
+	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
 		return fmt.Errorf("MailboxFor('%v'): %v", name, err)
@@ -172,9 +188,11 @@ func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 
 func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name := smtpd.ParseMailboxName(ctx.Vars["name"])
 	id := ctx.Vars["id"]
-
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		return err
+	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
 		return err
@@ -199,9 +217,11 @@ func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 
 func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name := smtpd.ParseMailboxName(ctx.Vars["name"])
 	id := ctx.Vars["id"]
-
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		return err
+	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
 		return err
@@ -222,8 +242,13 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 
 func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name := smtpd.ParseMailboxName(ctx.Vars["name"])
 	id := ctx.Vars["id"]
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		ctx.Session.AddFlash(err.Error(), "errors")
+		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
 	numStr := ctx.Vars["num"]
 	num, err := strconv.ParseUint(numStr, 10, 32)
 	if err != nil {
@@ -259,7 +284,12 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Contex
 
 func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		ctx.Session.AddFlash(err.Error(), "errors")
+		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
 	id := ctx.Vars["id"]
 	numStr := ctx.Vars["num"]
 	num, err := strconv.ParseUint(numStr, 10, 32)
@@ -295,9 +325,11 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (
 
 func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name := smtpd.ParseMailboxName(ctx.Vars["name"])
 	id := ctx.Vars["id"]
-
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		return err
+	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
 		return err

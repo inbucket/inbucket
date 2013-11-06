@@ -7,9 +7,47 @@ import (
 )
 
 func TestParseMailboxName(t *testing.T) {
-	assert.Equal(t, ParseMailboxName("MailBOX"), "mailbox")
-	assert.Equal(t, ParseMailboxName("MailBox@Host.Com"), "mailbox")
-	assert.Equal(t, ParseMailboxName("Mail+extra@Host.Com"), "mail")
+	var validTable = []struct{
+		input string
+		expect string
+	}{
+		{"mailbox", "mailbox"},
+		{"user123", "user123"},
+		{"MailBOX", "mailbox"},
+		{"First.Last", "first.last"},
+		{"user+label", "user"},
+		{"chars!#$%", "chars!#$%"},
+		{"chars&'*-", "chars&'*-"},
+		{"chars=/?^", "chars=/?^"},
+		{"chars_`.{", "chars_`.{"},
+		{"chars|}~", "chars|}~"},
+	}
+
+	for _, tt := range validTable {
+		if result, err := ParseMailboxName(tt.input); err != nil {
+			t.Errorf("Error while parsing %q: %v", tt.input, err)
+		} else {
+			if result != tt.expect {
+				t.Errorf("Parsing %q, expected %q, got %q", tt.input, tt.expect, result)
+			}
+		}
+	}
+
+	var invalidTable = []struct{
+		input, msg string
+	}{
+		{"", "Empty mailbox name is not permitted"},
+		{"user@host", "@ symbol not permitted"},
+		{"first last", "Space not permitted"},
+		{"first\"last", "Double quote not permitted"},
+		{"first\nlast", "Control chars not permitted"},
+	}
+
+	for _, tt := range invalidTable {
+		if _, err := ParseMailboxName(tt.input); err == nil {
+			t.Errorf("Didn't get an error while parsing %q: %v", tt.input, tt.msg)
+		}
+	}
 }
 
 func TestHashMailboxName(t *testing.T) {

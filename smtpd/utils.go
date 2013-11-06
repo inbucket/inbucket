@@ -9,16 +9,36 @@ import (
 	"strings"
 )
 
-// Take "user+ext@host.com" and return "user", aka the mailbox we'll store it in
-func ParseMailboxName(emailAddress string) (result string) {
-	result = strings.ToLower(emailAddress)
-	if idx := strings.Index(result, "@"); idx > -1 {
-		result = result[0:idx]
+// Take "user+ext" and return "user", aka the mailbox we'll store it in
+// Return error if it contains invalid characters, we don't accept anything
+// that must be quoted according to RFC3696.
+func ParseMailboxName(localPart string) (result string, err error) {
+	if localPart == "" {
+		return "", fmt.Errorf("Mailbox name cannot be empty")
 	}
+	result = strings.ToLower(localPart)
+
+	invalid := make([]byte, 0, 10)
+
+	for i := 0; i<len(result); i++ {
+		c := result[i]
+		switch {
+		case 'a' <= c && c <= 'z':
+		case '0' <= c && c <= '9':
+		case bytes.IndexByte([]byte("!#$%&'*+-=/?^_`.{|}~"), c) >= 0:
+		default:
+			invalid = append(invalid, c)
+		}
+	}
+
+	if len(invalid) > 0 {
+		return "", fmt.Errorf("Mailbox name contained invalid character(s): %q", invalid)
+	}
+
 	if idx := strings.Index(result, "+"); idx > -1 {
 		result = result[0:idx]
 	}
-	return result
+	return result, nil
 }
 
 // Take a mailbox name and hash it into the directory we'll store it in

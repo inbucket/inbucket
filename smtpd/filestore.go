@@ -76,7 +76,10 @@ func DefaultFileDataStore() DataStore {
 // Retrieves the Mailbox object for a specified email address, if the mailbox
 // does not exist, it will attempt to create it.
 func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
-	name := ParseMailboxName(emailAddress)
+	name, err := ParseMailboxName(emailAddress)
+	if err != nil {
+		return nil, err
+	}
 	dir := HashMailboxName(name)
 	s1 := dir[0:3]
 	s2 := dir[0:6]

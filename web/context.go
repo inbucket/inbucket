@@ -39,11 +39,10 @@ func headerMatch(req *http.Request, name string, value string) bool {
 func NewContext(req *http.Request) (*Context, error) {
 	vars := mux.Vars(req)
 	sess, err := sessionStore.Get(req, "inbucket")
-	ds := smtpd.DefaultFileDataStore()
 	ctx := &Context{
 		Vars:      vars,
 		Session:   sess,
-		DataStore: ds,
+		DataStore: DataStore,
 		IsJson:    headerMatch(req, "Accept", "application/json"),
 	}
 	if err != nil {

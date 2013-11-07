@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/smtpd"
 	"net"
 	"net/http"
 	"time"
@@ -17,6 +18,7 @@ import (
 
 type handler func(http.ResponseWriter, *http.Request, *Context) error
 
+var DataStore smtpd.DataStore
 var Router *mux.Router
 var listener net.Listener
 var sessionStore sessions.Store
@@ -54,6 +56,9 @@ func setupRoutes(cfg config.WebConfig) {
 func Start() {
 	cfg := config.GetWebConfig()
 	setupRoutes(cfg)
+
+	// NewContext() will use this DataStore for the web handlers
+	DataStore = smtpd.DefaultFileDataStore()
 
 	// TODO Make configurable
 	sessionStore = sessions.NewCookieStore([]byte("something-very-secret"))

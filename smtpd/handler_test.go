@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/jhillyerd/inbucket/config"
 	"io"
-	"io/ioutil"
+	//"io/ioutil"
 	"log"
 	"net"
 	"net/textproto"
@@ -21,8 +21,14 @@ type scriptStep struct {
 
 // Test commands in GREET state
 func TestGreetState(t *testing.T) {
-	server, logbuf := setupSmtpServer()
+	// Setup mock objects
+	mds := &MockDataStore{}
+	mb1 := &MockMailbox{}
+	mds.On("MailboxFor").Return(mb1, nil)
+
+	server, logbuf := setupSmtpServer(mds)
 	defer teardownSmtpServer(server)
+
 	var script []scriptStep
 
 	// Test out some mangled HELOs
@@ -60,8 +66,14 @@ func TestGreetState(t *testing.T) {
 
 // Test commands in READY state
 func TestReadyState(t *testing.T) {
-	server, logbuf := setupSmtpServer()
+	// Setup mock objects
+	mds := &MockDataStore{}
+	mb1 := &MockMailbox{}
+	mds.On("MailboxFor").Return(mb1, nil)
+
+	server, logbuf := setupSmtpServer(mds)
 	defer teardownSmtpServer(server)
+
 	var script []scriptStep
 
 	// Test out some mangled READY commands
@@ -119,8 +131,17 @@ func TestReadyState(t *testing.T) {
 
 // Test commands in MAIL state
 func TestMailState(t *testing.T) {
-	server, logbuf := setupSmtpServer()
+	// Setup mock objects
+	mds := &MockDataStore{}
+	mb1 := &MockMailbox{}
+	msg1 := &MockMessage{}
+	mds.On("MailboxFor").Return(mb1, nil)
+	mb1.On("NewMessage").Return(msg1)
+	msg1.On("Close").Return(nil)
+
+	server, logbuf := setupSmtpServer(mds)
 	defer teardownSmtpServer(server)
+
 	var script []scriptStep
 
 	// Test out some mangled READY commands
@@ -220,8 +241,17 @@ func TestMailState(t *testing.T) {
 
 // Test commands in DATA state
 func TestDataState(t *testing.T) {
-	server, logbuf := setupSmtpServer()
+	// Setup mock objects
+	mds := &MockDataStore{}
+	mb1 := &MockMailbox{}
+	msg1 := &MockMessage{}
+	mds.On("MailboxFor").Return(mb1, nil)
+	mb1.On("NewMessage").Return(msg1)
+	msg1.On("Close").Return(nil)
+
+	server, logbuf := setupSmtpServer(mds)
 	defer teardownSmtpServer(server)
+
 	var script []scriptStep
 	pipe := setupSmtpSession(server)
 	c := textproto.NewConn(pipe)
@@ -311,14 +341,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupSmtpServer() (*Server, *bytes.Buffer) {
-	// Setup datastore
-	path, err := ioutil.TempDir("", "inbucket")
-	if err != nil {
-		panic(err)
-	}
-	ds := NewFileDataStore(path)
-
+func setupSmtpServer(ds DataStore) (*Server, *bytes.Buffer) {
 	// Test Server Config
 	cfg := config.SmtpConfig{
 		Ip4address:      net.IPv4(127, 0, 0, 1),
@@ -353,9 +376,5 @@ func setupSmtpSession(server *Server) net.Conn {
 }
 
 func teardownSmtpServer(server *Server) {
-	ds := server.dataStore.(*FileDataStore)
-	if err := os.RemoveAll(ds.path); err != nil {
-		panic(err)
-	}
 	//log.SetOutput(os.Stderr)
 }

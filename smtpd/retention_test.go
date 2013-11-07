@@ -69,7 +69,8 @@ type MockDataStore struct {
 }
 
 func (m *MockDataStore) MailboxFor(name string) (Mailbox, error) {
-	return nil, nil
+	args := m.Called()
+	return args.Get(0).(Mailbox), args.Error(1)
 }
 
 func (m *MockDataStore) AllMailboxes() ([]Mailbox, error) {
@@ -158,8 +159,8 @@ func (m *MockMessage) Size() int64 {
 }
 
 func (m *MockMessage) Append(data []byte) error {
-	args := m.Called(data)
-	return args.Error(0)
+	// []byte arg seems to mess up testify/mock
+	return nil
 }
 
 func (m *MockMessage) Close() error {

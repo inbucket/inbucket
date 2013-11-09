@@ -334,6 +334,48 @@ func TestFSSize(t *testing.T) {
 	}
 }
 
+// Test missing files
+func TestFSMissing(t *testing.T) {
+	ds, logbuf := setupDataStore()
+	defer teardownDataStore(ds)
+
+	mbName := "fred"
+	subjects := []string{"a", "b", "c"}
+	sentIds := make([]string, len(subjects))
+
+	for i, subj := range subjects {
+		// Add a message
+		id, _ := deliverMessage(ds, mbName, subj, time.Now())
+		sentIds[i] = id
+	}
+
+	mb, err := ds.MailboxFor(mbName)
+	if err != nil {
+		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
+	}
+
+	// Delete a message file without removing it from index
+	msg, err := mb.GetMessage(sentIds[1])
+	assert.Nil(t, err)
+	fmsg := msg.(*FileMessage)
+	os.Remove(fmsg.rawPath())
+	msg, err = mb.GetMessage(sentIds[1])
+	assert.Nil(t, err)
+
+	// Try to read parts of message
+	_, err = msg.ReadHeader()
+	assert.Error(t, err)
+	_, err = msg.ReadBody()
+	assert.Error(t, err)
+
+	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
+}
+
 // setupDataStore creates a new FileDataStore in a temporary directory
 func setupDataStore() (*FileDataStore, *bytes.Buffer) {
 	path, err := ioutil.TempDir("", "inbucket")

@@ -330,10 +330,10 @@ func (m *FileMessage) rawPath() string {
 // ReadHeader opens the .raw portion of a Message and returns a standard Go mail.Message object
 func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
 	file, err := os.Open(m.rawPath())
-	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 	reader := bufio.NewReader(file)
 	msg, err = mail.ReadMessage(reader)
 	return msg, err

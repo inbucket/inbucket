@@ -4,6 +4,14 @@
 {{define "script"}}
 <script>
   var selected = "{{.selected}}"
+  function messageLoaded(responseText, textStatus, XMLHttpRequest) {
+    if (textStatus == "error") {
+      alert("Failed to load message, server said:\n" + responseText)
+    } else {
+      window.scrollTo(0,0)
+    }
+  }
+
   function listLoaded() {
     $('.listEntry').hover(
     function() {
@@ -16,7 +24,7 @@
     function() {
       $('.listEntry').removeClass("listEntrySelected")
       $(this).addClass("listEntrySelected")
-      $('#emailContent').load('/mailbox/{{.name}}/' + this.id)
+      $('#emailContent').load('/mailbox/{{.name}}/' + this.id, messageLoaded)
     }
     )
     $("#messageList").slideDown()

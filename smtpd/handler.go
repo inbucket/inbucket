@@ -24,6 +24,8 @@ const (
 	QUIT               // Close session
 )
 
+const STAMP_FMT = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
+
 func (s State) String() string {
 	switch s {
 	case GREET:
@@ -59,15 +61,16 @@ var commands = map[string]bool{
 }
 
 type Session struct {
-	server     *Server
-	id         int
-	conn       net.Conn
-	remoteHost string
-	sendError  error
-	state      State
-	reader     *bufio.Reader
-	from       string
-	recipients *list.List
+	server       *Server
+	id           int
+	conn         net.Conn
+	remoteDomain string
+	remoteHost   string
+	sendError    error
+	state        State
+	reader       *bufio.Reader
+	from         string
+	recipients   *list.List
 }
 
 func NewSession(server *Server, id int, conn net.Conn) *Session {
@@ -196,9 +199,21 @@ func (s *Server) startSession(id int, conn net.Conn) {
 func (ss *Session) greetHandler(cmd string, arg string) {
 	switch cmd {
 	case "HELO":
+		domain, err := parseHelloArgument(arg)
+		if err != nil {
+			ss.send("501 Domain/address argument required for HELO")
+			return
+		}
+		ss.remoteDomain = domain
 		ss.send("250 Great, let's get this show on the road")
 		ss.enterState(READY)
 	case "EHLO":
+		domain, err := parseHelloArgument(arg)
+		if err != nil {
+			ss.send("501 Domain/address argument required for EHLO")
+			return
+		}
+		ss.remoteDomain = domain
 		ss.send("250-Great, let's get this show on the road")
 		ss.send("250-8BITMIME")
 		ss.send(fmt.Sprintf("250 SIZE %v", ss.server.maxMessageBytes))
@@ -206,6 +221,17 @@ func (ss *Session) greetHandler(cmd string, arg string) {
 	default:
 		ss.ooSeq(cmd)
 	}
+}
+
+func parseHelloArgument(arg string) (string, error) {
+	domain := arg
+	if idx := strings.IndexRune(arg, ' '); idx >= 0 {
+		domain = arg[:idx]
+	}
+	if domain == "" {
+		return "", fmt.Errorf("Invalid domain")
+	}
+	return domain, nil
 }
 
 // READY state -> waiting for MAIL
@@ -305,11 +331,12 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 
 // DATA
 func (ss *Session) dataHandler() {
-	msgSize := 0
-
+	// Timestamp for Received header
+	stamp := time.Now().Format(STAMP_FMT)
 	// Get a Mailbox and a new Message for each recipient
 	mailboxes := make([]Mailbox, ss.recipients.Len())
 	messages := make([]Message, ss.recipients.Len())
+	msgSize := 0
 	if ss.server.storeMessages {
 		i := 0
 		for e := ss.recipients.Front(); e != nil; e = e.Next() {
@@ -332,6 +359,11 @@ func (ss *Session) dataHandler() {
 				}
 				mailboxes[i] = mb
 				messages[i] = mb.NewMessage()
+
+				// Generate Received header
+				recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
+					ss.remoteDomain, ss.remoteHost, ss.server.domain, recip, stamp)
+				messages[i].Append([]byte(recd))
 			} else {
 				log.LogTrace("Not storing message for %q", recip)
 			}

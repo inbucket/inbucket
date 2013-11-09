@@ -33,6 +33,8 @@ func TestGreetState(t *testing.T) {
 
 	// Test out some mangled HELOs
 	script = []scriptStep{
+		{"HELO", 501},
+		{"EHLO", 501},
 		{"HELLO", 500},
 		{"HELL", 500},
 		{"hello", 500},
@@ -43,9 +45,6 @@ func TestGreetState(t *testing.T) {
 	}
 
 	// Valid HELOs
-	if err := playSession(t, server, []scriptStep{{"HELO", 250}}); err != nil {
-		t.Error(err)
-	}
 	if err := playSession(t, server, []scriptStep{{"HELO mydomain", 250}}); err != nil {
 		t.Error(err)
 	}
@@ -53,6 +52,23 @@ func TestGreetState(t *testing.T) {
 		t.Error(err)
 	}
 	if err := playSession(t, server, []scriptStep{{"HelO mydom.com", 250}}); err != nil {
+		t.Error(err)
+	}
+	if err := playSession(t, server, []scriptStep{{"helo 127.0.0.1", 250}}); err != nil {
+		t.Error(err)
+	}
+
+	// Valid EHLOs
+	if err := playSession(t, server, []scriptStep{{"EHLO mydomain", 250}}); err != nil {
+		t.Error(err)
+	}
+	if err := playSession(t, server, []scriptStep{{"EHLO mydom.com", 250}}); err != nil {
+		t.Error(err)
+	}
+	if err := playSession(t, server, []scriptStep{{"EhlO mydom.com", 250}}); err != nil {
+		t.Error(err)
+	}
+	if err := playSession(t, server, []scriptStep{{"ehlo 127.0.0.1", 250}}); err != nil {
 		t.Error(err)
 	}
 
@@ -317,7 +333,7 @@ func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) err
 		}
 
 		c.StartResponse(id)
-		code, msg, err := c.ReadCodeLine(step.expect)
+		code, msg, err := c.ReadResponse(step.expect)
 		if err != nil {
 			err = fmt.Errorf("Step %d, sent %q, expected %v, got %v: %q",
 				i, step.send, step.expect, code, msg)

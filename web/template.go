@@ -1,7 +1,6 @@
 package web
 
 import (
-	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 	"html/template"
 	"net/http"
@@ -49,9 +48,8 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 		return t, nil
 	}
 
-	cfg := config.GetWebConfig()
 	tempPath := strings.Replace(name, "/", string(filepath.Separator), -1)
-	tempFile := filepath.Join(cfg.TemplateDir, tempPath)
+	tempFile := filepath.Join(webConfig.TemplateDir, tempPath)
 	log.LogTrace("Parsing template %v", tempFile)
 
 	var err error
@@ -63,14 +61,14 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 		t, err = t.ParseFiles(tempFile)
 	} else {
 		t = template.New("_base.html").Funcs(TemplateFuncs)
-		t, err = t.ParseFiles(filepath.Join(cfg.TemplateDir, "_base.html"), tempFile)
+		t, err = t.ParseFiles(filepath.Join(webConfig.TemplateDir, "_base.html"), tempFile)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	// Allows us to disable caching for theme development
-	if cfg.TemplateCache {
+	if webConfig.TemplateCache {
 		if partial {
 			log.LogTrace("Caching partial %v", name)
 			cachedTemplates[name] = t

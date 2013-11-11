@@ -18,11 +18,24 @@ import (
 
 type handler func(http.ResponseWriter, *http.Request, *Context) error
 
+var webConfig config.WebConfig
 var DataStore smtpd.DataStore
 var Router *mux.Router
 var listener net.Listener
 var sessionStore sessions.Store
 var shutdown bool
+
+// Initialize sets up things for unit tests or the Start() method
+func Initialize(cfg config.WebConfig, ds smtpd.DataStore) {
+	webConfig = cfg
+	setupRoutes(cfg)
+
+	// NewContext() will use this DataStore for the web handlers
+	DataStore = ds
+
+	// TODO Make configurable
+	sessionStore = sessions.NewCookieStore([]byte("something-very-secret"))
+}
 
 func setupRoutes(cfg config.WebConfig) {
 	log.LogInfo("Theme templates mapped to '%v'", cfg.TemplateDir)
@@ -54,16 +67,7 @@ func setupRoutes(cfg config.WebConfig) {
 
 // Start() the web server
 func Start() {
-	cfg := config.GetWebConfig()
-	setupRoutes(cfg)
-
-	// NewContext() will use this DataStore for the web handlers
-	DataStore = smtpd.DefaultFileDataStore()
-
-	// TODO Make configurable
-	sessionStore = sessions.NewCookieStore([]byte("something-very-secret"))
-
-	addr := fmt.Sprintf("%v:%v", cfg.Ip4address, cfg.Ip4port)
+	addr := fmt.Sprintf("%v:%v", webConfig.Ip4address, webConfig.Ip4port)
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      nil,

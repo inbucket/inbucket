@@ -98,6 +98,7 @@ func main() {
 	ds := smtpd.DefaultFileDataStore()
 
 	// Start HTTP server
+	web.Initialize(config.GetWebConfig(), ds)
 	go web.Start()
 
 	// Start POP3 server

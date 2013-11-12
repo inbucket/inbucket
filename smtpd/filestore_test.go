@@ -3,6 +3,7 @@ package smtpd
 import (
 	"bytes"
 	"fmt"
+	"github.com/jhillyerd/inbucket/config"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
@@ -15,7 +16,7 @@ import (
 
 // Test directory structure created by filestore
 func TestFSDirStructure(t *testing.T) {
-	ds, logbuf := setupDataStore()
+	ds, logbuf := setupDataStore(config.DataStoreConfig{})
 	defer teardownDataStore(ds)
 	root := ds.path
 
@@ -99,7 +100,7 @@ func TestFSDirStructure(t *testing.T) {
 
 // Test FileDataStore.AllMailboxes()
 func TestFSAllMailboxes(t *testing.T) {
-	ds, logbuf := setupDataStore()
+	ds, logbuf := setupDataStore(config.DataStoreConfig{})
 	defer teardownDataStore(ds)
 
 	for _, name := range []string{"abby", "bill", "christa", "donald", "evelyn"} {
@@ -127,7 +128,7 @@ func TestFSAllMailboxes(t *testing.T) {
 // Test delivering several messages to the same mailbox, meanwhile querying its
 // contents with a new mailbox object each time
 func TestFSDeliverMany(t *testing.T) {
-	ds, logbuf := setupDataStore()
+	ds, logbuf := setupDataStore(config.DataStoreConfig{})
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -176,7 +177,7 @@ func TestFSDeliverMany(t *testing.T) {
 
 // Test deleting messages
 func TestFSDelete(t *testing.T) {
-	ds, logbuf := setupDataStore()
+	ds, logbuf := setupDataStore(config.DataStoreConfig{})
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -250,7 +251,7 @@ func TestFSDelete(t *testing.T) {
 
 // Test purging a mailbox
 func TestFSPurge(t *testing.T) {
-	ds, logbuf := setupDataStore()
+	ds, logbuf := setupDataStore(config.DataStoreConfig{})
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -298,7 +299,7 @@ func TestFSPurge(t *testing.T) {
 
 // Test message size calculation
 func TestFSSize(t *testing.T) {
-	ds, logbuf := setupDataStore()
+	ds, logbuf := setupDataStore(config.DataStoreConfig{})
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -336,7 +337,7 @@ func TestFSSize(t *testing.T) {
 
 // Test missing files
 func TestFSMissing(t *testing.T) {
-	ds, logbuf := setupDataStore()
+	ds, logbuf := setupDataStore(config.DataStoreConfig{})
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -376,8 +377,88 @@ func TestFSMissing(t *testing.T) {
 	}
 }
 
+// Test delivering several messages to the same mailbox, see if message cap works
+func TestFSMessageCap(t *testing.T) {
+	mbCap := 10
+	ds, logbuf := setupDataStore(config.DataStoreConfig{MailboxMsgCap: mbCap})
+	defer teardownDataStore(ds)
+
+	mbName := "captain"
+	for i := 0; i < 20; i++ {
+		// Add a message
+		subj := fmt.Sprintf("subject %v", i)
+		deliverMessage(ds, mbName, subj, time.Now())
+		t.Logf("Delivered %q", subj)
+
+		// Check number of messages
+		mb, err := ds.MailboxFor(mbName)
+		if err != nil {
+			t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
+		}
+		msgs, err := mb.GetMessages()
+		if err != nil {
+			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
+		}
+		if len(msgs) > mbCap {
+			t.Errorf("Mailbox should be capped at %v messages, but has %v", mbCap, len(msgs))
+		}
+
+		// Check that the first message is correct
+		first := i - mbCap + 1
+		if first < 0 {
+			first = 0
+		}
+		firstSubj := fmt.Sprintf("subject %v", first)
+		if firstSubj != msgs[0].Subject() {
+			t.Errorf("Expected first subject to be %q, got %q", firstSubj, msgs[0].Subject())
+		}
+	}
+
+	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
+}
+
+// Test delivering several messages to the same mailbox, see if no message cap works
+func TestFSNoMessageCap(t *testing.T) {
+	mbCap := 0
+	ds, logbuf := setupDataStore(config.DataStoreConfig{MailboxMsgCap: mbCap})
+	defer teardownDataStore(ds)
+
+	mbName := "captain"
+	for i := 0; i < 20; i++ {
+		// Add a message
+		subj := fmt.Sprintf("subject %v", i)
+		deliverMessage(ds, mbName, subj, time.Now())
+		t.Logf("Delivered %q", subj)
+
+		// Check number of messages
+		mb, err := ds.MailboxFor(mbName)
+		if err != nil {
+			t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
+		}
+		msgs, err := mb.GetMessages()
+		if err != nil {
+			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
+		}
+		if len(msgs) != i+1 {
+			t.Errorf("Expected %v messages, got %v", i+1, len(msgs))
+		}
+	}
+
+	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
+}
+
 // setupDataStore creates a new FileDataStore in a temporary directory
-func setupDataStore() (*FileDataStore, *bytes.Buffer) {
+func setupDataStore(cfg config.DataStoreConfig) (*FileDataStore, *bytes.Buffer) {
 	path, err := ioutil.TempDir("", "inbucket")
 	if err != nil {
 		panic(err)
@@ -387,12 +468,14 @@ func setupDataStore() (*FileDataStore, *bytes.Buffer) {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 
-	return NewFileDataStore(path).(*FileDataStore), buf
+	cfg.Path = path
+	return NewFileDataStore(cfg).(*FileDataStore), buf
 }
 
 // deliverMessage creates and delivers a message to the specific mailbox, returning
 // the size of the generated message.
-func deliverMessage(ds *FileDataStore, mbName string, subject string, date time.Time) (id string, size int) {
+func deliverMessage(ds *FileDataStore, mbName string, subject string,
+	date time.Time) (id string, size int) {
 	// Build fake SMTP message for delivery
 	testMsg := make([]byte, 0, 300)
 	testMsg = append(testMsg, []byte("To: somebody@host\r\n")...)
@@ -407,12 +490,13 @@ func deliverMessage(ds *FileDataStore, mbName string, subject string, date time.
 	}
 	// Create message object
 	id = generateId(date)
-	msg := &FileMessage{
-		mailbox:  mb.(*FileMailbox),
-		writable: true,
-		Fdate:    date,
-		Fid:      id,
+	msg, err := mb.NewMessage()
+	if err != nil {
+		panic(err)
 	}
+	fmsg := msg.(*FileMessage)
+	fmsg.Fdate = date
+	fmsg.Fid = id
 	msg.Append(testMsg)
 	if err = msg.Close(); err != nil {
 		panic(err)

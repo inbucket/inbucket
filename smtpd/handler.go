@@ -352,13 +352,18 @@ func (ss *Session) dataHandler() {
 				// Not our "no store" domain, so store the message
 				mb, err := ss.server.dataStore.MailboxFor(local)
 				if err != nil {
-					ss.logError("Failed to open mailbox for %q", local)
+					ss.logError("Failed to open mailbox for %q: %s", local, err)
 					ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", local))
 					ss.reset()
 					return
 				}
 				mailboxes[i] = mb
-				messages[i] = mb.NewMessage()
+				if messages[i], err = mb.NewMessage(); err != nil {
+					ss.logError("Failed to create message for %q: %s", local, err)
+					ss.send(fmt.Sprintf("451 Failed to create message for %v", local))
+					ss.reset()
+					return
+				}
 
 				// Generate Received header
 				recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",

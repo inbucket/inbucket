@@ -16,7 +16,7 @@ type Mailbox interface {
 	GetMessages() ([]Message, error)
 	GetMessage(id string) (Message, error)
 	Purge() error
-	NewMessage() Message
+	NewMessage() (Message, error)
 	String() string
 }
 

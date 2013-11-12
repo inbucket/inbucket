@@ -44,33 +44,31 @@ func countGenerator(c chan int) {
 // A DataStore is the root of the mail storage hiearchy.  It provides access to
 // Mailbox objects
 type FileDataStore struct {
-	path     string
-	mailPath string
+	path       string
+	mailPath   string
+	messageCap int
 }
 
 // NewFileDataStore creates a new DataStore object using the specified path
-func NewFileDataStore(path string) DataStore {
+func NewFileDataStore(cfg config.DataStoreConfig) DataStore {
+	path := cfg.Path
+	if path == "" {
+		log.LogError("No value configured for datastore path")
+		return nil
+	}
 	mailPath := filepath.Join(path, "mail")
 	if _, err := os.Stat(mailPath); err != nil {
 		// Mail datastore does not yet exist
 		os.MkdirAll(mailPath, 0770)
 	}
-	return &FileDataStore{path: path, mailPath: mailPath}
+	return &FileDataStore{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}
 }
 
 // DefaultFileDataStore creates a new DataStore object.  It uses the inbucket.Config object to
 // construct it's path.
 func DefaultFileDataStore() DataStore {
-	path, err := config.Config.String("datastore", "path")
-	if err != nil {
-		log.LogError("Error getting datastore path: %v", err)
-		return nil
-	}
-	if path == "" {
-		log.LogError("No value configured for datastore path")
-		return nil
-	}
-	return NewFileDataStore(path)
+	cfg := config.GetDataStoreConfig()
+	return NewFileDataStore(cfg)
 }
 
 // Retrieves the Mailbox object for a specified email address, if the mailbox
@@ -292,11 +290,28 @@ type FileMessage struct {
 }
 
 // NewMessage creates a new Message object and sets the Date and Id fields.
-func (mb *FileMailbox) NewMessage() Message {
+// It will also delete messages over messageCap if configured.
+func (mb *FileMailbox) NewMessage() (Message, error) {
+	// Load index
+	if !mb.indexLoaded {
+		if err := mb.readIndex(); err != nil {
+			return nil, err
+		}
+	}
+
+	// Delete old messages over messageCap
+	if mb.store.messageCap > 0 {
+		for len(mb.messages) >= mb.store.messageCap {
+			log.LogInfo("Mailbox %q over configured message cap", mb.name)
+			if err := mb.messages[0].Delete(); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	date := time.Now()
 	id := generateId(date)
-
-	return &FileMessage{mailbox: mb, Fid: id, Fdate: date, writable: true}
+	return &FileMessage{mailbox: mb, Fid: id, Fdate: date, writable: true}, nil
 }
 
 func (m *FileMessage) Id() string {

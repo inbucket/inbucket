@@ -42,6 +42,7 @@ type DataStoreConfig struct {
 	Path             string
 	RetentionMinutes int
 	RetentionSleep   int
+	MailboxMsgCap    int
 }
 
 var (
@@ -121,6 +122,7 @@ func LoadConfig(filename string) error {
 	requireOption(messages, "datastore", "path")
 	requireOption(messages, "datastore", "retention.minutes")
 	requireOption(messages, "datastore", "retention.sleep.millis")
+	requireOption(messages, "datastore", "mailbox.message.cap")
 
 	// Return error if validations failed
 	if messages.Len() > 0 {
@@ -358,6 +360,11 @@ func parseDataStoreConfig() error {
 	}
 	option = "retention.sleep.millis"
 	dataStoreConfig.RetentionSleep, err = Config.Int(section, option)
+	if err != nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
+	option = "mailbox.message.cap"
+	dataStoreConfig.MailboxMsgCap, err = Config.Int(section, option)
 	if err != nil {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}

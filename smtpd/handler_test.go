@@ -152,7 +152,7 @@ func TestMailState(t *testing.T) {
 	mb1 := &MockMailbox{}
 	msg1 := &MockMessage{}
 	mds.On("MailboxFor").Return(mb1, nil)
-	mb1.On("NewMessage").Return(msg1)
+	mb1.On("NewMessage").Return(msg1, nil)
 	msg1.On("Close").Return(nil)
 
 	server, logbuf := setupSmtpServer(mds)
@@ -262,7 +262,7 @@ func TestDataState(t *testing.T) {
 	mb1 := &MockMailbox{}
 	msg1 := &MockMessage{}
 	mds.On("MailboxFor").Return(mb1, nil)
-	mb1.On("NewMessage").Return(msg1)
+	mb1.On("NewMessage").Return(msg1, nil)
 	msg1.On("Close").Return(nil)
 
 	server, logbuf := setupSmtpServer(mds)

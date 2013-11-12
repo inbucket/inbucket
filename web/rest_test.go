@@ -114,9 +114,9 @@ func (m *MockMailbox) Purge() error {
 	return args.Error(0)
 }
 
-func (m *MockMailbox) NewMessage() smtpd.Message {
+func (m *MockMailbox) NewMessage() (smtpd.Message, error) {
 	args := m.Called()
-	return args.Get(0).(smtpd.Message)
+	return args.Get(0).(smtpd.Message), args.Error(1)
 }
 
 func (m *MockMailbox) String() string {

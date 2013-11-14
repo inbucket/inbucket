@@ -1,11 +1,14 @@
 package smtpd
 
 import (
+	"errors"
 	"github.com/jhillyerd/go.enmime"
 	"io"
 	"net/mail"
 	"time"
 )
+
+var ErrNotExist = errors.New("Message does not exist")
 
 type DataStore interface {
 	MailboxFor(emailAddress string) (Mailbox, error)

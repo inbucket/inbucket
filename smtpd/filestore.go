@@ -176,7 +176,7 @@ func (mb *FileMailbox) GetMessage(id string) (Message, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Message %s not in index", id)
+	return nil, ErrNotExist
 }
 
 // Delete all messages in this mailbox

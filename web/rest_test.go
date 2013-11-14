@@ -23,10 +23,21 @@ type OutputJsonHeader struct {
 	Size                             int
 }
 
+type OutputJsonMessage struct {
+	Mailbox, Id, From, Subject, Date string
+	Size                             int
+	Header                           map[string][]string
+	Body                             struct {
+		Text, Html string
+	}
+}
+
 type InputMessageData struct {
 	Mailbox, Id, From, Subject string
 	Date                       time.Time
 	Size                       int
+	Header                     mail.Header
+	Html, Text                 string
 }
 
 func (d *InputMessageData) MockMessage() *MockMessage {
@@ -36,10 +47,19 @@ func (d *InputMessageData) MockMessage() *MockMessage {
 	msg.On("Subject").Return(d.Subject)
 	msg.On("Date").Return(d.Date)
 	msg.On("Size").Return(d.Size)
+	gomsg := &mail.Message{
+		Header: d.Header,
+	}
+	msg.On("ReadHeader").Return(gomsg, nil)
+	body := &enmime.MIMEBody{
+		Text: d.Text,
+		Html: d.Html,
+	}
+	msg.On("ReadBody").Return(body, nil)
 	return msg
 }
 
-func (d *InputMessageData) CompareToJson(j *OutputJsonHeader) (errors []string) {
+func (d *InputMessageData) CompareToJsonHeader(j *OutputJsonHeader) (errors []string) {
 	if d.Mailbox != j.Mailbox {
 		errors = append(errors, fmt.Sprintf("Expected JSON.Mailbox=%q, got %q", d.Mailbox,
 			j.Mailbox))
@@ -64,6 +84,63 @@ func (d *InputMessageData) CompareToJson(j *OutputJsonHeader) (errors []string) 
 	if d.Size != j.Size {
 		errors = append(errors, fmt.Sprintf("Expected JSON.Size=%v, got %v", d.Size,
 			j.Size))
+	}
+
+	return errors
+}
+
+func (d *InputMessageData) CompareToJsonMessage(j *OutputJsonMessage) (errors []string) {
+	if d.Mailbox != j.Mailbox {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Mailbox=%q, got %q", d.Mailbox,
+			j.Mailbox))
+	}
+	if d.Id != j.Id {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Id=%q, got %q", d.Id,
+			j.Id))
+	}
+	if d.From != j.From {
+		errors = append(errors, fmt.Sprintf("Expected JSON.From=%q, got %q", d.From,
+			j.From))
+	}
+	if d.Subject != j.Subject {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Subject=%q, got %q", d.Subject,
+			j.Subject))
+	}
+	exDate := d.Date.Format("2006-01-02T15:04:05.999999999-07:00")
+	if exDate != j.Date {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Date=%q, got %q", exDate,
+			j.Date))
+	}
+	if d.Size != j.Size {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Size=%v, got %v", d.Size,
+			j.Size))
+	}
+	if d.Text != j.Body.Text {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Text=%q, got %q", d.Text,
+			j.Body.Text))
+	}
+	if d.Html != j.Body.Html {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Html=%q, got %q", d.Html,
+			j.Body.Html))
+	}
+	for k, vals := range d.Header {
+		jvals, ok := j.Header[k]
+		if ok {
+			for _, v := range vals {
+				hasValue := false
+				for _, jv := range jvals {
+					if v == jv {
+						hasValue = true
+						break
+					}
+				}
+				if !hasValue {
+					errors = append(errors, fmt.Sprintf("JSON.Header[%q] missing value %q", k, v))
+				}
+			}
+		} else {
+			errors = append(errors, fmt.Sprintf("JSON.Header missing key %q", k))
+		}
 	}
 
 	return errors
@@ -170,12 +247,121 @@ func TestRestMailboxList(t *testing.T) {
 	if len(result) != 2 {
 		t.Errorf("Expected 2 results, got %v", len(result))
 	}
-	if errors := data1.CompareToJson(&result[0]); len(errors) > 0 {
+	if errors := data1.CompareToJsonHeader(&result[0]); len(errors) > 0 {
 		for _, e := range errors {
 			t.Error(e)
 		}
 	}
-	if errors := data2.CompareToJson(&result[1]); len(errors) > 0 {
+	if errors := data2.CompareToJsonHeader(&result[1]); len(errors) > 0 {
+		for _, e := range errors {
+			t.Error(e)
+		}
+	}
+
+	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
+}
+
+func TestRestMessage(t *testing.T) {
+	// Setup
+	ds := &MockDataStore{}
+	logbuf := setupWebServer(ds)
+
+	// Test invalid mailbox name
+	w, err := testRestGet("http://localhost/mailbox/foo@bar/0001")
+	expectCode := 500
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != expectCode {
+		t.Errorf("Expected code %v, got %v", expectCode, w.Code)
+	}
+
+	// Test requesting a message that does not exist
+	emptybox := &MockMailbox{}
+	ds.On("MailboxFor", "empty").Return(emptybox, nil)
+	emptybox.On("GetMessage", "0001").Return(&MockMessage{}, smtpd.ErrNotExist)
+
+	w, err = testRestGet("http://localhost/mailbox/empty/0001")
+	expectCode = 404
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != expectCode {
+		t.Errorf("Expected code %v, got %v", expectCode, w.Code)
+	}
+
+	// Test MailboxFor error
+	ds.On("MailboxFor", "error").Return(&MockMailbox{}, fmt.Errorf("Internal error"))
+	w, err = testRestGet("http://localhost/mailbox/error/0001")
+	expectCode = 500
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != expectCode {
+		t.Errorf("Expected code %v, got %v", expectCode, w.Code)
+	}
+
+	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure
+		io.Copy(os.Stderr, logbuf)
+	}
+
+	// Test GetMessage error
+	error2box := &MockMailbox{}
+	ds.On("MailboxFor", "error2").Return(error2box, nil)
+	error2box.On("GetMessage", "0001").Return(&MockMessage{}, fmt.Errorf("Internal error 2"))
+
+	w, err = testRestGet("http://localhost/mailbox/error2/0001")
+	expectCode = 500
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != expectCode {
+		t.Errorf("Expected code %v, got %v", expectCode, w.Code)
+	}
+
+	// Test JSON message headers
+	data1 := &InputMessageData{
+		Mailbox: "good",
+		Id:      "0001",
+		From:    "from1",
+		Subject: "subject 1",
+		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
+		Header: mail.Header{
+			"To": []string{"fred@fish.com", "keyword@nsa.gov"},
+		},
+		Text: "This is some text",
+		Html: "This is some HTML",
+	}
+	goodbox := &MockMailbox{}
+	ds.On("MailboxFor", "good").Return(goodbox, nil)
+	msg1 := data1.MockMessage()
+	goodbox.On("GetMessage", "0001").Return(msg1, nil)
+
+	// Check return code
+	w, err = testRestGet("http://localhost/mailbox/good/0001")
+	expectCode = 200
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != expectCode {
+		t.Fatalf("Expected code %v, got %v", expectCode, w.Code)
+	}
+
+	// Check JSON
+	dec := json.NewDecoder(w.Body)
+	var result OutputJsonMessage
+	if err := dec.Decode(&result); err != nil {
+		t.Errorf("Failed to decode JSON: %v", err)
+	}
+	if errors := data1.CompareToJsonMessage(&result); len(errors) > 0 {
 		for _, e := range errors {
 			t.Error(e)
 		}
@@ -206,6 +392,8 @@ func setupWebServer(ds smtpd.DataStore) *bytes.Buffer {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 
+	// Have to reset default mux to prevent duplicate routes
+	http.DefaultServeMux = http.NewServeMux()
 	cfg := config.WebConfig{
 		TemplateDir: "../themes/integral/templates",
 		PublicDir:   "../themes/integral/public",

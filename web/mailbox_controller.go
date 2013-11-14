@@ -120,6 +120,10 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 		return fmt.Errorf("MailboxFor('%v'): %v", name, err)
 	}
 	msg, err := mb.GetMessage(id)
+	if err == smtpd.ErrNotExist {
+		http.NotFound(w, req)
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("GetMessage() failed: %v", err)
 	}

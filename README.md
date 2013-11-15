@@ -2,34 +2,24 @@ Inbucket [![Build Status](https://travis-ci.org/jhillyerd/inbucket.png?branch=ma
 ========
 
 Inbucket is an email testing service; it will accept messages for any email
-address and make them available to view via a web interface.
+address and make them available via web, REST and POP3.  Once compiled,
+Inbucket does not have an external dependencies (HTTP, SMTP, POP3 and storage
+are all built in).
 
-It allows web developers, software engineers and system administrators to
-quickly see the emailed output of ther applications.  No per-account setup is
-required! Mailboxes are created on the fly as mail is received for them, and
-no password is required to browse the content of the mailboxes.
-
-Inbucket has a built-in SMTP server and stores incoming mail as flat files on
-disk - no external SMTP or database daemons required.
-
-There is also an embedded POP3 server, which allows message rendering to be
-checked in multiple email programs or to verify message delivery as part of
-an integration test suite.
-
-Read more at the [Inbucket website](http://jhillyerd.github.io/inbucket/).
+Read more at the [Inbucket website][Inbucket]
 
 Development Status
 ------------------
 
 Inbucket is currently release-candidate quality: it is being used for real work.
 
-Please check the [issues list](https://github.com/jhillyerd/inbucket/issues?state=open)
+Please check the [issues list][Issues]
 for more details.
 
-Installation from Source
+Building from Source
 ------------------------
 
-You will need a functioning [Go installation][1] for this to work.
+You will need a functioning [Go installation][Golang] for this to work.
 
 Grab the Inbucket source code and compile the daemon:
 
@@ -43,14 +33,18 @@ Unix and OS X machines as is.  Launch the daemon:
 By default the SMTP server will be listening on localhost port 2500 and
 the web interface will be available at [localhost:9000](http://localhost:9000/).
 
-There are RedHat EL6 init, logrotate and httpd proxy configs provided.
+The Inbucket website has a more complete guide to
+[installing from source][From Source]
 
 About
 -----
 
-Inbucket is written in [Google Go][1].
+Inbucket is written in [Google Go][Golang].
 
 Inbucket is open source software released under the MIT License.  The latest
 version can be found at https://github.com/jhillyerd/inbucket
 
-[1]: http://golang.org/
+[Inbucket]: http://inbucket.org/
+[Issues]: https://github.com/jhillyerd/inbucket/issues?state=open
+[From Source]: http://inbucket.org/installation/from-source.html
+[Golang]: http://golang.org/

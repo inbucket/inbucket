@@ -425,12 +425,12 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 // Send the contents of the message to the client
 func (ses *Session) sendMessage(msg smtpd.Message) {
 	reader, err := msg.RawReader()
-	defer reader.Close()
 	if err != nil {
 		ses.logError("Failed to read message for RETR command")
 		ses.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
+	defer reader.Close()
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -453,12 +453,12 @@ func (ses *Session) sendMessage(msg smtpd.Message) {
 // Send the headers plus the top N lines to the client
 func (ses *Session) sendMessageTop(msg smtpd.Message, lineCount int) {
 	reader, err := msg.RawReader()
-	defer reader.Close()
 	if err != nil {
 		ses.logError("Failed to read message for RETR command")
 		ses.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
+	defer reader.Close()
 	scanner := bufio.NewScanner(reader)
 	inBody := false
 	for scanner.Scan() {

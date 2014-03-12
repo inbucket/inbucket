@@ -155,6 +155,10 @@
   <h3>Configuration</h3>
   <table class="metrics">
     <tr>
+      <th>Version:</th>
+      <td><span>{{.version}}, built on {{.buildDate}}</span></td>
+    </tr>
+    <tr>
       <th>SMTP Listener:</th>
       <td><span>{{.smtpListener}}</span></td>
     </tr>
@@ -174,29 +178,29 @@
   <table class="metrics">
     <tr>
       <th>Uptime:</th>
-      <td><span id="m-uptime">.</span></td>
+      <td class="number"><span id="m-uptime">.</span></td>
     </tr>
     <tr>
       <th>System Memory:</th>
-      <td><span id="m-memstatsSys">.</span></td>
+      <td class="number"><span id="m-memstatsSys">.</span></td>
       <td class="sparkline"><span id="s-memstatsSys">.</span></td>
       <td>(10min)</td>
     </tr>
     <tr>
       <th>Heap Size:</th>
-      <td><span id="m-memstatsHeapSys">.</span></td>
+      <td class="number"><span id="m-memstatsHeapSys">.</span></td>
       <td class="sparkline"><span id="s-memstatsHeapSys">.</span></td>
       <td>(10min)</td>
     </tr>
     <tr>
       <th>Heap In-Use:</th>
-      <td><span id="m-memstatsHeapAlloc">.</span></td>
+      <td class="number"><span id="m-memstatsHeapAlloc">.</span></td>
       <td class="sparkline"><span id="s-memstatsHeapAlloc">.</span></td>
       <td>(10min)</td>
     </tr>
     <tr>
       <th>Heap # Objects:</th>
-      <td><span id="m-memstatsHeapObjects">.</span></td>
+      <td class="number"><span id="m-memstatsHeapObjects">.</span></td>
       <td class="sparkline"><span id="s-memstatsHeapObjects">.</span></td>
       <td>(10min)</td>
     </tr>
@@ -208,31 +212,31 @@
   <table class="metrics">
     <tr>
       <th>Current Connections:</th>
-      <td><span id="m-smtpConnectsCurrent">.</span></td>
+      <td class="number"><span id="m-smtpConnectsCurrent">.</span></td>
       <td class="sparkline"><span id="s-smtpConnectsCurrent">.</span></td>
       <td>(10min)</td>
     </tr>
     <tr>
       <th>Total Connections:</th>
-      <td><span id="m-smtpConnectsTotal">.</span></td>
+      <td class="number"><span id="m-smtpConnectsTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpConnectsTotal">.</span></td>
       <td>(60min)</td>
     </tr>
     <tr>
       <th>Messages Received:</th>
-      <td><span id="m-smtpReceivedTotal">.</span></td>
+      <td class="number"><span id="m-smtpReceivedTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpReceivedTotal">.</span></td>
       <td>(60min)</td>
     </tr>
     <tr>
       <th>Errors Logged:</th>
-      <td><span id="m-smtpErrorsTotal">.</span></td>
+      <td class="number"><span id="m-smtpErrorsTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpErrorsTotal"></span></td>
       <td>(60min)</td>
     </tr>
     <tr>
       <th>Warnings Logged:</th>
-      <td><span id="m-smtpWarnsTotal">.</span></td>
+      <td class="number"><span id="m-smtpWarnsTotal">.</span></td>
       <td class="sparkline"><span id="s-smtpWarnsTotal"></span></td>
       <td>(60min)</td>
     </tr>
@@ -264,13 +268,13 @@
     </tr>
     <tr>
       <th>Retention Deletes:</th>
-      <td><span id="m-retentionDeletesTotal">.</span></td>
+      <td class="number"><span id="m-retentionDeletesTotal">.</span></td>
       <td class="sparkline"><span id="s-retentionDeletesTotal"></span></td>
       <td>(60min)</td>
     </tr>
     <tr>
       <th>Currently Retained:</th>
-      <td><span id="m-retainedCurrent">.</span></td>
+      <td class="number"><span id="m-retainedCurrent">.</span></td>
       <td class="sparkline"><span id="s-retainedCurrent"></span></td>
       <td>(60min)</td>
     </tr>

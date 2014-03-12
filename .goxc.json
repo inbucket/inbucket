@@ -8,6 +8,6 @@
 		"Include": "README*,LICENSE*,inbucket.bat,etc,themes"
 	},
 	"PackageVersion": "1.0",
-	"PrereleaseInfo": "rc3",
+	"PrereleaseInfo": "rc4",
 	"FormatVersion": "0.8"
 }

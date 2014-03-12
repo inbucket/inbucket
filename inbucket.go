@@ -19,21 +19,31 @@ import (
 	"time"
 )
 
-// Command line flags
-var help = flag.Bool("help", false, "Displays this help")
-var pidfile = flag.String("pidfile", "none", "Write our PID into the specified file")
-var logfile = flag.String("logfile", "stderr", "Write out log into the specified file")
+var (
+	// Build info, populated during linking by goxc
+	VERSION    = "1.0"
+	BUILD_DATE = "undefined"
 
-// startTime is used to calculate uptime of Inbucket
-var startTime = time.Now()
+	// Command line flags
+	help    = flag.Bool("help", false, "Displays this help")
+	pidfile = flag.String("pidfile", "none", "Write our PID into the specified file")
+	logfile = flag.String("logfile", "stderr", "Write out log into the specified file")
 
-// The file we send log output to, will be nil for stderr or stdout
-var logf *os.File
+	// startTime is used to calculate uptime of Inbucket
+	startTime = time.Now()
 
-var smtpServer *smtpd.Server
-var pop3Server *pop3d.Server
+	// The file we send log output to, will be nil for stderr or stdout
+	logf *os.File
+
+	// Server instances
+	smtpServer *smtpd.Server
+	pop3Server *pop3d.Server
+)
 
 func main() {
+	config.VERSION = VERSION
+	config.BUILD_DATE = BUILD_DATE
+
 	flag.Parse()
 	if *help {
 		flag.Usage()
@@ -81,6 +91,8 @@ func main() {
 			os.Stderr = logf
 		}
 	}
+
+	log.LogInfo("Inbucket %v (%v) starting...", config.VERSION, config.BUILD_DATE)
 
 	// Write pidfile if requested
 	// TODO: Probably supposed to remove pidfile during shutdown

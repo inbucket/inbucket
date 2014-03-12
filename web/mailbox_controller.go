@@ -210,7 +210,7 @@ func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 		return err
 	}
 
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	return RenderPartial("mailbox/_html.html", w, map[string]interface{}{
 		"ctx":     ctx,
 		"name":    name,

@@ -320,7 +320,7 @@ table.metrics {
   width: 15em;
 }
 
-.metrics td {
+.metrics td.number {
   width: 10em;
 }
 

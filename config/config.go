@@ -46,6 +46,10 @@ type DataStoreConfig struct {
 }
 
 var (
+	// Build info, set by main
+	VERSION    = ""
+	BUILD_DATE = ""
+
 	// Global goconfig object
 	Config *config.Config
 

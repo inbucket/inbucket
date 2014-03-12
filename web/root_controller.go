@@ -13,9 +13,9 @@ func RootIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err erro
 	if err != nil {
 		return fmt.Errorf("Failed to load greeting: %v", err)
 	}
-		
+
 	return RenderTemplate("root/index.html", w, map[string]interface{}{
-		"ctx": ctx,
+		"ctx":      ctx,
 		"greeting": template.HTML(string(greeting)),
 	})
 }
@@ -30,6 +30,8 @@ func RootStatus(w http.ResponseWriter, req *http.Request, ctx *Context) (err err
 		config.GetWebConfig().Ip4port)
 	return RenderTemplate("root/status.html", w, map[string]interface{}{
 		"ctx":              ctx,
+		"version":          config.VERSION,
+		"buildDate":        config.BUILD_DATE,
 		"retentionMinutes": retentionMinutes,
 		"smtpListener":     smtpListener,
 		"pop3Listener":     pop3Listener,

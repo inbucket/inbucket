@@ -11,7 +11,7 @@ Read more at the [Inbucket website][Inbucket]
 Development Status
 ------------------
 
-Inbucket is currently release-candidate quality: it is being used for real work.
+Inbucket is currently production quality: it is being used for real work.
 
 Please check the [issues list][Issues]
 for more details.

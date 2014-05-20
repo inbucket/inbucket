@@ -5,13 +5,14 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"github.com/jhillyerd/inbucket/log"
 	"io"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jhillyerd/inbucket/log"
 )
 
 type State int

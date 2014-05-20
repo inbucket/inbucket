@@ -2,10 +2,11 @@ package smtpd
 
 import (
 	"errors"
-	"github.com/jhillyerd/go.enmime"
 	"io"
 	"net/mail"
 	"time"
+
+	"github.com/jhillyerd/go.enmime"
 )
 
 var ErrNotExist = errors.New("Message does not exist")

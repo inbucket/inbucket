@@ -5,15 +5,16 @@ package web
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+	"time"
+
 	"github.com/goods/httpbuf"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/smtpd"
-	"net"
-	"net/http"
-	"time"
 )
 
 type handler func(http.ResponseWriter, *http.Request, *Context) error

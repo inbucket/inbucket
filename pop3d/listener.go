@@ -2,12 +2,13 @@ package pop3d
 
 import (
 	"fmt"
-	"github.com/jhillyerd/inbucket/config"
-	"github.com/jhillyerd/inbucket/log"
-	"github.com/jhillyerd/inbucket/smtpd"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 // Real server code starts here

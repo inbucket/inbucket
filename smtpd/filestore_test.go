@@ -3,8 +3,6 @@ package smtpd
 import (
 	"bytes"
 	"fmt"
-	"github.com/jhillyerd/inbucket/config"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,6 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/jhillyerd/inbucket/config"
+	"github.com/stretchr/testify/assert"
 )
 
 // Test directory structure created by filestore

@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/jhillyerd/inbucket/log"
-	"github.com/jhillyerd/inbucket/smtpd"
 	"io"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 type State int

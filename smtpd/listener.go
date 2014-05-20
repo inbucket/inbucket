@@ -4,12 +4,13 @@ import (
 	"container/list"
 	"expvar"
 	"fmt"
-	"github.com/jhillyerd/inbucket/config"
-	"github.com/jhillyerd/inbucket/log"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/log"
 )
 
 // Real server code starts here

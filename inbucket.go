@@ -7,16 +7,17 @@ import (
 	"expvar"
 	"flag"
 	"fmt"
-	"github.com/jhillyerd/inbucket/config"
-	"github.com/jhillyerd/inbucket/log"
-	"github.com/jhillyerd/inbucket/pop3d"
-	"github.com/jhillyerd/inbucket/smtpd"
-	"github.com/jhillyerd/inbucket/web"
 	golog "log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/pop3d"
+	"github.com/jhillyerd/inbucket/smtpd"
+	"github.com/jhillyerd/inbucket/web"
 )
 
 var (

@@ -3,10 +3,11 @@ package smtpd
 import (
 	"container/list"
 	"expvar"
-	"github.com/jhillyerd/inbucket/config"
-	"github.com/jhillyerd/inbucket/log"
 	"sync"
 	"time"
+
+	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/log"
 )
 
 var retentionScanCompleted time.Time
@@ -30,8 +31,8 @@ func StartRetentionScanner(ds DataStore) {
 	if cfg.RetentionMinutes > 0 {
 		// Retention scanning enabled
 		log.LogInfo("Retention configured for %v minutes", cfg.RetentionMinutes)
-		go retentionScanner(ds, time.Duration(cfg.RetentionMinutes) * time.Minute,
-			time.Duration(cfg.RetentionSleep) * time.Millisecond)
+		go retentionScanner(ds, time.Duration(cfg.RetentionMinutes)*time.Minute,
+			time.Duration(cfg.RetentionSleep)*time.Millisecond)
 	} else {
 		log.LogInfo("Retention scanner disabled")
 	}

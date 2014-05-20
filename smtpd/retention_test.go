@@ -2,12 +2,13 @@ package smtpd
 
 import (
 	"fmt"
-	"github.com/jhillyerd/go.enmime"
-	"github.com/stretchr/testify/mock"
 	"io"
 	"net/mail"
 	"testing"
 	"time"
+
+	"github.com/jhillyerd/go.enmime"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestDoRetentionScan(t *testing.T) {

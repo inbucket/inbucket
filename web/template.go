@@ -1,13 +1,14 @@
 package web
 
 import (
-	"github.com/jhillyerd/inbucket/log"
 	"html/template"
 	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/jhillyerd/inbucket/log"
 )
 
 var cachedMutex sync.Mutex

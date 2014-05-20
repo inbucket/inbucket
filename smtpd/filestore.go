@@ -5,9 +5,6 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"github.com/jhillyerd/go.enmime"
-	"github.com/jhillyerd/inbucket/config"
-	"github.com/jhillyerd/inbucket/log"
 	"io"
 	"io/ioutil"
 	"net/mail"
@@ -15,6 +12,10 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/jhillyerd/go.enmime"
+	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/log"
 )
 
 // Name of index file in each mailbox

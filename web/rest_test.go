@@ -4,10 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/jhillyerd/go.enmime"
-	"github.com/jhillyerd/inbucket/config"
-	"github.com/jhillyerd/inbucket/smtpd"
-	"github.com/stretchr/testify/mock"
 	"io"
 	"log"
 	"net/http"
@@ -16,6 +12,11 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/jhillyerd/go.enmime"
+	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/smtpd"
+	"github.com/stretchr/testify/mock"
 )
 
 type OutputJsonHeader struct {

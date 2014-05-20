@@ -3,8 +3,9 @@ package smtpd
 import (
 	"bytes"
 	"fmt"
-	"github.com/jhillyerd/inbucket/config"
 	"io"
+
+	"github.com/jhillyerd/inbucket/config"
 	//"io/ioutil"
 	"log"
 	"net"

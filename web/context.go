@@ -1,11 +1,12 @@
 package web
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/smtpd"
-	"net/http"
-	"strings"
 )
 
 type Context struct {

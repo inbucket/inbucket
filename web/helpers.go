@@ -2,12 +2,13 @@ package web
 
 import (
 	"fmt"
-	"github.com/jhillyerd/inbucket/log"
 	"html"
 	"html/template"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/jhillyerd/inbucket/log"
 )
 
 var TemplateFuncs = template.FuncMap{

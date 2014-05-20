@@ -2,10 +2,11 @@ package web
 
 import (
 	"fmt"
-	"github.com/jhillyerd/inbucket/config"
 	"html/template"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/jhillyerd/inbucket/config"
 )
 
 func RootIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {

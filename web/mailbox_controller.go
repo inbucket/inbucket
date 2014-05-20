@@ -2,14 +2,15 @@ package web
 
 import (
 	"fmt"
-	"github.com/jhillyerd/inbucket/log"
-	"github.com/jhillyerd/inbucket/smtpd"
 	"html/template"
 	"io"
 	"net/http"
 	"net/mail"
 	"strconv"
 	"time"
+
+	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 type JsonMessageHeader struct {

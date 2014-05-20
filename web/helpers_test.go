@@ -1,9 +1,10 @@
 package web
 
 import (
-	"github.com/stretchr/testify/assert"
 	"html/template"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTextToHtml(t *testing.T) {

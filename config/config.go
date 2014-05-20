@@ -3,10 +3,11 @@ package config
 import (
 	"container/list"
 	"fmt"
-	"github.com/robfig/config"
 	"net"
 	"os"
 	"strings"
+
+	"github.com/robfig/config"
 )
 
 // SmtpConfig houses the SMTP server configuration - not using pointers

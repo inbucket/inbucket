@@ -20,7 +20,7 @@ func ParseMailboxName(localPart string) (result string, err error) {
 
 	invalid := make([]byte, 0, 10)
 
-	for i := 0; i<len(result); i++ {
+	for i := 0; i < len(result); i++ {
 		c := result[i]
 		switch {
 		case 'a' <= c && c <= 'z':
@@ -73,15 +73,14 @@ func ValidateDomainPart(domain string) bool {
 	}
 	prev := '.'
 	labelLen := 0
-	hasLetters := false
+	hasAlphaNum := false
 
 	for _, c := range domain {
 		switch {
-		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_':
+		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
+			('0' <= c && c <= '9') || c == '_':
 			// Must contain some of these to be a valid label
-			hasLetters = true
-			labelLen++
-		case '0' <= c && c <= '9':
+			hasAlphaNum = true
 			labelLen++
 		case c == '-':
 			if prev == '.' {
@@ -96,11 +95,11 @@ func ValidateDomainPart(domain string) bool {
 			if labelLen > 63 {
 				return false
 			}
-			if !hasLetters {
+			if !hasAlphaNum {
 				return false
 			}
 			labelLen = 0
-			hasLetters = false
+			hasAlphaNum = false
 		default:
 			// Unknown character
 			return false

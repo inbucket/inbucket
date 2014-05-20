@@ -1,14 +1,15 @@
 package smtpd
 
 import (
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseMailboxName(t *testing.T) {
-	var validTable = []struct{
-		input string
+	var validTable = []struct {
+		input  string
 		expect string
 	}{
 		{"mailbox", "mailbox"},
@@ -33,7 +34,7 @@ func TestParseMailboxName(t *testing.T) {
 		}
 	}
 
-	var invalidTable = []struct{
+	var invalidTable = []struct {
 		input, msg string
 	}{
 		{"", "Empty mailbox name is not permitted"},
@@ -74,9 +75,10 @@ func TestValidateDomain(t *testing.T) {
 		{"_domainkey.foo.com", true, "Underscores are allowed"},
 		{"bar.com.", true, "Must be able to end with a dot"},
 		{"ABC.6DBS.com", true, "Mixed case is OK"},
+		{"mail.123.com", true, "Number only label valid"},
+		{"123.com", true, "Number only label valid"},
 		{"google..com", false, "Double dot not valid"},
 		{".foo.com", false, "Cannot start with a dot"},
-		{"mail.123.com", false, "Number only label not valid"},
 		{"google\r.com", false, "Special chars not allowed"},
 		{"foo.-bar.com", false, "Label cannot start with hyphen"},
 		{"foo-.bar.com", false, "Label cannot end with hyphen"},

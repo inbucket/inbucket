@@ -44,7 +44,7 @@ Inbucket is written in [Google Go][Golang].
 Inbucket is open source software released under the MIT License.  The latest
 version can be found at https://github.com/jhillyerd/inbucket
 
-[Inbucket]: http://inbucket.org/
+[Inbucket]: http://www.inbucket.org/
 [Issues]: https://github.com/jhillyerd/inbucket/issues?state=open
-[From Source]: http://inbucket.org/installation/from-source.html
+[From Source]: http://www.inbucket.org/installation/from-source.html
 [Golang]: http://golang.org/

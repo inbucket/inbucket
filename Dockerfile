@@ -1,5 +1,6 @@
 # Docker build file for Inbucket, see https://www.docker.io/
-# Inbucket website: http://inbucket.org/
+# Inbucket website: http://www.inbucket.org/
+
 FROM crosbymichael/golang
 MAINTAINER James Hillyerd, @jameshillyerd
 

@@ -306,7 +306,7 @@ func TestFSSize(t *testing.T) {
 	mbName := "fred"
 	subjects := []string{"a", "br", "much longer than the others"}
 	sentIds := make([]string, len(subjects))
-	sentSizes := make([]int, len(subjects))
+	sentSizes := make([]int64, len(subjects))
 
 	for i, subj := range subjects {
 		// Add a message
@@ -476,7 +476,7 @@ func setupDataStore(cfg config.DataStoreConfig) (*FileDataStore, *bytes.Buffer) 
 // deliverMessage creates and delivers a message to the specific mailbox, returning
 // the size of the generated message.
 func deliverMessage(ds *FileDataStore, mbName string, subject string,
-	date time.Time) (id string, size int) {
+	date time.Time) (id string, size int64) {
 	// Build fake SMTP message for delivery
 	testMsg := make([]byte, 0, 300)
 	testMsg = append(testMsg, []byte("To: somebody@host\r\n")...)
@@ -503,7 +503,7 @@ func deliverMessage(ds *FileDataStore, mbName string, subject string,
 		panic(err)
 	}
 
-	return id, len(testMsg)
+	return id, int64(len(testMsg))
 }
 
 func teardownDataStore(ds *FileDataStore) {

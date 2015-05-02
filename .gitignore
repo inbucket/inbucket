@@ -23,6 +23,7 @@ _testmain.go
 
 # vim swp files
 *.swp
+*.swo
 
 # our binary
 /inbucket

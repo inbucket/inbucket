@@ -507,7 +507,7 @@ func (ses *Session) loadMailbox() {
 // Reset retain flag to true for all messages
 func (ses *Session) retainAll() {
 	ses.retain = make([]bool, len(ses.messages))
-	for i, _ := range ses.retain {
+	for i := range ses.retain {
 		ses.retain[i] = true
 	}
 	ses.msgCount = len(ses.messages)

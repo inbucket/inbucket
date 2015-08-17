@@ -1,0 +1,25 @@
+{
+  "name": "inbucket-bootstrap",
+  "version": "1.0.0",
+  "homepage": "http://www.inbucket.org/",
+  "authors": [
+    "James Hillyerd <james@hillyerd.com>"
+  ],
+  "description": "Bootstrap theme for Inbucket",
+  "main": [],
+  "moduleType": [
+    "globals"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.3.5",
+    "jquery": "~2.1.4"
+  }
+}

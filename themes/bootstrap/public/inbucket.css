@@ -1,0 +1,115 @@
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  padding-top: 70px;
+  /* Margin bottom by footer height */
+  margin-bottom: 60px;
+}
+
+.mailbox-header {
+  font-size: 20px;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  /* Set the fixed height of the footer here */
+  height: 70px;
+  background-color: #f5f5f5;
+}
+
+.container .text-muted {
+  margin: 20px 0;
+}
+
+#emailContent {
+  padding-bottom: 20px;
+}
+
+#emailHeader {
+  border-collapse: collapse;
+}
+
+#emailHeader th, #emailHeader td {
+  text-align: left;
+  padding: 0 3px 3px 0;
+}
+
+#emailSubject {
+  border-bottom: 1px #606060 solid;
+  margin: 0;
+  width: 617px;
+}
+
+#emailBody {
+  color: #555;
+  margin-top: 15px;
+}
+
+#emailActions {
+  padding: 5px 0;
+  margin: 0 0 10px 0;
+}
+
+#emailActions a {
+  background: #8ac6dc;
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 5px;
+}
+
+#emailActions a:hover {
+  background: #becf74;
+}
+
+.errors {
+  background-color: #ffa0a0;
+  color: #333;
+  padding: 5px 10px;
+}
+
+table.metrics {
+}
+
+.metrics th {
+  text-align: left;
+  width: 15em;
+}
+
+.metrics td.number {
+  width: 10em;
+}
+
+.metrics td.sparkline {
+  width: 200px;
+}
+
+#emailAttachments {
+  border-collapse: collapse;
+}
+
+#emailAttachments th, #emailAttachments td {
+  text-align: left;
+  padding: 0 3px 3px 0;
+}
+
+#emailAttachments .fileName:before {
+  content: '\203A\00A0';
+}
+
+#emailAttachments a {
+  background: #8ac6dc;
+  color: #fff;
+  text-decoration: none;
+  padding: 0 5px;
+}
+
+#emailAttachments a:hover {
+  background: #becf74;
+}
+

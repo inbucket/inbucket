@@ -13,19 +13,13 @@
   }
 
   function listLoaded() {
-    $('.listEntry').hover(
-    function() {
-      $(this).addClass("listEntryHover")
-    },
-    function() {
-      $(this).removeClass("listEntryHover")
-    }
-    ).click(
-    function() {
-      $('.listEntry').removeClass("listEntrySelected")
-      $(this).addClass("listEntrySelected")
-      $('#emailContent').load('/mailbox/{{.name}}/' + this.id, messageLoaded)
-    }
+    $('.listEntry').click(
+      function() {
+        $('.listEntry').removeClass("disabled")
+        $(this).addClass("disabled")
+        $('#emailContent').load('/mailbox/{{.name}}/' + this.id, messageLoaded)
+        selected = this.id
+      }
     )
     $("#messageList").slideDown()
     if (selected != "") {
@@ -73,20 +67,36 @@
 </script>
 {{end}}
 
-{{define "menu"}}
-<div id="logo">
-  <h1><a href="#">inbucket</a></h1>
-  <h2>mail for {{.name}}</h2>
-</div>
-<div class="box" style="text-align:center; padding-bottom:10px;">
-  <a href="javascript:reloadList()">Refresh List</a>
-</div>
-<div id="messageList"></div>
-{{end}}
-
 {{define "content"}}
-<div id="emailContent">
-  <p>Select a message at left, or enter a different username into the box on upper right.</p>
+<div class="panel panel-primary">
+  <div class="panel-body text-center mailbox-header">
+    <span class="glyphicon glyphicon-inbox" aria-hidden="true"></span>
+    {{.name}}
+  </div>
+</div>
+<div class="col-md-3">
+  <div class="text-center">
+    <a href="javascript:reloadList()">
+      <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+      Refresh
+    </a>
+  </div>
+  <div id="messageList" class="list-group"></div>
+</div>
+<div class="col-md-9">
+  {{with .ctx.Session.Flashes "errors"}}
+  <div class="errors">
+    <p>Please fix the following errors and resubmit:<p>
+    <ul>
+      {{range .}}
+      <li>{{.}}</li>
+      {{end}}
+    </ul>
+  </div>
+  {{end}}
+  <div id="emailContent">
+    <p>Select a message at left, or enter a different username into the box on upper right.</p>
+  </div>
 </div>
 {{end}}
 

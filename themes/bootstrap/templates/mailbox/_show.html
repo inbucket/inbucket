@@ -1,0 +1,39 @@
+{{$name := .name}}
+{{$id := .message.Id}}
+<div id="emailActions">
+  <a href="/link/{{$name}}/{{$id}}">Link</a>
+  <a href="javascript:deleteMessage('{{.message.Id}}');">Delete</a>
+  <a href="javascript:messageSource('{{.message.Id}}');">Source</a>
+  {{if .htmlAvailable}}
+    <a href="javascript:htmlView('{{.message.Id}}');">HTML</a>
+  {{end}}
+</div>
+<table id="emailHeader">
+  <tr>
+    <th>From:</th>
+    <td>{{.message.From}}</td>
+  </tr>
+  <tr>
+    <th>Date:</th>
+    <td>{{.message.Date}}</td>
+  </tr>
+<table>
+
+{{with .attachments}}
+<table id="emailAttachments">
+  <tr><th colspan="4">Attachments:</th></tr>
+  {{range $i, $e := .}}
+  <tr>
+    <td class="fileName">{{$e.FileName}}</td>
+    <td>({{$e.ContentType}})</td>
+    <td><a href="/mailbox/vattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}" target="_blank">View</a></td>
+    <td><a href="/mailbox/dattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}">Download</a></td>
+  </tr>
+  {{end}}
+</table>
+{{end}}
+
+<div id="emailSubject"><h3>{{.message.Subject}}</h3></div>
+
+<div id="emailBody">{{.body}}</div>
+

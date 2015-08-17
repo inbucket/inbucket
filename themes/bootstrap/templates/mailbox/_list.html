@@ -1,0 +1,12 @@
+{{$name := .name}}
+{{range .messages}}
+<div class="box listEntry" id="{{.Id}}">
+	<div class="subject">{{.Subject}}</div>
+	<div class="from">{{.From}}</div>
+	<div class="date">{{friendlyTime .Date}}</div>
+</div>
+{{else}}
+<div class="box">
+	<p style="height: 30px; padding-left: 10px;">No messages!</p>
+</div>
+{{end}}

@@ -1,3 +1,4 @@
+/* Site Wide */
 html {
   position: relative;
   min-height: 100%;
@@ -7,11 +8,6 @@ body {
   padding-top: 70px;
   /* Margin bottom by footer height */
   margin-bottom: 60px;
-}
-
-.mailbox-header {
-  text-align: center;
-  font-size: 18px;
 }
 
 .footer {
@@ -27,12 +23,14 @@ body {
   margin: 20px 0;
 }
 
-.message-controls {
-  padding: 10px 0;
+/* Mailbox & Messages */
+.mailbox-header {
+  text-align: center;
+  font-size: 18px;
 }
 
-#emailContent {
-  padding-bottom: 20px;
+.message-controls {
+  padding: 0 0 10px 0;
 }
 
 .message-header dl {
@@ -49,31 +47,20 @@ body {
   }
 }
 
+.message-body {
+  padding: 0 5px;
+}
+
 .message-attachments {
   margin-top: 20px;
+  padding: 10px 20px;;
 }
 
 .message-attachments ul {
   margin: 0
 }
 
-#emailSubject {
-  border-bottom: 1px #606060 solid;
-  margin: 0;
-  width: 617px;
-}
-
-#emailBody {
-  color: #555;
-  margin-top: 15px;
-}
-
-.errors {
-  background-color: #ffa0a0;
-  color: #333;
-  padding: 5px 10px;
-}
-
+/* Metrics */
 table.metrics {
 }
 
@@ -88,29 +75,5 @@ table.metrics {
 
 .metrics td.sparkline {
   width: 200px;
-}
-
-#emailAttachments {
-  border-collapse: collapse;
-}
-
-#emailAttachments th, #emailAttachments td {
-  text-align: left;
-  padding: 0 3px 3px 0;
-}
-
-#emailAttachments .fileName:before {
-  content: '\203A\00A0';
-}
-
-#emailAttachments a {
-  background: #8ac6dc;
-  color: #fff;
-  text-decoration: none;
-  padding: 0 5px;
-}
-
-#emailAttachments a:hover {
-  background: #becf74;
 }
 

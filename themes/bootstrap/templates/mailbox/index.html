@@ -1,49 +1,50 @@
 {{define "title"}}{{printf "Inbucket for %v" .name}}{{end}}
+{{define "navMail"}}true{{end}}
 {{$name := .name}}
 
 {{define "script"}}
 <script>
-  var selected = "{{.selected}}"
+  var selected = "{{.selected}}";
   function messageLoaded(responseText, textStatus, XMLHttpRequest) {
     if (textStatus == "error") {
-      alert("Failed to load message, server said:\n" + responseText)
+      alert("Failed to load message, server said:\n" + responseText);
     } else {
-      window.scrollTo(0,0)
+      window.scrollTo(0,0);
     }
   }
 
   function listLoaded() {
     $('.listEntry').click(
       function() {
-        $('.listEntry').removeClass("disabled")
-        $(this).addClass("disabled")
-        $('#emailContent').load('/mailbox/{{.name}}/' + this.id, messageLoaded)
-        selected = this.id
+        $('.listEntry').removeClass("disabled");
+        $(this).addClass("disabled");
+        $('#emailContent').load('/mailbox/{{.name}}/' + this.id, messageLoaded);
+        selected = this.id;
       }
     )
-    $("#messageList").slideDown()
+    $("#messageList").slideDown();
     if (selected != "") {
-      $("#" + selected).click()
-      selected = ""
+      $("#" + selected).click();
+      selected = "";
     }
   }
 
   function loadList() {
-    $('#messageList').load("/mailbox/{{.name}}", listLoaded)
+    $('#messageList').load("/mailbox/{{.name}}", listLoaded);
   }
 
   function reloadList() {
-    $('#messageList').hide()
-    loadList()
+    $('#messageList').hide();
+    loadList();
   }
 
   function listInit() {
-    $("#messageList").hide()
-    loadList()
+    $("#messageList").hide();
+    loadList();
   }
 
   function deleteMessage(id) {
-    $('#emailContent').empty()
+    $('#emailContent').empty();
     $.ajax({
       type: 'DELETE',
       url: '/mailbox/{{.name}}/' + id,
@@ -53,22 +54,27 @@
 
   function htmlView(id) {
     window.open('/mailbox/{{.name}}/' + id + "/html", '_blank',
-    'width=800,height=600,' +
-    'menubar=yes,resizable=yes,scrollbars=yes,status=yes,toolbar=yes')
+        'width=800,height=600,' +
+        'menubar=yes,resizable=yes,scrollbars=yes,status=yes,toolbar=yes');
   }
 
   function messageSource(id) {
     window.open('/mailbox/{{.name}}/' + id + "/source", '_blank',
-    'width=800,height=600,' +
-    'menubar=no,resizable=yes,scrollbars=yes,status=no,toolbar=no')
+        'width=800,height=600,' +
+        'menubar=no,resizable=yes,scrollbars=yes,status=no,toolbar=no');
   }
 
-  $(document).ready(listInit)
+  function docReady() {
+    $('#nav-mail').addClass("active");
+    listInit();
+  }
+
+  $(document).ready(docReady)
 </script>
 {{end}}
 
 {{define "content"}}
-<div class="panel panel-primary">
+<div class="panel panel-info">
   <div class="panel-heading mailbox-header">
     <span class="glyphicon glyphicon-inbox" aria-hidden="true"></span>
     {{.name}}

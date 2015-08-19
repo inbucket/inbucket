@@ -2,26 +2,26 @@
 {{$id := .message.Id}}
 <div class="btn-group btn-group-sm message-controls" role="group" aria-label="Message Controls">
   <button type="button"
-          class="btn btn-default"
+          class="btn btn-primary"
           onClick="window.open('/link/{{$name}}/{{$id}}');">
     <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
     Link
   </button>
   <button type="button"
-          class="btn btn-default"
+          class="btn btn-danger"
           onClick="deleteMessage('{{.message.Id}}');">
     <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
     Delete
   </button>
   <button type="button"
-          class="btn btn-default"
+          class="btn btn-primary"
           onClick="messageSource('{{.message.Id}}');">
     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
     Source
   </button>
   {{if .htmlAvailable}}
     <button type="button"
-            class="btn btn-default"
+            class="btn btn-primary"
             onClick="htmlView('{{.message.Id}}');">
       <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span>
       HTML
@@ -29,32 +29,46 @@
   {{end}}
 </div>
 
-<div class="well well-sm message-header">
-  <dl class="dl-horizontal">
-    <dt>From:</dt>
-    <dd>{{.message.From}}</dd>
-    <dt>Date:</dt>
-    <dd>{{.message.Date}}</dd>
-    <dt>Subject:</dt>
-    <dd>{{.message.Subject}}</dd>
-  </dl>
+<div class="panel panel-default message-header">
+  <div class="panel-body">
+    <dl class="dl-horizontal">
+      <dt>From:</dt>
+      <dd>{{.message.From}}</dd>
+      <dt>Date:</dt>
+      <dd>{{.message.Date}}</dd>
+      <dt>Subject:</dt>
+      <dd>{{.message.Subject}}</dd>
+    </dl>
+  </div>
 </div>
 
-<div id="message-body">{{.body}}</div>
+<div class="message-body">{{.body}}</div>
 
 {{with .attachments}}
-<div class="panel panel-default message-attachments">
-  <div class="panel-body">
-    <ul class="list-unstyled">
-      {{range $i, $e := .}}
-      <li>
-        {{$e.FileName}}
-        ({{$e.ContentType}})
-        <a href="/mailbox/vattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}" target="_blank">View</a>
-        <a href="/mailbox/dattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}">Download</a>
-      </li>
-      {{end}}
-    </ul>
-  </div>
+<div class="well message-attachments">
+  <ul class="list-unstyled">
+    {{range $i, $e := .}}
+    <li>
+      <span class="glyphicon glyphicon-paperclip" aria-hidden="true"></span>
+      {{$e.FileName}}
+      ({{$e.ContentType}})
+      <a class="btn btn-success btn-sm"
+         role="button"
+         href="/mailbox/vattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}"
+         target="_blank"
+         aria-label="View">
+        <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span>
+        View
+      </a>
+      <a class="btn btn-primary btn-sm"
+         role="button"
+         hhref="/mailbox/dattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}"
+         aria-label="Download">
+        <span class="glyphicon glyphicon-download" aria-hidden="true"></span>
+        Download
+      </a>
+    </li>
+    {{end}}
+  </ul>
 </div>
 {{end}}

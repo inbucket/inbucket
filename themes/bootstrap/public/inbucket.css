@@ -10,7 +10,8 @@ body {
 }
 
 .mailbox-header {
-  font-size: 20px;
+  text-align: center;
+  font-size: 18px;
 }
 
 .footer {
@@ -26,17 +27,34 @@ body {
   margin: 20px 0;
 }
 
+.message-controls {
+  padding: 10px 0;
+}
+
 #emailContent {
   padding-bottom: 20px;
 }
 
-#emailHeader {
-  border-collapse: collapse;
+.message-header dl {
+  margin-bottom: 0;
 }
 
-#emailHeader th, #emailHeader td {
-  text-align: left;
-  padding: 0 3px 3px 0;
+@media (min-width: 768px) {
+  .message-header .dl-horizontal dt {
+    width: 60px;
+  }
+
+  .message-header .dl-horizontal dd {
+    margin-left: 70px;
+  }
+}
+
+.message-attachments {
+  margin-top: 20px;
+}
+
+.message-attachments ul {
+  margin: 0
 }
 
 #emailSubject {
@@ -48,23 +66,6 @@ body {
 #emailBody {
   color: #555;
   margin-top: 15px;
-}
-
-#emailActions {
-  padding: 5px 0;
-  margin: 0 0 10px 0;
-}
-
-#emailActions a {
-  background: #8ac6dc;
-  color: #fff;
-  text-decoration: none;
-  font-weight: bold;
-  padding: 5px;
-}
-
-#emailActions a:hover {
-  background: #becf74;
 }
 
 .errors {

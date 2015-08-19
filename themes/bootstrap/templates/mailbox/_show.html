@@ -1,39 +1,60 @@
 {{$name := .name}}
 {{$id := .message.Id}}
-<div id="emailActions">
-  <a href="/link/{{$name}}/{{$id}}">Link</a>
-  <a href="javascript:deleteMessage('{{.message.Id}}');">Delete</a>
-  <a href="javascript:messageSource('{{.message.Id}}');">Source</a>
+<div class="btn-group btn-group-sm message-controls" role="group" aria-label="Message Controls">
+  <button type="button"
+          class="btn btn-default"
+          onClick="window.open('/link/{{$name}}/{{$id}}');">
+    <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
+    Link
+  </button>
+  <button type="button"
+          class="btn btn-default"
+          onClick="deleteMessage('{{.message.Id}}');">
+    <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+    Delete
+  </button>
+  <button type="button"
+          class="btn btn-default"
+          onClick="messageSource('{{.message.Id}}');">
+    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+    Source
+  </button>
   {{if .htmlAvailable}}
-    <a href="javascript:htmlView('{{.message.Id}}');">HTML</a>
+    <button type="button"
+            class="btn btn-default"
+            onClick="htmlView('{{.message.Id}}');">
+      <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span>
+      HTML
+    </button>
   {{end}}
 </div>
-<table id="emailHeader">
-  <tr>
-    <th>From:</th>
-    <td>{{.message.From}}</td>
-  </tr>
-  <tr>
-    <th>Date:</th>
-    <td>{{.message.Date}}</td>
-  </tr>
-<table>
+
+<div class="well well-sm message-header">
+  <dl class="dl-horizontal">
+    <dt>From:</dt>
+    <dd>{{.message.From}}</dd>
+    <dt>Date:</dt>
+    <dd>{{.message.Date}}</dd>
+    <dt>Subject:</dt>
+    <dd>{{.message.Subject}}</dd>
+  </dl>
+</div>
+
+<div id="message-body">{{.body}}</div>
 
 {{with .attachments}}
-<table id="emailAttachments">
-  <tr><th colspan="4">Attachments:</th></tr>
-  {{range $i, $e := .}}
-  <tr>
-    <td class="fileName">{{$e.FileName}}</td>
-    <td>({{$e.ContentType}})</td>
-    <td><a href="/mailbox/vattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}" target="_blank">View</a></td>
-    <td><a href="/mailbox/dattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}">Download</a></td>
-  </tr>
-  {{end}}
-</table>
+<div class="panel panel-default message-attachments">
+  <div class="panel-body">
+    <ul class="list-unstyled">
+      {{range $i, $e := .}}
+      <li>
+        {{$e.FileName}}
+        ({{$e.ContentType}})
+        <a href="/mailbox/vattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}" target="_blank">View</a>
+        <a href="/mailbox/dattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}">Download</a>
+      </li>
+      {{end}}
+    </ul>
+  </div>
+</div>
 {{end}}
-
-<div id="emailSubject"><h3>{{.message.Subject}}</h3></div>
-
-<div id="emailBody">{{.body}}</div>
-

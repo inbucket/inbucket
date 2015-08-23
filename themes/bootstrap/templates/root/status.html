@@ -24,149 +24,157 @@ $(document).ready(
 {{define "content"}}
 <h2>Inbucket Status</h2>
 
-<p>Metrics are polled every 10 seconds.  Inbucket does not keep history for the
+<p class="small">Metrics are polled every 10 seconds.  Inbucket does not keep history for the
 10 minute graphs, but your web browser will accumulate the data over time.</p>
 
 <div class="panel panel-default">
   <div class="panel-heading">
-    <h3 class="panel-title">Configuration</h3>
+    <h3 class="panel-title">
+      <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+      Configuration</h3>
   </div>
   <div class="panel-body">
     <table class="metrics">
-      <tr>
-        <th>Version:</th>
-        <td><span>{{.version}}, built on {{.buildDate}}</span></td>
-      </tr>
-      <tr>
-        <th>SMTP Listener:</th>
-        <td><span>{{.smtpListener}}</span></td>
-      </tr>
-      <tr>
-        <th>POP3 Listener:</th>
-        <td><span>{{.pop3Listener}}</span></td>
-      </tr>
-      <tr>
-        <th>HTTP Listener:</th>
-        <td><span>{{.webListener}}</span></td>
-      </tr>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Version:</b></div>
+        <div class="col-sm-3 col-xs-5"><span>{{.version}}, built on {{.buildDate}}</span></div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>SMTP Listener:</b></div>
+        <div class="col-sm-3 col-xs-5"><span>{{.smtpListener}}</span></div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>POP3 Listener:</b></div>
+        <div class="col-sm-3 col-xs-5"><span>{{.pop3Listener}}</span></div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>HTTP Listener:</b></div>
+        <div class="col-sm-3 col-xs-5"><span>{{.webListener}}</span></div>
+      </div>
     </table>
   </div>
 </div>
 
 <div class="panel panel-default">
   <div class="panel-heading">
-    <h3 class="panel-title">General Metrics</h3>
+    <h3 class="panel-title">
+      <span class="glyphicon glyphicon-scale" aria-hidden="true"></span>
+      General Metrics</h3>
   </div>
   <div class="panel-body">
     <table class="metrics">
-      <tr>
-        <th>Uptime:</th>
-        <td class="number"><span id="m-uptime">.</span></td>
-      </tr>
-      <tr>
-        <th>System Memory:</th>
-        <td class="number"><span id="m-memstatsSys">.</span></td>
-        <td class="sparkline"><span id="s-memstatsSys">.</span></td>
-        <td>(10min)</td>
-      </tr>
-      <tr>
-        <th>Heap Size:</th>
-        <td class="number"><span id="m-memstatsHeapSys">.</span></td>
-        <td class="sparkline"><span id="s-memstatsHeapSys">.</span></td>
-        <td>(10min)</td>
-      </tr>
-      <tr>
-        <th>Heap In-Use:</th>
-        <td class="number"><span id="m-memstatsHeapAlloc">.</span></td>
-        <td class="sparkline"><span id="s-memstatsHeapAlloc">.</span></td>
-        <td>(10min)</td>
-      </tr>
-      <tr>
-        <th>Heap # Objects:</th>
-        <td class="number"><span id="m-memstatsHeapObjects">.</span></td>
-        <td class="sparkline"><span id="s-memstatsHeapObjects">.</span></td>
-        <td>(10min)</td>
-      </tr>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Uptime:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-uptime">.</span></div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>System Memory:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-memstatsSys">.</span></div>
+        <div class="col-sm-4"><span id="s-memstatsSys">.</span></div>
+        <div class="col-sm-2 hidden-xs">(10min)</div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Heap Size:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-memstatsHeapSys">.</span></div>
+        <div class="col-sm-4"><span id="s-memstatsHeapSys">.</span></div>
+        <div class="col-sm-2 hidden-xs">(10min)</div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Heap In-Use:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-memstatsHeapAlloc">.</span></div>
+        <div class="col-sm-4"><span id="s-memstatsHeapAlloc">.</span></div>
+        <div class="col-sm-2 hidden-xs">(10min)</div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Heap # Objects:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-memstatsHeapObjects">.</span></div>
+        <div class="col-sm-4"><span id="s-memstatsHeapObjects">.</span></div>
+        <div class="col-sm-2 hidden-xs">(10min)</div>
+      </div>
     </table>
   </div>
 </div>
 <div class="panel panel-default">
   <div class="panel-heading">
-    <h3 class="panel-title">SMTP Metrics</h3>
+    <h3 class="panel-title">
+      <span class="glyphicon glyphicon-envelope" aria-hidden="true"></span>
+      SMTP Metrics</h3>
   </div>
   <div class="panel-body">
     <table class="metrics">
-      <tr>
-        <th>Current Connections:</th>
-        <td class="number"><span id="m-smtpConnectsCurrent">.</span></td>
-        <td class="sparkline"><span id="s-smtpConnectsCurrent">.</span></td>
-        <td>(10min)</td>
-      </tr>
-      <tr>
-        <th>Total Connections:</th>
-        <td class="number"><span id="m-smtpConnectsTotal">.</span></td>
-        <td class="sparkline"><span id="s-smtpConnectsTotal">.</span></td>
-        <td>(60min)</td>
-      </tr>
-      <tr>
-        <th>Messages Received:</th>
-        <td class="number"><span id="m-smtpReceivedTotal">.</span></td>
-        <td class="sparkline"><span id="s-smtpReceivedTotal">.</span></td>
-        <td>(60min)</td>
-      </tr>
-      <tr>
-        <th>Errors Logged:</th>
-        <td class="number"><span id="m-smtpErrorsTotal">.</span></td>
-        <td class="sparkline"><span id="s-smtpErrorsTotal"></span></td>
-        <td>(60min)</td>
-      </tr>
-      <tr>
-        <th>Warnings Logged:</th>
-        <td class="number"><span id="m-smtpWarnsTotal">.</span></td>
-        <td class="sparkline"><span id="s-smtpWarnsTotal"></span></td>
-        <td>(60min)</td>
-      </tr>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Current Connections:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-smtpConnectsCurrent">.</span></div>
+        <div class="col-sm-4"><span id="s-smtpConnectsCurrent">.</span></div>
+        <div class="col-sm-2 hidden-xs">(10min)</div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Total Connections:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-smtpConnectsTotal">.</span></div>
+        <div class="col-sm-4"><span id="s-smtpConnectsTotal">.</span></div>
+        <div class="col-sm-2 hidden-xs">(60min)</div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Messages Received:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-smtpReceivedTotal">.</span></div>
+        <div class="col-sm-4"><span id="s-smtpReceivedTotal">.</span></div>
+        <div class="col-sm-2 hidden-xs">(60min)</div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Errors Logged:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-smtpErrorsTotal">.</span></div>
+        <div class="col-sm-4"><span id="s-smtpErrorsTotal"></span></div>
+        <div class="col-sm-2 hidden-xs">(60min)</div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Warnings Logged:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-smtpWarnsTotal">.</span></div>
+        <div class="col-sm-4"><span id="s-smtpWarnsTotal"></span></div>
+        <div class="col-sm-2 hidden-xs">(60min)</div>
+      </div>
     </table>
   </div>
 </div>
 <div class="panel panel-default">
   <div class="panel-heading">
-    <h3 class="panel-title">Data Store Metrics</h3>
+    <h3 class="panel-title">
+      <span class="glyphicon glyphicon-hdd" aria-hidden="true"></span>
+      Data Store Metrics</h3>
   </div>
   <div class="panel-body">
     <table class="metrics">
-      <tr>
-        <th>Retention Period:</th>
-        <td colspan="3">
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Retention Period:</b></div>
+        <div class="col-sm-3 col-xs-5">
           {{if .retentionMinutes}}
           <span id="m-retentionPeriod">.</span>
           {{else}}
           Disabled
           {{end}}
-        </td>
-      </tr>
-      <tr>
-        <th>Retention Scan:</th>
-        <td colspan="3">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Retention Scan:</b></div>
+        <div class="col-sm-3 col-xs-5">
           {{if .retentionMinutes}}
           Completed <span id="m-retentionScanCompleted">.</span> ago
           {{else}}
           Disabled
           {{end}}
-        </td>
-      </tr>
-      <tr>
-        <th>Retention Deletes:</th>
-        <td class="number"><span id="m-retentionDeletesTotal">.</span></td>
-        <td class="sparkline"><span id="s-retentionDeletesTotal"></span></td>
-        <td>(60min)</td>
-      </tr>
-      <tr>
-        <th>Currently Retained:</th>
-        <td class="number"><span id="m-retainedCurrent">.</span></td>
-        <td class="sparkline"><span id="s-retainedCurrent"></span></td>
-        <td>(60min)</td>
-      </tr>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Retention Deletes:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-retentionDeletesTotal">.</span></div>
+        <div class="col-sm-4"><span id="s-retentionDeletesTotal"></span></div>
+        <div class="col-sm-2 hidden-xs">(60min)</div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Currently Retained:</b></div>
+        <div class="col-sm-3 col-xs-5"><span id="m-retainedCurrent">.</span></div>
+        <div class="col-sm-4"><span id="s-retainedCurrent"></span></div>
+        <div class="col-sm-2 hidden-xs">(60min)</div>
+      </div>
     </table>
   </div>
 </div>

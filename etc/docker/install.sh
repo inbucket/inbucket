@@ -1,17 +1,17 @@
-#!/bin/sh
+#!/bin/bash
 # install.sh
 # description: Build, test, and install Inbucket. Should be executed inside a Docker container.
 
-# Note: we assume there are no spaces in dir paths
-installdir=${INBUCKET_HOME}
-srcdir=${INBUCKET_SRC}
-bindir=$installdir/bin
+set -eo pipefail
+
+installdir="${INBUCKET_HOME}"
+srcdir="${INBUCKET_SRC}"
+bindir="$installdir/bin"
 
 # Setup
-export GOBIN=$bindir
+export GOBIN="$bindir"
 builddate="$(date --iso-8601=seconds)"
-set -e
-cd $srcdir
+cd "$srcdir"
 go clean
 
 # Build
@@ -23,11 +23,11 @@ echo "### Testing Inbucket"
 go test ./...
 
 echo "### Building Inbucket"
-mkdir -p $bindir
-go build -o inbucket -race -ldflags "-X main.BUILD_DATE '$builddate'" -v .
+mkdir -p "$bindir"
+go build -o inbucket -race -ldflags "-X 'main.BUILD_DATE=$builddate'" -v .
 
 echo "### Installing Inbucket"
-mv inbucket $bindir
+mv inbucket "$bindir"
 install etc/docker/inbucket.conf /etc/opt/inbucket.conf
 install etc/docker/greeting.html /etc/opt/inbucket-greeting.html
-cp -r themes $installdir/
+cp -r themes "$installdir/"

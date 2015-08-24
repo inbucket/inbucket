@@ -1,7 +1,7 @@
 # Docker build file for Inbucket, see https://www.docker.io/
 # Inbucket website: http://www.inbucket.org/
 
-FROM crosbymichael/golang
+FROM golang:1.5
 MAINTAINER James Hillyerd, @jameshillyerd
 
 # Configuration (WORKDIR doesn't support env vars)

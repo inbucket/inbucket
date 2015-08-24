@@ -1,0 +1,213 @@
+MIME-Version: 1.0
+Date: %DATE%
+Message-ID: <CANqLHXqq1i6cOTcEHa7W9hT21ZueMJTM4QaP5DH0YXScqYCEuw@mail.gmail.com>
+Subject: Test from Gmail
+From: %FROM_ADDRESS%
+X-ASG-Orig-Subj: Test from Gmail
+To: %TO_ADDRESS%
+Content-Type: multipart/mixed; boundary=001a113d2d045cd646051e1383c2
+X-Barracuda-Spam-Score: 0.50
+X-Barracuda-Spam-Status: No, SCORE=0.50 using global scores of TAG_LEVEL=2.0 QUARANTINE_LEVEL=1000.0 KILL_LEVEL=5.0 tests=BSF_SC5_SA210e, HTML_MESSAGE, WEIRD_PORT
+X-Barracuda-Spam-Report: Code version 3.2, rules version 3.2.3.21886
+	Rule breakdown below
+	 pts rule name              description
+	---- ---------------------- --------------------------------------------------
+	0.50 WEIRD_PORT             URI: Uses non-standard port number for HTTP
+	0.00 HTML_MESSAGE           BODY: HTML included in message
+	0.00 BSF_SC5_SA210e         Custom Rule SA210e
+
+--001a113d2d045cd646051e1383c2
+Content-Type: multipart/alternative; boundary=001a113d2d045cd63c051e1383c0
+
+--001a113d2d045cd63c051e1383c0
+Content-Type: text/plain; charset=UTF-8
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer at ex
+urna. Nunc sollicitudin venenatis dolor, eget convallis libero convallis
+eu. Nulla luctus ligula in magna condimentum, placerat lacinia nulla
+varius. Curabitur quis placerat enim, et aliquam ligula. In dignissim
+lectus vel pharetra posuere. Proin imperdiet augue orci, at dapibus urna
+sagittis vel. In nec arcu placerat, vehicula est vel, sollicitudin erat.
+Nunc tempor risus lorem, sed bibendum tellus pretium non. Sed vel tortor
+ante. Donec convallis erat ac mauris mollis feugiat. Donec pharetra ex ac
+tempus aliquam. Praesent ut purus tristique, pharetra arcu vulputate,
+eleifend felis.
+
+Aenean ut porttitor risus, a porta nunc. Donec ligula diam, sagittis at
+luctus id, luctus sit amet risus. Sed turpis nisl, fermentum vitae nibh
+non, imperdiet luctus arcu. Fusce vulputate velit porta, rutrum velit nec,
+semper eros. Suspendisse in dui non nulla lacinia tincidunt. Vivamus sit
+amet lectus eu velit condimentum gravida. Curabitur vestibulum felis nisl,
+a sagittis odio faucibus a. Nulla fermentum, ligula in gravida hendrerit,
+diam dui tempor dolor, id euismod tortor velit at massa. Phasellus et nunc
+mi. Integer tristique viverra odio vitae auctor. Lorem ipsum dolor sit
+amet, consectetur adipiscing elit. Nunc rutrum turpis ornare lorem ornare
+lacinia. Aenean vehicula ante nunc, at dignissim dolor porta eu. In hac
+habitasse platea dictumst. In hac habitasse platea dictumst. Cras ac ex
+molestie, pulvinar nisi a, finibus est.
+
+Integer a eros ut tortor convallis porta ultrices id justo. Maecenas luctus
+purus id molestie molestie. Vestibulum rutrum consequat porta. Fusce
+vulputate lacus sed nisl venenatis rhoncus. Aliquam erat volutpat.
+Suspendisse viverra eros id erat congue, nec convallis arcu volutpat. Etiam
+non sem nisi.
+
+Integer at velit sed mauris luctus sagittis. Suspendisse aliquam diam non
+enim viverra, suscipit fermentum massa accumsan. Cras eget ex justo. Aenean
+non scelerisque elit. Duis et nulla quis est dignissim bibendum. Quisque
+mattis dui vitae convallis pellentesque. Mauris arcu dui, aliquet non
+ligula et, posuere tincidunt felis.
+
+In id tortor sollicitudin, convallis elit ut, auctor libero. Nunc ut lorem
+a quam tempor lobortis. Praesent nec dolor ut erat fermentum malesuada. Cum
+sociis natoque penatibus et magnis dis parturient montes, nascetur
+ridiculus mus. Nulla facilisi. Vestibulum eget ornare justo. Donec iaculis
+purus eget massa mattis bibendum. Quisque commodo efficitur magna, ac
+tempor ipsum ultrices eu. Suspendisse id felis molestie, consequat neque
+in, vehicula velit. In a dictum dui, non tempor elit. Phasellus luctus nec
+eros viverra consequat. Aliquam efficitur metus consectetur, rhoncus sem
+vitae, facilisis arcu. Nullam eget nunc in urna mollis laoreet a at eros.
+
+--001a113d2d045cd63c051e1383c0
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr"><div>Lorem ipsum dolor sit amet, consectetur adipiscing el=
+it. Integer at ex urna. Nunc sollicitudin venenatis dolor, eget convallis l=
+ibero convallis eu. Nulla luctus ligula in magna condimentum, placerat laci=
+nia nulla varius. Curabitur quis placerat enim, et aliquam ligula. In digni=
+ssim lectus vel pharetra posuere. Proin imperdiet augue orci, at dapibus ur=
+na sagittis vel. In nec arcu placerat, vehicula est vel, sollicitudin erat.=
+ Nunc tempor risus lorem, sed bibendum tellus pretium non. Sed vel tortor a=
+nte. Donec convallis erat ac mauris mollis feugiat. Donec pharetra ex ac te=
+mpus aliquam. Praesent ut purus tristique, pharetra arcu vulputate, eleifen=
+d felis.</div><div><br></div><div>Aenean ut porttitor risus, a porta nunc. =
+Donec ligula diam, sagittis at luctus id, luctus sit amet risus. Sed turpis=
+ nisl, fermentum vitae nibh non, imperdiet luctus arcu. Fusce vulputate vel=
+it porta, rutrum velit nec, semper eros. Suspendisse in dui non nulla lacin=
+ia tincidunt. Vivamus sit amet lectus eu velit condimentum gravida. Curabit=
+ur vestibulum felis nisl, a sagittis odio faucibus a. Nulla fermentum, ligu=
+la in gravida hendrerit, diam dui tempor dolor, id euismod tortor velit at =
+massa. Phasellus et nunc mi. Integer tristique viverra odio vitae auctor. L=
+orem ipsum dolor sit amet, consectetur adipiscing elit. Nunc rutrum turpis =
+ornare lorem ornare lacinia. Aenean vehicula ante nunc, at dignissim dolor =
+porta eu. In hac habitasse platea dictumst. In hac habitasse platea dictums=
+t. Cras ac ex molestie, pulvinar nisi a, finibus est.</div><div><br></div><=
+div>Integer a eros ut tortor convallis porta ultrices id justo. Maecenas lu=
+ctus purus id molestie molestie. Vestibulum rutrum consequat porta. Fusce v=
+ulputate lacus sed nisl venenatis rhoncus. Aliquam erat volutpat. Suspendis=
+se viverra eros id erat congue, nec convallis arcu volutpat. Etiam non sem =
+nisi.</div><div><br></div><div>Integer at velit sed mauris luctus sagittis.=
+ Suspendisse aliquam diam non enim viverra, suscipit fermentum massa accums=
+an. Cras eget ex justo. Aenean non scelerisque elit. Duis et nulla quis est=
+ dignissim bibendum. Quisque mattis dui vitae convallis pellentesque. Mauri=
+s arcu dui, aliquet non ligula et, posuere tincidunt felis.</div><div><br><=
+/div><div>In id tortor sollicitudin, convallis elit ut, auctor libero. Nunc=
+ ut lorem a quam tempor lobortis. Praesent nec dolor ut erat fermentum male=
+suada. Cum sociis natoque penatibus et magnis dis parturient montes, nascet=
+ur ridiculus mus. Nulla facilisi. Vestibulum eget ornare justo. Donec iacul=
+is purus eget massa mattis bibendum. Quisque commodo efficitur magna, ac te=
+mpor ipsum ultrices eu. Suspendisse id felis molestie, consequat neque in, =
+vehicula velit. In a dictum dui, non tempor elit. Phasellus luctus nec eros=
+ viverra consequat. Aliquam efficitur metus consectetur, rhoncus sem vitae,=
+ facilisis arcu. Nullam eget nunc in urna mollis laoreet a at eros.</div>
+</div>
+
+--001a113d2d045cd63c051e1383c0--
+--001a113d2d045cd646051e1383c2
+Content-Type: text/plain; charset=US-ASCII; name="README.txt"
+Content-Disposition: attachment; filename="README.txt"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_idqb67l61
+
+SW5idWNrZXQgWyFbQnVpbGQgU3RhdHVzXShodHRwczovL3RyYXZpcy1jaS5vcmcvamhpbGx5ZXJk
+L2luYnVja2V0LnBuZz9icmFuY2g9bWFzdGVyKV0oaHR0cHM6Ly90cmF2aXMtY2kub3JnL2poaWxs
+eWVyZC9pbmJ1Y2tldCkKPT09PT09PT0KCkluYnVja2V0IGlzIGFuIGVtYWlsIHRlc3Rpbmcgc2Vy
+dmljZTsgaXQgd2lsbCBhY2NlcHQgbWVzc2FnZXMgZm9yIGFueSBlbWFpbAphZGRyZXNzIGFuZCBt
+YWtlIHRoZW0gYXZhaWxhYmxlIHZpYSB3ZWIsIFJFU1QgYW5kIFBPUDMuICBPbmNlIGNvbXBpbGVk
+LApJbmJ1Y2tldCBkb2VzIG5vdCBoYXZlIGFuIGV4dGVybmFsIGRlcGVuZGVuY2llcyAoSFRUUCwg
+U01UUCwgUE9QMyBhbmQgc3RvcmFnZQphcmUgYWxsIGJ1aWx0IGluKS4KClJlYWQgbW9yZSBhdCB0
+aGUgW0luYnVja2V0IHdlYnNpdGVdW0luYnVja2V0XQoKRGV2ZWxvcG1lbnQgU3RhdHVzCi0tLS0t
+LS0tLS0tLS0tLS0tLQoKSW5idWNrZXQgaXMgY3VycmVudGx5IHByb2R1Y3Rpb24gcXVhbGl0eTog
+aXQgaXMgYmVpbmcgdXNlZCBmb3IgcmVhbCB3b3JrLgoKUGxlYXNlIGNoZWNrIHRoZSBbaXNzdWVz
+IGxpc3RdW0lzc3Vlc10KZm9yIG1vcmUgZGV0YWlscy4KCkJ1aWxkaW5nIGZyb20gU291cmNlCi0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLQoKWW91IHdpbGwgbmVlZCBhIGZ1bmN0aW9uaW5nIFtHbyBp
+bnN0YWxsYXRpb25dW0dvbGFuZ10gZm9yIHRoaXMgdG8gd29yay4KCkdyYWIgdGhlIEluYnVja2V0
+IHNvdXJjZSBjb2RlIGFuZCBjb21waWxlIHRoZSBkYWVtb246CgogICAgZ28gZ2V0IC12IGdpdGh1
+Yi5jb20vamhpbGx5ZXJkL2luYnVja2V0CgpFZGl0IGV0Yy9pbmJ1Y2tldC5jb25mIGFuZCB0YWls
+b3IgdG8geW91ciBlbnZpcm9ubWVudC4gIEl0IHNob3VsZCB3b3JrIG9uIG1vc3QKVW5peCBhbmQg
+T1MgWCBtYWNoaW5lcyBhcyBpcy4gIExhdW5jaCB0aGUgZGFlbW9uOgoKICAgICRHT1BBVEgvYmlu
+L2luYnVja2V0ICRHT1BBVEgvc3JjL2dpdGh1Yi5jb20vamhpbGx5ZXJkL2luYnVja2V0L2V0Yy9p
+bmJ1Y2tldC5jb25mCgpCeSBkZWZhdWx0IHRoZSBTTVRQIHNlcnZlciB3aWxsIGJlIGxpc3Rlbmlu
+ZyBvbiBsb2NhbGhvc3QgcG9ydCAyNTAwIGFuZAp0aGUgd2ViIGludGVyZmFjZSB3aWxsIGJlIGF2
+YWlsYWJsZSBhdCBbbG9jYWxob3N0OjkwMDBdKGh0dHA6Ly9sb2NhbGhvc3Q6OTAwMC8pLgoKVGhl
+IEluYnVja2V0IHdlYnNpdGUgaGFzIGEgbW9yZSBjb21wbGV0ZSBndWlkZSB0bwpbaW5zdGFsbGlu
+ZyBmcm9tIHNvdXJjZV1bRnJvbSBTb3VyY2VdCgpBYm91dAotLS0tLQoKSW5idWNrZXQgaXMgd3Jp
+dHRlbiBpbiBbR29vZ2xlIEdvXVtHb2xhbmddLgoKSW5idWNrZXQgaXMgb3BlbiBzb3VyY2Ugc29m
+dHdhcmUgcmVsZWFzZWQgdW5kZXIgdGhlIE1JVCBMaWNlbnNlLiAgVGhlIGxhdGVzdAp2ZXJzaW9u
+IGNhbiBiZSBmb3VuZCBhdCBodHRwczovL2dpdGh1Yi5jb20vamhpbGx5ZXJkL2luYnVja2V0Cgpb
+SW5idWNrZXRdOiBodHRwOi8vd3d3LmluYnVja2V0Lm9yZy8KW0lzc3Vlc106IGh0dHBzOi8vZ2l0
+aHViLmNvbS9qaGlsbHllcmQvaW5idWNrZXQvaXNzdWVzP3N0YXRlPW9wZW4KW0Zyb20gU291cmNl
+XTogaHR0cDovL3d3dy5pbmJ1Y2tldC5vcmcvaW5zdGFsbGF0aW9uL2Zyb20tc291cmNlLmh0bWwK
+W0dvbGFuZ106IGh0dHA6Ly9nb2xhbmcub3JnLwo=
+--001a113d2d045cd646051e1383c2
+Content-Type: image/png; name="favicon.png"
+Content-Disposition: attachment; filename="favicon.png"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_idqb60e30
+
+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
+rkJggg==
+--001a113d2d045cd646051e1383c2--

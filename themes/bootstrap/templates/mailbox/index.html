@@ -1,75 +1,16 @@
 {{define "title"}}{{printf "Inbucket for %v" .name}}{{end}}
-{{define "navMail"}}true{{end}}
 {{$name := .name}}
 
 {{define "script"}}
+<script src="/public/mailbox.js" type="text/javascript" charset="utf-8"></script>
 <script>
-  var selected = "{{.selected}}";
-  function messageLoaded(responseText, textStatus, XMLHttpRequest) {
-    if (textStatus == "error") {
-      alert("Failed to load message, server said:\n" + responseText);
-    } else {
-      window.scrollTo(0,0);
-    }
-  }
+var selected = "{{.selected}}";
+var mailbox = "{{.name}}";
 
-  function listLoaded() {
-    $('.listEntry').click(
-      function() {
-        $('.listEntry').removeClass("disabled");
-        $(this).addClass("disabled");
-        $('#emailContent').load('/mailbox/{{.name}}/' + this.id, messageLoaded);
-        selected = this.id;
-      }
-    )
-    $("#messageList").slideDown();
-    if (selected != "") {
-      $("#" + selected).click();
-      selected = "";
-    }
-  }
-
-  function loadList() {
-    $('#messageList').load("/mailbox/{{.name}}", listLoaded);
-  }
-
-  function reloadList() {
-    $('#messageList').hide();
-    loadList();
-  }
-
-  function listInit() {
-    $("#messageList").hide();
-    loadList();
-  }
-
-  function deleteMessage(id) {
-    $('#emailContent').empty();
-    $.ajax({
-      type: 'DELETE',
-      url: '/mailbox/{{.name}}/' + id,
-      success: reloadList
-    })
-  }
-
-  function htmlView(id) {
-    window.open('/mailbox/{{.name}}/' + id + "/html", '_blank',
-        'width=800,height=600,' +
-        'menubar=yes,resizable=yes,scrollbars=yes,status=yes,toolbar=yes');
-  }
-
-  function messageSource(id) {
-    window.open('/mailbox/{{.name}}/' + id + "/source", '_blank',
-        'width=800,height=600,' +
-        'menubar=no,resizable=yes,scrollbars=yes,status=no,toolbar=no');
-  }
-
-  function docReady() {
-    $('#nav-mail').addClass("active");
-    listInit();
-  }
-
-  $(document).ready(docReady)
+$(document).ready(function() {
+  $('#nav-mail').addClass("active");
+  listInit();
+});
 </script>
 {{end}}
 

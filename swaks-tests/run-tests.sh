@@ -21,3 +21,6 @@ swaks $* --data utf8-subject.raw
 
 # Gmail test
 swaks $* --data gmail.raw
+
+# Outlook test
+swaks $* --data outlook.raw

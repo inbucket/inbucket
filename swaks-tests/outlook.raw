@@ -1,0 +1,322 @@
+From: %FROM_ADDRESS%
+To: %TO_ADDRESS%
+Subject: Test from Outlook
+Thread-Topic: Test from Outlook
+Thread-Index: AdDeqI993CvUm800TamFq90sKu975w==
+Date: %DATE%
+Message-ID: <8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADD@exch.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: yes
+X-MS-TNEF-Correlator:
+x-originating-ip: [10.13.30.10]
+Content-Type: multipart/mixed;
+	boundary="_005_8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADDonerdexch09on_"
+MIME-Version: 1.0
+
+--_005_8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADDonerdexch09on_
+Content-Type: multipart/alternative;
+	boundary="_000_8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADDonerdexch09on_"
+
+--_000_8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADDonerdexch09on_
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque liber=
+o arcu, accumsan at mattis nec, condimentum vitae erat. Praesent massa turp=
+is, iaculis elementum lectus vitae, iaculis laoreet massa. Integer porta, n=
+isi eget congue vulputate, tellus lacus imperdiet tellus, in tristique metu=
+s nibh sed est. Vestibulum ullamcorper arcu sed lacus viverra tristique. Ve=
+stibulum mattis id ante eget aliquam. Nam pulvinar, libero dignissim posuer=
+e tincidunt, ipsum est finibus enim, id accumsan augue lectus eu massa. In =
+dapibus consequat velit quis interdum. Cras vel augue pellentesque tortor i=
+nterdum molestie. Fusce ut dui semper, ultricies nulla a, tempor lacus. In =
+interdum velit in justo dapibus iaculis. Quisque et neque turpis. Aenean id=
+ nunc sodales, ultrices turpis non, molestie nibh.
+
+In euismod aliquam tortor ac ornare. Donec nisi ante, lacinia eget placerat=
+ at, tincidunt id ante. Vestibulum mauris nisi, consectetur vitae dolor qui=
+s, maximus auctor tellus. In dignissim mi blandit, laoreet mi vitae, gravid=
+a risus. Sed rhoncus nisi velit, at condimentum velit efficitur id. Duis ia=
+culis dictum tempor. Ut consectetur nisi in ex viverra interdum. Cras eget =
+vestibulum libero. Vestibulum in efficitur ante, id tristique elit. Aliquam=
+ justo dolor, sagittis et dui vitae, gravida pellentesque lectus. Sed venen=
+atis imperdiet cursus. Nulla quis nulla eu nisi tempor varius et ut elit. I=
+nterdum et malesuada fames ac ante ipsum primis in faucibus. Mauris placera=
+t interdum eros, vitae molestie urna consequat et.
+
+Cras massa dolor, congue eu magna et, sagittis eleifend quam. Donec volutpa=
+t congue leo, in sodales purus mollis nec. Integer vehicula, odio eget cong=
+ue interdum, erat nunc interdum nisi, quis congue nunc felis eu ipsum. Sed =
+bibendum massa dui, et sodales lacus dignissim ut. Nulla et orci vitae lacu=
+s dignissim elementum eu sollicitudin turpis. Phasellus leo lorem, pellente=
+sque sit amet ultricies varius, bibendum sed ligula. Nam eros orci, facilis=
+is vel lacus vitae, suscipit tincidunt nibh. In id magna a velit molestie a=
+uctor. Etiam a nunc ligula. Sed hendrerit, felis quis pharetra bibendum, to=
+rtor sem tempor lacus, et hendrerit quam nisl ac metus. Ut convallis congue=
+ lectus, eu scelerisque nisl pharetra sed. Vestibulum ante ipsum primis in =
+faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam ut turpis n=
+isi. Phasellus ac dolor laoreet, commodo turpis quis, ultricies turpis. Qui=
+sque mollis lorem vestibulum diam sollicitudin, in tempor mi accumsan. Proi=
+n metus nunc, fringilla eu sagittis nec, rhoncus semper sem.
+
+Fusce posuere et felis ut ornare. Proin sodales sollicitudin tellus, non tr=
+istique ex egestas at. Pellentesque arcu sem, vulputate a diam eget, blandi=
+t lobortis libero. Donec accumsan, diam vel congue hendrerit, mi mi vestibu=
+lum ex, ut elementum est magna eu augue. Aliquam consequat arcu eu velit tr=
+istique placerat. Quisque facilisis tempor ipsum, sit amet iaculis nunc mal=
+esuada a. Morbi laoreet fringilla odio sed volutpat. Integer scelerisque in=
+terdum massa et fringilla. Nam pulvinar iaculis nibh, id condimentum nunc. =
+Integer eleifend, dui in iaculis sollicitudin, lacus dui feugiat felis, ut =
+efficitur urna sem at neque. Donec at sapien malesuada orci imperdiet eleme=
+ntum. Nulla luctus tristique enim, eu euismod diam ultricies vel. Ut dui pu=
+rus, commodo eu tristique nec, accumsan vel lorem. Phasellus sagittis ullam=
+corper vulputate. Vestibulum sed nulla tristique, tristique lectus quis, pu=
+lvinar quam.
+
+Duis sollicitudin convallis lacinia. Maecenas erat eros, laoreet ut sapien =
+vitae, convallis semper neque. Ut est turpis, pharetra sed tortor id, luctu=
+s pretium odio. Mauris laoreet dapibus iaculis. Pellentesque augue tortor, =
+lacinia eget mauris eu, hendrerit ultricies turpis. Vestibulum suscipit nis=
+i ligula, at tempus augue vulputate ac. Vestibulum leo mauris, tristique se=
+d cursus a, sodales a erat. Sed accumsan justo at dui ornare, at placerat a=
+ugue vestibulum.
+
+--_000_8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADDonerdexch09on_
+Content-Type: text/html; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+
+<html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:schemas-micr=
+osoft-com:office:office" xmlns:w=3D"urn:schemas-microsoft-com:office:word" =
+xmlns:m=3D"http://schemas.microsoft.com/office/2004/12/omml" xmlns=3D"http:=
+//www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dus-ascii"=
+>
+<meta name=3D"Generator" content=3D"Microsoft Word 15 (filtered medium)">
+<style><!--
+/* Font Definitions */
+@font-face
+	{font-family:"MS Mincho";
+	panose-1:2 2 6 9 4 2 5 8 3 4;}
+@font-face
+	{font-family:"Cambria Math";
+	panose-1:2 4 5 3 5 4 6 3 2 4;}
+@font-face
+	{font-family:Calibri;
+	panose-1:2 15 5 2 2 2 4 3 2 4;}
+@font-face
+	{font-family:"\@MS Mincho";
+	panose-1:2 2 6 9 4 2 5 8 3 4;}
+/* Style Definitions */
+p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif;}
+a:link, span.MsoHyperlink
+	{mso-style-priority:99;
+	color:#0563C1;
+	text-decoration:underline;}
+a:visited, span.MsoHyperlinkFollowed
+	{mso-style-priority:99;
+	color:#954F72;
+	text-decoration:underline;}
+span.EmailStyle17
+	{mso-style-type:personal-compose;
+	font-family:"Calibri",sans-serif;
+	color:windowtext;}
+.MsoChpDefault
+	{mso-style-type:export-only;}
+@page WordSection1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.0in 1.0in 1.0in;}
+div.WordSection1
+	{page:WordSection1;}
+--></style><!--[if gte mso 9]><xml>
+<o:shapedefaults v:ext=3D"edit" spidmax=3D"1026" />
+</xml><![endif]--><!--[if gte mso 9]><xml>
+<o:shapelayout v:ext=3D"edit">
+<o:idmap v:ext=3D"edit" data=3D"1" />
+</o:shapelayout></xml><![endif]-->
+</head>
+<body lang=3D"EN-US" link=3D"#0563C1" vlink=3D"#954F72">
+<div class=3D"WordSection1">
+<p class=3D"MsoNormal">Lorem ipsum dolor sit amet, consectetur adipiscing e=
+lit. Pellentesque libero arcu, accumsan at mattis nec, condimentum vitae er=
+at. Praesent massa turpis, iaculis elementum lectus vitae, iaculis laoreet =
+massa. Integer porta, nisi eget congue
+ vulputate, tellus lacus imperdiet tellus, in tristique metus nibh sed est.=
+ Vestibulum ullamcorper arcu sed lacus viverra tristique. Vestibulum mattis=
+ id ante eget aliquam. Nam pulvinar, libero dignissim posuere tincidunt, ip=
+sum est finibus enim, id accumsan
+ augue lectus eu massa. In dapibus consequat velit quis interdum. Cras vel =
+augue pellentesque tortor interdum molestie. Fusce ut dui semper, ultricies=
+ nulla a, tempor lacus. In interdum velit in justo dapibus iaculis. Quisque=
+ et neque turpis. Aenean id nunc
+ sodales, ultrices turpis non, molestie nibh.<o:p></o:p></p>
+<p class=3D"MsoNormal"><o:p>&nbsp;</o:p></p>
+<p class=3D"MsoNormal">In euismod aliquam tortor ac ornare. Donec nisi ante=
+, lacinia eget placerat at, tincidunt id ante. Vestibulum mauris nisi, cons=
+ectetur vitae dolor quis, maximus auctor tellus. In dignissim mi blandit, l=
+aoreet mi vitae, gravida risus. Sed
+ rhoncus nisi velit, at condimentum velit efficitur id. Duis iaculis dictum=
+ tempor. Ut consectetur nisi in ex viverra interdum. Cras eget vestibulum l=
+ibero. Vestibulum in efficitur ante, id tristique elit. Aliquam justo dolor=
+, sagittis et dui vitae, gravida
+ pellentesque lectus. Sed venenatis imperdiet cursus. Nulla quis nulla eu n=
+isi tempor varius et ut elit. Interdum et malesuada fames ac ante ipsum pri=
+mis in faucibus. Mauris placerat interdum eros, vitae molestie urna consequ=
+at et.<o:p></o:p></p>
+<p class=3D"MsoNormal"><o:p>&nbsp;</o:p></p>
+<p class=3D"MsoNormal">Cras massa dolor, congue eu magna et, sagittis eleif=
+end quam. Donec volutpat congue leo, in sodales purus mollis nec. Integer v=
+ehicula, odio eget congue interdum, erat nunc interdum nisi, quis congue nu=
+nc felis eu ipsum. Sed bibendum massa
+ dui, et sodales lacus dignissim ut. Nulla et orci vitae lacus dignissim el=
+ementum eu sollicitudin turpis. Phasellus leo lorem, pellentesque sit amet =
+ultricies varius, bibendum sed ligula. Nam eros orci, facilisis vel lacus v=
+itae, suscipit tincidunt nibh. In
+ id magna a velit molestie auctor. Etiam a nunc ligula. Sed hendrerit, feli=
+s quis pharetra bibendum, tortor sem tempor lacus, et hendrerit quam nisl a=
+c metus. Ut convallis congue lectus, eu scelerisque nisl pharetra sed. Vest=
+ibulum ante ipsum primis in faucibus
+ orci luctus et ultrices posuere cubilia Curae; Aliquam ut turpis nisi. Pha=
+sellus ac dolor laoreet, commodo turpis quis, ultricies turpis. Quisque mol=
+lis lorem vestibulum diam sollicitudin, in tempor mi accumsan. Proin metus =
+nunc, fringilla eu sagittis nec,
+ rhoncus semper sem.<o:p></o:p></p>
+<p class=3D"MsoNormal"><o:p>&nbsp;</o:p></p>
+<p class=3D"MsoNormal">Fusce posuere et felis ut ornare. Proin sodales soll=
+icitudin tellus, non tristique ex egestas at. Pellentesque arcu sem, vulput=
+ate a diam eget, blandit lobortis libero. Donec accumsan, diam vel congue h=
+endrerit, mi mi vestibulum ex, ut
+ elementum est magna eu augue. Aliquam consequat arcu eu velit tristique pl=
+acerat. Quisque facilisis tempor ipsum, sit amet iaculis nunc malesuada a. =
+Morbi laoreet fringilla odio sed volutpat. Integer scelerisque interdum mas=
+sa et fringilla. Nam pulvinar iaculis
+ nibh, id condimentum nunc. Integer eleifend, dui in iaculis sollicitudin, =
+lacus dui feugiat felis, ut efficitur urna sem at neque. Donec at sapien ma=
+lesuada orci imperdiet elementum. Nulla luctus tristique enim, eu euismod d=
+iam ultricies vel. Ut dui purus,
+ commodo eu tristique nec, accumsan vel lorem. Phasellus sagittis ullamcorp=
+er vulputate. Vestibulum sed nulla tristique, tristique lectus quis, pulvin=
+ar quam.<o:p></o:p></p>
+<p class=3D"MsoNormal"><o:p>&nbsp;</o:p></p>
+<p class=3D"MsoNormal">Duis sollicitudin convallis lacinia. Maecenas erat e=
+ros, laoreet ut sapien vitae, convallis semper neque. Ut est turpis, pharet=
+ra sed tortor id, luctus pretium odio. Mauris laoreet dapibus iaculis. Pell=
+entesque augue tortor, lacinia eget
+ mauris eu, hendrerit ultricies turpis. Vestibulum suscipit nisi ligula, at=
+ tempus augue vulputate ac. Vestibulum leo mauris, tristique sed cursus a, =
+sodales a erat. Sed accumsan justo at dui ornare, at placerat augue vestibu=
+lum.<o:p></o:p></p>
+</div>
+</body>
+</html>
+
+--_000_8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADDonerdexch09on_--
+
+--_005_8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADDonerdexch09on_
+Content-Type: image/png; name="favicon.png"
+Content-Description: favicon.png
+Content-Disposition: attachment; filename="favicon.png"; size=3025;
+	creation-date="Mon, 24 Aug 2015 19:05:03 GMT";
+	modification-date="Mon, 24 Aug 2015 19:05:03 GMT"
+Content-Transfer-Encoding: base64
+
+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
+rkJggg==
+
+--_005_8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADDonerdexch09on_
+Content-Type: text/plain; name="README.txt"
+Content-Description: README.txt
+Content-Disposition: attachment; filename="README.txt"; size=1682;
+	creation-date="Mon, 24 Aug 2015 19:19:48 GMT";
+	modification-date="Mon, 24 Aug 2015 19:19:48 GMT"
+Content-Transfer-Encoding: base64
+
+SW5idWNrZXQgWyFbQnVpbGQgU3RhdHVzXShodHRwczovL3RyYXZpcy1jaS5vcmcvamhpbGx5ZXJk
+L2luYnVja2V0LnBuZz9icmFuY2g9bWFzdGVyKV0oaHR0cHM6Ly90cmF2aXMtY2kub3JnL2poaWxs
+eWVyZC9pbmJ1Y2tldCkKPT09PT09PT0KCkluYnVja2V0IGlzIGFuIGVtYWlsIHRlc3Rpbmcgc2Vy
+dmljZTsgaXQgd2lsbCBhY2NlcHQgbWVzc2FnZXMgZm9yIGFueSBlbWFpbAphZGRyZXNzIGFuZCBt
+YWtlIHRoZW0gYXZhaWxhYmxlIHZpYSB3ZWIsIFJFU1QgYW5kIFBPUDMuICBPbmNlIGNvbXBpbGVk
+LApJbmJ1Y2tldCBkb2VzIG5vdCBoYXZlIGFuIGV4dGVybmFsIGRlcGVuZGVuY2llcyAoSFRUUCwg
+U01UUCwgUE9QMyBhbmQgc3RvcmFnZQphcmUgYWxsIGJ1aWx0IGluKS4KClJlYWQgbW9yZSBhdCB0
+aGUgW0luYnVja2V0IHdlYnNpdGVdW0luYnVja2V0XQoKRGV2ZWxvcG1lbnQgU3RhdHVzCi0tLS0t
+LS0tLS0tLS0tLS0tLQoKSW5idWNrZXQgaXMgY3VycmVudGx5IHByb2R1Y3Rpb24gcXVhbGl0eTog
+aXQgaXMgYmVpbmcgdXNlZCBmb3IgcmVhbCB3b3JrLgoKUGxlYXNlIGNoZWNrIHRoZSBbaXNzdWVz
+IGxpc3RdW0lzc3Vlc10KZm9yIG1vcmUgZGV0YWlscy4KCkJ1aWxkaW5nIGZyb20gU291cmNlCi0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLQoKWW91IHdpbGwgbmVlZCBhIGZ1bmN0aW9uaW5nIFtHbyBp
+bnN0YWxsYXRpb25dW0dvbGFuZ10gZm9yIHRoaXMgdG8gd29yay4KCkdyYWIgdGhlIEluYnVja2V0
+IHNvdXJjZSBjb2RlIGFuZCBjb21waWxlIHRoZSBkYWVtb246CgogICAgZ28gZ2V0IC12IGdpdGh1
+Yi5jb20vamhpbGx5ZXJkL2luYnVja2V0CgpFZGl0IGV0Yy9pbmJ1Y2tldC5jb25mIGFuZCB0YWls
+b3IgdG8geW91ciBlbnZpcm9ubWVudC4gIEl0IHNob3VsZCB3b3JrIG9uIG1vc3QKVW5peCBhbmQg
+T1MgWCBtYWNoaW5lcyBhcyBpcy4gIExhdW5jaCB0aGUgZGFlbW9uOgoKICAgICRHT1BBVEgvYmlu
+L2luYnVja2V0ICRHT1BBVEgvc3JjL2dpdGh1Yi5jb20vamhpbGx5ZXJkL2luYnVja2V0L2V0Yy9p
+bmJ1Y2tldC5jb25mCgpCeSBkZWZhdWx0IHRoZSBTTVRQIHNlcnZlciB3aWxsIGJlIGxpc3Rlbmlu
+ZyBvbiBsb2NhbGhvc3QgcG9ydCAyNTAwIGFuZAp0aGUgd2ViIGludGVyZmFjZSB3aWxsIGJlIGF2
+YWlsYWJsZSBhdCBbbG9jYWxob3N0OjkwMDBdKGh0dHA6Ly9sb2NhbGhvc3Q6OTAwMC8pLgoKVGhl
+IEluYnVja2V0IHdlYnNpdGUgaGFzIGEgbW9yZSBjb21wbGV0ZSBndWlkZSB0bwpbaW5zdGFsbGlu
+ZyBmcm9tIHNvdXJjZV1bRnJvbSBTb3VyY2VdCgpBYm91dAotLS0tLQoKSW5idWNrZXQgaXMgd3Jp
+dHRlbiBpbiBbR29vZ2xlIEdvXVtHb2xhbmddLgoKSW5idWNrZXQgaXMgb3BlbiBzb3VyY2Ugc29m
+dHdhcmUgcmVsZWFzZWQgdW5kZXIgdGhlIE1JVCBMaWNlbnNlLiAgVGhlIGxhdGVzdAp2ZXJzaW9u
+IGNhbiBiZSBmb3VuZCBhdCBodHRwczovL2dpdGh1Yi5jb20vamhpbGx5ZXJkL2luYnVja2V0Cgpb
+SW5idWNrZXRdOiBodHRwOi8vd3d3LmluYnVja2V0Lm9yZy8KW0lzc3Vlc106IGh0dHBzOi8vZ2l0
+aHViLmNvbS9qaGlsbHllcmQvaW5idWNrZXQvaXNzdWVzP3N0YXRlPW9wZW4KW0Zyb20gU291cmNl
+XTogaHR0cDovL3d3dy5pbmJ1Y2tldC5vcmcvaW5zdGFsbGF0aW9uL2Zyb20tc291cmNlLmh0bWwK
+W0dvbGFuZ106IGh0dHA6Ly9nb2xhbmcub3JnLwo=
+
+--_005_8D08CB465951804FA4DBB0C8B35CB0FA013B4E7ADDonerdexch09on_--

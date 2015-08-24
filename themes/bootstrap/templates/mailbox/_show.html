@@ -46,13 +46,15 @@
 
 {{with .attachments}}
 <div class="well message-attachments">
-  <ul class="list-unstyled">
-    {{range $i, $e := .}}
-    <li>
+  {{range $i, $e := .}}
+  <div class="row">
+    <div class="col-sm-6">
       <span class="glyphicon glyphicon-paperclip" aria-hidden="true"></span>
       {{$e.FileName}}
       ({{$e.ContentType}})
-      <a class="btn btn-success btn-sm"
+    </div>
+    <div class="col-sm-6">
+      <a class="btn btn-success btn-xs"
          role="button"
          href="/mailbox/vattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}"
          target="_blank"
@@ -60,15 +62,15 @@
         <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span>
         View
       </a>
-      <a class="btn btn-primary btn-sm"
+      <a class="btn btn-primary btn-xs"
          role="button"
          href="/mailbox/dattach/{{$name}}/{{$id}}/{{$i}}/{{$e.FileName}}"
          aria-label="Download">
         <span class="glyphicon glyphicon-download" aria-hidden="true"></span>
         Download
       </a>
-    </li>
-    {{end}}
-  </ul>
+    </div>
+  </div>
+  {{end}}
 </div>
 {{end}}

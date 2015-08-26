@@ -22,7 +22,7 @@ import (
 
 var (
 	// Build info, populated during linking by goxc
-	VERSION    = "1.0"
+	VERSION    = "1.1.0.snapshot"
 	BUILD_DATE = "undefined"
 
 	// Command line flags

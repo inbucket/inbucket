@@ -4,10 +4,8 @@
 	],
 	"Arch": "amd64",
 	"Os": "darwin freebsd linux windows",
-	"Resources": {
-		"Include": "README*,LICENSE*,inbucket.bat,etc,themes"
-	},
-	"PackageVersion": "1.0",
-	"PrereleaseInfo": "",
-	"FormatVersion": "0.8"
+	"ResourcesInclude": "README*,LICENSE*,inbucket.bat,etc,themes",
+	"PackageVersion": "1.1.0",
+	"PrereleaseInfo": "alpha",
+	"ConfigVersion": "0.9"
 }

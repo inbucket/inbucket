@@ -1,8 +1,13 @@
+var navBarOffset = 75;
+var mediumDeviceWidth = 980;
+var messageListMargin = 275;
+
 function messageLoaded(responseText, textStatus, XMLHttpRequest) {
   if (textStatus == "error") {
     alert("Failed to load message, server said:\n" + responseText);
   } else {
-    window.scrollTo(0,0);
+    var top = $('#message-container').offset().top - navBarOffset;
+    $(window).scrollTop(top);
   }
 }
 
@@ -11,11 +16,11 @@ function listLoaded() {
       function() {
         $('.listEntry').removeClass("disabled");
         $(this).addClass("disabled");
-        $('#emailContent').load('/mailbox/' + mailbox + '/' + this.id, messageLoaded);
+        $('#message-content').load('/mailbox/' + mailbox + '/' + this.id, messageLoaded);
         selected = this.id;
       }
       )
-    $("#messageList").slideDown();
+    $("#message-list").slideDown();
   if (selected != "") {
     $("#" + selected).click();
     selected = "";
@@ -23,21 +28,32 @@ function listLoaded() {
 }
 
 function loadList() {
-  $('#messageList').load('/mailbox/' + mailbox, listLoaded);
+  $('#message-list').load('/mailbox/' + mailbox, listLoaded);
 }
 
 function reloadList() {
-  $('#messageList').hide();
+  $('#message-list').hide();
   loadList();
 }
 
+function windowResize() {
+  if ($(window).width() > mediumDeviceWidth) {
+    var content_height = $(window).height() - messageListMargin;
+    $('#message-list-wrapper').height(content_height).addClass("message-list-scroll");
+  } else {
+    $('#message-list-wrapper').height('auto').removeClass("message-list-scroll");
+  }
+}
+
 function listInit() {
-  $("#messageList").hide();
+  $("#message-list").hide();
+  windowResize();
+  $(window).resize(windowResize);
   loadList();
 }
 
 function deleteMessage(id) {
-  $('#emailContent').empty();
+  $('#message-content').empty();
   $.ajax({
     type: 'DELETE',
     url: '/mailbox/' + mailbox + '/' + id,

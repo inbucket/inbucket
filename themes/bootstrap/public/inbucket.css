@@ -29,6 +29,10 @@ body {
   font-size: 18px;
 }
 
+.message-list-scroll {
+  overflow-y: auto;
+}
+
 .message-controls {
   padding: 0 0 10px 0;
 }

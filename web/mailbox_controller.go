@@ -49,6 +49,9 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 		return nil
 	}
 
+	// Remember this mailbox was visited
+	RememberMailbox(ctx, name)
+
 	return RenderTemplate("mailbox/index.html", w, map[string]interface{}{
 		"ctx":      ctx,
 		"name":     name,

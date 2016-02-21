@@ -21,20 +21,22 @@ var expRetainedCurrent = new(expvar.Int)
 var retentionDeletesHist = list.New()
 var retainedHist = list.New()
 
-// History rendered as comma delim string
+// History rendered as comma delimited string
 var expRetentionDeletesHist = new(expvar.String)
 var expRetainedHist = new(expvar.String)
 
+// StartRetentionScanner launches a go-routine that scans for expired
+// messages, following the configured interval
 func StartRetentionScanner(ds DataStore) {
 	cfg := config.GetDataStoreConfig()
 	expRetentionPeriod.Set(int64(cfg.RetentionMinutes * 60))
 	if cfg.RetentionMinutes > 0 {
 		// Retention scanning enabled
-		log.LogInfo("Retention configured for %v minutes", cfg.RetentionMinutes)
+		log.Infof("Retention configured for %v minutes", cfg.RetentionMinutes)
 		go retentionScanner(ds, time.Duration(cfg.RetentionMinutes)*time.Minute,
 			time.Duration(cfg.RetentionSleep)*time.Millisecond)
 	} else {
-		log.LogInfo("Retention scanner disabled")
+		log.Infof("Retention scanner disabled")
 	}
 }
 
@@ -45,21 +47,21 @@ func retentionScanner(ds DataStore, maxAge time.Duration, sleep time.Duration) {
 		since := time.Since(start)
 		if since < time.Minute {
 			dur := time.Minute - since
-			log.LogTrace("Retention scanner sleeping for %v", dur)
+			log.Tracef("Retention scanner sleeping for %v", dur)
 			time.Sleep(dur)
 		}
 		start = time.Now()
 
 		// Kickoff scan
 		if err := doRetentionScan(ds, maxAge, sleep); err != nil {
-			log.LogError("Error during retention scan: %v", err)
+			log.Errorf("Error during retention scan: %v", err)
 		}
 	}
 }
 
 // doRetentionScan does a single pass of all mailboxes looking for messages that can be purged
 func doRetentionScan(ds DataStore, maxAge time.Duration, sleep time.Duration) error {
-	log.LogTrace("Starting retention scan")
+	log.Tracef("Starting retention scan")
 	cutoff := time.Now().Add(-1 * maxAge)
 	mboxes, err := ds.AllMailboxes()
 	if err != nil {
@@ -74,11 +76,11 @@ func doRetentionScan(ds DataStore, maxAge time.Duration, sleep time.Duration) er
 		}
 		for _, msg := range messages {
 			if msg.Date().Before(cutoff) {
-				log.LogTrace("Purging expired message %v", msg.Id())
+				log.Tracef("Purging expired message %v", msg.ID())
 				err = msg.Delete()
 				if err != nil {
 					// Log but don't abort
-					log.LogError("Failed to purge message %v: %v", msg.Id(), err)
+					log.Errorf("Failed to purge message %v: %v", msg.ID(), err)
 				} else {
 					expRetentionDeletesTotal.Add(1)
 				}

@@ -9,13 +9,15 @@ import (
 	"github.com/jhillyerd/inbucket/smtpd"
 )
 
+// Context is passed into every request handler function
 type Context struct {
 	Vars      map[string]string
 	Session   *sessions.Session
 	DataStore smtpd.DataStore
-	IsJson    bool
+	IsJSON    bool
 }
 
+// Close the Context (currently does nothing)
 func (c *Context) Close() {
 	// Do nothing
 }
@@ -37,6 +39,7 @@ func headerMatch(req *http.Request, name string, value string) bool {
 	return false
 }
 
+// NewContext returns a Context for the given HTTP Request
 func NewContext(req *http.Request) (*Context, error) {
 	vars := mux.Vars(req)
 	sess, err := sessionStore.Get(req, "inbucket")
@@ -44,7 +47,7 @@ func NewContext(req *http.Request) (*Context, error) {
 		Vars:      vars,
 		Session:   sess,
 		DataStore: DataStore,
-		IsJson:    headerMatch(req, "Accept", "application/json"),
+		IsJSON:    headerMatch(req, "Accept", "application/json"),
 	}
 	if err != nil {
 		return ctx, err

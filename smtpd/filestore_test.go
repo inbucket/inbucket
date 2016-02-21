@@ -95,7 +95,7 @@ func TestFSDirStructure(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -122,7 +122,7 @@ func TestFSAllMailboxes(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -172,7 +172,7 @@ func TestFSDeliverMany(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -201,8 +201,8 @@ func TestFSDelete(t *testing.T) {
 		len(subjects), len(msgs))
 
 	// Delete a couple messages
-	msgs[1].Delete()
-	msgs[3].Delete()
+	_ = msgs[1].Delete()
+	_ = msgs[3].Delete()
 
 	// Confirm deletion
 	mb, err = ds.MailboxFor(mbName)
@@ -246,7 +246,7 @@ func TestFSDelete(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -294,7 +294,7 @@ func TestFSPurge(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -332,7 +332,7 @@ func TestFSSize(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -360,7 +360,7 @@ func TestFSMissing(t *testing.T) {
 	msg, err := mb.GetMessage(sentIds[1])
 	assert.Nil(t, err)
 	fmsg := msg.(*FileMessage)
-	os.Remove(fmsg.rawPath())
+	_ = os.Remove(fmsg.rawPath())
 	msg, err = mb.GetMessage(sentIds[1])
 	assert.Nil(t, err)
 
@@ -374,7 +374,7 @@ func TestFSMissing(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -419,7 +419,7 @@ func TestFSMessageCap(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -454,7 +454,7 @@ func TestFSNoMessageCap(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -490,7 +490,7 @@ func deliverMessage(ds *FileDataStore, mbName string, subject string,
 		panic(err)
 	}
 	// Create message object
-	id = generateId(date)
+	id = generateID(date)
 	msg, err := mb.NewMessage()
 	if err != nil {
 		panic(err)
@@ -498,7 +498,9 @@ func deliverMessage(ds *FileDataStore, mbName string, subject string,
 	fmsg := msg.(*FileMessage)
 	fmsg.Fdate = date
 	fmsg.Fid = id
-	msg.Append(testMsg)
+	if err = msg.Append(testMsg); err != nil {
+		panic(err)
+	}
 	if err = msg.Close(); err != nil {
 		panic(err)
 	}

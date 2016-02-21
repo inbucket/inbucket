@@ -9,6 +9,7 @@ import (
 	"github.com/jhillyerd/inbucket/config"
 )
 
+// RootIndex serves the Inbucket landing page
 func RootIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	greeting, err := ioutil.ReadFile(config.GetWebConfig().GreetingFile)
 	if err != nil {
@@ -21,18 +22,19 @@ func RootIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err erro
 	})
 }
 
+// RootStatus serves the Inbucket status page
 func RootStatus(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	retentionMinutes := config.GetDataStoreConfig().RetentionMinutes
-	smtpListener := fmt.Sprintf("%s:%d", config.GetSmtpConfig().Ip4address.String(),
-		config.GetSmtpConfig().Ip4port)
-	pop3Listener := fmt.Sprintf("%s:%d", config.GetPop3Config().Ip4address.String(),
-		config.GetPop3Config().Ip4port)
-	webListener := fmt.Sprintf("%s:%d", config.GetWebConfig().Ip4address.String(),
-		config.GetWebConfig().Ip4port)
+	smtpListener := fmt.Sprintf("%s:%d", config.GetSMTPConfig().IP4address.String(),
+		config.GetSMTPConfig().IP4port)
+	pop3Listener := fmt.Sprintf("%s:%d", config.GetPOP3Config().IP4address.String(),
+		config.GetPOP3Config().IP4port)
+	webListener := fmt.Sprintf("%s:%d", config.GetWebConfig().IP4address.String(),
+		config.GetWebConfig().IP4port)
 	return RenderTemplate("root/status.html", w, map[string]interface{}{
 		"ctx":              ctx,
-		"version":          config.VERSION,
-		"buildDate":        config.BUILD_DATE,
+		"version":          config.Version,
+		"buildDate":        config.BuildDate,
 		"retentionMinutes": retentionMinutes,
 		"smtpListener":     smtpListener,
 		"pop3Listener":     pop3Listener,

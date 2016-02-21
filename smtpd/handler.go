@@ -15,17 +15,23 @@ import (
 	"github.com/jhillyerd/inbucket/log"
 )
 
+// State tracks the current mode of our SMTP state machine
 type State int
 
 const (
-	GREET State = iota // Waiting for HELO
-	READY              // Got HELO, waiting for MAIL
-	MAIL               // Got MAIL, accepting RCPTs
-	DATA               // Got DATA, waiting for "."
-	QUIT               // Close session
+	// GREET State: Waiting for HELO
+	GREET State = iota
+	// READY State: Got HELO, waiting for MAIL
+	READY
+	// MAIL State: Got MAIL, accepting RCPTs
+	MAIL
+	// DATA State: Got DATA, waiting for "."
+	DATA
+	// QUIT State: Client requested end of session
+	QUIT
 )
 
-const STAMP_FMT = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
+const timeStampFormat = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
 
 func (s State) String() string {
 	switch s {
@@ -61,6 +67,7 @@ var commands = map[string]bool{
 	"TURN": true,
 }
 
+// Session holds the state of an SMTP session
 type Session struct {
 	server       *Server
 	id           int
@@ -74,6 +81,7 @@ type Session struct {
 	recipients   *list.List
 }
 
+// NewSession creates a new Session for the given connection
 func NewSession(server *Server, id int, conn net.Conn) *Session {
 	reader := bufio.NewReader(conn)
 	host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
@@ -92,10 +100,12 @@ func (ss *Session) String() string {
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	log.LogInfo("SMTP Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
+	log.Infof("SMTP Connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	expConnectsCurrent.Add(1)
 	defer func() {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			log.Errorf("Error closing connection for <%v>: %v", id, err)
+		}
 		s.waitgroup.Done()
 		expConnectsCurrent.Add(-1)
 	}()
@@ -321,11 +331,10 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 			// We have recipients, go to accept data
 			ss.enterState(DATA)
 			return
-		} else {
-			// DATA out of sequence
-			ss.ooSeq(cmd)
-			return
 		}
+		// DATA out of sequence
+		ss.ooSeq(cmd)
+		return
 	}
 	ss.ooSeq(cmd)
 }
@@ -333,7 +342,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 // DATA
 func (ss *Session) dataHandler() {
 	// Timestamp for Received header
-	stamp := time.Now().Format(STAMP_FMT)
+	stamp := time.Now().Format(timeStampFormat)
 	// Get a Mailbox and a new Message for each recipient
 	mailboxes := make([]Mailbox, ss.recipients.Len())
 	messages := make([]Message, ss.recipients.Len())
@@ -369,9 +378,14 @@ func (ss *Session) dataHandler() {
 				// Generate Received header
 				recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
 					ss.remoteDomain, ss.remoteHost, ss.server.domain, recip, stamp)
-				messages[i].Append([]byte(recd))
+				if err := messages[i].Append([]byte(recd)); err != nil {
+					ss.logError("Failed to write received header for %q: %s", local, err)
+					ss.send(fmt.Sprintf("451 Failed to create message for %v", local))
+					ss.reset()
+					return
+				}
 			} else {
-				log.LogTrace("Not storing message for %q", recip)
+				log.Tracef("Not storing message for %q", recip)
 			}
 			i++
 		}
@@ -482,13 +496,17 @@ func (ss *Session) readByteLine(buf *bytes.Buffer) error {
 		if err != nil {
 			return err
 		}
-		buf.Write(line)
+		if _, err = buf.Write(line); err != nil {
+			return err
+		}
 		// Read the next byte looking for '\n'
 		c, err := ss.reader.ReadByte()
 		if err != nil {
 			return err
 		}
-		buf.WriteByte(c)
+		if err = buf.WriteByte(c); err != nil {
+			return err
+		}
 		if c == '\n' {
 			// We've reached the end of the line, return
 			return nil
@@ -570,21 +588,21 @@ func (ss *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ss *Session) logTrace(msg string, args ...interface{}) {
-	log.LogTrace("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Tracef("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) logInfo(msg string, args ...interface{}) {
-	log.LogInfo("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Infof("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) logWarn(msg string, args ...interface{}) {
 	// Update metrics
 	expWarnsTotal.Add(1)
-	log.LogWarn("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Warnf("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }
 
 func (ss *Session) logError(msg string, args ...interface{}) {
 	// Update metrics
 	expErrorsTotal.Add(1)
-	log.LogError("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
+	log.Errorf("SMTP[%v]<%v> %v", ss.remoteHost, ss.id, fmt.Sprintf(msg, args...))
 }

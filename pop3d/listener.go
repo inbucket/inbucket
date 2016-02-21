@@ -11,7 +11,7 @@ import (
 	"github.com/jhillyerd/inbucket/smtpd"
 )
 
-// Real server code starts here
+// Server defines an instance of our POP3 server
 type Server struct {
 	domain         string
 	maxIdleSeconds int
@@ -21,30 +21,30 @@ type Server struct {
 	waitgroup      *sync.WaitGroup
 }
 
-// Init a new Server object
+// New creates a new Server struct
 func New() *Server {
 	// TODO is two filestores better/worse than sharing w/ smtpd?
 	ds := smtpd.DefaultFileDataStore()
-	cfg := config.GetPop3Config()
+	cfg := config.GetPOP3Config()
 	return &Server{domain: cfg.Domain, dataStore: ds, maxIdleSeconds: cfg.MaxIdleSeconds,
 		waitgroup: new(sync.WaitGroup)}
 }
 
-// Main listener loop
+// Start the server and listen for connections
 func (s *Server) Start() {
-	cfg := config.GetPop3Config()
+	cfg := config.GetPOP3Config()
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
-		cfg.Ip4address, cfg.Ip4port))
+		cfg.IP4address, cfg.IP4port))
 	if err != nil {
-		log.LogError("POP3 Failed to build tcp4 address: %v", err)
+		log.Errorf("POP3 Failed to build tcp4 address: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
 
-	log.LogInfo("POP3 listening on TCP4 %v", addr)
+	log.Infof("POP3 listening on TCP4 %v", addr)
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
-		log.LogError("POP3 failed to start tcp4 listener: %v", err)
+		log.Errorf("POP3 failed to start tcp4 listener: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
@@ -63,12 +63,12 @@ func (s *Server) Start() {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.LogError("POP3 accept error: %v; retrying in %v", err, tempDelay)
+				log.Errorf("POP3 accept error: %v; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			} else {
 				if s.shutdown {
-					log.LogTrace("POP3 listener shutting down on request")
+					log.Tracef("POP3 listener shutting down on request")
 					return
 				}
 				// TODO Implement a max error counter before shutdown?
@@ -85,13 +85,15 @@ func (s *Server) Start() {
 
 // Stop requests the POP3 server closes it's listener
 func (s *Server) Stop() {
-	log.LogTrace("POP3 shutdown requested, connections will be drained")
+	log.Tracef("POP3 shutdown requested, connections will be drained")
 	s.shutdown = true
-	s.listener.Close()
+	if err := s.listener.Close(); err != nil {
+		log.Errorf("Error closing POP3 listener: %v", err)
+	}
 }
 
 // Drain causes the caller to block until all active POP3 sessions have finished
 func (s *Server) Drain() {
 	s.waitgroup.Wait()
-	log.LogTrace("POP3 connections drained")
+	log.Tracef("POP3 connections drained")
 }

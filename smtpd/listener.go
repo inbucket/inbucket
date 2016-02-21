@@ -13,7 +13,7 @@ import (
 	"github.com/jhillyerd/inbucket/log"
 )
 
-// Real server code starts here
+// Server holds the configuration and state of our SMTP server
 type Server struct {
 	domain          string
 	domainNoStore   string
@@ -46,37 +46,37 @@ var expConnectsHist = new(expvar.String)
 var expErrorsHist = new(expvar.String)
 var expWarnsHist = new(expvar.String)
 
-// Init a new Server object
-func NewSmtpServer(cfg config.SmtpConfig, ds DataStore) *Server {
+// NewServer creates a new Server instance with the specificed config
+func NewServer(cfg config.SMTPConfig, ds DataStore) *Server {
 	return &Server{dataStore: ds, domain: cfg.Domain, maxRecips: cfg.MaxRecipients,
 		maxIdleSeconds: cfg.MaxIdleSeconds, maxMessageBytes: cfg.MaxMessageBytes,
 		storeMessages: cfg.StoreMessages, domainNoStore: strings.ToLower(cfg.DomainNoStore),
 		waitgroup: new(sync.WaitGroup)}
 }
 
-// Main listener loop
+// Start the listener and handle incoming connections
 func (s *Server) Start() {
-	cfg := config.GetSmtpConfig()
+	cfg := config.GetSMTPConfig()
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
-		cfg.Ip4address, cfg.Ip4port))
+		cfg.IP4address, cfg.IP4port))
 	if err != nil {
-		log.LogError("Failed to build tcp4 address: %v", err)
+		log.Errorf("Failed to build tcp4 address: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
 
-	log.LogInfo("SMTP listening on TCP4 %v", addr)
+	log.Infof("SMTP listening on TCP4 %v", addr)
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
-		log.LogError("SMTP failed to start tcp4 listener: %v", err)
+		log.Errorf("SMTP failed to start tcp4 listener: %v", err)
 		// TODO More graceful early-shutdown procedure
 		panic(err)
 	}
 
 	if !s.storeMessages {
-		log.LogInfo("Load test mode active, messages will not be stored")
+		log.Infof("Load test mode active, messages will not be stored")
 	} else if s.domainNoStore != "" {
-		log.LogInfo("Messages sent to domain '%v' will be discarded", s.domainNoStore)
+		log.Infof("Messages sent to domain '%v' will be discarded", s.domainNoStore)
 	}
 
 	// Start retention scanner
@@ -96,12 +96,12 @@ func (s *Server) Start() {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.LogError("SMTP accept error: %v; retrying in %v", err, tempDelay)
+				log.Errorf("SMTP accept error: %v; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			} else {
 				if s.shutdown {
-					log.LogTrace("SMTP listener shutting down on request")
+					log.Tracef("SMTP listener shutting down on request")
 					return
 				}
 				// TODO Implement a max error counter before shutdown?
@@ -119,15 +119,17 @@ func (s *Server) Start() {
 
 // Stop requests the SMTP server closes it's listener
 func (s *Server) Stop() {
-	log.LogTrace("SMTP shutdown requested, connections will be drained")
+	log.Tracef("SMTP shutdown requested, connections will be drained")
 	s.shutdown = true
-	s.listener.Close()
+	if err := s.listener.Close(); err != nil {
+		log.Errorf("Failed to close SMTP listener: %v", err)
+	}
 }
 
 // Drain causes the caller to block until all active SMTP sessions have finished
 func (s *Server) Drain() {
 	s.waitgroup.Wait()
-	log.LogTrace("SMTP connections drained")
+	log.Tracef("SMTP connections drained")
 }
 
 // When the provided Ticker ticks, we update our metrics history

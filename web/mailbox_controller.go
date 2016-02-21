@@ -13,24 +13,35 @@ import (
 	"github.com/jhillyerd/inbucket/smtpd"
 )
 
-type JsonMessageHeader struct {
-	Mailbox, Id, From, Subject string
-	Date                       time.Time
-	Size                       int64
+// JSONMessageHeader contains the basic header data for a message
+type JSONMessageHeader struct {
+	Mailbox string
+	ID      string `json:"Id"`
+	From    string
+	Subject string
+	Date    time.Time
+	Size    int64
 }
 
-type JsonMessage struct {
-	Mailbox, Id, From, Subject string
-	Date                       time.Time
-	Size                       int64
-	Body                       *JsonMessageBody
-	Header                     mail.Header
+// JSONMessage contains the same data as the header plus a JSONMessageBody
+type JSONMessage struct {
+	Mailbox string
+	ID      string `json:"Id"`
+	From    string
+	Subject string
+	Date    time.Time
+	Size    int64
+	Body    *JSONMessageBody
+	Header  mail.Header
 }
 
-type JsonMessageBody struct {
-	Text, Html string
+// JSONMessageBody contains the Text and HTML versions of the message body
+type JSONMessageBody struct {
+	Text string
+	HTML string `json:"Html"`
 }
 
+// MailboxIndex renders the index page for a particular mailbox
 func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Form values must be validated manually
 	name := req.FormValue("name")
@@ -59,6 +70,7 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 	})
 }
 
+// MailboxLink handles pretty links to a particular message
 func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -74,6 +86,7 @@ func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	return nil
 }
 
+// MailboxList renders a list of messages in a mailbox
 func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -88,21 +101,21 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	if err != nil {
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
 	}
-	log.LogTrace("Got %v messsages", len(messages))
+	log.Tracef("Got %v messsages", len(messages))
 
-	if ctx.IsJson {
-		jmessages := make([]*JsonMessageHeader, len(messages))
+	if ctx.IsJSON {
+		jmessages := make([]*JSONMessageHeader, len(messages))
 		for i, msg := range messages {
-			jmessages[i] = &JsonMessageHeader{
+			jmessages[i] = &JSONMessageHeader{
 				Mailbox: name,
-				Id:      msg.Id(),
+				ID:      msg.ID(),
 				From:    msg.From(),
 				Subject: msg.Subject(),
 				Date:    msg.Date(),
 				Size:    msg.Size(),
 			}
 		}
-		return RenderJson(w, jmessages)
+		return RenderJSON(w, jmessages)
 	}
 
 	return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
@@ -112,6 +125,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	})
 }
 
+// MailboxShow renders a particular message from a mailbox
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -140,24 +154,24 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 		return fmt.Errorf("ReadBody() failed: %v", err)
 	}
 
-	if ctx.IsJson {
-		return RenderJson(w,
-			&JsonMessage{
+	if ctx.IsJSON {
+		return RenderJSON(w,
+			&JSONMessage{
 				Mailbox: name,
-				Id:      msg.Id(),
+				ID:      msg.ID(),
 				From:    msg.From(),
 				Subject: msg.Subject(),
 				Date:    msg.Date(),
 				Size:    msg.Size(),
 				Header:  header.Header,
-				Body: &JsonMessageBody{
+				Body: &JSONMessageBody{
 					Text: mime.Text,
-					Html: mime.Html,
+					HTML: mime.Html,
 				},
 			})
 	}
 
-	body := template.HTML(textToHtml(mime.Text))
+	body := template.HTML(textToHTML(mime.Text))
 	htmlAvailable := mime.Html != ""
 
 	return RenderPartial("mailbox/_show.html", w, map[string]interface{}{
@@ -170,6 +184,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	})
 }
 
+// MailboxPurge deletes all messages from a mailbox
 func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -183,18 +198,21 @@ func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 	if err := mb.Purge(); err != nil {
 		return fmt.Errorf("Mailbox(%q) Purge: %v", name, err)
 	}
-	log.LogTrace("Purged mailbox for %q", name)
+	log.Tracef("Purged mailbox for %q", name)
 
-	if ctx.IsJson {
-		return RenderJson(w, "OK")
+	if ctx.IsJSON {
+		return RenderJSON(w, "OK")
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
-	io.WriteString(w, "OK")
+	if _, err := io.WriteString(w, "OK"); err != nil {
+		return err
+	}
 	return nil
 }
 
-func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+// MailboxHTML displays the HTML content of a message
+func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -224,6 +242,7 @@ func MailboxHtml(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	})
 }
 
+// MailboxSource displays the raw source of a message, including headers
 func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -245,10 +264,14 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
-	io.WriteString(w, *raw)
+	if _, err := io.WriteString(w, *raw); err != nil {
+		return err
+	}
 	return nil
 }
 
+// MailboxDownloadAttach sends the attachment to the client; disposition:
+// attachment, type: application/octet-stream
 func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -287,10 +310,13 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Contex
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment")
-	w.Write(part.Content())
+	if _, err := w.Write(part.Content()); err != nil {
+		return err
+	}
 	return nil
 }
 
+// MailboxViewAttach sends the attachment to the client for online viewing
 func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -328,10 +354,13 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (
 	part := body.Attachments[num]
 
 	w.Header().Set("Content-Type", part.ContentType())
-	w.Write(part.Content())
+	if _, err := w.Write(part.Content()); err != nil {
+		return err
+	}
 	return nil
 }
 
+// MailboxDelete removes a particular message from a mailbox
 func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -352,11 +381,13 @@ func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 		return err
 	}
 
-	if ctx.IsJson {
-		return RenderJson(w, "OK")
+	if ctx.IsJSON {
+		return RenderJSON(w, "OK")
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
-	io.WriteString(w, "OK")
+	if _, err := io.WriteString(w, "OK"); err != nil {
+		return err
+	}
 	return nil
 }

@@ -1,9 +1,5 @@
 language: go
 
 go:
-  - 1.5
+  - 1.5.3
   - tip
-
-install:
-  - go get -v ./...
-  - go get github.com/stretchr/testify

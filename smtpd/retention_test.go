@@ -36,7 +36,9 @@ func TestDoRetentionScan(t *testing.T) {
 	mb3.On("GetMessages").Return([]Message{new3}, nil)
 
 	// Test 4 hour retention
-	doRetentionScan(mds, 4*time.Hour, 0)
+	if err := doRetentionScan(mds, 4*time.Hour, 0); err != nil {
+		t.Error(err)
+	}
 
 	// Check our assertions
 	mds.AssertExpectations(t)
@@ -58,7 +60,7 @@ func TestDoRetentionScan(t *testing.T) {
 // Make a MockMessage of a specific age
 func mockMessage(ageHours int) *MockMessage {
 	msg := &MockMessage{}
-	msg.On("Id").Return(fmt.Sprintf("MSG[age=%vh]", ageHours))
+	msg.On("ID").Return(fmt.Sprintf("MSG[age=%vh]", ageHours))
 	msg.On("Date").Return(time.Now().Add(time.Duration(ageHours*-1) * time.Hour))
 	msg.On("Delete").Return(nil)
 	return msg
@@ -114,7 +116,7 @@ type MockMessage struct {
 	mock.Mock
 }
 
-func (m *MockMessage) Id() string {
+func (m *MockMessage) ID() string {
 	args := m.Called()
 	return args.String(0)
 }

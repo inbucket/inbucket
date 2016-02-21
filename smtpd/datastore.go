@@ -9,13 +9,16 @@ import (
 	"github.com/jhillyerd/go.enmime"
 )
 
+// ErrNotExist indicates the requested message does not exist
 var ErrNotExist = errors.New("Message does not exist")
 
+// DataStore is an interface to get Mailboxes stored in Inbucket
 type DataStore interface {
 	MailboxFor(emailAddress string) (Mailbox, error)
 	AllMailboxes() ([]Mailbox, error)
 }
 
+// Mailbox is an interface to get and manipulate messages in a DataStore
 type Mailbox interface {
 	GetMessages() ([]Message, error)
 	GetMessage(id string) (Message, error)
@@ -24,8 +27,9 @@ type Mailbox interface {
 	String() string
 }
 
+// Message is an interface for a single message in a Mailbox
 type Message interface {
-	Id() string
+	ID() string
 	From() string
 	Date() time.Time
 	Subject() string

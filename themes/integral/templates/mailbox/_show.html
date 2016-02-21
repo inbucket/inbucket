@@ -1,11 +1,11 @@
 {{$name := .name}}
-{{$id := .message.Id}}
+{{$id := .message.ID}}
 <div id="emailActions">
   <a href="/link/{{$name}}/{{$id}}">Link</a>
-  <a href="javascript:deleteMessage('{{.message.Id}}');">Delete</a>
-  <a href="javascript:messageSource('{{.message.Id}}');">Source</a>
+  <a href="javascript:deleteMessage('{{.message.ID}}');">Delete</a>
+  <a href="javascript:messageSource('{{.message.ID}}');">Source</a>
   {{if .htmlAvailable}}
-    <a href="javascript:htmlView('{{.message.Id}}');">HTML</a>
+    <a href="javascript:htmlView('{{.message.ID}}');">HTML</a>
   {{end}}
 </div>
 <table id="emailHeader">

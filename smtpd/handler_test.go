@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/jhillyerd/inbucket/config"
-	//"io/ioutil"
 	"log"
 	"net"
 	"net/textproto"
@@ -27,8 +26,8 @@ func TestGreetState(t *testing.T) {
 	mb1 := &MockMailbox{}
 	mds.On("MailboxFor").Return(mb1, nil)
 
-	server, logbuf := setupSmtpServer(mds)
-	defer teardownSmtpServer(server)
+	server, logbuf := setupSMTPServer(mds)
+	defer teardownSMTPServer(server)
 
 	var script []scriptStep
 
@@ -77,7 +76,7 @@ func TestGreetState(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -88,8 +87,8 @@ func TestReadyState(t *testing.T) {
 	mb1 := &MockMailbox{}
 	mds.On("MailboxFor").Return(mb1, nil)
 
-	server, logbuf := setupSmtpServer(mds)
-	defer teardownSmtpServer(server)
+	server, logbuf := setupSMTPServer(mds)
+	defer teardownSMTPServer(server)
 
 	var script []scriptStep
 
@@ -142,7 +141,7 @@ func TestReadyState(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -156,8 +155,8 @@ func TestMailState(t *testing.T) {
 	mb1.On("NewMessage").Return(msg1, nil)
 	msg1.On("Close").Return(nil)
 
-	server, logbuf := setupSmtpServer(mds)
-	defer teardownSmtpServer(server)
+	server, logbuf := setupSMTPServer(mds)
+	defer teardownSMTPServer(server)
 
 	var script []scriptStep
 
@@ -252,7 +251,7 @@ func TestMailState(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -266,11 +265,11 @@ func TestDataState(t *testing.T) {
 	mb1.On("NewMessage").Return(msg1, nil)
 	msg1.On("Close").Return(nil)
 
-	server, logbuf := setupSmtpServer(mds)
-	defer teardownSmtpServer(server)
+	server, logbuf := setupSMTPServer(mds)
+	defer teardownSMTPServer(server)
 
 	var script []scriptStep
-	pipe := setupSmtpSession(server)
+	pipe := setupSMTPSession(server)
 	c := textproto.NewConn(pipe)
 
 	// Get us into DATA state
@@ -294,8 +293,8 @@ Subject: test
 Hi!
 `
 	dw := c.DotWriter()
-	io.WriteString(dw, body)
-	dw.Close()
+	_, _ = io.WriteString(dw, body)
+	_ = dw.Close()
 	if code, _, err := c.ReadCodeLine(250); err != nil {
 		t.Errorf("Expected a 250 greeting, got %v", code)
 	}
@@ -304,13 +303,13 @@ Hi!
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
 // playSession creates a new session, reads the greeting and then plays the script
 func playSession(t *testing.T, server *Server, script []scriptStep) error {
-	pipe := setupSmtpSession(server)
+	pipe := setupSMTPSession(server)
 	c := textproto.NewConn(pipe)
 
 	if code, _, err := c.ReadCodeLine(220); err != nil {
@@ -319,8 +318,10 @@ func playSession(t *testing.T, server *Server, script []scriptStep) error {
 
 	err := playScriptAgainst(t, c, script)
 
-	c.Cmd("QUIT")
-	c.ReadCodeLine(221)
+	// Not all tests leave the session in a clean state, so the following two
+	// calls can fail
+	_, _ = c.Cmd("QUIT")
+	_, _, _ = c.ReadCodeLine(221)
 
 	return err
 }
@@ -358,11 +359,11 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupSmtpServer(ds DataStore) (*Server, *bytes.Buffer) {
+func setupSMTPServer(ds DataStore) (*Server, *bytes.Buffer) {
 	// Test Server Config
-	cfg := config.SmtpConfig{
-		Ip4address:      net.IPv4(127, 0, 0, 1),
-		Ip4port:         2500,
+	cfg := config.SMTPConfig{
+		IP4address:      net.IPv4(127, 0, 0, 1),
+		IP4port:         2500,
 		Domain:          "inbucket.local",
 		DomainNoStore:   "bitbucket.local",
 		MaxRecipients:   5,
@@ -376,12 +377,12 @@ func setupSmtpServer(ds DataStore) (*Server, *bytes.Buffer) {
 	log.SetOutput(buf)
 
 	// Create a server, don't start it
-	return NewSmtpServer(cfg, ds), buf
+	return NewServer(cfg, ds), buf
 }
 
 var sessionNum int
 
-func setupSmtpSession(server *Server) net.Conn {
+func setupSMTPSession(server *Server) net.Conn {
 	// Pair of pipes to communicate
 	serverConn, clientConn := net.Pipe()
 	// Start the session
@@ -392,6 +393,6 @@ func setupSmtpSession(server *Server) net.Conn {
 	return clientConn
 }
 
-func teardownSmtpServer(server *Server) {
+func teardownSMTPServer(server *Server) {
 	//log.SetOutput(os.Stderr)
 }

@@ -11,10 +11,11 @@ import (
 	"github.com/jhillyerd/inbucket/log"
 )
 
+// TemplateFuncs declares functions made available to all templates (including partials)
 var TemplateFuncs = template.FuncMap{
 	"friendlyTime": friendlyTime,
 	"reverse":      reverse,
-	"textToHtml":   textToHtml,
+	"textToHtml":   textToHTML,
 }
 
 // From http://daringfireball.net/2010/07/improved_regex_for_matching_urls
@@ -40,7 +41,7 @@ func reverse(name string, things ...interface{}) string {
 	// Grab the route
 	u, err := Router.Get(name).URL(strs...)
 	if err != nil {
-		log.LogError("Failed to reverse route: %v", err)
+		log.Errorf("Failed to reverse route: %v", err)
 		return "/ROUTE-ERROR"
 	}
 	return u.Path
@@ -48,15 +49,15 @@ func reverse(name string, things ...interface{}) string {
 
 // textToHtml takes plain text, escapes it and tries to pretty it up for
 // HTML display
-func textToHtml(text string) template.HTML {
+func textToHTML(text string) template.HTML {
 	text = html.EscapeString(text)
-	text = urlRE.ReplaceAllStringFunc(text, wrapUrl)
+	text = urlRE.ReplaceAllStringFunc(text, wrapURL)
 	replacer := strings.NewReplacer("\r\n", "<br/>\n", "\r", "<br/>\n", "\n", "<br/>\n")
 	return template.HTML(replacer.Replace(text))
 }
 
 // wrapUrl wraps a <a href> tag around the provided URL
-func wrapUrl(url string) string {
+func wrapURL(url string) string {
 	unescaped := strings.Replace(url, "&amp;", "&", -1)
 	return fmt.Sprintf("<a href=\"%s\" target=\"_blank\">%s</a>", unescaped, url)
 }

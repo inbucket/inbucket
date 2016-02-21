@@ -10,11 +10,11 @@ import (
 	"github.com/robfig/config"
 )
 
-// SmtpConfig houses the SMTP server configuration - not using pointers
-// so that I can pass around copies of the object safely.
-type SmtpConfig struct {
-	Ip4address      net.IP
-	Ip4port         int
+// SMTPConfig contains the SMTP server configuration - not using pointers
+// so that we can pass around copies of the object safely.
+type SMTPConfig struct {
+	IP4address      net.IP
+	IP4port         int
 	Domain          string
 	DomainNoStore   string
 	MaxRecipients   int
@@ -23,22 +23,25 @@ type SmtpConfig struct {
 	StoreMessages   bool
 }
 
-type Pop3Config struct {
-	Ip4address     net.IP
-	Ip4port        int
+// POP3Config contains the POP3 server configuration
+type POP3Config struct {
+	IP4address     net.IP
+	IP4port        int
 	Domain         string
 	MaxIdleSeconds int
 }
 
+// WebConfig contains the HTTP server configuration
 type WebConfig struct {
-	Ip4address    net.IP
-	Ip4port       int
+	IP4address    net.IP
+	IP4port       int
 	TemplateDir   string
 	TemplateCache bool
 	PublicDir     string
 	GreetingFile  string
 }
 
+// DataStoreConfig contains the mail store configuration
 type DataStoreConfig struct {
 	Path             string
 	RetentionMinutes int
@@ -47,27 +50,29 @@ type DataStoreConfig struct {
 }
 
 var (
-	// Build info, set by main
-	VERSION    = ""
-	BUILD_DATE = ""
+	// Version of this build, set by main
+	Version = ""
 
-	// Global goconfig object
+	// BuildDate for this build, set by main
+	BuildDate = ""
+
+	// Config is our global robfig/config object
 	Config *config.Config
 
 	// Parsed specific configs
-	smtpConfig      *SmtpConfig
-	pop3Config      *Pop3Config
+	smtpConfig      *SMTPConfig
+	pop3Config      *POP3Config
 	webConfig       *WebConfig
 	dataStoreConfig *DataStoreConfig
 )
 
-// GetSmtpConfig returns a copy of the SmtpConfig object
-func GetSmtpConfig() SmtpConfig {
+// GetSMTPConfig returns a copy of the SmtpConfig object
+func GetSMTPConfig() SMTPConfig {
 	return *smtpConfig
 }
 
-// GetPop3Config returns a copy of the Pop3Config object
-func GetPop3Config() Pop3Config {
+// GetPOP3Config returns a copy of the Pop3Config object
+func GetPOP3Config() POP3Config {
 	return *pop3Config
 }
 
@@ -138,11 +143,11 @@ func LoadConfig(filename string) error {
 		return fmt.Errorf("Failed to validate configuration")
 	}
 
-	if err = parseSmtpConfig(); err != nil {
+	if err = parseSMTPConfig(); err != nil {
 		return err
 	}
 
-	if err = parsePop3Config(); err != nil {
+	if err = parsePOP3Config(); err != nil {
 		return err
 	}
 
@@ -174,9 +179,9 @@ func parseLoggingConfig() error {
 	return nil
 }
 
-// parseSmtpConfig trying to catch config errors early
-func parseSmtpConfig() error {
-	smtpConfig = new(SmtpConfig)
+// parseSMTPConfig trying to catch config errors early
+func parseSMTPConfig() error {
+	smtpConfig = new(SMTPConfig)
 	section := "smtp"
 
 	// Parse IP4 address only, error on IP6.
@@ -193,10 +198,10 @@ func parseSmtpConfig() error {
 	if addr == nil {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, err)
 	}
-	smtpConfig.Ip4address = addr
+	smtpConfig.IP4address = addr
 
 	option = "ip4.port"
-	smtpConfig.Ip4port, err = Config.Int(section, option)
+	smtpConfig.IP4port, err = Config.Int(section, option)
 	if err != nil {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}
@@ -245,9 +250,9 @@ func parseSmtpConfig() error {
 	return nil
 }
 
-// parsePop3Config trying to catch config errors early
-func parsePop3Config() error {
-	pop3Config = new(Pop3Config)
+// parsePOP3Config trying to catch config errors early
+func parsePOP3Config() error {
+	pop3Config = new(POP3Config)
 	section := "pop3"
 
 	// Parse IP4 address only, error on IP6.
@@ -264,10 +269,10 @@ func parsePop3Config() error {
 	if addr == nil {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, err)
 	}
-	pop3Config.Ip4address = addr
+	pop3Config.IP4address = addr
 
 	option = "ip4.port"
-	pop3Config.Ip4port, err = Config.Int(section, option)
+	pop3Config.IP4port, err = Config.Int(section, option)
 	if err != nil {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}
@@ -307,10 +312,10 @@ func parseWebConfig() error {
 	if addr == nil {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, err)
 	}
-	webConfig.Ip4address = addr
+	webConfig.IP4address = addr
 
 	option = "ip4.port"
-	webConfig.Ip4port, err = Config.Int(section, option)
+	webConfig.IP4port, err = Config.Int(section, option)
 	if err != nil {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}

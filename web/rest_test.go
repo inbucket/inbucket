@@ -19,31 +19,42 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type OutputJsonHeader struct {
-	Mailbox, Id, From, Subject, Date string
-	Size                             int
+// OutputJSONHeader holds the received Header
+type OutputJSONHeader struct {
+	Mailbox             string
+	ID                  string `json:"Id"`
+	From, Subject, Date string
+	Size                int
 }
 
-type OutputJsonMessage struct {
-	Mailbox, Id, From, Subject, Date string
-	Size                             int
-	Header                           map[string][]string
-	Body                             struct {
-		Text, Html string
+// OutputJSONMessage holds the received Message
+type OutputJSONMessage struct {
+	Mailbox             string
+	ID                  string `json:"Id"`
+	From, Subject, Date string
+	Size                int
+	Header              map[string][]string
+	Body                struct {
+		Text string
+		HTML string `json:"Html"`
 	}
 }
 
+// InputMessageData holds the message we want to test
 type InputMessageData struct {
-	Mailbox, Id, From, Subject string
-	Date                       time.Time
-	Size                       int
-	Header                     mail.Header
-	Html, Text                 string
+	Mailbox       string
+	ID            string `json:"Id"`
+	From, Subject string
+	Date          time.Time
+	Size          int
+	Header        mail.Header
+	HTML          string `json:"Html"`
+	Text          string
 }
 
 func (d *InputMessageData) MockMessage() *MockMessage {
 	msg := &MockMessage{}
-	msg.On("Id").Return(d.Id)
+	msg.On("ID").Return(d.ID)
 	msg.On("From").Return(d.From)
 	msg.On("Subject").Return(d.Subject)
 	msg.On("Date").Return(d.Date)
@@ -54,20 +65,20 @@ func (d *InputMessageData) MockMessage() *MockMessage {
 	msg.On("ReadHeader").Return(gomsg, nil)
 	body := &enmime.MIMEBody{
 		Text: d.Text,
-		Html: d.Html,
+		Html: d.HTML,
 	}
 	msg.On("ReadBody").Return(body, nil)
 	return msg
 }
 
-func (d *InputMessageData) CompareToJsonHeader(j *OutputJsonHeader) (errors []string) {
+func (d *InputMessageData) CompareToJSONHeader(j *OutputJSONHeader) (errors []string) {
 	if d.Mailbox != j.Mailbox {
 		errors = append(errors, fmt.Sprintf("Expected JSON.Mailbox=%q, got %q", d.Mailbox,
 			j.Mailbox))
 	}
-	if d.Id != j.Id {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Id=%q, got %q", d.Id,
-			j.Id))
+	if d.ID != j.ID {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Id=%q, got %q", d.ID,
+			j.ID))
 	}
 	if d.From != j.From {
 		errors = append(errors, fmt.Sprintf("Expected JSON.From=%q, got %q", d.From,
@@ -90,14 +101,14 @@ func (d *InputMessageData) CompareToJsonHeader(j *OutputJsonHeader) (errors []st
 	return errors
 }
 
-func (d *InputMessageData) CompareToJsonMessage(j *OutputJsonMessage) (errors []string) {
+func (d *InputMessageData) CompareToJSONMessage(j *OutputJSONMessage) (errors []string) {
 	if d.Mailbox != j.Mailbox {
 		errors = append(errors, fmt.Sprintf("Expected JSON.Mailbox=%q, got %q", d.Mailbox,
 			j.Mailbox))
 	}
-	if d.Id != j.Id {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Id=%q, got %q", d.Id,
-			j.Id))
+	if d.ID != j.ID {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Id=%q, got %q", d.ID,
+			j.ID))
 	}
 	if d.From != j.From {
 		errors = append(errors, fmt.Sprintf("Expected JSON.From=%q, got %q", d.From,
@@ -120,9 +131,9 @@ func (d *InputMessageData) CompareToJsonMessage(j *OutputJsonMessage) (errors []
 		errors = append(errors, fmt.Sprintf("Expected JSON.Text=%q, got %q", d.Text,
 			j.Body.Text))
 	}
-	if d.Html != j.Body.Html {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Html=%q, got %q", d.Html,
-			j.Body.Html))
+	if d.HTML != j.Body.HTML {
+		errors = append(errors, fmt.Sprintf("Expected JSON.Html=%q, got %q", d.HTML,
+			j.Body.HTML))
 	}
 	for k, vals := range d.Header {
 		jvals, ok := j.Header[k]
@@ -191,7 +202,7 @@ func TestRestMailboxList(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 
 	// Test MailboxFor error
@@ -211,14 +222,14 @@ func TestRestMailboxList(t *testing.T) {
 	// Test JSON message headers
 	data1 := &InputMessageData{
 		Mailbox: "good",
-		Id:      "0001",
+		ID:      "0001",
 		From:    "from1",
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
 	}
 	data2 := &InputMessageData{
 		Mailbox: "good",
-		Id:      "0002",
+		ID:      "0002",
 		From:    "from2",
 		Subject: "subject 2",
 		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, time.FixedZone("PDT", -700)),
@@ -241,19 +252,19 @@ func TestRestMailboxList(t *testing.T) {
 
 	// Check JSON
 	dec := json.NewDecoder(w.Body)
-	var result []OutputJsonHeader
+	var result []OutputJSONHeader
 	if err := dec.Decode(&result); err != nil {
 		t.Errorf("Failed to decode JSON: %v", err)
 	}
 	if len(result) != 2 {
 		t.Errorf("Expected 2 results, got %v", len(result))
 	}
-	if errors := data1.CompareToJsonHeader(&result[0]); len(errors) > 0 {
+	if errors := data1.CompareToJSONHeader(&result[0]); len(errors) > 0 {
 		for _, e := range errors {
 			t.Error(e)
 		}
 	}
-	if errors := data2.CompareToJsonHeader(&result[1]); len(errors) > 0 {
+	if errors := data2.CompareToJSONHeader(&result[1]); len(errors) > 0 {
 		for _, e := range errors {
 			t.Error(e)
 		}
@@ -263,7 +274,7 @@ func TestRestMailboxList(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -311,7 +322,7 @@ func TestRestMessage(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 
 	// Test GetMessage error
@@ -331,7 +342,7 @@ func TestRestMessage(t *testing.T) {
 	// Test JSON message headers
 	data1 := &InputMessageData{
 		Mailbox: "good",
-		Id:      "0001",
+		ID:      "0001",
 		From:    "from1",
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
@@ -339,7 +350,7 @@ func TestRestMessage(t *testing.T) {
 			"To": []string{"fred@fish.com", "keyword@nsa.gov"},
 		},
 		Text: "This is some text",
-		Html: "This is some HTML",
+		HTML: "This is some HTML",
 	}
 	goodbox := &MockMailbox{}
 	ds.On("MailboxFor", "good").Return(goodbox, nil)
@@ -358,11 +369,11 @@ func TestRestMessage(t *testing.T) {
 
 	// Check JSON
 	dec := json.NewDecoder(w.Body)
-	var result OutputJsonMessage
+	var result OutputJSONMessage
 	if err := dec.Decode(&result); err != nil {
 		t.Errorf("Failed to decode JSON: %v", err)
 	}
-	if errors := data1.CompareToJsonMessage(&result); len(errors) > 0 {
+	if errors := data1.CompareToJSONMessage(&result); len(errors) > 0 {
 		for _, e := range errors {
 			t.Error(e)
 		}
@@ -372,7 +383,7 @@ func TestRestMessage(t *testing.T) {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)
 		// Dump buffered log data if there was a failure
-		io.Copy(os.Stderr, logbuf)
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -404,7 +415,7 @@ func setupWebServer(ds smtpd.DataStore) *bytes.Buffer {
 	return buf
 }
 
-// Mock DataStore object
+// MockDataStore used to mock DataStore interface
 type MockDataStore struct {
 	mock.Mock
 }
@@ -419,7 +430,7 @@ func (m *MockDataStore) AllMailboxes() ([]smtpd.Mailbox, error) {
 	return args.Get(0).([]smtpd.Mailbox), args.Error(1)
 }
 
-// Mock Mailbox object
+// MockMailbox used to mock Mailbox interface
 type MockMailbox struct {
 	mock.Mock
 }
@@ -454,7 +465,7 @@ type MockMessage struct {
 	mock.Mock
 }
 
-func (m *MockMessage) Id() string {
+func (m *MockMessage) ID() string {
 	args := m.Called()
 	return args.String(0)
 }

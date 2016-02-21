@@ -1,5 +1,5 @@
 {{$name := .name}}
-{{$id := .message.Id}}
+{{$id := .message.ID}}
 <div class="btn-group btn-group-sm message-controls" role="group" aria-label="Message Controls">
   <button type="button"
           class="btn btn-primary"
@@ -9,20 +9,20 @@
   </button>
   <button type="button"
           class="btn btn-danger"
-          onClick="deleteMessage('{{.message.Id}}');">
+          onClick="deleteMessage('{{.message.ID}}');">
     <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
     Delete
   </button>
   <button type="button"
           class="btn btn-primary"
-          onClick="messageSource('{{.message.Id}}');">
+          onClick="messageSource('{{.message.ID}}');">
     <span class="glyphicon glyphicon-education" aria-hidden="true"></span>
     Source
   </button>
   {{if .htmlAvailable}}
     <button type="button"
             class="btn btn-primary"
-            onClick="htmlView('{{.message.Id}}');">
+            onClick="htmlView('{{.message.ID}}');">
       <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span>
       HTML
     </button>

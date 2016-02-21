@@ -15,11 +15,15 @@ import (
 	"github.com/jhillyerd/inbucket/smtpd"
 )
 
+// State tracks the current mode of our POP3 state machine
 type State int
 
 const (
-	AUTHORIZATION State = iota // The client must now identify and authenticate
-	TRANSACTION                // Mailbox open, client may now issue commands
+	// AUTHORIZATION state: the client must now identify and authenticate
+	AUTHORIZATION State = iota
+	// TRANSACTION state: mailbox open, client may now issue commands
+	TRANSACTION
+	// QUIT state: client requests us to end session
 	QUIT
 )
 
@@ -51,6 +55,7 @@ var commands = map[string]bool{
 	"CAPA": true,
 }
 
+// Session defines an active POP3 session
 type Session struct {
 	server     *Server         // Reference to the server we belong to
 	id         int             // Session ID number
@@ -66,6 +71,7 @@ type Session struct {
 	msgCount   int             // Number of undeleted messages
 }
 
+// NewSession creates a new POP3 session
 func NewSession(server *Server, id int, conn net.Conn) *Session {
 	reader := bufio.NewReader(conn)
 	host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
@@ -85,10 +91,12 @@ func (ses *Session) String() string {
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	log.LogInfo("POP3 connection from %v, starting session <%v>", conn.RemoteAddr(), id)
+	log.Infof("POP3 connection from %v, starting session <%v>", conn.RemoteAddr(), id)
 	//expConnectsCurrent.Add(1)
 	defer func() {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			log.Errorf("Error closing POP3 connection for <%v>: %v", id, err)
+		}
 		s.waitgroup.Done()
 		//expConnectsCurrent.Add(-1)
 	}()
@@ -235,7 +243,7 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 		var size int64
 		for i, msg := range ses.messages {
 			if ses.retain[i] {
-				count += 1
+				count++
 				size += msg.Size()
 			}
 		}
@@ -306,12 +314,12 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 				ses.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
 				return
 			}
-			ses.send(fmt.Sprintf("+OK %v %v", msgNum, ses.messages[msgNum-1].Id()))
+			ses.send(fmt.Sprintf("+OK %v %v", msgNum, ses.messages[msgNum-1].ID()))
 		} else {
 			ses.send(fmt.Sprintf("+OK Listing %v messages", ses.msgCount))
 			for i, msg := range ses.messages {
 				if ses.retain[i] {
-					ses.send(fmt.Sprintf("%v %v", i+1, msg.Id()))
+					ses.send(fmt.Sprintf("%v %v", i+1, msg.ID()))
 				}
 			}
 			ses.send(".")
@@ -340,7 +348,7 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 		}
 		if ses.retain[msgNum-1] {
 			ses.retain[msgNum-1] = false
-			ses.msgCount -= 1
+			ses.msgCount--
 			ses.send(fmt.Sprintf("+OK Deleted message %v", msgNum))
 		} else {
 			ses.logWarn("Client tried to DELE an already deleted message")
@@ -431,7 +439,12 @@ func (ses *Session) sendMessage(msg smtpd.Message) {
 		ses.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			ses.logError("Failed to close message: %v", err)
+		}
+	}()
+
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -459,7 +472,12 @@ func (ses *Session) sendMessageTop(msg smtpd.Message, lineCount int) {
 		ses.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			ses.logError("Failed to close message: %v", err)
+		}
+	}()
+
 	scanner := bufio.NewScanner(reader)
 	inBody := false
 	for scanner.Scan() {
@@ -473,7 +491,7 @@ func (ses *Session) sendMessageTop(msg smtpd.Message, lineCount int) {
 			if lineCount < 1 {
 				break
 			} else {
-				lineCount -= 1
+				lineCount--
 			}
 		} else {
 			if line == "" {
@@ -522,7 +540,9 @@ func (ses *Session) processDeletes() {
 	for i, msg := range ses.messages {
 		if !ses.retain[i] {
 			ses.logTrace("Deleting %v", msg)
-			msg.Delete()
+			if err := msg.Delete(); err != nil {
+				ses.logWarn("Error deleting %v: %v", msg, err)
+			}
 		}
 	}
 }
@@ -562,13 +582,17 @@ func (ses *Session) readByteLine(buf *bytes.Buffer) error {
 		if err != nil {
 			return err
 		}
-		buf.Write(line)
+		if _, err = buf.Write(line); err != nil {
+			return err
+		}
 		// Read the next byte looking for '\n'
 		c, err := ses.reader.ReadByte()
 		if err != nil {
 			return err
 		}
-		buf.WriteByte(c)
+		if err := buf.WriteByte(c); err != nil {
+			return err
+		}
 		if c == '\n' {
 			// We've reached the end of the line, return
 			return nil
@@ -612,21 +636,21 @@ func (ses *Session) ooSeq(cmd string) {
 
 // Session specific logging methods
 func (ses *Session) logTrace(msg string, args ...interface{}) {
-	log.LogTrace("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Tracef("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) logInfo(msg string, args ...interface{}) {
-	log.LogInfo("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Infof("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) logWarn(msg string, args ...interface{}) {
 	// Update metrics
 	//expWarnsTotal.Add(1)
-	log.LogWarn("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Warnf("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }
 
 func (ses *Session) logError(msg string, args ...interface{}) {
 	// Update metrics
 	//expErrorsTotal.Add(1)
-	log.LogError("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Errorf("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
 }

@@ -8,5 +8,11 @@
 	"ResourcesInclude": "README*,LICENSE*,inbucket.bat,etc,themes",
 	"PackageVersion": "1.1.0",
 	"PrereleaseInfo": "alpha",
-	"ConfigVersion": "0.9"
+	"ConfigVersion": "0.9",
+	"BuildSettings": {
+		"LdFlagsXVars": {
+			"TimeNow": "main.BUILDDATE",
+			"Version": "main.VERSION"
+		}
+	}
 }

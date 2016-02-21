@@ -1,6 +1,4 @@
-/*
-	This is the inbucket daemon launcher
-*/
+// main is the inbucket daemon launcher
 package main
 
 import (
@@ -21,9 +19,11 @@ import (
 )
 
 var (
-	// Build info, populated during linking by goxc
-	VERSION    = "1.1.0.snapshot"
-	BUILD_DATE = "undefined"
+	// VERSION contains the build version number, populated during linking by goxc
+	VERSION = "1.1.0.snapshot"
+
+	// BUILDDATE contains the build date, populated during linking by goxc
+	BUILDDATE = "undefined"
 
 	// Command line flags
 	help    = flag.Bool("help", false, "Displays this help")
@@ -42,8 +42,8 @@ var (
 )
 
 func main() {
-	config.VERSION = VERSION
-	config.BUILD_DATE = BUILD_DATE
+	config.Version = VERSION
+	config.BuildDate = BUILDDATE
 
 	flag.Parse()
 	if *help {
@@ -84,27 +84,38 @@ func main() {
 			}
 			defer closeLogFile()
 
-			// close std* streams
-			os.Stdout.Close()
-			os.Stderr.Close() // Warning: this will hide panic() output
-			os.Stdin.Close()
+			// Close std* streams to prevent accidental output, they will be redirected to
+			// our logfile below
+			if err := os.Stdout.Close(); err != nil {
+				log.Errorf("Failed to close os.Stdout during log setup")
+			}
+			// Warning: this will hide panic() output
+			// TODO Replace with syscall.Dup2 per https://github.com/golang/go/issues/325
+			if err := os.Stderr.Close(); err != nil {
+				log.Errorf("Failed to close os.Stderr during log setup")
+			}
+			if err := os.Stdin.Close(); err != nil {
+				log.Errorf("Failed to close os.Stdin during log setup")
+			}
 			os.Stdout = logf
 			os.Stderr = logf
 		}
 	}
 
-	log.LogInfo("Inbucket %v (%v) starting...", config.VERSION, config.BUILD_DATE)
+	log.Infof("Inbucket %v (%v) starting...", config.Version, config.BuildDate)
 
 	// Write pidfile if requested
 	// TODO: Probably supposed to remove pidfile during shutdown
 	if *pidfile != "none" {
 		pidf, err := os.Create(*pidfile)
 		if err != nil {
-			log.LogError("Failed to create %v: %v", *pidfile, err)
+			log.Errorf("Failed to create %v: %v", *pidfile, err)
 			os.Exit(1)
 		}
-		defer pidf.Close()
 		fmt.Fprintf(pidf, "%v\n", os.Getpid())
+		if err := pidf.Close(); err != nil {
+			log.Errorf("Failed to close PID file %v: %v", *pidfile, err)
+		}
 	}
 
 	// Grab our datastore
@@ -119,7 +130,7 @@ func main() {
 	go pop3Server.Start()
 
 	// Startup SMTP server, block until it exits
-	smtpServer = smtpd.NewSmtpServer(config.GetSmtpConfig(), ds)
+	smtpServer = smtpd.NewServer(config.GetSMTPConfig(), ds)
 	smtpServer.Start()
 
 	// Wait for active connections to finish
@@ -136,14 +147,15 @@ func openLogFile() error {
 		return fmt.Errorf("Failed to create %v: %v\n", *logfile, err)
 	}
 	golog.SetOutput(logf)
-	log.LogTrace("Opened new logfile")
+	log.Tracef("Opened new logfile")
 	return nil
 }
 
 // closeLogFile closes the current logfile
-func closeLogFile() error {
-	log.LogTrace("Closing logfile")
-	return logf.Close()
+func closeLogFile() {
+	log.Tracef("Closing logfile")
+	// We are never in a situation where we can do anything about failing to close
+	_ = logf.Close()
 }
 
 // signalProcessor is a goroutine that handles OS signals
@@ -154,21 +166,23 @@ func signalProcessor(c <-chan os.Signal) {
 		case syscall.SIGHUP:
 			// Rotate logs if configured
 			if logf != nil {
-				log.LogInfo("Recieved SIGHUP, cycling logfile")
+				log.Infof("Recieved SIGHUP, cycling logfile")
 				closeLogFile()
-				openLogFile()
+				// There is nothing we can do if the log open fails
+				// TODO We could panic, but that would be lame?
+				_ = openLogFile()
 			} else {
-				log.LogInfo("Ignoring SIGHUP, logfile not configured")
+				log.Infof("Ignoring SIGHUP, logfile not configured")
 			}
 		case syscall.SIGTERM:
 			// Initiate shutdown
-			log.LogInfo("Received SIGTERM, shutting down")
+			log.Infof("Received SIGTERM, shutting down")
 			go timedExit()
 			web.Stop()
 			if smtpServer != nil {
 				smtpServer.Stop()
 			} else {
-				log.LogError("smtpServer was nil during shutdown")
+				log.Errorf("smtpServer was nil during shutdown")
 			}
 		}
 	}
@@ -177,7 +191,7 @@ func signalProcessor(c <-chan os.Signal) {
 // timedExit is called as a goroutine during shutdown, it will force an exit after 15 seconds
 func timedExit() {
 	time.Sleep(15 * time.Second)
-	log.LogError("Inbucket clean shutdown timed out, forcing exit")
+	log.Errorf("Inbucket clean shutdown timed out, forcing exit")
 	os.Exit(0)
 }
 

@@ -1,65 +1,71 @@
 package log
 
 import (
-	"log"
+	golog "log"
 	"strings"
 )
 
-type LogLevel int
+// Level is used to indicate the severity of a log entry
+type Level int
 
 const (
-	ERROR LogLevel = iota
+	// ERROR indicates a significant problem was encountered
+	ERROR Level = iota
+	// WARN indicates something that may be a problem
 	WARN
+	// INFO indicates a purely informational log entry
 	INFO
+	// TRACE entries are meant for development purposes only
 	TRACE
 )
 
-var MaxLogLevel LogLevel = TRACE
+// MaxLevel is the highest Level we will log (max TRACE, min ERROR)
+var MaxLevel = TRACE
 
-// SetLogLevel sets MaxLogLevel based on the provided string
+// SetLogLevel sets MaxLevel based on the provided string
 func SetLogLevel(level string) (ok bool) {
 	switch strings.ToUpper(level) {
 	case "ERROR":
-		MaxLogLevel = ERROR
+		MaxLevel = ERROR
 	case "WARN":
-		MaxLogLevel = WARN
+		MaxLevel = WARN
 	case "INFO":
-		MaxLogLevel = INFO
+		MaxLevel = INFO
 	case "TRACE":
-		MaxLogLevel = TRACE
+		MaxLevel = TRACE
 	default:
-		LogError("Unknown log level requested: %v", level)
+		Errorf("Unknown log level requested: " + level)
 		return false
 	}
 	return true
 }
 
-// Error logs a message to the 'standard' Logger (always)
-func LogError(msg string, args ...interface{}) {
+// Errorf logs a message to the 'standard' Logger (always), accepts format strings
+func Errorf(msg string, args ...interface{}) {
 	msg = "[ERROR] " + msg
-	log.Printf(msg, args...)
+	golog.Printf(msg, args...)
 }
 
-// Warn logs a message to the 'standard' Logger if MaxLogLevel is >= WARN
-func LogWarn(msg string, args ...interface{}) {
-	if MaxLogLevel >= WARN {
+// Warnf logs a message to the 'standard' Logger if MaxLevel is >= WARN, accepts format strings
+func Warnf(msg string, args ...interface{}) {
+	if MaxLevel >= WARN {
 		msg = "[WARN ] " + msg
-		log.Printf(msg, args...)
+		golog.Printf(msg, args...)
 	}
 }
 
-// Info logs a message to the 'standard' Logger if MaxLogLevel is >= INFO
-func LogInfo(msg string, args ...interface{}) {
-	if MaxLogLevel >= INFO {
+// Infof logs a message to the 'standard' Logger if MaxLevel is >= INFO, accepts format strings
+func Infof(msg string, args ...interface{}) {
+	if MaxLevel >= INFO {
 		msg = "[INFO ] " + msg
-		log.Printf(msg, args...)
+		golog.Printf(msg, args...)
 	}
 }
 
-// Trace logs a message to the 'standard' Logger if MaxLogLevel is >= TRACE
-func LogTrace(msg string, args ...interface{}) {
-	if MaxLogLevel >= TRACE {
+// Tracef logs a message to the 'standard' Logger if MaxLevel is >= TRACE, accepts format strings
+func Tracef(msg string, args ...interface{}) {
+	if MaxLevel >= TRACE {
 		msg = "[TRACE] " + msg
-		log.Printf(msg, args...)
+		golog.Printf(msg, args...)
 	}
 }

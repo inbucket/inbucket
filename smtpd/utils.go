@@ -9,9 +9,10 @@ import (
 	"strings"
 )
 
-// Take "user+ext" and return "user", aka the mailbox we'll store it in
-// Return error if it contains invalid characters, we don't accept anything
-// that must be quoted according to RFC3696.
+// ParseMailboxName takes a localPart string (ex: "user+ext" without "@domain")
+// and returns just the mailbox name (ex: "user").  Returns an error if
+// localPart contains invalid characters; it won't accept any that must be
+// quoted according to RFC3696.
 func ParseMailboxName(localPart string) (result string, err error) {
 	if localPart == "" {
 		return "", fmt.Errorf("Mailbox name cannot be empty")
@@ -41,10 +42,14 @@ func ParseMailboxName(localPart string) (result string, err error) {
 	return result, nil
 }
 
-// Take a mailbox name and hash it into the directory we'll store it in
+// HashMailboxName accepts a mailbox name and hashes it.  Inbucket uses this as
+// the directory to house the mailbox
 func HashMailboxName(mailbox string) string {
 	h := sha1.New()
-	io.WriteString(h, mailbox)
+	if _, err := io.WriteString(h, mailbox); err != nil {
+		// This shouldn't ever happen
+		return ""
+	}
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
@@ -138,15 +143,15 @@ LOOP:
 		switch {
 		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'):
 			// Letters are OK
-			buf.WriteByte(c)
+			_ = buf.WriteByte(c)
 			inCharQuote = false
 		case '0' <= c && c <= '9':
 			// Numbers are OK
-			buf.WriteByte(c)
+			_ = buf.WriteByte(c)
 			inCharQuote = false
 		case bytes.IndexByte([]byte("!#$%&'*+-/=?^_`{|}~"), c) >= 0:
 			// These specials can be used unquoted
-			buf.WriteByte(c)
+			_ = buf.WriteByte(c)
 			inCharQuote = false
 		case c == '.':
 			// A single period is OK
@@ -154,13 +159,13 @@ LOOP:
 				// Sequence of periods is not permitted
 				return "", "", fmt.Errorf("Sequence of periods is not permitted")
 			}
-			buf.WriteByte(c)
+			_ = buf.WriteByte(c)
 			inCharQuote = false
 		case c == '\\':
 			inCharQuote = true
 		case c == '"':
 			if inCharQuote {
-				buf.WriteByte(c)
+				_ = buf.WriteByte(c)
 				inCharQuote = false
 			} else if inStringQuote {
 				inStringQuote = false
@@ -173,7 +178,7 @@ LOOP:
 			}
 		case c == '@':
 			if inCharQuote || inStringQuote {
-				buf.WriteByte(c)
+				_ = buf.WriteByte(c)
 				inCharQuote = false
 			} else {
 				// End of local-part
@@ -190,7 +195,7 @@ LOOP:
 			return "", "", fmt.Errorf("Characters outside of US-ASCII range not permitted")
 		default:
 			if inCharQuote || inStringQuote {
-				buf.WriteByte(c)
+				_ = buf.WriteByte(c)
 				inCharQuote = false
 			} else {
 				return "", "", fmt.Errorf("Character %q must be quoted", c)

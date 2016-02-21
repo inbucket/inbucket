@@ -19,16 +19,23 @@ import (
 )
 
 // Name of index file in each mailbox
-const INDEX_FILE = "index.gob"
+const indexFileName = "index.gob"
 
-// We lock this when reading/writing an index file, this is a bottleneck because
-// it's a single lock even if we have a million index files
-var indexLock = new(sync.RWMutex)
+var (
+	// indexLock is locked while reading/writing an index file
+	//
+	// NOTE: This is a bottleneck because  it's a single lock even if we have a
+	// million index files
+	indexLock = new(sync.RWMutex)
 
-var ErrNotWritable = errors.New("Message not writable")
+	// TODO Consider moving this to the Message interface
+	errNotWritable = errors.New("Message not writable")
 
-// Global because we only want one regardless of the number of DataStore objects
-var countChannel = make(chan int, 10)
+	// countChannel is filled with a sequential numbers (0000..9999), which are
+	// used by generateID() to generate unique message IDs.  It's global
+	// because we only want one regardless of the number of DataStore objects
+	countChannel = make(chan int, 10)
+)
 
 func init() {
 	// Start generator
@@ -42,8 +49,8 @@ func countGenerator(c chan int) {
 	}
 }
 
-// A DataStore is the root of the mail storage hiearchy.  It provides access to
-// Mailbox objects
+// FileDataStore implements DataStore aand is the root of the mail storage
+// hiearchy.  It provides access to Mailbox objects
 type FileDataStore struct {
 	path       string
 	mailPath   string
@@ -54,13 +61,15 @@ type FileDataStore struct {
 func NewFileDataStore(cfg config.DataStoreConfig) DataStore {
 	path := cfg.Path
 	if path == "" {
-		log.LogError("No value configured for datastore path")
+		log.Errorf("No value configured for datastore path")
 		return nil
 	}
 	mailPath := filepath.Join(path, "mail")
 	if _, err := os.Stat(mailPath); err != nil {
 		// Mail datastore does not yet exist
-		os.MkdirAll(mailPath, 0770)
+		if err = os.MkdirAll(mailPath, 0770); err != nil {
+			log.Errorf("Error creating dir %q: %v", mailPath, err)
+		}
 	}
 	return &FileDataStore{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}
 }
@@ -72,7 +81,7 @@ func DefaultFileDataStore() DataStore {
 	return NewFileDataStore(cfg)
 }
 
-// Retrieves the Mailbox object for a specified email address, if the mailbox
+// MailboxFor retrieves the Mailbox object for a specified email address, if the mailbox
 // does not exist, it will attempt to create it.
 func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
 	name, err := ParseMailboxName(emailAddress)
@@ -83,7 +92,7 @@ func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
 	s1 := dir[0:3]
 	s2 := dir[0:6]
 	path := filepath.Join(ds.mailPath, s1, s2, dir)
-	indexPath := filepath.Join(path, INDEX_FILE)
+	indexPath := filepath.Join(path, indexFileName)
 
 	return &FileMailbox{store: ds, name: name, dirName: dir, path: path,
 		indexPath: indexPath}, nil
@@ -117,7 +126,7 @@ func (ds *FileDataStore) AllMailboxes() ([]Mailbox, error) {
 						if inf3.IsDir() {
 							mbdir := inf3.Name()
 							mbpath := filepath.Join(ds.mailPath, l1, l2, mbdir)
-							idx := filepath.Join(mbpath, INDEX_FILE)
+							idx := filepath.Join(mbpath, indexFileName)
 							mb := &FileMailbox{store: ds, dirName: mbdir, path: mbpath,
 								indexPath: idx}
 							mailboxes = append(mailboxes, mb)
@@ -131,8 +140,8 @@ func (ds *FileDataStore) AllMailboxes() ([]Mailbox, error) {
 	return mailboxes, nil
 }
 
-// A Mailbox manages the mail for a specific user and correlates to a particular
-// directory on disk.
+// FileMailbox implements Mailbox, manages the mail for a specific user and
+// correlates to a particular directory on disk.
 type FileMailbox struct {
 	store       *FileDataStore
 	name        string
@@ -180,7 +189,7 @@ func (mb *FileMailbox) GetMessage(id string) (Message, error) {
 	return nil, ErrNotExist
 }
 
-// Delete all messages in this mailbox
+// Purge deletes all messages in this mailbox
 func (mb *FileMailbox) Purge() error {
 	mb.messages = mb.messages[:0]
 	return mb.writeIndex()
@@ -196,7 +205,7 @@ func (mb *FileMailbox) readIndex() error {
 	// Check if index exists
 	if _, err := os.Stat(mb.indexPath); err != nil {
 		// Does not exist, but that's not an error in our world
-		log.LogTrace("Index %v does not exist (yet)", mb.indexPath)
+		log.Tracef("Index %v does not exist (yet)", mb.indexPath)
 		mb.indexLoaded = true
 		return nil
 	}
@@ -204,7 +213,11 @@ func (mb *FileMailbox) readIndex() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Errorf("Failed to close %q: %v", mb.indexPath, err)
+		}
+	}()
 
 	// Decode gob data
 	dec := gob.NewDecoder(bufio.NewReader(file))
@@ -219,7 +232,7 @@ func (mb *FileMailbox) readIndex() error {
 			return fmt.Errorf("While decoding message: %v", err)
 		}
 		msg.mailbox = mb
-		log.LogTrace("Found: %v", msg)
+		log.Tracef("Found: %v", msg)
 		mb.messages = append(mb.messages, msg)
 	}
 
@@ -231,7 +244,7 @@ func (mb *FileMailbox) readIndex() error {
 func (mb *FileMailbox) createDir() error {
 	if _, err := os.Stat(mb.path); err != nil {
 		if err := os.MkdirAll(mb.path, 0770); err != nil {
-			log.LogError("Failed to create directory %v, %v", mb.path, err)
+			log.Errorf("Failed to create directory %v, %v", mb.path, err)
 			return err
 		}
 	}
@@ -253,7 +266,11 @@ func (mb *FileMailbox) writeIndex() error {
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer func() {
+			if err := file.Close(); err != nil {
+				log.Errorf("Failed to close %q: %v", mb.indexPath, err)
+			}
+		}()
 		writer := bufio.NewWriter(file)
 
 		// Write each message and then flush
@@ -264,18 +281,20 @@ func (mb *FileMailbox) writeIndex() error {
 				return err
 			}
 		}
-		writer.Flush()
+		if err := writer.Flush(); err != nil {
+			return err
+		}
 	} else {
 		// No messages, delete index+maildir
-		log.LogTrace("Removing mailbox %v", mb.path)
+		log.Tracef("Removing mailbox %v", mb.path)
 		return os.RemoveAll(mb.path)
 	}
 
 	return nil
 }
 
-// Message contains a little bit of data about a particular email message, and
-// methods to retrieve the rest of it from disk.
+// FileMessage implements Message and contains a little bit of data about a
+// particular email message, and methods to retrieve the rest of it from disk.
 type FileMessage struct {
 	mailbox *FileMailbox
 	// Stored in GOB
@@ -290,7 +309,7 @@ type FileMessage struct {
 	writer     *bufio.Writer
 }
 
-// NewMessage creates a new Message object and sets the Date and Id fields.
+// NewMessage creates a new FileMessage object and sets the Date and Id fields.
 // It will also delete messages over messageCap if configured.
 func (mb *FileMailbox) NewMessage() (Message, error) {
 	// Load index
@@ -303,7 +322,7 @@ func (mb *FileMailbox) NewMessage() (Message, error) {
 	// Delete old messages over messageCap
 	if mb.store.messageCap > 0 {
 		for len(mb.messages) >= mb.store.messageCap {
-			log.LogInfo("Mailbox %q over configured message cap", mb.name)
+			log.Infof("Mailbox %q over configured message cap", mb.name)
 			if err := mb.messages[0].Delete(); err != nil {
 				return nil, err
 			}
@@ -311,30 +330,37 @@ func (mb *FileMailbox) NewMessage() (Message, error) {
 	}
 
 	date := time.Now()
-	id := generateId(date)
+	id := generateID(date)
 	return &FileMessage{mailbox: mb, Fid: id, Fdate: date, writable: true}, nil
 }
 
-func (m *FileMessage) Id() string {
+// ID gets the ID of the Message
+func (m *FileMessage) ID() string {
 	return m.Fid
 }
 
+// Date returns the date of the Message
+// TODO Is this the create timestamp, or from the Date header?
 func (m *FileMessage) Date() time.Time {
 	return m.Fdate
 }
 
+// From returns the value of the Message From header
 func (m *FileMessage) From() string {
 	return m.Ffrom
 }
 
+// Subject returns the value of the Message Subject header
 func (m *FileMessage) Subject() string {
 	return m.Fsubject
 }
 
+// String returns a string in the form: "Subject()" from From()
 func (m *FileMessage) String() string {
 	return fmt.Sprintf("\"%v\" from %v", m.Fsubject, m.Ffrom)
 }
 
+// Size returns the size of the Message on disk in bytes
 func (m *FileMessage) Size() int64 {
 	return m.Fsize
 }
@@ -349,10 +375,14 @@ func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Errorf("Failed to close %q: %v", m.rawPath(), err)
+		}
+	}()
+
 	reader := bufio.NewReader(file)
-	msg, err = mail.ReadMessage(reader)
-	return msg, err
+	return mail.ReadMessage(reader)
 }
 
 // ReadBody opens the .raw portion of a Message and returns a MIMEBody object
@@ -361,7 +391,12 @@ func (m *FileMessage) ReadBody() (body *enmime.MIMEBody, err error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Errorf("Failed to close %q: %v", m.rawPath(), err)
+		}
+	}()
+
 	reader := bufio.NewReader(file)
 	msg, err := mail.ReadMessage(reader)
 	if err != nil {
@@ -371,7 +406,7 @@ func (m *FileMessage) ReadBody() (body *enmime.MIMEBody, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return mime, err
+	return mime, nil
 }
 
 // RawReader opens the .raw portion of a Message as an io.ReadCloser
@@ -386,10 +421,15 @@ func (m *FileMessage) RawReader() (reader io.ReadCloser, err error) {
 // ReadRaw opens the .raw portion of a Message and returns it as a string
 func (m *FileMessage) ReadRaw() (raw *string, err error) {
 	reader, err := m.RawReader()
-	defer reader.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Errorf("Failed to close %q: %v", m.rawPath(), err)
+		}
+	}()
+
 	bodyBytes, err := ioutil.ReadAll(bufio.NewReader(reader))
 	if err != nil {
 		return nil, err
@@ -403,7 +443,7 @@ func (m *FileMessage) ReadRaw() (raw *string, err error) {
 func (m *FileMessage) Append(data []byte) error {
 	// Prevent Appending to a pre-existing Message
 	if !m.writable {
-		return ErrNotWritable
+		return errNotWritable
 	}
 	// Open file for writing if we haven't yet
 	if m.writer == nil {
@@ -466,7 +506,8 @@ func (m *FileMessage) Close() error {
 	return m.mailbox.writeIndex()
 }
 
-// Delete this Message from disk by removing both the gob and raw files
+// Delete this Message from disk by removing it from the index and deleting the
+// raw files.
 func (m *FileMessage) Delete() error {
 	messages := m.mailbox.messages
 	for i, mm := range messages {
@@ -476,16 +517,18 @@ func (m *FileMessage) Delete() error {
 			break
 		}
 	}
-	m.mailbox.writeIndex()
+	if err := m.mailbox.writeIndex(); err != nil {
+		return err
+	}
 
 	if len(m.mailbox.messages) == 0 {
-		// This was the last message, writeIndex() has removed the entire
-		// directory
+		// This was the last message, thus writeIndex() has removed the entire
+		// directory; we don't need to delete the raw file.
 		return nil
 	}
 
 	// There are still messages in the index
-	log.LogTrace("Deleting %v", m.rawPath())
+	log.Tracef("Deleting %v", m.rawPath())
 	return os.Remove(m.rawPath())
 }
 
@@ -498,6 +541,6 @@ func generatePrefix(date time.Time) string {
 
 // generateId adds a 4-digit unique number onto the end of the string
 // returned by generatePrefix()
-func generateId(date time.Time) string {
+func generateID(date time.Time) string {
 	return generatePrefix(date) + "-" + fmt.Sprintf("%04d", <-countChannel)
 }

@@ -1,4 +1,5 @@
 {
+	"ArtifactsDest": "target",
 	"TasksExclude": [
 		"pkg-build"
 	],

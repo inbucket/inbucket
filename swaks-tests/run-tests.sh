@@ -1,8 +1,23 @@
 #!/bin/sh
-# run-tests.sh: Generate test emails for Inbucket
+# run-tests.sh
+# description: Generate test emails for Inbucket
+
+set -eo pipefail
+
+case "$1" in
+  "")
+    to="swaks"
+    ;;
+  --*)
+    to="swaks"
+    ;;
+  *)
+    to="$1"
+    ;;
+esac
 
 export SWAKS_OPT_server="127.0.0.1:2500"
-export SWAKS_OPT_to="swaks@inbucket.local"
+export SWAKS_OPT_to="$to@inbucket.local"
 
 # Basic test
 swaks $* --h-Subject: "Swaks Plain Text" --body text.txt

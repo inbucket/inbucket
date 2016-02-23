@@ -2,4 +2,61 @@
 # docker-run.sh
 # description: Launch Inbucket's docker image
 
-docker run -p 9000:10080 -p 2500:10025 -p 1100:10110 jhillyerd/inbucket
+# Docker Image Tag
+IMAGE="jhillyerd/inbucket"
+
+# Ports exposed on host:
+PORT_HTTP=9000
+PORT_SMTP=2500
+PORT_POP3=1100
+
+# Volumes exposed on host:
+VOL_CONFIG="/tmp/inbucket/config"
+VOL_DATA="/tmp/inbucket/data"
+
+set -eo pipefail
+
+main() {
+  local run_opts=""
+
+  for arg in $*; do
+    case "$arg" in
+      -h)
+        usage
+        exit
+        ;;
+      -r)
+        reset
+        ;;
+      -d)
+        run_opts="$run_opts -d"
+        ;;
+      *)
+        usage
+        exit 1
+        ;;
+    esac
+  done
+
+  docker run $run_opts \
+    -p $PORT_HTTP:10080 \
+    -p $PORT_SMTP:10025 \
+    -p $PORT_POP3:10110 \
+    -v "$VOL_CONFIG:/con/configuration" \
+    -v "$VOL_DATA:/con/data" \
+    "$IMAGE"
+}
+
+usage() {
+  echo "$0 [options]" 2>&1
+  echo "  -d    detach - detach and print container ID" 2>&1
+  echo "  -r    reset - purge config and data before startup" 2>&1
+  echo "  -h    help - print this message" 2>&1
+}
+
+reset() {
+  /bin/rm -rf "$VOL_CONFIG"
+  /bin/rm -rf "$VOL_DATA"
+}
+
+main $*

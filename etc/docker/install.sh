@@ -4,9 +4,14 @@
 
 set -eo pipefail
 
-installdir="${INBUCKET_HOME}"
-srcdir="${INBUCKET_SRC}"
+installdir="$INBUCKET_HOME"
+srcdir="$INBUCKET_SRC"
 bindir="$installdir/bin"
+defaultsdir="$installdir/defaults"
+contextdir="/con/context"
+
+echo "### Installing OS Build Dependencies"
+apk add --no-cache --virtual .build-deps git
 
 # Setup
 export GOBIN="$bindir"
@@ -16,7 +21,7 @@ go clean
 
 # Build
 echo "### Fetching Dependencies"
-go get -d -t -v ./...
+go get -t -v ./...
 
 echo "### Testing Inbucket"
 go test ./...
@@ -25,9 +30,19 @@ echo "### Building Inbucket"
 go build -o inbucket -ldflags "-X 'main.BUILDDATE=$builddate'" -v .
 
 echo "### Installing Inbucket"
+set -x
 mkdir -p "$bindir"
-mkdir -p "/etc/opt"
-mv inbucket "$bindir"
-install etc/docker/inbucket.conf /etc/opt/inbucket.conf
-install etc/docker/greeting.html /etc/opt/inbucket-greeting.html
+install inbucket "$bindir"
+mkdir -p "$contextdir"
+install etc/docker/defaults/start-inbucket.sh "$contextdir"
 cp -r themes "$installdir/"
+mkdir -p "$defaultsdir"
+cp etc/docker/defaults/inbucket.conf "$defaultsdir"
+cp etc/docker/defaults/greeting.html "$defaultsdir"
+set +x
+
+echo "### Removing OS Build Dependencies"
+apk del .build-deps
+
+echo "### Removing $GOPATH"
+rm -rf "$GOPATH"

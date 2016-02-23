@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # install.sh
 # description: Build, test, and install Inbucket. Should be executed inside a Docker container.
 
@@ -10,23 +10,23 @@ bindir="$installdir/bin"
 
 # Setup
 export GOBIN="$bindir"
-builddate="$(date --iso-8601=seconds)"
+builddate="$(date -Iseconds)"
 cd "$srcdir"
 go clean
 
 # Build
 echo "### Fetching Dependencies"
-go get -d -v ./...
-go get -v github.com/stretchr/testify
+go get -d -t -v ./...
 
 echo "### Testing Inbucket"
 go test ./...
 
 echo "### Building Inbucket"
-mkdir -p "$bindir"
-go build -o inbucket -race -ldflags "-X 'main.BUILD_DATE=$builddate'" -v .
+go build -o inbucket -ldflags "-X 'main.BUILDDATE=$builddate'" -v .
 
 echo "### Installing Inbucket"
+mkdir -p "$bindir"
+mkdir -p "/etc/opt"
 mv inbucket "$bindir"
 install etc/docker/inbucket.conf /etc/opt/inbucket.conf
 install etc/docker/greeting.html /etc/opt/inbucket-greeting.html

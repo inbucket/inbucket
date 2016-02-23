@@ -1,8 +1,11 @@
 # Docker build file for Inbucket, see https://www.docker.io/
 # Inbucket website: http://www.inbucket.org/
 
-FROM golang:1.5
+FROM golang:1.6-alpine
 MAINTAINER James Hillyerd, @jameshillyerd
+
+# Dependencies
+RUN apk update && apk add git
 
 # Configuration (WORKDIR doesn't support env vars)
 ENV INBUCKET_SRC $GOPATH/src/github.com/jhillyerd/inbucket

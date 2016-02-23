@@ -1,0 +1,8 @@
+.dockerignore
+.goxc.json
+.goxc.local.json
+.travis.yml
+inbucket
+inbucket.exe
+swaks-tests
+target

@@ -15,6 +15,7 @@ import (
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/pop3d"
+	"github.com/jhillyerd/inbucket/rest"
 	"github.com/jhillyerd/inbucket/smtpd"
 	"github.com/jhillyerd/inbucket/webui"
 )
@@ -125,6 +126,7 @@ func main() {
 	// Start HTTP server
 	httpd.Initialize(config.GetWebConfig(), ds)
 	webui.SetupRoutes(httpd.Router)
+	rest.SetupRoutes(httpd.Router)
 	go httpd.Start()
 
 	// Start POP3 server

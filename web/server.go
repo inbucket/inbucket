@@ -43,8 +43,8 @@ func Initialize(cfg config.WebConfig, ds smtpd.DataStore) {
 }
 
 func setupRoutes(cfg config.WebConfig) {
-	log.Infof("Theme templates mapped to '%v'", cfg.TemplateDir)
-	log.Infof("Theme static content mapped to '%v'", cfg.PublicDir)
+	log.Infof("HTTP templates mapped to %q", cfg.TemplateDir)
+	log.Infof("HTTP static content mapped to %q", cfg.PublicDir)
 
 	r := mux.NewRouter()
 	// Static content
@@ -116,7 +116,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Create the context
 	ctx, err := NewContext(req)
 	if err != nil {
-		log.Errorf("Failed to create context: %v", err)
+		log.Errorf("HTTP failed to create context: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -124,23 +124,23 @@ func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Run the handler, grab the error, and report it
 	buf := new(httpbuf.Buffer)
-	log.Tracef("Web: %v %v %v %v", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
+	log.Tracef("HTTP[%v] %v %v %q", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
 	err = h(buf, req, ctx)
 	if err != nil {
-		log.Errorf("Error handling %v: %v", req.RequestURI, err)
+		log.Errorf("HTTP error handling %q: %v", req.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Save the session
 	if err = ctx.Session.Save(req, buf); err != nil {
-		log.Errorf("Failed to save session: %v", err)
+		log.Errorf("HTTP failed to save session: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Apply the buffered response to the writer
 	if _, err = buf.Apply(w); err != nil {
-		log.Errorf("Failed to write response: %v", err)
+		log.Errorf("HTTP failed to write response: %v", err)
 	}
 }

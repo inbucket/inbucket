@@ -70,7 +70,7 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 	})
 }
 
-// MailboxLink handles pretty links to a particular message
+// MailboxLink handles pretty links to a particular message. Renders a redirect
 func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -86,7 +86,7 @@ func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	return nil
 }
 
-// MailboxList renders a list of messages in a mailbox
+// MailboxList renders a list of messages in a mailbox. Renders JSON or a partial
 func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -95,10 +95,12 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return fmt.Errorf("Failed to get mailbox for %v: %v", name, err)
+		// This doesn't indicate not found, likely an IO error
+		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	messages, err := mb.GetMessages()
 	if err != nil {
+		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
 	}
 	log.Tracef("Got %v messsages", len(messages))
@@ -125,7 +127,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	})
 }
 
-// MailboxShow renders a particular message from a mailbox
+// MailboxShow renders a particular message from a mailbox. Renders JSON or a partial
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -135,7 +137,8 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return fmt.Errorf("MailboxFor('%v'): %v", name, err)
+		// This doesn't indicate not found, likely an IO error
+		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	msg, err := mb.GetMessage(id)
 	if err == smtpd.ErrNotExist {
@@ -143,15 +146,16 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("GetMessage() failed: %v", err)
+		// This doesn't indicate empty, likely an IO error
+		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
 	header, err := msg.ReadHeader()
 	if err != nil {
-		return fmt.Errorf("ReadHeader() failed: %v", err)
+		return fmt.Errorf("ReadHeader(%q) failed: %v", id, err)
 	}
 	mime, err := msg.ReadBody()
 	if err != nil {
-		return fmt.Errorf("ReadBody() failed: %v", err)
+		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
 	}
 
 	if ctx.IsJSON {
@@ -184,7 +188,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	})
 }
 
-// MailboxPurge deletes all messages from a mailbox
+// MailboxPurge deletes all messages from a mailbox.  Renders JSON or text/plain OK
 func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -193,12 +197,15 @@ func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return fmt.Errorf("MailboxFor('%v'): %v", name, err)
+		// This doesn't indicate not found, likely an IO error
+		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
-	if err := mb.Purge(); err != nil {
-		return fmt.Errorf("Mailbox(%q) Purge: %v", name, err)
+	// Delete all messages
+	err = mb.Purge()
+	if err != nil {
+		return fmt.Errorf("Mailbox(%q) purge failed: %v", name, err)
 	}
-	log.Tracef("Purged mailbox for %q", name)
+	log.Tracef("HTTP purged mailbox for %q", name)
 
 	if ctx.IsJSON {
 		return RenderJSON(w, "OK")
@@ -211,7 +218,7 @@ func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 	return nil
 }
 
-// MailboxHTML displays the HTML content of a message
+// MailboxHTML displays the HTML content of a message. Renders a partial
 func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -221,15 +228,21 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return err
+		// This doesn't indicate not found, likely an IO error
+		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
+	if err == smtpd.ErrNotExist {
+		http.NotFound(w, req)
+		return nil
+	}
 	if err != nil {
-		return err
+		// This doesn't indicate missing, likely an IO error
+		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
 	mime, err := message.ReadBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
@@ -242,7 +255,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	})
 }
 
-// MailboxSource displays the raw source of a message, including headers
+// MailboxSource displays the raw source of a message, including headers. Renders text/plain
 func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -252,15 +265,21 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return err
+		// This doesn't indicate not found, likely an IO error
+		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
+	if err == smtpd.ErrNotExist {
+		http.NotFound(w, req)
+		return nil
+	}
 	if err != nil {
-		return err
+		// This doesn't indicate missing, likely an IO error
+		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
 	raw, err := message.ReadRaw()
 	if err != nil {
-		return err
+		return fmt.Errorf("ReadRaw(%q) failed: %v", id, err)
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
@@ -291,11 +310,17 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Contex
 
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return err
+		// This doesn't indicate not found, likely an IO error
+		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
+	if err == smtpd.ErrNotExist {
+		http.NotFound(w, req)
+		return nil
+	}
 	if err != nil {
-		return err
+		// This doesn't indicate missing, likely an IO error
+		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
 	body, err := message.ReadBody()
 	if err != nil {
@@ -336,11 +361,17 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (
 
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return err
+		// This doesn't indicate not found, likely an IO error
+		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
+	if err == smtpd.ErrNotExist {
+		http.NotFound(w, req)
+		return nil
+	}
 	if err != nil {
-		return err
+		// This doesn't indicate missing, likely an IO error
+		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
 	body, err := message.ReadBody()
 	if err != nil {
@@ -360,7 +391,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (
 	return nil
 }
 
-// MailboxDelete removes a particular message from a mailbox
+// MailboxDelete removes a particular message from a mailbox.  Renders JSON or plain/text OK
 func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -370,15 +401,21 @@ func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 	}
 	mb, err := ctx.DataStore.MailboxFor(name)
 	if err != nil {
-		return err
+		// This doesn't indicate not found, likely an IO error
+		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
+	if err == smtpd.ErrNotExist {
+		http.NotFound(w, req)
+		return nil
+	}
 	if err != nil {
-		return err
+		// This doesn't indicate missing, likely an IO error
+		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
 	err = message.Delete()
 	if err != nil {
-		return err
+		return fmt.Errorf("Delete(%q) failed: %v", id, err)
 	}
 
 	if ctx.IsJSON {

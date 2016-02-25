@@ -1,4 +1,4 @@
-package web
+package httpd
 
 import (
 	"encoding/json"

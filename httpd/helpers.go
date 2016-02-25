@@ -1,4 +1,4 @@
-package web
+package httpd
 
 import (
 	"fmt"
@@ -13,16 +13,17 @@ import (
 
 // TemplateFuncs declares functions made available to all templates (including partials)
 var TemplateFuncs = template.FuncMap{
-	"friendlyTime": friendlyTime,
-	"reverse":      reverse,
-	"textToHtml":   textToHTML,
+	"friendlyTime": FriendlyTime,
+	"reverse":      Reverse,
+	"textToHtml":   TextToHTML,
 }
 
 // From http://daringfireball.net/2010/07/improved_regex_for_matching_urls
 var urlRE = regexp.MustCompile("(?i)\\b((?:[a-z][\\w-]+:(?:/{1,3}|[a-z0-9%])|www\\d{0,3}[.]|[a-z0-9.\\-]+[.][a-z]{2,4}/)(?:[^\\s()<>]+|\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\))+(?:\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\)|[^\\s`!()\\[\\]{};:'\".,<>?«»“”‘’]))")
 
-// Friendly date & time rendering
-func friendlyTime(t time.Time) template.HTML {
+// FriendlyTime renders a timestamp in a friendly fashion: 03:04:05 PM if same day,
+// otherwise Mon Jan 2, 2006
+func FriendlyTime(t time.Time) template.HTML {
 	ty, tm, td := t.Date()
 	ny, nm, nd := time.Now().Date()
 	if (ty == ny) && (tm == nm) && (td == nd) {
@@ -31,8 +32,8 @@ func friendlyTime(t time.Time) template.HTML {
 	return template.HTML(t.Format("Mon Jan 2, 2006"))
 }
 
-// Reversable routing function (shared with templates)
-func reverse(name string, things ...interface{}) string {
+// Reverse routing function (shared with templates)
+func Reverse(name string, things ...interface{}) string {
 	// Convert the things to strings
 	strs := make([]string, len(things))
 	for i, th := range things {
@@ -47,17 +48,17 @@ func reverse(name string, things ...interface{}) string {
 	return u.Path
 }
 
-// textToHtml takes plain text, escapes it and tries to pretty it up for
+// TextToHTML takes plain text, escapes it and tries to pretty it up for
 // HTML display
-func textToHTML(text string) template.HTML {
+func TextToHTML(text string) template.HTML {
 	text = html.EscapeString(text)
-	text = urlRE.ReplaceAllStringFunc(text, wrapURL)
+	text = urlRE.ReplaceAllStringFunc(text, WrapURL)
 	replacer := strings.NewReplacer("\r\n", "<br/>\n", "\r", "<br/>\n", "\n", "<br/>\n")
 	return template.HTML(replacer.Replace(text))
 }
 
-// wrapUrl wraps a <a href> tag around the provided URL
-func wrapURL(url string) string {
+// WrapURL wraps a <a href> tag around the provided URL
+func WrapURL(url string) string {
 	unescaped := strings.Replace(url, "&amp;", "&", -1)
 	return fmt.Sprintf("<a href=\"%s\" target=\"_blank\">%s</a>", unescaped, url)
 }

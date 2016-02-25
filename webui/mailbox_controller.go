@@ -1,4 +1,4 @@
-package web
+package webui
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/smtpd"
 )
@@ -42,28 +43,28 @@ type JSONMessageBody struct {
 }
 
 // MailboxIndex renders the index page for a particular mailbox
-func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Form values must be validated manually
 	name := req.FormValue("name")
 	selected := req.FormValue("id")
 
 	if len(name) == 0 {
 		ctx.Session.AddFlash("Account name is required", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 
 	name, err = smtpd.ParseMailboxName(name)
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 
 	// Remember this mailbox was visited
 	RememberMailbox(ctx, name)
 
-	return RenderTemplate("mailbox/index.html", w, map[string]interface{}{
+	return httpd.RenderTemplate("mailbox/index.html", w, map[string]interface{}{
 		"ctx":      ctx,
 		"name":     name,
 		"selected": selected,
@@ -71,23 +72,23 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 }
 
 // MailboxLink handles pretty links to a particular message. Renders a redirect
-func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 
-	uri := fmt.Sprintf("%s?name=%s&id=%s", reverse("MailboxIndex"), name, id)
+	uri := fmt.Sprintf("%s?name=%s&id=%s", httpd.Reverse("MailboxIndex"), name, id)
 	http.Redirect(w, req, uri, http.StatusSeeOther)
 	return nil
 }
 
 // MailboxList renders a list of messages in a mailbox. Renders JSON or a partial
-func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxList(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
@@ -117,10 +118,10 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 				Size:    msg.Size(),
 			}
 		}
-		return RenderJSON(w, jmessages)
+		return httpd.RenderJSON(w, jmessages)
 	}
 
-	return RenderPartial("mailbox/_list.html", w, map[string]interface{}{
+	return httpd.RenderPartial("mailbox/_list.html", w, map[string]interface{}{
 		"ctx":      ctx,
 		"name":     name,
 		"messages": messages,
@@ -128,7 +129,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 }
 
 // MailboxShow renders a particular message from a mailbox. Renders JSON or a partial
-func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -159,7 +160,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	}
 
 	if ctx.IsJSON {
-		return RenderJSON(w,
+		return httpd.RenderJSON(w,
 			&JSONMessage{
 				Mailbox: name,
 				ID:      msg.ID(),
@@ -175,10 +176,10 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 			})
 	}
 
-	body := template.HTML(textToHTML(mime.Text))
+	body := template.HTML(httpd.TextToHTML(mime.Text))
 	htmlAvailable := mime.Html != ""
 
-	return RenderPartial("mailbox/_show.html", w, map[string]interface{}{
+	return httpd.RenderPartial("mailbox/_show.html", w, map[string]interface{}{
 		"ctx":           ctx,
 		"name":          name,
 		"message":       msg,
@@ -189,7 +190,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 }
 
 // MailboxPurge deletes all messages from a mailbox.  Renders JSON or text/plain OK
-func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
@@ -208,7 +209,7 @@ func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 	log.Tracef("HTTP purged mailbox for %q", name)
 
 	if ctx.IsJSON {
-		return RenderJSON(w, "OK")
+		return httpd.RenderJSON(w, "OK")
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
@@ -219,7 +220,7 @@ func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *Context) (err e
 }
 
 // MailboxHTML displays the HTML content of a message. Renders a partial
-func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -246,7 +247,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-	return RenderPartial("mailbox/_html.html", w, map[string]interface{}{
+	return httpd.RenderPartial("mailbox/_html.html", w, map[string]interface{}{
 		"ctx":     ctx,
 		"name":    name,
 		"message": message,
@@ -256,7 +257,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *Context) (err er
 }
 
 // MailboxSource displays the raw source of a message, including headers. Renders text/plain
-func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -291,20 +292,20 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 
 // MailboxDownloadAttach sends the attachment to the client; disposition:
 // attachment, type: application/octet-stream
-func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 	numStr := ctx.Vars["num"]
 	num, err := strconv.ParseUint(numStr, 10, 32)
 	if err != nil {
 		ctx.Session.AddFlash("Attachment number must be unsigned numeric", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 
@@ -328,7 +329,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Contex
 	}
 	if int(num) >= len(body.Attachments) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 	part := body.Attachments[num]
@@ -342,12 +343,12 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *Contex
 }
 
 // MailboxViewAttach sends the attachment to the client for online viewing
-func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 	id := ctx.Vars["id"]
@@ -355,7 +356,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (
 	num, err := strconv.ParseUint(numStr, 10, 32)
 	if err != nil {
 		ctx.Session.AddFlash("Attachment number must be unsigned numeric", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 
@@ -379,7 +380,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (
 	}
 	if int(num) >= len(body.Attachments) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
-		http.Redirect(w, req, reverse("RootIndex"), http.StatusSeeOther)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 	part := body.Attachments[num]
@@ -392,7 +393,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *Context) (
 }
 
 // MailboxDelete removes a particular message from a mailbox.  Renders JSON or plain/text OK
-func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -419,7 +420,7 @@ func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 	}
 
 	if ctx.IsJSON {
-		return RenderJSON(w, "OK")
+		return httpd.RenderJSON(w, "OK")
 	}
 
 	w.Header().Set("Content-Type", "text/plain")

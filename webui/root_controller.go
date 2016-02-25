@@ -1,4 +1,4 @@
-package web
+package webui
 
 import (
 	"fmt"
@@ -7,23 +7,24 @@ import (
 	"net/http"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/httpd"
 )
 
 // RootIndex serves the Inbucket landing page
-func RootIndex(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func RootIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	greeting, err := ioutil.ReadFile(config.GetWebConfig().GreetingFile)
 	if err != nil {
 		return fmt.Errorf("Failed to load greeting: %v", err)
 	}
 
-	return RenderTemplate("root/index.html", w, map[string]interface{}{
+	return httpd.RenderTemplate("root/index.html", w, map[string]interface{}{
 		"ctx":      ctx,
 		"greeting": template.HTML(string(greeting)),
 	})
 }
 
 // RootStatus serves the Inbucket status page
-func RootStatus(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+func RootStatus(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	retentionMinutes := config.GetDataStoreConfig().RetentionMinutes
 	smtpListener := fmt.Sprintf("%s:%d", config.GetSMTPConfig().IP4address.String(),
 		config.GetSMTPConfig().IP4port)
@@ -31,7 +32,7 @@ func RootStatus(w http.ResponseWriter, req *http.Request, ctx *Context) (err err
 		config.GetPOP3Config().IP4port)
 	webListener := fmt.Sprintf("%s:%d", config.GetWebConfig().IP4address.String(),
 		config.GetWebConfig().IP4port)
-	return RenderTemplate("root/status.html", w, map[string]interface{}{
+	return httpd.RenderTemplate("root/status.html", w, map[string]interface{}{
 		"ctx":              ctx,
 		"version":          config.Version,
 		"buildDate":        config.BuildDate,

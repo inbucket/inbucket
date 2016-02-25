@@ -12,10 +12,11 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/pop3d"
 	"github.com/jhillyerd/inbucket/smtpd"
-	"github.com/jhillyerd/inbucket/web"
+	"github.com/jhillyerd/inbucket/webui"
 )
 
 var (
@@ -122,8 +123,9 @@ func main() {
 	ds := smtpd.DefaultFileDataStore()
 
 	// Start HTTP server
-	web.Initialize(config.GetWebConfig(), ds)
-	go web.Start()
+	httpd.Initialize(config.GetWebConfig(), ds)
+	webui.SetupRoutes(httpd.Router)
+	go httpd.Start()
 
 	// Start POP3 server
 	pop3Server = pop3d.New()
@@ -178,7 +180,7 @@ func signalProcessor(c <-chan os.Signal) {
 			// Initiate shutdown
 			log.Infof("Received SIGTERM, shutting down")
 			go timedExit()
-			web.Stop()
+			httpd.Stop()
 			if smtpServer != nil {
 				smtpServer.Stop()
 			} else {

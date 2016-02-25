@@ -1,4 +1,4 @@
-package web
+package webui
 
 import (
 	"bytes"
@@ -15,6 +15,7 @@ import (
 
 	"github.com/jhillyerd/go.enmime"
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/smtpd"
 	"github.com/stretchr/testify/mock"
 )
@@ -395,7 +396,7 @@ func testRestGet(url string) (*httptest.ResponseRecorder, error) {
 	}
 
 	w := httptest.NewRecorder()
-	Router.ServeHTTP(w, req)
+	httpd.Router.ServeHTTP(w, req)
 	return w, nil
 }
 
@@ -410,7 +411,8 @@ func setupWebServer(ds smtpd.DataStore) *bytes.Buffer {
 		TemplateDir: "../themes/integral/templates",
 		PublicDir:   "../themes/integral/public",
 	}
-	Initialize(cfg, ds)
+	httpd.Initialize(cfg, ds)
+	SetupRoutes(httpd.Router)
 
 	return buf
 }

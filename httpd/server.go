@@ -1,5 +1,5 @@
-// Package web provides Inbucket's web GUI and RESTful API
-package web
+// Package httpd provides the plumbing for Inbucket's web GUI and RESTful API
+package httpd
 
 import (
 	"fmt"
@@ -15,14 +15,16 @@ import (
 	"github.com/jhillyerd/inbucket/smtpd"
 )
 
-type handler func(http.ResponseWriter, *http.Request, *Context) error
+// Handler is a function type that handles an HTTP request in Inbucket
+type Handler func(http.ResponseWriter, *http.Request, *Context) error
 
 var (
 	// DataStore is where all the mailboxes and messages live
 	DataStore smtpd.DataStore
 
-	// Router sends incoming requests to the correct handler function
-	Router *mux.Router
+	// Router is shared between httpd, webui and rest packages. It sends
+	// incoming requests to the correct handler function
+	Router = mux.NewRouter()
 
 	webConfig    config.WebConfig
 	listener     net.Listener
@@ -46,27 +48,11 @@ func setupRoutes(cfg config.WebConfig) {
 	log.Infof("HTTP templates mapped to %q", cfg.TemplateDir)
 	log.Infof("HTTP static content mapped to %q", cfg.PublicDir)
 
-	r := mux.NewRouter()
 	// Static content
-	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
+	Router.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
 		http.FileServer(http.Dir(cfg.PublicDir))))
 
-	// Root
-	r.Path("/").Handler(handler(RootIndex)).Name("RootIndex").Methods("GET")
-	r.Path("/status").Handler(handler(RootStatus)).Name("RootStatus").Methods("GET")
-	r.Path("/link/{name}/{id}").Handler(handler(MailboxLink)).Name("MailboxLink").Methods("GET")
-	r.Path("/mailbox").Handler(handler(MailboxIndex)).Name("MailboxIndex").Methods("GET")
-	r.Path("/mailbox/{name}").Handler(handler(MailboxList)).Name("MailboxList").Methods("GET")
-	r.Path("/mailbox/{name}").Handler(handler(MailboxPurge)).Name("MailboxPurge").Methods("DELETE")
-	r.Path("/mailbox/{name}/{id}").Handler(handler(MailboxShow)).Name("MailboxShow").Methods("GET")
-	r.Path("/mailbox/{name}/{id}/html").Handler(handler(MailboxHTML)).Name("MailboxHtml").Methods("GET")
-	r.Path("/mailbox/{name}/{id}/source").Handler(handler(MailboxSource)).Name("MailboxSource").Methods("GET")
-	r.Path("/mailbox/{name}/{id}").Handler(handler(MailboxDelete)).Name("MailboxDelete").Methods("DELETE")
-	r.Path("/mailbox/dattach/{name}/{id}/{num}/{file}").Handler(handler(MailboxDownloadAttach)).Name("MailboxDownloadAttach").Methods("GET")
-	r.Path("/mailbox/vattach/{name}/{id}/{num}/{file}").Handler(handler(MailboxViewAttach)).Name("MailboxViewAttach").Methods("GET")
-
 	// Register w/ HTTP
-	Router = r
 	http.Handle("/", Router)
 }
 
@@ -112,7 +98,7 @@ func Stop() {
 }
 
 // ServeHTTP builds the context and passes onto the real handler
-func (h handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Create the context
 	ctx, err := NewContext(req)
 	if err != nil {

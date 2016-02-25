@@ -1,4 +1,8 @@
-package web
+package webui
+
+import (
+	"github.com/jhillyerd/inbucket/httpd"
+)
 
 const (
 	// maximum mailboxes to remember
@@ -8,7 +12,7 @@ const (
 )
 
 // RememberMailbox manages the list of recently accessed mailboxes stored in the session
-func RememberMailbox(ctx *Context, mailbox string) {
+func RememberMailbox(ctx *httpd.Context, mailbox string) {
 	recent := RecentMailboxes(ctx)
 	newRecent := make([]string, 1, maxRemembered)
 	newRecent[0] = mailbox
@@ -24,7 +28,7 @@ func RememberMailbox(ctx *Context, mailbox string) {
 }
 
 // RecentMailboxes returns a slice of the most recently accessed mailboxes
-func RecentMailboxes(ctx *Context) []string {
+func RecentMailboxes(ctx *httpd.Context) []string {
 	val := ctx.Session.Values[mailboxKey]
 	recent, _ := val.([]string)
 	return recent

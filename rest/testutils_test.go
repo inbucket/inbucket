@@ -102,16 +102,20 @@ func (d *InputMessageData) CompareToJSONMessageMap(json interface{}) (errors []s
 
 	if m, ok := json.(map[string]interface{}); ok {
 		// Get nested body map
-		if body := m[bodyKey].(map[string]interface{}); ok {
-			if msg, ok := isJSONStringEqual(textKey, d.Text, body[textKey]); !ok {
-				errors = append(errors, msg)
-			}
-			if msg, ok := isJSONStringEqual(htmlKey, d.HTML, body[htmlKey]); !ok {
-				errors = append(errors, msg)
+		if m[bodyKey] != nil {
+			if body, ok := m[bodyKey].(map[string]interface{}); ok {
+				if msg, ok := isJSONStringEqual(textKey, d.Text, body[textKey]); !ok {
+					errors = append(errors, msg)
+				}
+				if msg, ok := isJSONStringEqual(htmlKey, d.HTML, body[htmlKey]); !ok {
+					errors = append(errors, msg)
+				}
+			} else {
+				panic(fmt.Sprintf("Expected map[string]interface{} in json key %q, got %T",
+					bodyKey, m[bodyKey]))
 			}
 		} else {
-			panic(fmt.Sprintf("Expected map[string]interface{} in json key %q, got %T",
-				bodyKey, m[bodyKey]))
+			errors = append(errors, fmt.Sprintf("Expected body in JSON %q but it was nil", bodyKey))
 		}
 		exDate := d.Date.Format("2006-01-02T15:04:05.999999999-07:00")
 		if msg, ok := isJSONStringEqual(dateKey, exDate, m[dateKey]); !ok {
@@ -122,36 +126,40 @@ func (d *InputMessageData) CompareToJSONMessageMap(json interface{}) (errors []s
 		}
 
 		// Get nested header map
-		if header := m[headerKey].(map[string]interface{}); ok {
-			// Loop over input (expected) header names
-			for name, keyInputHeaders := range d.Header {
-				// Make sure expected header name exists in received JSON
-				if keyOutputVals, ok := header[name]; ok {
-					if keyOutputHeaders, ok := keyOutputVals.([]interface{}); ok {
-						// Loop over input (expected) header values
-						for _, inputHeader := range keyInputHeaders {
-							hasValue := false
-							// Look for expected value in received headers
-							for _, outputHeader := range keyOutputHeaders {
-								if inputHeader == outputHeader {
-									hasValue = true
-									break
+		if m[headerKey] != nil {
+			if header, ok := m[headerKey].(map[string]interface{}); ok {
+				// Loop over input (expected) header names
+				for name, keyInputHeaders := range d.Header {
+					// Make sure expected header name exists in received JSON
+					if keyOutputVals, ok := header[name]; ok {
+						if keyOutputHeaders, ok := keyOutputVals.([]interface{}); ok {
+							// Loop over input (expected) header values
+							for _, inputHeader := range keyInputHeaders {
+								hasValue := false
+								// Look for expected value in received headers
+								for _, outputHeader := range keyOutputHeaders {
+									if inputHeader == outputHeader {
+										hasValue = true
+										break
+									}
+								}
+								if !hasValue {
+									errors = append(errors, fmt.Sprintf(
+										"JSON %v[%q] missing value %q", headerKey, name, inputHeader))
 								}
 							}
-							if !hasValue {
-								errors = append(errors, fmt.Sprintf(
-									"JSON %v[%q] missing value %q", headerKey, name, inputHeader))
-							}
+						} else {
+							// keyOutputValues was not a slice of interface{}
+							panic(fmt.Sprintf("Expected []interface{} in %v[%q], got %T", headerKey,
+								name, keyOutputVals))
 						}
 					} else {
-						// keyOutputValues was not a slice of interface{}
-						panic(fmt.Sprintf("Expected []interface{} in %v[%q], got %T", headerKey,
-							name, keyOutputVals))
+						errors = append(errors, fmt.Sprintf("JSON %v missing key %q", headerKey, name))
 					}
-				} else {
-					errors = append(errors, fmt.Sprintf("JSON %v missing key %q", headerKey, name))
 				}
 			}
+		} else {
+			errors = append(errors, fmt.Sprintf("Expected header in JSON %q but it was nil", headerKey))
 		}
 	} else {
 		panic(fmt.Sprintf("Expected map[string]interface{} in json, got %T", json))

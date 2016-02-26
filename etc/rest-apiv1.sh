@@ -36,6 +36,7 @@ arg_check() {
 main() {
   # Process options
   local curl_opts=""
+  local pretty="true"
   for arg in $*; do
     if [[ $arg == -* ]]; then
       case "$arg" in
@@ -45,6 +46,7 @@ main() {
           ;;
         -i)
           curl_opts="$curl_opts -i"
+          pretty=""
           ;;
         **)
           echo "Unknown option: $arg" >&2
@@ -65,11 +67,13 @@ main() {
 
   local url=""
   local method="GET"
+  local is_json=""
 
   case "$command" in
     body)
       arg_check "$command" 2 $#
       url="$URL_ROOT/mailbox/$1/$2"
+      is_json="true"
       ;;
     delete)
       arg_check "$command" 2 $#
@@ -79,6 +83,7 @@ main() {
     list)
       arg_check "$command" 1 $#
       url="$URL_ROOT/mailbox/$1"
+      is_json="true"
       ;;
     purge)
       arg_check "$command" 1 $#
@@ -97,7 +102,12 @@ main() {
       ;;
   esac
 
-  curl $curl_opts -H "Accept: application/json" --noproxy "$API_HOST" -X "$method" "$url"
+  # Use jq to pretty-print if installed and we are expecting JSON output
+  if [ $pretty ] && [ $is_json ] && type -P jq; then
+    curl -s $curl_opts -H "Accept: application/json" --noproxy "$API_HOST" -X "$method" "$url" | jq .
+  else
+    curl -s $curl_opts -H "Accept: application/json" --noproxy "$API_HOST" -X "$method" "$url"
+  fi
 }
 
 if [ $# -lt 1 ]; then

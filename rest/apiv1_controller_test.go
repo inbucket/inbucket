@@ -16,16 +16,16 @@ const (
 	baseURL = "http://localhost/api/v1"
 
 	// JSON map keys
-	mailboxKey = "Mailbox"
-	idKey      = "Id"
-	fromKey    = "From"
-	subjectKey = "Subject"
-	dateKey    = "Date"
-	sizeKey    = "Size"
-	headerKey  = "Header"
-	bodyKey    = "Body"
-	textKey    = "Text"
-	htmlKey    = "Html"
+	mailboxKey = "mailbox"
+	idKey      = "id"
+	fromKey    = "from"
+	subjectKey = "subject"
+	dateKey    = "date"
+	sizeKey    = "size"
+	headerKey  = "header"
+	bodyKey    = "body"
+	textKey    = "text"
+	htmlKey    = "html"
 )
 
 func TestRestMailboxList(t *testing.T) {

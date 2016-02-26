@@ -14,30 +14,30 @@ import (
 
 // JSONMessageHeaderV1 contains the basic header data for a message
 type JSONMessageHeaderV1 struct {
-	Mailbox string
-	ID      string `json:"Id"`
-	From    string
-	Subject string
-	Date    time.Time
-	Size    int64
+	Mailbox string    `json:"mailbox"`
+	ID      string    `json:"id"`
+	From    string    `json:"from"`
+	Subject string    `json:"subject"`
+	Date    time.Time `json:"date"`
+	Size    int64     `json:"size"`
 }
 
 // JSONMessageV1 contains the same data as the header plus a JSONMessageBody
 type JSONMessageV1 struct {
-	Mailbox string
-	ID      string `json:"Id"`
-	From    string
-	Subject string
-	Date    time.Time
-	Size    int64
-	Body    *JSONMessageBodyV1
-	Header  mail.Header
+	Mailbox string             `json:"mailbox"`
+	ID      string             `json:"id"`
+	From    string             `json:"from"`
+	Subject string             `json:"subject"`
+	Date    time.Time          `json:"date"`
+	Size    int64              `json:"size"`
+	Body    *JSONMessageBodyV1 `json:"body"`
+	Header  mail.Header        `json:"header"`
 }
 
 // JSONMessageBodyV1 contains the Text and HTML versions of the message body
 type JSONMessageBodyV1 struct {
-	Text string
-	HTML string `json:"Html"`
+	Text string `json:"text"`
+	HTML string `json:"html"`
 }
 
 // MailboxListV1 renders a list of messages in a mailbox

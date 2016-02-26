@@ -20,21 +20,21 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-const baseURL = "http://localhost/api/v1"
+const (
+	baseURL = "http://localhost/api/v1"
 
-type OutputJSONHeader struct {
-	Mailbox, ID, From, Subject, Date string
-	Size                             int
-}
-
-type OutputJSONMessage struct {
-	Mailbox, ID, From, Subject, Date string
-	Size                             int
-	Header                           map[string][]string
-	Body                             struct {
-		Text, HTML string
-	}
-}
+	// JSON map keys
+	mailboxKey = "Mailbox"
+	idKey      = "Id"
+	fromKey    = "From"
+	subjectKey = "Subject"
+	dateKey    = "Date"
+	sizeKey    = "Size"
+	headerKey  = "Header"
+	bodyKey    = "Body"
+	textKey    = "Text"
+	htmlKey    = "Html"
+)
 
 type InputMessageData struct {
 	Mailbox, ID, From, Subject string
@@ -63,88 +63,119 @@ func (d *InputMessageData) MockMessage() *MockMessage {
 	return msg
 }
 
-func (d *InputMessageData) CompareToJSONHeader(j *OutputJSONHeader) (errors []string) {
-	if d.Mailbox != j.Mailbox {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Mailbox=%q, got %q", d.Mailbox,
-			j.Mailbox))
+// isJSONStringEqual is a utility function to return a nicely formatted message when
+// comparing a string to a value received from a JSON map.
+func isJSONStringEqual(key, expected string, received interface{}) (message string, ok bool) {
+	if value, ok := received.(string); ok {
+		if expected == value {
+			return "", true
+		}
+		return fmt.Sprintf("Expected value of key %v to be %q, got %q", key, expected, value), false
 	}
-	if d.ID != j.ID {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Id=%q, got %q", d.ID,
-			j.ID))
-	}
-	if d.From != j.From {
-		errors = append(errors, fmt.Sprintf("Expected JSON.From=%q, got %q", d.From,
-			j.From))
-	}
-	if d.Subject != j.Subject {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Subject=%q, got %q", d.Subject,
-			j.Subject))
-	}
-	exDate := d.Date.Format("2006-01-02T15:04:05.999999999-07:00")
-	if exDate != j.Date {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Date=%q, got %q", exDate,
-			j.Date))
-	}
-	if d.Size != j.Size {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Size=%v, got %v", d.Size,
-			j.Size))
-	}
-
-	return errors
+	return fmt.Sprintf("Expected value of key %v to be a string, got %T", key, received), false
 }
 
-func (d *InputMessageData) CompareToJSONMessage(j *OutputJSONMessage) (errors []string) {
-	if d.Mailbox != j.Mailbox {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Mailbox=%q, got %q", d.Mailbox,
-			j.Mailbox))
+// isJSONNumberEqual is a utility function to return a nicely formatted message when
+// comparing an float64 to a value received from a JSON map.
+func isJSONNumberEqual(key string, expected float64, received interface{}) (message string, ok bool) {
+	if value, ok := received.(float64); ok {
+		if expected == value {
+			return "", true
+		}
+		return fmt.Sprintf("Expected %v to be %v, got %v", key, expected, value), false
 	}
-	if d.ID != j.ID {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Id=%q, got %q", d.ID,
-			j.ID))
+	return fmt.Sprintf("Expected %v to be a string, got %T", key, received), false
+}
+
+// CompareToJSONHeaderMap compares InputMessageData to a header map decoded from JSON,
+// returning a list of things that did not match.
+func (d *InputMessageData) CompareToJSONHeaderMap(json interface{}) (errors []string) {
+	if m, ok := json.(map[string]interface{}); ok {
+		if msg, ok := isJSONStringEqual(mailboxKey, d.Mailbox, m[mailboxKey]); !ok {
+			errors = append(errors, msg)
+		}
+		if msg, ok := isJSONStringEqual(idKey, d.ID, m[idKey]); !ok {
+			errors = append(errors, msg)
+		}
+		if msg, ok := isJSONStringEqual(fromKey, d.From, m[fromKey]); !ok {
+			errors = append(errors, msg)
+		}
+		if msg, ok := isJSONStringEqual(subjectKey, d.Subject, m[subjectKey]); !ok {
+			errors = append(errors, msg)
+		}
+		exDate := d.Date.Format("2006-01-02T15:04:05.999999999-07:00")
+		if msg, ok := isJSONStringEqual(dateKey, exDate, m[dateKey]); !ok {
+			errors = append(errors, msg)
+		}
+		if msg, ok := isJSONNumberEqual(sizeKey, float64(d.Size), m[sizeKey]); !ok {
+			errors = append(errors, msg)
+		}
+		return errors
 	}
-	if d.From != j.From {
-		errors = append(errors, fmt.Sprintf("Expected JSON.From=%q, got %q", d.From,
-			j.From))
-	}
-	if d.Subject != j.Subject {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Subject=%q, got %q", d.Subject,
-			j.Subject))
-	}
-	exDate := d.Date.Format("2006-01-02T15:04:05.999999999-07:00")
-	if exDate != j.Date {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Date=%q, got %q", exDate,
-			j.Date))
-	}
-	if d.Size != j.Size {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Size=%v, got %v", d.Size,
-			j.Size))
-	}
-	if d.Text != j.Body.Text {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Text=%q, got %q", d.Text,
-			j.Body.Text))
-	}
-	if d.HTML != j.Body.HTML {
-		errors = append(errors, fmt.Sprintf("Expected JSON.Html=%q, got %q", d.HTML,
-			j.Body.HTML))
-	}
-	for k, vals := range d.Header {
-		jvals, ok := j.Header[k]
-		if ok {
-			for _, v := range vals {
-				hasValue := false
-				for _, jv := range jvals {
-					if v == jv {
-						hasValue = true
-						break
-					}
-				}
-				if !hasValue {
-					errors = append(errors, fmt.Sprintf("JSON.Header[%q] missing value %q", k, v))
-				}
+	panic(fmt.Sprintf("Expected map[string]interface{} in json, got %T", json))
+}
+
+// CompareToJSONMessageMap compares InputMessageData to a message map decoded from JSON,
+// returning a list of things that did not match.
+func (d *InputMessageData) CompareToJSONMessageMap(json interface{}) (errors []string) {
+	// We need to check the same values as header first
+	errors = d.CompareToJSONHeaderMap(json)
+
+	if m, ok := json.(map[string]interface{}); ok {
+		// Get nested body map
+		if body := m[bodyKey].(map[string]interface{}); ok {
+			if msg, ok := isJSONStringEqual(textKey, d.Text, body[textKey]); !ok {
+				errors = append(errors, msg)
+			}
+			if msg, ok := isJSONStringEqual(htmlKey, d.HTML, body[htmlKey]); !ok {
+				errors = append(errors, msg)
 			}
 		} else {
-			errors = append(errors, fmt.Sprintf("JSON.Header missing key %q", k))
+			panic(fmt.Sprintf("Expected map[string]interface{} in json key %q, got %T",
+				bodyKey, m[bodyKey]))
 		}
+		exDate := d.Date.Format("2006-01-02T15:04:05.999999999-07:00")
+		if msg, ok := isJSONStringEqual(dateKey, exDate, m[dateKey]); !ok {
+			errors = append(errors, msg)
+		}
+		if msg, ok := isJSONNumberEqual(sizeKey, float64(d.Size), m[sizeKey]); !ok {
+			errors = append(errors, msg)
+		}
+
+		// Get nested header map
+		if header := m[headerKey].(map[string]interface{}); ok {
+			// Loop over input (expected) header names
+			for name, keyInputHeaders := range d.Header {
+				// Make sure expected header name exists in received JSON
+				if keyOutputVals, ok := header[name]; ok {
+					if keyOutputHeaders, ok := keyOutputVals.([]interface{}); ok {
+						// Loop over input (expected) header values
+						for _, inputHeader := range keyInputHeaders {
+							hasValue := false
+							// Look for expected value in received headers
+							for _, outputHeader := range keyOutputHeaders {
+								if inputHeader == outputHeader {
+									hasValue = true
+									break
+								}
+							}
+							if !hasValue {
+								errors = append(errors, fmt.Sprintf(
+									"JSON %v[%q] missing value %q", headerKey, name, inputHeader))
+							}
+						}
+					} else {
+						// keyOutputValues was not a slice of interface{}
+						panic(fmt.Sprintf("Expected []interface{} in %v[%q], got %T", headerKey,
+							name, keyOutputVals))
+					}
+				} else {
+					errors = append(errors, fmt.Sprintf("JSON %v missing key %q", headerKey, name))
+				}
+			}
+		}
+	} else {
+		panic(fmt.Sprintf("Expected map[string]interface{} in json, got %T", json))
 	}
 
 	return errors
@@ -244,19 +275,21 @@ func TestRestMailboxList(t *testing.T) {
 
 	// Check JSON
 	dec := json.NewDecoder(w.Body)
-	var result []OutputJSONHeader
+	var result []interface{}
 	if err := dec.Decode(&result); err != nil {
 		t.Errorf("Failed to decode JSON: %v", err)
 	}
 	if len(result) != 2 {
 		t.Errorf("Expected 2 results, got %v", len(result))
 	}
-	if errors := data1.CompareToJSONHeader(&result[0]); len(errors) > 0 {
+	if errors := data1.CompareToJSONHeaderMap(result[0]); len(errors) > 0 {
+		t.Logf("%v", result[0])
 		for _, e := range errors {
 			t.Error(e)
 		}
 	}
-	if errors := data2.CompareToJSONHeader(&result[1]); len(errors) > 0 {
+	if errors := data2.CompareToJSONHeaderMap(result[1]); len(errors) > 0 {
+		t.Logf("%v", result[1])
 		for _, e := range errors {
 			t.Error(e)
 		}
@@ -339,7 +372,8 @@ func TestRestMessage(t *testing.T) {
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
 		Header: mail.Header{
-			"To": []string{"fred@fish.com", "keyword@nsa.gov"},
+			"To":   []string{"fred@fish.com", "keyword@nsa.gov"},
+			"From": []string{"noreply@inbucket.org"},
 		},
 		Text: "This is some text",
 		HTML: "This is some HTML",
@@ -361,11 +395,13 @@ func TestRestMessage(t *testing.T) {
 
 	// Check JSON
 	dec := json.NewDecoder(w.Body)
-	var result OutputJSONMessage
+	var result map[string]interface{}
 	if err := dec.Decode(&result); err != nil {
 		t.Errorf("Failed to decode JSON: %v", err)
 	}
-	if errors := data1.CompareToJSONMessage(&result); len(errors) > 0 {
+
+	if errors := data1.CompareToJSONMessageMap(result); len(errors) > 0 {
+		t.Logf("%v", result)
 		for _, e := range errors {
 			t.Error(e)
 		}

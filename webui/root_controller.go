@@ -25,7 +25,6 @@ func RootIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (er
 
 // RootStatus serves the Inbucket status page
 func RootStatus(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
-	retentionMinutes := config.GetDataStoreConfig().RetentionMinutes
 	smtpListener := fmt.Sprintf("%s:%d", config.GetSMTPConfig().IP4address.String(),
 		config.GetSMTPConfig().IP4port)
 	pop3Listener := fmt.Sprintf("%s:%d", config.GetPOP3Config().IP4address.String(),
@@ -36,9 +35,10 @@ func RootStatus(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (e
 		"ctx":              ctx,
 		"version":          config.Version,
 		"buildDate":        config.BuildDate,
-		"retentionMinutes": retentionMinutes,
+		"retentionMinutes": config.GetDataStoreConfig().RetentionMinutes,
 		"smtpListener":     smtpListener,
 		"pop3Listener":     pop3Listener,
 		"webListener":      webListener,
+		"noStoreDomain":    config.GetSMTPConfig().DomainNoStore,
 	})
 }

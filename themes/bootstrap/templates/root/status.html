@@ -51,6 +51,12 @@ $(document).ready(
         <div class="col-sm-3 col-xs-7"><b>HTTP Listener:</b></div>
         <div class="col-sm-8 col-xs-5"><span>{{.webListener}}</span></div>
       </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>No-Store Domain:</b></div>
+        <div class="col-sm-8 col-xs-5">
+          <span>{{ or .noStoreDomain .noStoreDomain "Not Configured"}}</span>
+        </div>
+      </div>
     </table>
   </div>
 </div>

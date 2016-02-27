@@ -115,7 +115,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 			Header:  header.Header,
 			Body: &JSONMessageBodyV1{
 				Text: mime.Text,
-				HTML: mime.Html,
+				HTML: mime.HTML,
 			},
 		})
 }

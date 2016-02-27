@@ -66,7 +66,7 @@ func (d *InputMessageData) MockMessage() *MockMessage {
 	msg.On("ReadHeader").Return(gomsg, nil)
 	body := &enmime.MIMEBody{
 		Text: d.Text,
-		Html: d.HTML,
+		HTML: d.HTML,
 	}
 	msg.On("ReadBody").Return(body, nil)
 	return msg

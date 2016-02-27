@@ -171,13 +171,13 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 				Header:  header.Header,
 				Body: &JSONMessageBody{
 					Text: mime.Text,
-					HTML: mime.Html,
+					HTML: mime.HTML,
 				},
 			})
 	}
 
 	body := template.HTML(httpd.TextToHTML(mime.Text))
-	htmlAvailable := mime.Html != ""
+	htmlAvailable := mime.HTML != ""
 
 	return httpd.RenderPartial("mailbox/_show.html", w, map[string]interface{}{
 		"ctx":           ctx,
@@ -252,7 +252,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 		"name":    name,
 		"message": message,
 		// TODO: It is not really safe to render, need to sanitize.
-		"body": template.HTML(mime.Html),
+		"body": template.HTML(mime.HTML),
 	})
 }
 

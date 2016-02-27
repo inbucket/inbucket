@@ -4,6 +4,12 @@
 
 set -eo pipefail
 
+# We need to be in swaks-tests directory
+cmdpath="$(dirname "$0")"
+if [ "$cmdpath" != "." ]; then
+  cd "$cmdpath"
+fi
+
 case "$1" in
   "")
     to="swaks"

@@ -19,6 +19,8 @@
   ],
   "dependencies": {
     "bootstrap": "3.3",
-    "jquery": "2"
+    "jquery": "2",
+    "jquery-color": "^2.1.2",
+    "jquery-sparkline": "^2.1.3"
   }
 }

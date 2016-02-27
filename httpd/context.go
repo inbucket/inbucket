@@ -43,14 +43,21 @@ func headerMatch(req *http.Request, name string, value string) bool {
 func NewContext(req *http.Request) (*Context, error) {
 	vars := mux.Vars(req)
 	sess, err := sessionStore.Get(req, "inbucket")
+	if err != nil {
+		if sess == nil {
+			// No session, must fail
+			return nil, err
+		} else {
+			// The session cookie was probably signed by an old key, ignore it
+			// gorilla created an empty session for us
+			err = nil
+		}
+	}
 	ctx := &Context{
 		Vars:      vars,
 		Session:   sess,
 		DataStore: DataStore,
 		IsJSON:    headerMatch(req, "Accept", "application/json"),
-	}
-	if err != nil {
-		return ctx, err
 	}
 	return ctx, err
 }

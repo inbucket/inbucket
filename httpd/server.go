@@ -9,6 +9,7 @@ import (
 
 	"github.com/goods/httpbuf"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
@@ -41,7 +42,13 @@ func Initialize(cfg config.WebConfig, ds smtpd.DataStore) {
 	DataStore = ds
 
 	// TODO Make configurable
-	sessionStore = sessions.NewCookieStore([]byte("something-very-secret"))
+	if cfg.CookieAuthKey == "" {
+		log.Infof("HTTP generating random cookie.auth.key")
+		sessionStore = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
+	} else {
+		log.Tracef("HTTP using configured cookie.auth.key")
+		sessionStore = sessions.NewCookieStore([]byte(cfg.CookieAuthKey))
+	}
 }
 
 func setupRoutes(cfg config.WebConfig) {

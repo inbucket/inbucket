@@ -39,6 +39,7 @@ type WebConfig struct {
 	TemplateCache bool
 	PublicDir     string
 	GreetingFile  string
+	CookieAuthKey string
 }
 
 // DataStoreConfig contains the mail store configuration
@@ -347,6 +348,15 @@ func parseWebConfig() error {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}
 	webConfig.GreetingFile = str
+
+	option = "cookie.auth.key"
+	if Config.HasOption(section, option) {
+		str, err = Config.String(section, option)
+		if err != nil {
+			return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+		}
+		webConfig.CookieAuthKey = str
+	}
 
 	return nil
 }

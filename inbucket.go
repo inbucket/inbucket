@@ -107,16 +107,15 @@ func main() {
 	log.Infof("Inbucket %v (%v) starting...", config.Version, config.BuildDate)
 
 	// Write pidfile if requested
-	// TODO: Probably supposed to remove pidfile during shutdown
 	if *pidfile != "none" {
 		pidf, err := os.Create(*pidfile)
 		if err != nil {
-			log.Errorf("Failed to create %v: %v", *pidfile, err)
+			log.Errorf("Failed to create %q: %v", *pidfile, err)
 			os.Exit(1)
 		}
 		fmt.Fprintf(pidf, "%v\n", os.Getpid())
 		if err := pidf.Close(); err != nil {
-			log.Errorf("Failed to close PID file %v: %v", *pidfile, err)
+			log.Errorf("Failed to close PID file %q: %v", *pidfile, err)
 		}
 	}
 
@@ -140,6 +139,13 @@ func main() {
 	// Wait for active connections to finish
 	smtpServer.Drain()
 	pop3Server.Drain()
+
+	// Remove pidfile
+	if *pidfile != "none" {
+		if err := os.Remove(*pidfile); err != nil {
+			log.Errorf("Failed to remove %q: %v", *pidfile, err)
+		}
+	}
 }
 
 // openLogFile creates or appends to the logfile passed on commandline

@@ -41,7 +41,6 @@ func Initialize(cfg config.WebConfig, ds smtpd.DataStore) {
 	// NewContext() will use this DataStore for the web handlers
 	DataStore = ds
 
-	// TODO Make configurable
 	if cfg.CookieAuthKey == "" {
 		log.Infof("HTTP generating random cookie.auth.key")
 		sessionStore = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))

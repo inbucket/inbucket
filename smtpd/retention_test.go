@@ -36,7 +36,7 @@ func TestDoRetentionScan(t *testing.T) {
 	mb3.On("GetMessages").Return([]Message{new3}, nil)
 
 	// Test 4 hour retention
-	if err := doRetentionScan(mds, 4*time.Hour, 0); err != nil {
+	if err := doRetentionScan(mds, 4*time.Hour-time.Minute, 0); err != nil {
 		t.Error(err)
 	}
 

@@ -411,7 +411,8 @@ func setupWebServer(ds smtpd.DataStore) *bytes.Buffer {
 		TemplateDir: "../themes/integral/templates",
 		PublicDir:   "../themes/integral/public",
 	}
-	httpd.Initialize(cfg, ds)
+	shutdownChan := make(chan bool)
+	httpd.Initialize(cfg, ds, shutdownChan)
 	SetupRoutes(httpd.Router)
 
 	return buf

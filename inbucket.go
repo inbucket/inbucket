@@ -34,6 +34,9 @@ var (
 	// startTime is used to calculate uptime of Inbucket
 	startTime = time.Now()
 
+	// shutdownChan - close it to tell Inbucket to shut down cleanly
+	shutdownChan = make(chan bool)
+
 	// Server instances
 	smtpServer *smtpd.Server
 	pop3Server *pop3d.Server
@@ -63,7 +66,6 @@ func main() {
 	// Setup signal handler
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
-	go signalProcessor(sigChan)
 
 	// Initialize logging
 	level, _ := config.Config.String("logging", "level")
@@ -93,24 +95,53 @@ func main() {
 	ds := smtpd.DefaultFileDataStore()
 
 	// Start HTTP server
-	httpd.Initialize(config.GetWebConfig(), ds)
+	httpd.Initialize(config.GetWebConfig(), ds, shutdownChan)
 	webui.SetupRoutes(httpd.Router)
 	rest.SetupRoutes(httpd.Router)
 	go httpd.Start()
 
 	// Start POP3 server
-	pop3Server = pop3d.New()
+	// TODO pass datastore
+	pop3Server = pop3d.New(shutdownChan)
 	go pop3Server.Start()
 
-	// Startup SMTP server, block until it exits
-	smtpServer = smtpd.NewServer(config.GetSMTPConfig(), ds)
-	smtpServer.Start()
+	// Startup SMTP server
+	smtpServer = smtpd.NewServer(config.GetSMTPConfig(), ds, shutdownChan)
+	go smtpServer.Start()
+
+	// Loop forever waiting for signals or shutdown channel
+signalLoop:
+	for {
+		select {
+		case sig := <-sigChan:
+			switch sig {
+			case syscall.SIGHUP:
+				log.Infof("Recieved SIGHUP, cycling logfile")
+				log.Rotate()
+			case syscall.SIGINT:
+				// Shutdown requested
+				log.Infof("Received SIGINT, shutting down")
+				close(shutdownChan)
+			case syscall.SIGTERM:
+				// Shutdown requested
+				log.Infof("Received SIGTERM, shutting down")
+				close(shutdownChan)
+			}
+		case _ = <-shutdownChan:
+			break signalLoop
+		}
+	}
 
 	// Wait for active connections to finish
+	go timedExit()
 	smtpServer.Drain()
 	pop3Server.Drain()
 
-	// Remove pidfile
+	removePIDFile()
+}
+
+// removePIDFile removes the PID file if created
+func removePIDFile() {
 	if *pidfile != "none" {
 		if err := os.Remove(*pidfile); err != nil {
 			log.Errorf("Failed to remove %q: %v", *pidfile, err)
@@ -118,42 +149,12 @@ func main() {
 	}
 }
 
-// signalProcessor is a goroutine that handles OS signals
-func signalProcessor(c <-chan os.Signal) {
-	for {
-		sig := <-c
-		switch sig {
-		case syscall.SIGHUP:
-			log.Infof("Recieved SIGHUP, cycling logfile")
-			log.Rotate()
-		case syscall.SIGINT:
-			// Initiate shutdown
-			log.Infof("Received SIGINT, shutting down")
-			shutdown()
-		case syscall.SIGTERM:
-			// Initiate shutdown
-			log.Infof("Received SIGTERM, shutting down")
-			shutdown()
-		}
-	}
-}
-
-// shutdown is called by signalProcessor() when we are asked to shut down
-func shutdown() {
-	go timedExit()
-	httpd.Stop()
-	if smtpServer != nil {
-		smtpServer.Stop()
-	} else {
-		log.Errorf("smtpServer was nil during shutdown")
-	}
-}
-
 // timedExit is called as a goroutine during shutdown, it will force an exit
 // after 15 seconds
 func timedExit() {
 	time.Sleep(15 * time.Second)
-	log.Errorf("Inbucket clean shutdown timed out, forcing exit")
+	log.Errorf("Clean shutdown took too long, forcing exit")
+	removePIDFile()
 	os.Exit(0)
 }
 

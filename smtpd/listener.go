@@ -23,35 +23,52 @@ type Server struct {
 	dataStore       DataStore
 	storeMessages   bool
 	listener        net.Listener
-	shutdown        bool
-	waitgroup       *sync.WaitGroup
+
+	// globalShutdown is the signal Inbucket needs to shut down
+	globalShutdown chan bool
+
+	// localShutdown indicates this component has completed shutting down
+	localShutdown chan bool
+
+	// waitgroup tracks individual sessions
+	waitgroup *sync.WaitGroup
 }
 
-// Raw stat collectors
-var expConnectsTotal = new(expvar.Int)
-var expConnectsCurrent = new(expvar.Int)
-var expReceivedTotal = new(expvar.Int)
-var expErrorsTotal = new(expvar.Int)
-var expWarnsTotal = new(expvar.Int)
+var (
+	// Raw stat collectors
+	expConnectsTotal   = new(expvar.Int)
+	expConnectsCurrent = new(expvar.Int)
+	expReceivedTotal   = new(expvar.Int)
+	expErrorsTotal     = new(expvar.Int)
+	expWarnsTotal      = new(expvar.Int)
 
-// History of certain stats
-var deliveredHist = list.New()
-var connectsHist = list.New()
-var errorsHist = list.New()
-var warnsHist = list.New()
+	// History of certain stats
+	deliveredHist = list.New()
+	connectsHist  = list.New()
+	errorsHist    = list.New()
+	warnsHist     = list.New()
 
-// History rendered as comma delim string
-var expReceivedHist = new(expvar.String)
-var expConnectsHist = new(expvar.String)
-var expErrorsHist = new(expvar.String)
-var expWarnsHist = new(expvar.String)
+	// History rendered as comma delim string
+	expReceivedHist = new(expvar.String)
+	expConnectsHist = new(expvar.String)
+	expErrorsHist   = new(expvar.String)
+	expWarnsHist    = new(expvar.String)
+)
 
 // NewServer creates a new Server instance with the specificed config
-func NewServer(cfg config.SMTPConfig, ds DataStore) *Server {
-	return &Server{dataStore: ds, domain: cfg.Domain, maxRecips: cfg.MaxRecipients,
-		maxIdleSeconds: cfg.MaxIdleSeconds, maxMessageBytes: cfg.MaxMessageBytes,
-		storeMessages: cfg.StoreMessages, domainNoStore: strings.ToLower(cfg.DomainNoStore),
-		waitgroup: new(sync.WaitGroup)}
+func NewServer(cfg config.SMTPConfig, ds DataStore, globalShutdown chan bool) *Server {
+	return &Server{
+		dataStore:       ds,
+		domain:          cfg.Domain,
+		maxRecips:       cfg.MaxRecipients,
+		maxIdleSeconds:  cfg.MaxIdleSeconds,
+		maxMessageBytes: cfg.MaxMessageBytes,
+		storeMessages:   cfg.StoreMessages,
+		domainNoStore:   strings.ToLower(cfg.DomainNoStore),
+		waitgroup:       new(sync.WaitGroup),
+		globalShutdown:  globalShutdown,
+		localShutdown:   make(chan bool),
+	}
 }
 
 // Start the listener and handle incoming connections
@@ -82,10 +99,28 @@ func (s *Server) Start() {
 	// Start retention scanner
 	StartRetentionScanner(s.dataStore)
 
+	// Listener go routine
+	go s.serve()
+
+	// Wait for shutdown
+	select {
+	case _ = <-s.globalShutdown:
+		log.Tracef("SMTP shutdown requested, connections will be drained")
+	}
+
+	// Closing the listener will cause the serve() go routine to exit
+	if err := s.listener.Close(); err != nil {
+		log.Errorf("Failed to close SMTP listener: %v", err)
+	}
+}
+
+// serve is the listen/accept loop
+func (s *Server) serve() {
 	// Handle incoming connections
 	var tempDelay time.Duration
-	for sid := 1; ; sid++ {
+	for sessionID := 1; ; sessionID++ {
 		if conn, err := s.listener.Accept(); err != nil {
+			// There was an error accepting the connection
 			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
 				// Temporary error, sleep for a bit and try again
 				if tempDelay == 0 {
@@ -100,36 +135,35 @@ func (s *Server) Start() {
 				time.Sleep(tempDelay)
 				continue
 			} else {
-				if s.shutdown {
-					log.Tracef("SMTP listener shutting down on request")
+				// Permanent error
+				select {
+				case _ = <-s.globalShutdown:
+					close(s.localShutdown)
 					return
+				default:
+					// TODO Implement a max error counter before shutdown?
+					// or maybe attempt to restart smtpd
+					panic(err)
 				}
-				// TODO Implement a max error counter before shutdown?
-				// or maybe attempt to restart smtpd
-				panic(err)
 			}
 		} else {
 			tempDelay = 0
 			expConnectsTotal.Add(1)
 			s.waitgroup.Add(1)
-			go s.startSession(sid, conn)
+			go s.startSession(sessionID, conn)
 		}
-	}
-}
-
-// Stop requests the SMTP server closes it's listener
-func (s *Server) Stop() {
-	log.Tracef("SMTP shutdown requested, connections will be drained")
-	s.shutdown = true
-	if err := s.listener.Close(); err != nil {
-		log.Errorf("Failed to close SMTP listener: %v", err)
 	}
 }
 
 // Drain causes the caller to block until all active SMTP sessions have finished
 func (s *Server) Drain() {
+	// Wait for listener to exit
+	select {
+	case _ = <-s.localShutdown:
+	}
+	// Wait for sessions to close
 	s.waitgroup.Wait()
-	log.Tracef("SMTP connections drained")
+	log.Tracef("SMTP connections have drained")
 }
 
 // When the provided Ticker ticks, we update our metrics history

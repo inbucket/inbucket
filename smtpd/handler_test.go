@@ -377,7 +377,8 @@ func setupSMTPServer(ds DataStore) (*Server, *bytes.Buffer) {
 	log.SetOutput(buf)
 
 	// Create a server, don't start it
-	return NewServer(cfg, ds), buf
+	shutdownChan := make(chan bool)
+	return NewServer(cfg, ds, shutdownChan), buf
 }
 
 var sessionNum int

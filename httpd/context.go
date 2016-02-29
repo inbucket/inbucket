@@ -47,11 +47,10 @@ func NewContext(req *http.Request) (*Context, error) {
 		if sess == nil {
 			// No session, must fail
 			return nil, err
-		} else {
-			// The session cookie was probably signed by an old key, ignore it
-			// gorilla created an empty session for us
-			err = nil
 		}
+		// The session cookie was probably signed by an old key, ignore it
+		// gorilla created an empty session for us
+		err = nil
 	}
 	ctx := &Context{
 		Vars:      vars,

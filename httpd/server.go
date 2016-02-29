@@ -27,20 +27,29 @@ var (
 	// incoming requests to the correct handler function
 	Router = mux.NewRouter()
 
-	webConfig    config.WebConfig
-	listener     net.Listener
-	sessionStore sessions.Store
-	shutdown     bool
+	webConfig      config.WebConfig
+	server         *http.Server
+	listener       net.Listener
+	sessionStore   sessions.Store
+	globalShutdown chan bool
 )
 
 // Initialize sets up things for unit tests or the Start() method
-func Initialize(cfg config.WebConfig, ds smtpd.DataStore) {
+func Initialize(cfg config.WebConfig, ds smtpd.DataStore, shutdownChan chan bool) {
 	webConfig = cfg
-	setupRoutes(cfg)
+	globalShutdown = shutdownChan
 
 	// NewContext() will use this DataStore for the web handlers
 	DataStore = ds
 
+	// Content Paths
+	log.Infof("HTTP templates mapped to %q", cfg.TemplateDir)
+	log.Infof("HTTP static content mapped to %q", cfg.PublicDir)
+	Router.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
+		http.FileServer(http.Dir(cfg.PublicDir))))
+	http.Handle("/", Router)
+
+	// Session cookie setup
 	if cfg.CookieAuthKey == "" {
 		log.Infof("HTTP generating random cookie.auth.key")
 		sessionStore = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
@@ -50,22 +59,10 @@ func Initialize(cfg config.WebConfig, ds smtpd.DataStore) {
 	}
 }
 
-func setupRoutes(cfg config.WebConfig) {
-	log.Infof("HTTP templates mapped to %q", cfg.TemplateDir)
-	log.Infof("HTTP static content mapped to %q", cfg.PublicDir)
-
-	// Static content
-	Router.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
-		http.FileServer(http.Dir(cfg.PublicDir))))
-
-	// Register w/ HTTP
-	http.Handle("/", Router)
-}
-
 // Start begins listening for HTTP requests
 func Start() {
 	addr := fmt.Sprintf("%v:%v", webConfig.IP4address, webConfig.IP4port)
-	server := &http.Server{
+	server = &http.Server{
 		Addr:         addr,
 		Handler:      nil,
 		ReadTimeout:  60 * time.Second,
@@ -82,24 +79,32 @@ func Start() {
 		panic(err)
 	}
 
-	err = server.Serve(listener)
-	if shutdown {
+	// Listener go routine
+	go serve()
+
+	// Wait for shutdown
+	select {
+	case _ = <-globalShutdown:
 		log.Tracef("HTTP server shutting down on request")
-	} else if err != nil {
-		log.Errorf("HTTP server failed: %v", err)
+	}
+
+	// Closing the listener will cause the serve() go routine to exit
+	if err := listener.Close(); err != nil {
+		log.Errorf("Failed to close HTTP listener: %v", err)
 	}
 }
 
-// Stop shuts down the HTTP server
-func Stop() {
-	log.Tracef("HTTP shutdown requested")
-	shutdown = true
-	if listener != nil {
-		if err := listener.Close(); err != nil {
-			log.Errorf("Error closing HTTP listener: %v", err)
-		}
-	} else {
-		log.Errorf("HTTP listener was nil during shutdown")
+// serve begins serving HTTP requests
+func serve() {
+	// server.Serve blocks until we close the listener
+	err := server.Serve(listener)
+
+	select {
+	case _ = <-globalShutdown:
+		// Nop
+	default:
+		log.Errorf("HTTP server failed: %v", err)
+		// TODO shutdown?
 	}
 }
 

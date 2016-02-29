@@ -17,20 +17,27 @@ type Server struct {
 	maxIdleSeconds int
 	dataStore      smtpd.DataStore
 	listener       net.Listener
-	shutdown       bool
+	globalShutdown chan bool
+	localShutdown  chan bool
 	waitgroup      *sync.WaitGroup
 }
 
 // New creates a new Server struct
-func New() *Server {
+func New(shutdownChan chan bool) *Server {
 	// Get a new instance of the the FileDataStore - the locking and counting
 	// mechanisms are both global variables in the smtpd package.  If that
 	// changes in the future, this should be modified to use the same DataStore
 	// instance.
 	ds := smtpd.DefaultFileDataStore()
 	cfg := config.GetPOP3Config()
-	return &Server{domain: cfg.Domain, dataStore: ds, maxIdleSeconds: cfg.MaxIdleSeconds,
-		waitgroup: new(sync.WaitGroup)}
+	return &Server{
+		domain:         cfg.Domain,
+		dataStore:      ds,
+		maxIdleSeconds: cfg.MaxIdleSeconds,
+		globalShutdown: shutdownChan,
+		localShutdown:  make(chan bool),
+		waitgroup:      new(sync.WaitGroup),
+	}
 }
 
 // Start the server and listen for connections
@@ -52,6 +59,23 @@ func (s *Server) Start() {
 		panic(err)
 	}
 
+	// Listener go routine
+	go s.serve()
+
+	// Wait for shutdown
+	select {
+	case _ = <-s.globalShutdown:
+	}
+
+	log.Tracef("POP3 shutdown requested, connections will be drained")
+	// Closing the listener will cause the serve() go routine to exit
+	if err := s.listener.Close(); err != nil {
+		log.Errorf("Error closing POP3 listener: %v", err)
+	}
+}
+
+// serve is the listen/accept loop
+func (s *Server) serve() {
 	// Handle incoming connections
 	var tempDelay time.Duration
 	for sid := 1; ; sid++ {
@@ -70,13 +94,16 @@ func (s *Server) Start() {
 				time.Sleep(tempDelay)
 				continue
 			} else {
-				if s.shutdown {
-					log.Tracef("POP3 listener shutting down on request")
+				// Permanent error
+				select {
+				case _ = <-s.globalShutdown:
+					close(s.localShutdown)
 					return
+				default:
+					// TODO Implement a max error counter before shutdown?
+					// or maybe attempt to restart smtpd
+					panic(err)
 				}
-				// TODO Implement a max error counter before shutdown?
-				// or maybe attempt to restart POP3
-				panic(err)
 			}
 		} else {
 			tempDelay = 0
@@ -86,17 +113,13 @@ func (s *Server) Start() {
 	}
 }
 
-// Stop requests the POP3 server closes it's listener
-func (s *Server) Stop() {
-	log.Tracef("POP3 shutdown requested, connections will be drained")
-	s.shutdown = true
-	if err := s.listener.Close(); err != nil {
-		log.Errorf("Error closing POP3 listener: %v", err)
-	}
-}
-
 // Drain causes the caller to block until all active POP3 sessions have finished
 func (s *Server) Drain() {
+	// Wait for listener to exit
+	select {
+	case _ = <-s.localShutdown:
+	}
+	// Wait for sessions to close
 	s.waitgroup.Wait()
-	log.Tracef("POP3 connections drained")
+	log.Tracef("POP3 connections have drained")
 }

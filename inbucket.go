@@ -66,7 +66,7 @@ func main() {
 
 	// Setup signal handler
 	sigChan := make(chan os.Signal)
-	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM)
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 	go signalProcessor(sigChan)
 
 	// Configure logging, close std* fds
@@ -183,21 +183,31 @@ func signalProcessor(c <-chan os.Signal) {
 			} else {
 				log.Infof("Ignoring SIGHUP, logfile not configured")
 			}
+		case syscall.SIGINT:
+			// Initiate shutdown
+			log.Infof("Received SIGINT, shutting down")
+			shutdown()
 		case syscall.SIGTERM:
 			// Initiate shutdown
 			log.Infof("Received SIGTERM, shutting down")
-			go timedExit()
-			httpd.Stop()
-			if smtpServer != nil {
-				smtpServer.Stop()
-			} else {
-				log.Errorf("smtpServer was nil during shutdown")
-			}
+			shutdown()
 		}
 	}
 }
 
-// timedExit is called as a goroutine during shutdown, it will force an exit after 15 seconds
+// shutdown is called by signalProcessor() when we are asked to shut down
+func shutdown() {
+	go timedExit()
+	httpd.Stop()
+	if smtpServer != nil {
+		smtpServer.Stop()
+	} else {
+		log.Errorf("smtpServer was nil during shutdown")
+	}
+}
+
+// timedExit is called as a goroutine during shutdown, it will force an exit
+// after 15 seconds
 func timedExit() {
 	time.Sleep(15 * time.Second)
 	log.Errorf("Inbucket clean shutdown timed out, forcing exit")

@@ -23,7 +23,10 @@ type Server struct {
 
 // New creates a new Server struct
 func New() *Server {
-	// TODO is two filestores better/worse than sharing w/ smtpd?
+	// Get a new instance of the the FileDataStore - the locking and counting
+	// mechanisms are both global variables in the smtpd package.  If that
+	// changes in the future, this should be modified to use the same DataStore
+	// instance.
 	ds := smtpd.DefaultFileDataStore()
 	cfg := config.GetPOP3Config()
 	return &Server{domain: cfg.Domain, dataStore: ds, maxIdleSeconds: cfg.MaxIdleSeconds,

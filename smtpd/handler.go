@@ -413,8 +413,11 @@ func (ss *Session) dataHandler() {
 				for _, m := range messages {
 					if m != nil {
 						if err := m.Close(); err != nil {
+							// This logic should be updated to report failures
+							// writing the initial message file to the client
+							// after we implement a single-store system (issue
+							// #23)
 							ss.logError("Error: %v while writing message", err)
-							// TODO Report to client?
 						}
 						expReceivedTotal.Add(1)
 					}
@@ -437,7 +440,7 @@ func (ss *Session) dataHandler() {
 			ss.send("552 Maximum message size exceeded")
 			ss.logWarn("Max message size exceeded while in DATA")
 			ss.reset()
-			// TODO: Should really cleanup the crap on filesystem...
+			// Should really cleanup the crap on filesystem (after issue #23)
 			return
 		}
 		// Append to message objects
@@ -448,7 +451,7 @@ func (ss *Session) dataHandler() {
 						ss.logError("Failed to append to mailbox %v: %v", mailboxes[i], err)
 						ss.send("554 Something went wrong")
 						ss.reset()
-						// TODO: Should really cleanup the crap on filesystem...
+						// Should really cleanup the crap on filesystem (after issue #23)
 						return
 					}
 				}

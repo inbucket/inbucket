@@ -9,8 +9,13 @@ import (
 	"github.com/jhillyerd/go.enmime"
 )
 
-// ErrNotExist indicates the requested message does not exist
-var ErrNotExist = errors.New("Message does not exist")
+var (
+	// ErrNotExist indicates the requested message does not exist
+	ErrNotExist = errors.New("Message does not exist")
+
+	// ErrNotWritable indicates the message is closed; no longer writable
+	ErrNotWritable = errors.New("Message not writable")
+)
 
 // DataStore is an interface to get Mailboxes stored in Inbucket
 type DataStore interface {

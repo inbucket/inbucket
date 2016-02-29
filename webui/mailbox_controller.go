@@ -251,7 +251,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 		"ctx":     ctx,
 		"name":    name,
 		"message": message,
-		// TODO: It is not really safe to render, need to sanitize.
+		// TODO It is not really safe to render, need to sanitize, issue #5
 		"body": template.HTML(mime.HTML),
 	})
 }

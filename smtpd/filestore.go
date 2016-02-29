@@ -3,7 +3,6 @@ package smtpd
 import (
 	"bufio"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,9 +26,6 @@ var (
 	// NOTE: This is a bottleneck because  it's a single lock even if we have a
 	// million index files
 	indexLock = new(sync.RWMutex)
-
-	// TODO Consider moving this to the Message interface
-	errNotWritable = errors.New("Message not writable")
 
 	// countChannel is filled with a sequential numbers (0000..9999), which are
 	// used by generateID() to generate unique message IDs.  It's global
@@ -222,17 +218,15 @@ func (mb *FileMailbox) readIndex() error {
 	// Decode gob data
 	dec := gob.NewDecoder(bufio.NewReader(file))
 	for {
-		// TODO Detect EOF
 		msg := new(FileMessage)
 		if err = dec.Decode(msg); err != nil {
 			if err == io.EOF {
 				// It's OK to get an EOF here
 				break
 			}
-			return fmt.Errorf("While decoding message: %v", err)
+			return fmt.Errorf("Corrupt mailbox %q: %v", mb.indexPath, err)
 		}
 		msg.mailbox = mb
-		log.Tracef("Found: %v", msg)
 		mb.messages = append(mb.messages, msg)
 	}
 
@@ -339,8 +333,7 @@ func (m *FileMessage) ID() string {
 	return m.Fid
 }
 
-// Date returns the date of the Message
-// TODO Is this the create timestamp, or from the Date header?
+// Date returns the date/time this Message was received by Inbucket
 func (m *FileMessage) Date() time.Time {
 	return m.Fdate
 }
@@ -443,7 +436,7 @@ func (m *FileMessage) ReadRaw() (raw *string, err error) {
 func (m *FileMessage) Append(data []byte) error {
 	// Prevent Appending to a pre-existing Message
 	if !m.writable {
-		return errNotWritable
+		return ErrNotWritable
 	}
 	// Open file for writing if we haven't yet
 	if m.writer == nil {

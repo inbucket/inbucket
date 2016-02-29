@@ -179,7 +179,6 @@ func signalProcessor(c <-chan os.Signal) {
 				log.Infof("Recieved SIGHUP, cycling logfile")
 				closeLogFile()
 				// There is nothing we can do if the log open fails
-				// TODO We could panic, but that would be lame?
 				_ = openLogFile()
 			} else {
 				log.Infof("Ignoring SIGHUP, logfile not configured")

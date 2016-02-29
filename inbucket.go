@@ -5,7 +5,6 @@ import (
 	"expvar"
 	"flag"
 	"fmt"
-	golog "log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,9 +33,6 @@ var (
 
 	// startTime is used to calculate uptime of Inbucket
 	startTime = time.Now()
-
-	// The file we send log output to, will be nil for stderr or stdout
-	logf *os.File
 
 	// Server instances
 	smtpServer *smtpd.Server
@@ -69,40 +65,14 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 	go signalProcessor(sigChan)
 
-	// Configure logging, close std* fds
+	// Initialize logging
 	level, _ := config.Config.String("logging", "level")
 	log.SetLogLevel(level)
-
-	if *logfile != "stderr" {
-		// stderr is the go logging default
-		if *logfile == "stdout" {
-			// set to stdout
-			golog.SetOutput(os.Stdout)
-		} else {
-			err = openLogFile()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "%v", err)
-				os.Exit(1)
-			}
-			defer closeLogFile()
-
-			// Close std* streams to prevent accidental output, they will be redirected to
-			// our logfile below
-			if err := os.Stdout.Close(); err != nil {
-				log.Errorf("Failed to close os.Stdout during log setup")
-			}
-			// Warning: this will hide panic() output
-			// TODO Replace with syscall.Dup2 per https://github.com/golang/go/issues/325
-			if err := os.Stderr.Close(); err != nil {
-				log.Errorf("Failed to close os.Stderr during log setup")
-			}
-			if err := os.Stdin.Close(); err != nil {
-				log.Errorf("Failed to close os.Stdin during log setup")
-			}
-			os.Stdout = logf
-			os.Stderr = logf
-		}
+	if err := log.Initialize(*logfile); err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
 	}
+	defer log.Close()
 
 	log.Infof("Inbucket %v (%v) starting...", config.Version, config.BuildDate)
 
@@ -148,41 +118,14 @@ func main() {
 	}
 }
 
-// openLogFile creates or appends to the logfile passed on commandline
-func openLogFile() error {
-	// use specified log file
-	var err error
-	logf, err = os.OpenFile(*logfile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
-	if err != nil {
-		return fmt.Errorf("Failed to create %v: %v\n", *logfile, err)
-	}
-	golog.SetOutput(logf)
-	log.Tracef("Opened new logfile")
-	return nil
-}
-
-// closeLogFile closes the current logfile
-func closeLogFile() {
-	log.Tracef("Closing logfile")
-	// We are never in a situation where we can do anything about failing to close
-	_ = logf.Close()
-}
-
 // signalProcessor is a goroutine that handles OS signals
 func signalProcessor(c <-chan os.Signal) {
 	for {
 		sig := <-c
 		switch sig {
 		case syscall.SIGHUP:
-			// Rotate logs if configured
-			if logf != nil {
-				log.Infof("Recieved SIGHUP, cycling logfile")
-				closeLogFile()
-				// There is nothing we can do if the log open fails
-				_ = openLogFile()
-			} else {
-				log.Infof("Ignoring SIGHUP, logfile not configured")
-			}
+			log.Infof("Recieved SIGHUP, cycling logfile")
+			log.Rotate()
 		case syscall.SIGINT:
 			// Initiate shutdown
 			log.Infof("Received SIGINT, shutting down")

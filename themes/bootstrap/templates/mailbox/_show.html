@@ -3,7 +3,7 @@
 <div class="btn-group btn-group-sm message-controls" role="group" aria-label="Message Controls">
   <button type="button"
           class="btn btn-primary"
-          onClick="window.open('/link/{{$name}}/{{$id}}');">
+          onClick="toggleMessageLink('{{.message.ID}}');">
     <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
     Link
   </button>
@@ -27,6 +27,24 @@
       HTML
     </button>
   {{end}}
+</div>
+
+<div id="link-row" class="row" style="display: none; padding-bottom: 10px;">
+  <div class="col-lg-12">
+    <div class="input-group input-group-sm">
+      <span class="input-group-btn">
+        <button class="btn btn-default btn-clipboard"
+                type="button"
+                title="Copy"
+                data-toggle="tooltip"
+                data-placement="bottom"
+                data-clipboard-target="#link-input-control">
+        <span class="glyphicon glyphicon-copy" aria-hidden="true"></span>
+        </button>
+      </span>
+      <input id="link-input-control" type="text" class="form-control">
+    </div>
+  </div>
 </div>
 
 <div class="panel panel-default message-header">

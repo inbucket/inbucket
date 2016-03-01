@@ -101,7 +101,7 @@ func (s *Server) Start() {
 	}
 
 	// Start retention scanner
-	StartRetentionScanner(s.dataStore)
+	StartRetentionScanner(s.dataStore, s.globalShutdown)
 
 	// Listener go routine
 	go s.serve()
@@ -177,6 +177,7 @@ func (s *Server) Drain() {
 	// Wait for sessions to close
 	s.waitgroup.Wait()
 	log.Tracef("SMTP connections have drained")
+	RetentionJoin()
 }
 
 // When the provided Ticker ticks, we update our metrics history

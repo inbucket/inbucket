@@ -3,6 +3,7 @@ var navBarOffset = 75;
 var mediumDeviceWidth = 980;
 var messageListMargin = 275;
 var clipboard = null;
+var messageListScroll = false;
 
 // deleteMessage sends a delete request for a message
 function deleteMessage(id) {
@@ -112,10 +113,16 @@ function onMessageLoaded(responseText, textStatus, XMLHttpRequest) {
 // onWindowResize handles special cases when window is resized
 function onWindowResize() {
   if ($(window).width() > mediumDeviceWidth) {
-    var content_height = $(window).height() - messageListMargin;
-    $('#message-list-wrapper').height(content_height).addClass("message-list-scroll");
+    if (!messageListScroll) {
+      messageListScroll= true;
+      var content_height = $(window).height() - messageListMargin;
+      $('#message-list-wrapper').height(content_height).addClass("message-list-scroll");
+    }
   } else {
-    $('#message-list-wrapper').height('auto').removeClass("message-list-scroll");
+    if (messageListScroll) {
+      messageListScroll= false;
+      $('#message-list-wrapper').height('auto').removeClass("message-list-scroll");
+    }
   }
 }
 

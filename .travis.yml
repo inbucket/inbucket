@@ -1,5 +1,8 @@
 language: go
 
+before_script:
+  - go vet ./...
+
 go:
   - 1.5.3
-  - tip
+  - 1.6

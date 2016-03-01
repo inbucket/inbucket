@@ -75,8 +75,8 @@ func Start() {
 	listener, err = net.Listen("tcp", addr)
 	if err != nil {
 		log.Errorf("HTTP failed to start TCP4 listener: %v", err)
-		// TODO More graceful early-shutdown procedure
-		panic(err)
+		emergencyShutdown()
+		return
 	}
 
 	// Listener go routine
@@ -104,7 +104,8 @@ func serve() {
 		// Nop
 	default:
 		log.Errorf("HTTP server failed: %v", err)
-		// TODO shutdown?
+		emergencyShutdown()
+		return
 	}
 }
 
@@ -139,5 +140,14 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Apply the buffered response to the writer
 	if _, err = buf.Apply(w); err != nil {
 		log.Errorf("HTTP failed to write response: %v", err)
+	}
+}
+
+func emergencyShutdown() {
+	// Shutdown Inbucket
+	select {
+	case _ = <-globalShutdown:
+	default:
+		close(globalShutdown)
 	}
 }

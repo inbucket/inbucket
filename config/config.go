@@ -193,11 +193,11 @@ func parseSMTPConfig() error {
 	}
 	addr := net.ParseIP(str)
 	if addr == nil {
-		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, str)
 	}
 	addr = addr.To4()
 	if addr == nil {
-		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, err)
+		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, str)
 	}
 	smtpConfig.IP4address = addr
 
@@ -264,11 +264,11 @@ func parsePOP3Config() error {
 	}
 	addr := net.ParseIP(str)
 	if addr == nil {
-		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, str)
 	}
 	addr = addr.To4()
 	if addr == nil {
-		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, err)
+		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, str)
 	}
 	pop3Config.IP4address = addr
 
@@ -307,11 +307,11 @@ func parseWebConfig() error {
 	}
 	addr := net.ParseIP(str)
 	if addr == nil {
-		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, str)
 	}
 	addr = addr.To4()
 	if addr == nil {
-		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, err)
+		return fmt.Errorf("Failed to parse [%v]%v: '%v' not IPv4!", section, option, str)
 	}
 	webConfig.IP4address = addr
 

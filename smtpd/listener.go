@@ -78,16 +78,20 @@ func (s *Server) Start() {
 		cfg.IP4address, cfg.IP4port))
 	if err != nil {
 		log.Errorf("Failed to build tcp4 address: %v", err)
-		// TODO More graceful early-shutdown procedure
-		panic(err)
+		// serve() never called, so we do local shutdown here
+		close(s.localShutdown)
+		s.emergencyShutdown()
+		return
 	}
 
 	log.Infof("SMTP listening on TCP4 %v", addr)
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
 		log.Errorf("SMTP failed to start tcp4 listener: %v", err)
-		// TODO More graceful early-shutdown procedure
-		panic(err)
+		// serve() never called, so we do local shutdown here
+		close(s.localShutdown)
+		s.emergencyShutdown()
+		return
 	}
 
 	if !s.storeMessages {
@@ -141,9 +145,9 @@ func (s *Server) serve() {
 					close(s.localShutdown)
 					return
 				default:
-					// TODO Implement a max error counter before shutdown?
-					// or maybe attempt to restart smtpd
-					panic(err)
+					close(s.localShutdown)
+					s.emergencyShutdown()
+					return
 				}
 			}
 		} else {
@@ -152,6 +156,15 @@ func (s *Server) serve() {
 			s.waitgroup.Add(1)
 			go s.startSession(sessionID, conn)
 		}
+	}
+}
+
+func (s *Server) emergencyShutdown() {
+	// Shutdown Inbucket
+	select {
+	case _ = <-s.globalShutdown:
+	default:
+		close(s.globalShutdown)
 	}
 }
 

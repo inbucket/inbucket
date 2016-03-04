@@ -2,7 +2,7 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [1.1.0-rc1]
 ### Added
 - Inbucket now builds with Go 1.5 or 1.6
 - Project can build & run inside a Docker container
@@ -22,7 +22,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Add Link button to messages, allows for directing another person to a
   specific message.
 
-[Unreleased]: https://github.com/jhillyerd/inbucket/compare/1.0...HEAD
+[Unreleased]: https://github.com/jhillyerd/inbucket/compare/1.1.0-rc1...develop
+[1.1.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.0...1.1.0-rc1
 [1.0]:        https://github.com/jhillyerd/inbucket/compare/1.0-rc1...1.0
 
 See http://keepachangelog.com/ for instructions on how to update this file.

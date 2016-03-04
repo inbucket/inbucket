@@ -1,4 +1,4 @@
-Inbucket [![Build Status](https://travis-ci.org/jhillyerd/inbucket.png?branch=master)](https://travis-ci.org/jhillyerd/inbucket)
+Inbucket [![Build Status](https://travis-ci.org/jhillyerd/inbucket.png?branch=master)][Build Status]
 ========
 
 Inbucket is an email testing service; it will accept messages for any email
@@ -6,20 +6,19 @@ address and make them available via web, REST and POP3.  Once compiled,
 Inbucket does not have an external dependencies (HTTP, SMTP, POP3 and storage
 are all built in).
 
-Read more at the [Inbucket website][Inbucket]
+Read more at the [Inbucket Website]
 
 Development Status
 ------------------
 
 Inbucket is currently production quality: it is being used for real work.
 
-Please check the [issues list][Issues]
-for more details.
+Please see the [Change Log] and [Issues List] for more details.
 
 Building from Source
-------------------------
+--------------------
 
-You will need a functioning [Go installation][Golang] for this to work.
+You will need a functioning [Go installation][Google Go] for this to work.
 
 Grab the Inbucket source code and compile the daemon:
 
@@ -39,12 +38,14 @@ The Inbucket website has a more complete guide to
 About
 -----
 
-Inbucket is written in [Google Go][Golang].
+Inbucket is written in [Google Go]
 
 Inbucket is open source software released under the MIT License.  The latest
 version can be found at https://github.com/jhillyerd/inbucket
 
-[Inbucket]: http://www.inbucket.org/
-[Issues]: https://github.com/jhillyerd/inbucket/issues?state=open
-[From Source]: http://www.inbucket.org/installation/from-source.html
-[Golang]: http://golang.org/
+[Build Status]:     https://travis-ci.org/jhillyerd/inbucket
+[Change Log]:       https://github.com/jhillyerd/inbucket/blob/master/CHANGELOG.md
+[From Source]:      http://www.inbucket.org/installation/from-source.html
+[Google Go]:        http://golang.org/
+[Inbucket Website]: http://www.inbucket.org/
+[Issues List]:      https://github.com/jhillyerd/inbucket/issues?state=open

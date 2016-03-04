@@ -5,9 +5,9 @@
 	],
 	"Arch": "amd64",
 	"Os": "darwin freebsd linux windows",
-	"ResourcesInclude": "README*,LICENSE*,inbucket.bat,etc,themes",
+	"ResourcesInclude": "README*,LICENSE*,CHANGELOG*,inbucket.bat,etc,themes",
 	"PackageVersion": "1.1.0",
-	"PrereleaseInfo": "alpha",
+	"PrereleaseInfo": "rc1",
 	"ConfigVersion": "0.9",
 	"BuildSettings": {
 		"LdFlagsXVars": {

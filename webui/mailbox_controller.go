@@ -180,12 +180,13 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 	htmlAvailable := mime.HTML != ""
 
 	return httpd.RenderPartial("mailbox/_show.html", w, map[string]interface{}{
-		"ctx":           ctx,
-		"name":          name,
-		"message":       msg,
-		"body":          body,
-		"htmlAvailable": htmlAvailable,
-		"attachments":   mime.Attachments,
+		"ctx":            ctx,
+		"name":           name,
+		"message":        msg,
+		"body":           body,
+		"htmlAvailable":  htmlAvailable,
+		"isTextFromHTML": mime.IsTextFromHTML,
+		"attachments":    mime.Attachments,
 	})
 }
 

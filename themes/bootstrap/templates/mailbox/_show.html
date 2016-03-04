@@ -60,6 +60,13 @@
   </div>
 </div>
 
+{{if .isTextFromHTML}}
+<div class="alert alert-warning" role="alert">
+  <strong>Notice:</strong> Message did not contain a plain text portion;
+  the text below was converted from HTML automatically.
+</div>
+{{end}}
+
 <div class="message-body">{{.body}}</div>
 
 {{with .attachments}}

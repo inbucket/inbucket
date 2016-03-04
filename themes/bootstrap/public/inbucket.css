@@ -6,8 +6,8 @@ html {
 
 body {
   padding-top: 70px;
-  /* Margin bottom by footer height */
-  margin-bottom: 60px;
+  /* Margin bottom by footer height + safety */
+  margin-bottom: 100px;
 }
 
 .footer {

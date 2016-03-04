@@ -1,0 +1,394 @@
+Date: %DATE%
+To: %TO_ADDRESS%
+From: %FROM_ADDRESS%
+Subject: tutsplus responsive (broken images)
+MIME-Version: 1.0
+Content-Type: text/html; charset="UTF-8"
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <!--[if !mso]><!-->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!--<![endif]-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title></title>
+  <link rel="stylesheet" type="text/css" href="styles.css" />
+  <!--[if (gte mso 9)|(IE)]>
+  <style type="text/css">
+    table {border-collapse: collapse;}
+  </style>
+  <![endif]-->
+</head>
+<body>
+  <center class="wrapper">
+    <div class="webkit">
+      <!--[if (gte mso 9)|(IE)]>
+      <table width="600" align="center">
+      <tr>
+      <td>
+      <![endif]-->
+      <table class="outer" align="center">
+        <tr>
+          <td class="full-width-image">
+            <img src="images/header.jpg" width="600" alt="" />
+          </td>
+        </tr>
+        <tr>
+          <td class="one-column">
+            <table width="100%">
+              <tr>
+                <td class="inner contents">
+                  <p class="h1">Lorem ipsum dolor sit amet</p>
+                    <p>
+                      Compare to:
+                      <a href="http://tutsplus.github.io/creating-a-future-proof-responsive-email-without-media-queries/index.html">
+                      tutsplus sample</a>
+                    </p>
+
+                    <p>Copyright (c) 2015, Envato Tuts+<br/>
+                    All rights reserved.</p>
+
+                    <p>Redistribution and use in source and binary forms, with or without
+                    modification, are permitted provided that the following conditions are met:</p>
+
+                    <ul>
+                    <li>Redistributions of source code must retain the above copyright notice, this
+                      list of conditions and the following disclaimer.</li>
+
+                    <li>Redistributions in binary form must reproduce the above copyright notice,
+                      this list of conditions and the following disclaimer in the documentation
+                      and/or other materials provided with the distribution.</li>
+                    </ul>
+
+                    <p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+                    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+                    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+                    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+                    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+                    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+                    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+                    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+                    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+                    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td class="two-column">
+            <!--[if (gte mso 9)|(IE)]>
+            <table width="100%">
+            <tr>
+            <td width="50%" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner">
+                    <table class="contents">
+                      <tr>
+                        <td>
+                          <img src="images/two-column-01.jpg" width="280" alt="" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="text">
+                          Maecenas sed ante pellentesque, posuere leo id, eleifend dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td><td width="50%" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner">
+                    <table class="contents">
+                      <tr>
+                        <td>
+                          <img src="images/two-column-02.jpg" width="280" alt="" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="text">
+                          Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Maecenas sed ante pellentesque, posuere leo id, eleifend dolor.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td>
+            </tr>
+            </table>
+            <![endif]-->
+          </td>
+        </tr>
+        <tr>
+          <td class="three-column">
+            <!--[if (gte mso 9)|(IE)]>
+            <table width="100%">
+            <tr>
+            <td width="200" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner">
+                    <table class="contents">
+                      <tr>
+                        <td>
+                          <img src="images/three-column-01.jpg" width="180" alt="" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="text">
+                          Scelerisque congue eros eu posuere. Praesent in felis ut velit pretium lobortis rhoncus ut erat.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td><td width="200" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner">
+                    <table class="contents">
+                      <tr>
+                        <td>
+                          <img src="images/three-column-02.jpg" width="180" alt="" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="text">
+                          Maecenas sed ante pellentesque, posuere leo id, eleifend dolor.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td><td width="200" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner">
+                    <table class="contents">
+                      <tr>
+                        <td>
+                          <img src="images/three-column-03.jpg" width="180" alt="" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="text">
+                          Praesent laoreet malesuada cursus. Maecenas scelerisque congue eros eu posuere.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td>
+            </tr>
+            </table>
+            <![endif]-->
+          </td>
+        </tr>
+        <tr>
+          <td class="three-column">
+            <!--[if (gte mso 9)|(IE)]>
+            <table width="100%">
+            <tr>
+            <td width="200" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner contents">
+                    <p class="h2">Fashion</p>
+                    <p>Class eleifend aptent taciti sociosqu ad litora torquent conubia</p>
+                    <p><a href="#">Read requirements</a></p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td><td width="200" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner contents">
+                    <p class="h2">Photography</p>
+                    <p>Maecenas sed ante pellentesque, posuere leo id, eleifend dolor</p>
+                    <p><a href="#">See examples</a></p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td><td width="200" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner contents">
+                    <p class="h2">Design</p>
+                    <p>Class aptent taciti sociosqu eleifend ad litora per conubia nostra</p>
+                    <p><a href="#">See the winners</a></p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td>
+            </tr>
+            <tr>
+            <td width="200" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner contents">
+                    <p class="h2">Cooking</p>
+                    <p>Class aptent taciti eleifend sociosqu ad litora torquent conubia</p>
+                    <p><a href="#">Read recipes</a></p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td><td width="200" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner contents">
+                    <p class="h2">Woodworking</p>
+                    <p>Maecenas sed ante pellentesque, posuere leo id, eleifend dolor</p>
+                    <p><a href="#">See examples</a></p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td><td width="200" valign="top">
+            <![endif]-->
+            <div class="column">
+              <table width="100%">
+                <tr>
+                  <td class="inner contents">
+                    <p class="h2">Craft</p>
+                    <p>Class aptent taciti sociosqu ad eleifend litora per conubia nostra</p>
+                    <p><a href="#">Vote now</a></p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td>
+            </tr>
+            </table>
+            <![endif]-->
+          </td>
+        </tr>
+        <tr>
+          <td class="left-sidebar">
+            <!--[if (gte mso 9)|(IE)]>
+            <table width="100%">
+            <tr>
+            <td width="100">
+            <![endif]-->
+            <div class="column left">
+              <table width="100%">
+                <tr>
+                  <td class="inner">
+                    <img src="images/sidebar-01.jpg" width="80" alt="" />
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td><td width="500">
+            <![endif]-->
+            <div class="column right">
+              <table width="100%">
+                <tr>
+                  <td class="inner contents">
+                    Praesent laoreet malesuada cursus. Maecenas scelerisque congue eros eu posuere. Praesent in felis ut velit pretium lobortis rhoncus ut erat. <a href="#">Read&nbsp;on</a>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td>
+            </tr>
+            </table>
+            <![endif]-->
+          </td>
+        </tr>
+        <tr>
+          <td class="right-sidebar" dir="rtl">
+            <!--[if (gte mso 9)|(IE)]>
+            <table width="100%" dir="rtl">
+            <tr>
+            <td width="100">
+            <![endif]-->
+            <div class="column left" dir="ltr">
+              <table width="100%">
+                <tr>
+                  <td class="inner contents">
+                    <img src="images/sidebar-02.jpg" width="80" alt="" />
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td><td width="500">
+            <![endif]-->
+            <div class="column right" dir="ltr">
+              <table width="100%">
+                <tr>
+                  <td class="inner contents">
+                    Maecenas sed ante pellentesque, posuere leo id, eleifend dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra. <a href="#">Per&nbsp;inceptos</a>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <!--[if (gte mso 9)|(IE)]>
+            </td>
+            </tr>
+            </table>
+            <![endif]-->
+          </td>
+        </tr>
+      </table>
+      <!--[if (gte mso 9)|(IE)]>
+      </td>
+      </tr>
+      </table>
+      <![endif]-->
+    </div>
+  </center>
+</body>
+</html>

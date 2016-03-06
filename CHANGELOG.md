@@ -2,7 +2,11 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.1.0-rc1]
+## [Unreleased]
+### Fixed
+- Shutdown hang in retention scanner
+
+## [1.1.0-rc1] - 2016-03-04
 ### Added
 - Inbucket now builds with Go 1.5 or 1.6
 - Project can build & run inside a Docker container

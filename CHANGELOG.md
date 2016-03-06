@@ -3,9 +3,12 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- Message Cap to status page
+- Search-while-you-type message list filter
+
 ### Fixed
 - Shutdown hang in retention scanner
-- Add Message Cap to status page
 
 ## [1.1.0-rc1] - 2016-03-04
 ### Added

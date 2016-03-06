@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Fixed
 - Shutdown hang in retention scanner
+- Add Message Cap to status page
 
 ## [1.1.0-rc1] - 2016-03-04
 ### Added

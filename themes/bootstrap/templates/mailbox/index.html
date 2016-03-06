@@ -12,6 +12,15 @@ $(document).ready(function() {
   onDocumentReady();
 });
 </script>
+<script type="text/html" id="list-entry-template">
+  <button data-id="id" type="button" class="listEntry list-group-item">
+    <div class="row">
+      <div class="col-sm-4 col-md-12 text-primary" data-content="subject"/>
+      <div class="col-sm-4 col-md-12 small" data-content="from"/>
+      <div class="col-sm-4 col-md-12 small" data-content="date" data-format="DateFormatter"/>
+    </div>
+  </button>
+</script>
 {{end}}
 
 {{define "content"}}
@@ -23,7 +32,7 @@ $(document).ready(function() {
 </div>
 <div class="col-md-3">
   <div class="text-center">
-    <a href="javascript:reloadList()">
+    <a href="javascript:loadList()">
       <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
       Refresh
     </a>

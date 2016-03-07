@@ -54,7 +54,17 @@ $(document).ready(
       <div class="row">
         <div class="col-sm-3 col-xs-7"><b>No-Store Domain:</b></div>
         <div class="col-sm-8 col-xs-5">
-          <span>{{ or .noStoreDomain .noStoreDomain "Not Configured"}}</span>
+          {{with .smtpConfig}}
+          <span>{{or .DomainNoStore .DomainNoStore "Not Configured"}}</span>
+          {{end}}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Message Cap:</b></div>
+        <div class="col-sm-8 col-xs-5">
+          {{with .dataStoreConfig}}
+          <span>{{.MailboxMsgCap}} messages per mailbox</span>
+          {{end}}
         </div>
       </div>
     </table>
@@ -151,8 +161,8 @@ $(document).ready(
     <table class="metrics">
       <div class="row">
         <div class="col-sm-3 col-xs-7"><b>Retention Period:</b></div>
-        <div class="col-sm-3 col-xs-5">
-          {{if .retentionMinutes}}
+        <div class="col-sm-8 col-xs-5">
+          {{if .dataStoreConfig.RetentionMinutes}}
           <span id="m-retentionPeriod">.</span>
           {{else}}
           Disabled
@@ -161,8 +171,8 @@ $(document).ready(
       </div>
       <div class="row">
         <div class="col-sm-3 col-xs-7"><b>Retention Scan:</b></div>
-        <div class="col-sm-3 col-xs-5">
-          {{if .retentionMinutes}}
+        <div class="col-sm-8 col-xs-5">
+          {{if .dataStoreConfig.RetentionMinutes}}
           Completed <span id="m-retentionScanCompleted">.</span> ago
           {{else}}
           Disabled

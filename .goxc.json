@@ -7,7 +7,7 @@
 	"Os": "darwin freebsd linux windows",
 	"ResourcesInclude": "README*,LICENSE*,CHANGELOG*,inbucket.bat,etc,themes",
 	"PackageVersion": "1.1.0",
-	"PrereleaseInfo": "rc1",
+	"PrereleaseInfo": "rc2",
 	"ConfigVersion": "0.9",
 	"BuildSettings": {
 		"LdFlagsXVars": {

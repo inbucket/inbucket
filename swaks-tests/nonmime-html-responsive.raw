@@ -1,7 +1,7 @@
 Date: %DATE%
 To: %TO_ADDRESS%
 From: %FROM_ADDRESS%
-Subject: tutsplus responsive (broken images)
+Subject: tutsplus responsive
 MIME-Version: 1.0
 Content-Type: text/html; charset="UTF-8"
 
@@ -14,7 +14,7 @@ Content-Type: text/html; charset="UTF-8"
   <!--<![endif]-->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title></title>
-  <link rel="stylesheet" type="text/css" href="styles.css" />
+  <link rel="stylesheet" type="text/css" href="http://www.inbucket.org/email-assets/responsive/styles.css" />
   <!--[if (gte mso 9)|(IE)]>
   <style type="text/css">
     table {border-collapse: collapse;}
@@ -32,7 +32,7 @@ Content-Type: text/html; charset="UTF-8"
       <table class="outer" align="center">
         <tr>
           <td class="full-width-image">
-            <img src="images/header.jpg" width="600" alt="" />
+            <img src="http://www.inbucket.org/email-assets/responsive/header.jpg" width="600" alt="" />
           </td>
         </tr>
         <tr>
@@ -91,7 +91,7 @@ Content-Type: text/html; charset="UTF-8"
                     <table class="contents">
                       <tr>
                         <td>
-                          <img src="images/two-column-01.jpg" width="280" alt="" />
+                          <img src="http://www.inbucket.org/email-assets/responsive/two-column-01.jpg" width="280" alt="" />
                         </td>
                       </tr>
                       <tr>
@@ -114,7 +114,7 @@ Content-Type: text/html; charset="UTF-8"
                     <table class="contents">
                       <tr>
                         <td>
-                          <img src="images/two-column-02.jpg" width="280" alt="" />
+                          <img src="http://www.inbucket.org/email-assets/responsive/two-column-02.jpg" width="280" alt="" />
                         </td>
                       </tr>
                       <tr>
@@ -148,7 +148,7 @@ Content-Type: text/html; charset="UTF-8"
                     <table class="contents">
                       <tr>
                         <td>
-                          <img src="images/three-column-01.jpg" width="180" alt="" />
+                          <img src="http://www.inbucket.org/email-assets/responsive/three-column-01.jpg" width="180" alt="" />
                         </td>
                       </tr>
                       <tr>
@@ -171,7 +171,7 @@ Content-Type: text/html; charset="UTF-8"
                     <table class="contents">
                       <tr>
                         <td>
-                          <img src="images/three-column-02.jpg" width="180" alt="" />
+                          <img src="http://www.inbucket.org/email-assets/responsive/three-column-02.jpg" width="180" alt="" />
                         </td>
                       </tr>
                       <tr>
@@ -194,7 +194,7 @@ Content-Type: text/html; charset="UTF-8"
                     <table class="contents">
                       <tr>
                         <td>
-                          <img src="images/three-column-03.jpg" width="180" alt="" />
+                          <img src="http://www.inbucket.org/email-assets/responsive/three-column-03.jpg" width="180" alt="" />
                         </td>
                       </tr>
                       <tr>
@@ -323,7 +323,7 @@ Content-Type: text/html; charset="UTF-8"
               <table width="100%">
                 <tr>
                   <td class="inner">
-                    <img src="images/sidebar-01.jpg" width="80" alt="" />
+                    <img src="http://www.inbucket.org/email-assets/responsive/sidebar-01.jpg" width="80" alt="" />
                   </td>
                 </tr>
               </table>
@@ -358,7 +358,7 @@ Content-Type: text/html; charset="UTF-8"
               <table width="100%">
                 <tr>
                   <td class="inner contents">
-                    <img src="images/sidebar-02.jpg" width="80" alt="" />
+                    <img src="http://www.inbucket.org/email-assets/responsive/sidebar-02.jpg" width="80" alt="" />
                   </td>
                 </tr>
               </table>

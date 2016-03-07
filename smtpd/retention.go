@@ -133,8 +133,10 @@ func doRetentionScan(ds DataStore, maxAge time.Duration, sleep time.Duration) er
 
 // RetentionJoin does not retun until the retention scanner has shut down
 func RetentionJoin() {
-	select {
-	case _ = <-retentionShutdown:
+	if retentionShutdown != nil {
+		select {
+		case _ = <-retentionShutdown:
+		}
 	}
 }
 

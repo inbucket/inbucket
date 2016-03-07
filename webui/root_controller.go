@@ -32,13 +32,13 @@ func RootStatus(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (e
 	webListener := fmt.Sprintf("%s:%d", config.GetWebConfig().IP4address.String(),
 		config.GetWebConfig().IP4port)
 	return httpd.RenderTemplate("root/status.html", w, map[string]interface{}{
-		"ctx":              ctx,
-		"version":          config.Version,
-		"buildDate":        config.BuildDate,
-		"retentionMinutes": config.GetDataStoreConfig().RetentionMinutes,
-		"smtpListener":     smtpListener,
-		"pop3Listener":     pop3Listener,
-		"webListener":      webListener,
-		"noStoreDomain":    config.GetSMTPConfig().DomainNoStore,
+		"ctx":             ctx,
+		"version":         config.Version,
+		"buildDate":       config.BuildDate,
+		"smtpListener":    smtpListener,
+		"pop3Listener":    pop3Listener,
+		"webListener":     webListener,
+		"smtpConfig":      config.GetSMTPConfig(),
+		"dataStoreConfig": config.GetDataStoreConfig(),
 	})
 }

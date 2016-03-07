@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Shutdown hang in retention scanner
+- Display empty subject as `(No Subject)`
 
 ## [1.1.0-rc1] - 2016-03-04
 ### Added

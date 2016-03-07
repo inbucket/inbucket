@@ -107,10 +107,17 @@ function onDocumentReady() {
   // Prevent search and resize handlers being called too often
   var searchDelay = makeDelay(200);
   var resizeDelay = makeDelay(100);
-  $.addTemplateFormatter("DateFormatter",
-      function(value, template) {
-        return moment(value).calendar();
-      });
+  $.addTemplateFormatter({
+    "date": function(value, template) {
+      return moment(value).calendar();
+    },
+    "subject": function(value, template) {
+      if (value == null || value.length == 0) {
+        return "(No Subject)";
+      }
+      return value;
+    }
+  });
   $("#message-list").hide();
   onWindowResize();
   $(window).resize(function() {

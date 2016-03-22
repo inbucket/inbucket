@@ -15,6 +15,12 @@ Inbucket is currently production quality: it is being used for real work.
 
 Please see the [Change Log] and [Issues List] for more details.
 
+Homebrew Tap
+------------
+
+Inbucket has an OS X [Homebrew] tap available as [jhillyerd/inbucket][Homebrew Tap],
+see the `README.md` there for installation instructions.
+
 Building from Source
 --------------------
 
@@ -47,5 +53,7 @@ version can be found at https://github.com/jhillyerd/inbucket
 [Change Log]:       https://github.com/jhillyerd/inbucket/blob/master/CHANGELOG.md
 [From Source]:      http://www.inbucket.org/installation/from-source.html
 [Google Go]:        http://golang.org/
+[Homebrew]:         http://brew.sh/
+[Homebrew Tap]:     https://github.com/jhillyerd/homebrew-inbucket
 [Inbucket Website]: http://www.inbucket.org/
 [Issues List]:      https://github.com/jhillyerd/inbucket/issues?state=open

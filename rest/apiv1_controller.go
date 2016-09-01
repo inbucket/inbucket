@@ -112,7 +112,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 			Mailbox: name,
 			ID:      msg.ID(),
 			From:    msg.From(),
-			To:	 msg.To(),
+			To:	     msg.To(),
 			Subject: msg.Subject(),
 			Date:    msg.Date(),
 			Size:    msg.Size(),

@@ -19,6 +19,7 @@ type JSONMessageHeader struct {
 	Mailbox string
 	ID      string `json:"Id"`
 	From    string
+	To      string
 	Subject string
 	Date    time.Time
 	Size    int64
@@ -29,6 +30,7 @@ type JSONMessage struct {
 	Mailbox string
 	ID      string `json:"Id"`
 	From    string
+	To      string
 	Subject string
 	Date    time.Time
 	Size    int64
@@ -113,6 +115,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 				Mailbox: name,
 				ID:      msg.ID(),
 				From:    msg.From(),
+				To:      msg.To(),
 				Subject: msg.Subject(),
 				Date:    msg.Date(),
 				Size:    msg.Size(),

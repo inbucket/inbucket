@@ -295,6 +295,7 @@ type FileMessage struct {
 	Fid      string
 	Fdate    time.Time
 	Ffrom    string
+	Fto      string
 	Fsubject string
 	Fsize    int64
 	// These are for creating new messages only
@@ -342,6 +343,13 @@ func (m *FileMessage) Date() time.Time {
 func (m *FileMessage) From() string {
 	return m.Ffrom
 }
+
+
+// From returns the value of the Message From header
+func (m *FileMessage) To() string {
+	return m.Fto
+}
+
 
 // Subject returns the value of the Message Subject header
 func (m *FileMessage) Subject() string {
@@ -486,6 +494,7 @@ func (m *FileMessage) Close() error {
 
 	// Only public fields are stored in gob
 	m.Ffrom = body.GetHeader("From")
+	m.Fto = body.GetHeader("To")
 	m.Fsubject = body.GetHeader("Subject")
 
 	// Refresh the index before adding our message

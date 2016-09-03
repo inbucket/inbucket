@@ -4,6 +4,15 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+[1.1.0] - 2016-09-03
+------------
+
+### Added
+- Homebrew inbucket.conf and formula (see README)
+
+### Fixed
+- Log and continue when unable to delete oldest message during cap enforcement
+
 [1.1.0-rc2] - 2016-03-06
 ------------------------
 
@@ -40,8 +49,26 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   specific message.
 
 [Unreleased]: https://github.com/jhillyerd/inbucket/compare/master...develop
+[1.1.0]:      https://github.com/jhillyerd/inbucket/compare/1.1.0-rc2...1.1.0
 [1.1.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.1.0-rc1...1.1.0-rc2
 [1.1.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.0...1.1.0-rc1
 [1.0]:        https://github.com/jhillyerd/inbucket/compare/1.0-rc1...1.0
 
-See http://keepachangelog.com/ for instructions on how to update this file.
+
+Release Checklist
+-----------------
+
+1.  Create release branch: `git flow release start 1.x.0`
+2.  Update CHANGELOG.md:
+  - Ensure *Unreleased* section is up to date
+  - Rename *Unreleased* section to release name and date.
+  - Add new GitHub `/compare` link
+3.  Update goxc version info: `goxc -wc -pv=1.x.0 -pr=snapshot`
+4.  Run: `goxc interpolate-source` to update VERSION var
+5.  Run tests
+6.  Test cross-compile: `goxc`
+7.  Commit changes and merge release: `git flow release finish 1.x.0`
+8.  Upload to bintray: `goxc bintray`
+9.  Update `binary_versions` option in `inbucket-site/_config.yml`
+
+See http://keepachangelog.com/ for additional instructions on how to update this file.

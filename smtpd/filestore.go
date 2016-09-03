@@ -318,7 +318,7 @@ func (mb *FileMailbox) NewMessage() (Message, error) {
 		for len(mb.messages) >= mb.store.messageCap {
 			log.Infof("Mailbox %q over configured message cap", mb.name)
 			if err := mb.messages[0].Delete(); err != nil {
-				return nil, err
+				log.Errorf("Error deleting message: %s", err)
 			}
 		}
 	}

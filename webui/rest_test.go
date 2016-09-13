@@ -478,6 +478,11 @@ func (m *MockMessage) From() string {
 	return args.String(0)
 }
 
+func (m *MockMessage) To() string {
+	args := m.Called()
+	return args.String(0)
+}
+
 func (m *MockMessage) Date() time.Time {
 	args := m.Called()
 	return args.Get(0).(time.Time)

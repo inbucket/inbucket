@@ -25,7 +25,6 @@ type OutputJSONHeader struct {
 	Mailbox             string
 	ID                  string `json:"Id"`
 	From, Subject, Date string
-	To                  string
 	Size                int
 }
 
@@ -34,7 +33,6 @@ type OutputJSONMessage struct {
 	Mailbox             string
 	ID                  string `json:"Id"`
 	From, Subject, Date string
-	To                  string
 	Size                int
 	Header              map[string][]string
 	Body                struct {
@@ -48,7 +46,6 @@ type InputMessageData struct {
 	Mailbox       string
 	ID            string `json:"Id"`
 	From, Subject string
-	To            string
 	Date          time.Time
 	Size          int
 	Header        mail.Header
@@ -60,7 +57,6 @@ func (d *InputMessageData) MockMessage() *MockMessage {
 	msg := &MockMessage{}
 	msg.On("ID").Return(d.ID)
 	msg.On("From").Return(d.From)
-	msg.On("To").Return(d.To)
 	msg.On("Subject").Return(d.Subject)
 	msg.On("Date").Return(d.Date)
 	msg.On("Size").Return(d.Size)
@@ -88,10 +84,6 @@ func (d *InputMessageData) CompareToJSONHeader(j *OutputJSONHeader) (errors []st
 	if d.From != j.From {
 		errors = append(errors, fmt.Sprintf("Expected JSON.From=%q, got %q", d.From,
 			j.From))
-	}
-	if d.To != j.To {
-		errors = append(errors, fmt.Sprintf("Expected JSON.To=%q, got %q", d.To,
-			j.To))
 	}
 	if d.Subject != j.Subject {
 		errors = append(errors, fmt.Sprintf("Expected JSON.Subject=%q, got %q", d.Subject,
@@ -122,10 +114,6 @@ func (d *InputMessageData) CompareToJSONMessage(j *OutputJSONMessage) (errors []
 	if d.From != j.From {
 		errors = append(errors, fmt.Sprintf("Expected JSON.From=%q, got %q", d.From,
 			j.From))
-	}
-	if d.To != j.To {
-		errors = append(errors, fmt.Sprintf("Expected JSON.To=%q, got %q", d.To,
-			j.To))
 	}
 	if d.Subject != j.Subject {
 		errors = append(errors, fmt.Sprintf("Expected JSON.Subject=%q, got %q", d.Subject,
@@ -237,7 +225,6 @@ func TestRestMailboxList(t *testing.T) {
 		Mailbox: "good",
 		ID:      "0001",
 		From:    "from1",
-		To:      "to1",
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
 	}
@@ -245,7 +232,6 @@ func TestRestMailboxList(t *testing.T) {
 		Mailbox: "good",
 		ID:      "0002",
 		From:    "from2",
-		To:      "to2",
 		Subject: "subject 2",
 		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, time.FixedZone("PDT", -700)),
 	}
@@ -359,7 +345,6 @@ func TestRestMessage(t *testing.T) {
 		Mailbox: "good",
 		ID:      "0001",
 		From:    "from1",
-		To:      "to1",
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
 		Header: mail.Header{
@@ -489,11 +474,6 @@ func (m *MockMessage) ID() string {
 }
 
 func (m *MockMessage) From() string {
-	args := m.Called()
-	return args.String(0)
-}
-
-func (m *MockMessage) To() string {
 	args := m.Called()
 	return args.String(0)
 }

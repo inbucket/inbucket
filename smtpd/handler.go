@@ -341,14 +341,16 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 
 // DATA
 func (ss *Session) dataHandler() {
+	type RecipientDetails struct {
+		address, localPart, domainPart string
+		mailbox                        Mailbox
+	}
+	recipients := make([]RecipientDetails, 0, ss.recipients.Len())
 	// Timestamp for Received header
 	stamp := time.Now().Format(timeStampFormat)
 	// Get a Mailbox and a new Message for each recipient
-	mailboxes := make([]Mailbox, ss.recipients.Len())
-	messages := make([]Message, ss.recipients.Len())
 	msgSize := 0
 	if ss.server.storeMessages {
-		i := 0
 		for e := ss.recipients.Front(); e != nil; e = e.Next() {
 			recip := e.Value.(string)
 			local, domain, err := ParseEmailAddress(recip)
@@ -367,35 +369,19 @@ func (ss *Session) dataHandler() {
 					ss.reset()
 					return
 				}
-				mailboxes[i] = mb
-				if messages[i], err = mb.NewMessage(); err != nil {
-					ss.logError("Failed to create message for %q: %s", local, err)
-					ss.send(fmt.Sprintf("451 Failed to create message for %v", local))
-					ss.reset()
-					return
-				}
-
-				// Generate Received header
-				recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
-					ss.remoteDomain, ss.remoteHost, ss.server.domain, recip, stamp)
-				if err := messages[i].Append([]byte(recd)); err != nil {
-					ss.logError("Failed to write received header for %q: %s", local, err)
-					ss.send(fmt.Sprintf("451 Failed to create message for %v", local))
-					ss.reset()
-					return
-				}
+				recipients = append(recipients, RecipientDetails{recip, local, domain, mb})
 			} else {
 				log.Tracef("Not storing message for %q", recip)
 			}
-			i++
 		}
 	}
 
 	ss.send("354 Start mail input; end with <CRLF>.<CRLF>")
-	var buf bytes.Buffer
+	var lineBuf bytes.Buffer
+	msgBuf := make([][]byte, 0, 1024)
 	for {
-		buf.Reset()
-		err := ss.readByteLine(&buf)
+		lineBuf.Reset()
+		err := ss.readByteLine(&lineBuf)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
@@ -406,22 +392,45 @@ func (ss *Session) dataHandler() {
 			ss.enterState(QUIT)
 			return
 		}
-		line := buf.Bytes()
+		line := lineBuf.Bytes()
 		if string(line) == ".\r\n" {
 			// Mail data complete
 			if ss.server.storeMessages {
-				for _, m := range messages {
-					if m != nil {
-						if err := m.Close(); err != nil {
-							// This logic should be updated to report failures
-							// writing the initial message file to the client
-							// after we implement a single-store system (issue
-							// #23)
-							ss.logError("Error: %v while writing message", err)
-						}
-						expReceivedTotal.Add(1)
+				// Create a message for each valid recipient
+				for _, r := range recipients {
+					msg, err := r.mailbox.NewMessage()
+					if err != nil {
+						ss.logError("Failed to create message for %q: %s", r.localPart, err)
+						ss.send(fmt.Sprintf("451 Failed to create message for %v", r.localPart))
+						ss.reset()
+						return
 					}
-				}
+
+					// Generate Received header
+					recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
+						ss.remoteDomain, ss.remoteHost, ss.server.domain, r.address, stamp)
+					if err := msg.Append([]byte(recd)); err != nil {
+						ss.logError("Failed to write received header for %q: %s", r.localPart, err)
+						ss.send(fmt.Sprintf("451 Failed to create message for %v", r.localPart))
+						ss.reset()
+						return
+					}
+					// Append lines from msgBuf
+					for _, line = range msgBuf {
+						if err := msg.Append(line); err != nil {
+							ss.logError("Failed to append to mailbox %v: %v",
+								r.mailbox, err)
+							ss.send("554 Something went wrong")
+							ss.reset()
+							// Should really cleanup the crap on filesystem
+							return
+						}
+					}
+					if err := msg.Close(); err != nil {
+						ss.logError("Error: %v while writing message", err)
+					}
+					expReceivedTotal.Add(1)
+				} // end for
 			} else {
 				expReceivedTotal.Add(1)
 			}
@@ -434,6 +443,8 @@ func (ss *Session) dataHandler() {
 		if len(line) > 0 && line[0] == '.' {
 			line = line[1:]
 		}
+		// Second append copies line/lineBuf so we can reuse it
+		msgBuf = append(msgBuf, append([]byte{}, line...))
 		msgSize += len(line)
 		if msgSize > ss.server.maxMessageBytes {
 			// Max message size exceeded
@@ -443,21 +454,7 @@ func (ss *Session) dataHandler() {
 			// Should really cleanup the crap on filesystem (after issue #23)
 			return
 		}
-		// Append to message objects
-		if ss.server.storeMessages {
-			for i, m := range messages {
-				if m != nil {
-					if err := m.Append(line); err != nil {
-						ss.logError("Failed to append to mailbox %v: %v", mailboxes[i], err)
-						ss.send("554 Something went wrong")
-						ss.reset()
-						// Should really cleanup the crap on filesystem (after issue #23)
-						return
-					}
-				}
-			}
-		}
-	}
+	} // end for
 }
 
 func (ss *Session) enterState(state State) {

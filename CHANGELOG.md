@@ -4,8 +4,15 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-[1.1.0] - 2016-09-03
+[Unreleased]
 ------------
+
+### Fixed
+- We should no longer run out of file handles when dealing with a large number
+  of recipients on a single message.
+
+[1.1.0] - 2016-09-03
+--------------------
 
 ### Added
 - Homebrew inbucket.conf and formula (see README)

@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 [Unreleased]
 ------------
 
+### Added
+- Storage of To: header in messages (likely breaks existing datastores)
+
 ### Fixed
 - We should no longer run out of file handles when dealing with a large number
   of recipients on a single message.

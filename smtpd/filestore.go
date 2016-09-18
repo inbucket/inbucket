@@ -344,12 +344,10 @@ func (m *FileMessage) From() string {
 	return m.Ffrom
 }
 
-
-// From returns the value of the Message From header
+// From returns the value of the Message To header
 func (m *FileMessage) To() string {
 	return m.Fto
 }
-
 
 // Subject returns the value of the Message Subject header
 func (m *FileMessage) Subject() string {

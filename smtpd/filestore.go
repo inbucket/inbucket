@@ -23,7 +23,7 @@ const indexFileName = "index.gob"
 var (
 	// indexLock is locked while reading/writing an index file
 	//
-	// NOTE: This is a bottleneck because  it's a single lock even if we have a
+	// NOTE: This is a bottleneck because it's a single lock even if we have a
 	// million index files
 	indexLock = new(sync.RWMutex)
 

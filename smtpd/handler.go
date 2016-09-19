@@ -393,7 +393,8 @@ func (ss *Session) dataHandler() {
 			return
 		}
 		line := lineBuf.Bytes()
-		if string(line) == ".\r\n" {
+		// ss.logTrace("DATA: %q", line)
+		if string(line) == ".\r\n" || string(line) == ".\n" {
 			// Mail data complete
 			if ss.server.storeMessages {
 				// Create a message for each valid recipient
@@ -492,28 +493,15 @@ func (ss *Session) readByteLine(buf *bytes.Buffer) error {
 		return err
 	}
 	for {
-		line, err := ss.reader.ReadBytes('\r')
+		line, err := ss.reader.ReadBytes('\n')
 		if err != nil {
 			return err
 		}
 		if _, err = buf.Write(line); err != nil {
 			return err
 		}
-		// Read the next byte looking for '\n'
-		c, err := ss.reader.ReadByte()
-		if err != nil {
-			return err
-		}
-		if err = buf.WriteByte(c); err != nil {
-			return err
-		}
-		if c == '\n' {
-			// We've reached the end of the line, return
-			return nil
-		}
-		// Else, keep looking
+		return nil
 	}
-	// Should be unreachable
 }
 
 // Reads a line of input

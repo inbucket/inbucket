@@ -53,7 +53,12 @@
       <dt>From:</dt>
       <dd>{{.message.From}}</dd>
       <dt>To:</dt>
-      <dd>{{.message.To}}</dd>
+      <dd>
+      {{range $i, $addr := .message.To}}
+        {{- if $i}},{{end}}
+        {{$addr -}}
+      {{end}}
+      </dd>
       <dt>Date:</dt>
       <dd>{{.message.Date}}</dd>
       <dt>Subject:</dt>

@@ -295,7 +295,7 @@ type FileMessage struct {
 	Fid      string
 	Fdate    time.Time
 	Ffrom    string
-	Fto      string
+	Fto      []string
 	Fsubject string
 	Fsize    int64
 	// These are for creating new messages only
@@ -345,7 +345,7 @@ func (m *FileMessage) From() string {
 }
 
 // From returns the value of the Message To header
-func (m *FileMessage) To() string {
+func (m *FileMessage) To() []string {
 	return m.Fto
 }
 
@@ -490,10 +490,23 @@ func (m *FileMessage) Close() error {
 		return err
 	}
 
-	// Only public fields are stored in gob
-	m.Ffrom = body.GetHeader("From")
-	m.Fto = body.GetHeader("To")
+	// Only public fields are stored in gob, hence starting with capital F
+	// Parse From address
+	if address, err := mail.ParseAddress(body.GetHeader("From")); err == nil {
+		m.Ffrom = address.String()
+	} else {
+		m.Ffrom = body.GetHeader("From")
+	}
 	m.Fsubject = body.GetHeader("Subject")
+
+	// Turn the To header into a slice
+	if addresses, err := body.AddressList("To"); err == nil {
+		for _, a := range addresses {
+			m.Fto = append(m.Fto, a.String())
+		}
+	} else {
+		m.Fto = []string{body.GetHeader("To")}
+	}
 
 	// Refresh the index before adding our message
 	err = m.mailbox.readIndex()

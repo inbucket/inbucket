@@ -17,7 +17,7 @@ type JSONMessageHeaderV1 struct {
 	Mailbox string    `json:"mailbox"`
 	ID      string    `json:"id"`
 	From    string    `json:"from"`
-	To      string    `json:"to"`
+	To      []string  `json:"to"`
 	Subject string    `json:"subject"`
 	Date    time.Time `json:"date"`
 	Size    int64     `json:"size"`
@@ -28,7 +28,7 @@ type JSONMessageV1 struct {
 	Mailbox string             `json:"mailbox"`
 	ID      string             `json:"id"`
 	From    string             `json:"from"`
-	To    string               `json:"to"`
+	To      []string           `json:"to"`
 	Subject string             `json:"subject"`
 	Date    time.Time          `json:"date"`
 	Size    int64              `json:"size"`
@@ -112,7 +112,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 			Mailbox: name,
 			ID:      msg.ID(),
 			From:    msg.From(),
-			To:	     msg.To(),
+			To:      msg.To(),
 			Subject: msg.Subject(),
 			Date:    msg.Date(),
 			Size:    msg.Size(),

@@ -126,9 +126,9 @@ func (m *MockMessage) From() string {
 	return args.String(0)
 }
 
-func (m *MockMessage) To() string {
+func (m *MockMessage) To() []string {
 	args := m.Called()
-	return args.String(0)
+	return args.Get(0).([]string)
 }
 
 func (m *MockMessage) Date() time.Time {

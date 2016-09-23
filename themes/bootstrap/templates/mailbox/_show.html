@@ -52,6 +52,13 @@
     <dl class="dl-horizontal">
       <dt>From:</dt>
       <dd>{{.message.From}}</dd>
+      <dt>To:</dt>
+      <dd>
+      {{range $i, $addr := .message.To}}
+        {{- if $i}},{{end}}
+        {{$addr -}}
+      {{end}}
+      </dd>
       <dt>Date:</dt>
       <dd>{{.message.Date}}</dd>
       <dt>Subject:</dt>

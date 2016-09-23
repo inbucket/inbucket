@@ -15,9 +15,9 @@ $(document).ready(function() {
 <script type="text/html" id="list-entry-template">
   <button data-id="id" type="button" class="message-list-entry list-group-item">
     <div class="row">
-      <div class="col-sm-4 col-md-12 text-primary" data-content="subject"
+      <div class="col-sm-4 col-md-12 text-primary" data-content-text="subject"
         data-format="subject"/>
-      <div class="col-sm-4 col-md-12 small" data-content="from"/>
+      <div class="col-sm-4 col-md-12 small" data-content-text="from"/>
       <div class="col-sm-4 col-md-12 small" data-content="date" data-format="date"/>
     </div>
   </button>
@@ -34,8 +34,8 @@ $(document).ready(function() {
 <div class="col-md-3">
   <div class="input-group">
     <input id="message-search"
-           type="search" 
-           class="form-control" 
+           type="search"
+           class="form-control"
            placeholder="search"
            data-toggle="tooltip"
            data-placement="top"

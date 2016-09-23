@@ -3,6 +3,7 @@
 # description: Generate test emails for Inbucket
 
 set -eo pipefail
+[ $TRACE ] && set -x
 
 # We need to be in swaks-tests directory
 cmdpath="$(dirname "$0")"
@@ -19,6 +20,7 @@ case "$1" in
     ;;
   *)
     to="$1"
+    shift
     ;;
 esac
 
@@ -28,6 +30,10 @@ export SWAKS_OPT_to="$to@inbucket.local"
 # Basic test
 swaks $* --h-Subject: "Swaks Plain Text" --body text.txt
 
+# Multi-recipient test
+swaks $* --to="$to@inbucket.local,Alt User <alternate@inbucket.local>" --h-Subject: "Swaks Multi-Recipient" \
+  --body text.txt
+
 # HTML test
 swaks $* --h-Subject: "Swaks HTML" --data mime-html.raw
 
@@ -35,7 +41,8 @@ swaks $* --h-Subject: "Swaks HTML" --data mime-html.raw
 swaks $* --h-Subject: "Swaks Top Level HTML" --data nonmime-html.raw
 
 # Attachment test
-swaks $* --h-Subject: "Swaks Attachment" --attach-type image/png --attach favicon.png --body text.txt
+swaks $* --h-Subject: "Swaks Attachment" --attach-type image/png --attach favicon.png \
+  --body text.txt
 
 # Encoded subject line test
 swaks $* --data utf8-subject.raw

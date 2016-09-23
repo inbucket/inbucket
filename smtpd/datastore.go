@@ -36,6 +36,7 @@ type Mailbox interface {
 type Message interface {
 	ID() string
 	From() string
+	To() []string
 	Date() time.Time
 	Subject() string
 	RawReader() (reader io.ReadCloser, err error)

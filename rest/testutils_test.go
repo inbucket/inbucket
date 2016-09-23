@@ -17,6 +17,7 @@ import (
 
 type InputMessageData struct {
 	Mailbox, ID, From, Subject string
+	To                         []string
 	Date                       time.Time
 	Size                       int
 	Header                     mail.Header
@@ -27,6 +28,7 @@ func (d *InputMessageData) MockMessage() *MockMessage {
 	msg := &MockMessage{}
 	msg.On("ID").Return(d.ID)
 	msg.On("From").Return(d.From)
+	msg.On("To").Return(d.To)
 	msg.On("Subject").Return(d.Subject)
 	msg.On("Date").Return(d.Date)
 	msg.On("Size").Return(d.Size)
@@ -78,6 +80,11 @@ func (d *InputMessageData) CompareToJSONHeaderMap(json interface{}) (errors []st
 		}
 		if msg, ok := isJSONStringEqual(fromKey, d.From, m[fromKey]); !ok {
 			errors = append(errors, msg)
+		}
+		for i, inputTo := range d.To {
+			if msg, ok := isJSONStringEqual(toKey, inputTo, m[toKey].([]interface{})[i]); !ok {
+				errors = append(errors, msg)
+			}
 		}
 		if msg, ok := isJSONStringEqual(subjectKey, d.Subject, m[subjectKey]); !ok {
 			errors = append(errors, msg)

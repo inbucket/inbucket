@@ -337,7 +337,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment")
-	if _, err := w.Write(part.Content()); err != nil {
+	if _, err := io.Copy(w, part); err != nil {
 		return err
 	}
 	return nil
@@ -387,7 +387,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Cont
 	part := body.Attachments[num]
 
 	w.Header().Set("Content-Type", part.ContentType())
-	if _, err := w.Write(part.Content()); err != nil {
+	if _, err := io.Copy(w, part); err != nil {
 		return err
 	}
 	return nil

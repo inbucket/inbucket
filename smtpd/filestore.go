@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jhillyerd/go.enmime"
+	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 )
@@ -385,7 +385,7 @@ func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
 }
 
 // ReadBody opens the .raw portion of a Message and returns a MIMEBody object
-func (m *FileMessage) ReadBody() (body *enmime.MIMEBody, err error) {
+func (m *FileMessage) ReadBody() (body *enmime.Envelope, err error) {
 	file, err := os.Open(m.rawPath())
 	if err != nil {
 		return nil, err
@@ -401,7 +401,7 @@ func (m *FileMessage) ReadBody() (body *enmime.MIMEBody, err error) {
 	if err != nil {
 		return nil, err
 	}
-	mime, err := enmime.ParseMIMEBody(msg)
+	mime, err := enmime.EnvelopeFromMessage(msg)
 	if err != nil {
 		return nil, err
 	}

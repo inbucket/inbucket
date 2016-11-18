@@ -5,7 +5,7 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/jhillyerd/go.enmime"
+	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/smtpd"
 	"github.com/stretchr/testify/mock"
 )
@@ -90,9 +90,9 @@ func (m *MockMessage) ReadHeader() (msg *mail.Message, err error) {
 	return args.Get(0).(*mail.Message), args.Error(1)
 }
 
-func (m *MockMessage) ReadBody() (body *enmime.MIMEBody, err error) {
+func (m *MockMessage) ReadBody() (body *enmime.Envelope, err error) {
 	args := m.Called()
-	return args.Get(0).(*enmime.MIMEBody), args.Error(1)
+	return args.Get(0).(*enmime.Envelope), args.Error(1)
 }
 
 func (m *MockMessage) ReadRaw() (raw *string, err error) {

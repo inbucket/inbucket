@@ -6,7 +6,7 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/jhillyerd/go.enmime"
+	"github.com/jhillyerd/enmime"
 )
 
 var (
@@ -41,7 +41,7 @@ type Message interface {
 	Subject() string
 	RawReader() (reader io.ReadCloser, err error)
 	ReadHeader() (msg *mail.Message, err error)
-	ReadBody() (body *enmime.MIMEBody, err error)
+	ReadBody() (body *enmime.Envelope, err error)
 	ReadRaw() (raw *string, err error)
 	Append(data []byte) error
 	Close() error

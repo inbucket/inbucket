@@ -9,7 +9,7 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/jhillyerd/go.enmime"
+	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/smtpd"
@@ -36,7 +36,7 @@ func (d *InputMessageData) MockMessage() *MockMessage {
 		Header: d.Header,
 	}
 	msg.On("ReadHeader").Return(gomsg, nil)
-	body := &enmime.MIMEBody{
+	body := &enmime.Envelope{
 		Text: d.Text,
 		HTML: d.HTML,
 	}

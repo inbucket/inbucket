@@ -397,11 +397,7 @@ func (m *FileMessage) ReadBody() (body *enmime.Envelope, err error) {
 	}()
 
 	reader := bufio.NewReader(file)
-	msg, err := mail.ReadMessage(reader)
-	if err != nil {
-		return nil, err
-	}
-	mime, err := enmime.EnvelopeFromMessage(msg)
+	mime, err := enmime.ReadEnvelope(reader)
 	if err != nil {
 		return nil, err
 	}

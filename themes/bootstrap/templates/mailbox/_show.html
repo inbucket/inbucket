@@ -67,10 +67,14 @@
   </div>
 </div>
 
-{{if .isTextFromHTML}}
+{{with .mimeErrors}}
 <div class="alert alert-warning" role="alert">
-  <strong>Notice:</strong> Message did not contain a plain text portion;
-  the text below was converted from HTML automatically.
+  <strong>Notice:</strong> MIME parsing <u>W</u>arnings and/or <u>E</u>rrors were encountered
+  <ul>
+  {{range $i, $err := .}}
+    <li>{{$err}}</li>
+  {{end}}
+  </ul>
 </div>
 {{end}}
 

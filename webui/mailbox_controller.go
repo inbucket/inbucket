@@ -180,13 +180,13 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 	htmlAvailable := mime.HTML != ""
 
 	return httpd.RenderPartial("mailbox/_show.html", w, map[string]interface{}{
-		"ctx":            ctx,
-		"name":           name,
-		"message":        msg,
-		"body":           body,
-		"htmlAvailable":  htmlAvailable,
-		"isTextFromHTML": mime.IsTextFromHTML,
-		"attachments":    mime.Attachments,
+		"ctx":           ctx,
+		"name":          name,
+		"message":       msg,
+		"body":          body,
+		"htmlAvailable": htmlAvailable,
+		"mimeErrors":    mime.Errors,
+		"attachments":   mime.Attachments,
 	})
 }
 
@@ -386,7 +386,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Cont
 	}
 	part := body.Attachments[num]
 
-	w.Header().Set("Content-Type", part.ContentType())
+	w.Header().Set("Content-Type", part.ContentType)
 	if _, err := io.Copy(w, part); err != nil {
 		return err
 	}

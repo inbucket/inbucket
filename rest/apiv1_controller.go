@@ -10,6 +10,9 @@ import (
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/smtpd"
+	"strconv"
+	"crypto/md5"
+	"encoding/hex"
 )
 
 // JSONMessageHeaderV1 contains the basic header data for a message
@@ -32,6 +35,15 @@ type JSONMessageV1 struct {
 	Size    int64              `json:"size"`
 	Body    *JSONMessageBodyV1 `json:"body"`
 	Header  mail.Header        `json:"header"`
+	Attachments []*JSONMessageAttachmentV1 `json:"attachments"`
+}
+
+type JSONMessageAttachmentV1 struct {
+	FileName     string                `json:"filename"`
+	ContentType  string        `json:"content-type"`
+	DownloadLink string        `json:"download-link"`
+	ViewLink     string        `json:"view-link"`
+	MD5	     string	   `json:"md5"`
 }
 
 // JSONMessageBodyV1 contains the Text and HTML versions of the message body
@@ -104,6 +116,18 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
 	}
 
+	attachments := make([]*JSONMessageAttachmentV1, len(mime.Attachments))
+	for i, att := range mime.Attachments {
+		var checksum = md5.Sum(att.Content());
+		attachments[i] = &JSONMessageAttachmentV1{
+			ContentType: att.ContentType(),
+			FileName: att.FileName(),
+			DownloadLink:  "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName(),
+			ViewLink: "http://" + req.Host + "/mailbox/vattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName(),
+			MD5: hex.EncodeToString(checksum[:]),
+		}
+	}
+
 	return httpd.RenderJSON(w,
 		&JSONMessageV1{
 			Mailbox: name,
@@ -117,6 +141,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 				Text: mime.Text,
 				HTML: mime.HTML,
 			},
+			Attachments: attachments,
 		})
 }
 

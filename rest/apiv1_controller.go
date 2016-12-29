@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"crypto/md5"
 	"encoding/hex"
+	"io/ioutil"
 )
 
 // JSONMessageHeaderV1 contains the basic header data for a message
@@ -118,12 +119,14 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 
 	attachments := make([]*JSONMessageAttachmentV1, len(mime.Attachments))
 	for i, att := range mime.Attachments {
-		var checksum = md5.Sum(att.Content());
+		var content []byte
+		content, err = ioutil.ReadAll(att)
+		var checksum = md5.Sum(content)
 		attachments[i] = &JSONMessageAttachmentV1{
-			ContentType: att.ContentType(),
-			FileName: att.FileName(),
-			DownloadLink:  "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName(),
-			ViewLink: "http://" + req.Host + "/mailbox/vattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName(),
+			ContentType: att.ContentType,
+			FileName: att.FileName,
+			DownloadLink:  "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
+			ViewLink: "http://" + req.Host + "/mailbox/vattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
 			MD5: hex.EncodeToString(checksum[:]),
 		}
 	}

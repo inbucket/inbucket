@@ -9,10 +9,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Storage of To: header in messages (likely breaks existing datastores)
+- Attachment list to [GET message
+  JSON](https://github.com/jhillyerd/inbucket/wiki/REST-GET-message)
 
 ### Fixed
-- We should no longer run out of file handles when dealing with a large number
-  of recipients on a single message.
+- No longer run out of file handles when dealing with a large number of
+  recipients for a single message.
+
+### Changed
+- Removed legacy `integral` theme, as most new features only in `bootstrap`
+- Removed old RESTful APIs, must use `/api/v1` base URI now
+- Allow increased local-part length of 128 chars for Mailgun
 
 [1.1.0] - 2016-09-03
 --------------------

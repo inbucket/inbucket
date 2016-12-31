@@ -195,8 +195,8 @@ func setupWebServer(ds smtpd.DataStore) *bytes.Buffer {
 	// Have to reset default mux to prevent duplicate routes
 	http.DefaultServeMux = http.NewServeMux()
 	cfg := config.WebConfig{
-		TemplateDir: "../themes/integral/templates",
-		PublicDir:   "../themes/integral/public",
+		TemplateDir: "../themes/bootstrap/templates",
+		PublicDir:   "../themes/bootstrap/public",
 	}
 	shutdownChan := make(chan bool)
 	httpd.Initialize(cfg, ds, shutdownChan)

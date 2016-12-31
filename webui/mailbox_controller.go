@@ -5,42 +5,12 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"net/mail"
 	"strconv"
-	"time"
 
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/smtpd"
 )
-
-// JSONMessageHeader contains the basic header data for a message
-type JSONMessageHeader struct {
-	Mailbox string
-	ID      string `json:"Id"`
-	From    string
-	Subject string
-	Date    time.Time
-	Size    int64
-}
-
-// JSONMessage contains the same data as the header plus a JSONMessageBody
-type JSONMessage struct {
-	Mailbox string
-	ID      string `json:"Id"`
-	From    string
-	Subject string
-	Date    time.Time
-	Size    int64
-	Body    *JSONMessageBody
-	Header  mail.Header
-}
-
-// JSONMessageBody contains the Text and HTML versions of the message body
-type JSONMessageBody struct {
-	Text string
-	HTML string `json:"Html"`
-}
 
 // MailboxIndex renders the index page for a particular mailbox
 func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
@@ -106,21 +76,6 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 	}
 	log.Tracef("Got %v messsages", len(messages))
 
-	if ctx.IsJSON {
-		jmessages := make([]*JSONMessageHeader, len(messages))
-		for i, msg := range messages {
-			jmessages[i] = &JSONMessageHeader{
-				Mailbox: name,
-				ID:      msg.ID(),
-				From:    msg.From(),
-				Subject: msg.Subject(),
-				Date:    msg.Date(),
-				Size:    msg.Size(),
-			}
-		}
-		return httpd.RenderJSON(w, jmessages)
-	}
-
 	return httpd.RenderPartial("mailbox/_list.html", w, map[string]interface{}{
 		"ctx":      ctx,
 		"name":     name,
@@ -128,7 +83,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 	})
 }
 
-// MailboxShow renders a particular message from a mailbox. Renders JSON or a partial
+// MailboxShow renders a particular message from a mailbox. Renders an HTML partial
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
@@ -150,30 +105,9 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	header, err := msg.ReadHeader()
-	if err != nil {
-		return fmt.Errorf("ReadHeader(%q) failed: %v", id, err)
-	}
 	mime, err := msg.ReadBody()
 	if err != nil {
 		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
-	}
-
-	if ctx.IsJSON {
-		return httpd.RenderJSON(w,
-			&JSONMessage{
-				Mailbox: name,
-				ID:      msg.ID(),
-				From:    msg.From(),
-				Subject: msg.Subject(),
-				Date:    msg.Date(),
-				Size:    msg.Size(),
-				Header:  header.Header,
-				Body: &JSONMessageBody{
-					Text: mime.Text,
-					HTML: mime.HTML,
-				},
-			})
 	}
 
 	body := template.HTML(httpd.TextToHTML(mime.Text))
@@ -188,36 +122,6 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 		"mimeErrors":    mime.Errors,
 		"attachments":   mime.Attachments,
 	})
-}
-
-// MailboxPurge deletes all messages from a mailbox.  Renders JSON or text/plain OK
-func MailboxPurge(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
-	// Don't have to validate these aren't empty, Gorilla returns 404
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
-	if err != nil {
-		return err
-	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	// Delete all messages
-	err = mb.Purge()
-	if err != nil {
-		return fmt.Errorf("Mailbox(%q) purge failed: %v", name, err)
-	}
-	log.Tracef("HTTP purged mailbox for %q", name)
-
-	if ctx.IsJSON {
-		return httpd.RenderJSON(w, "OK")
-	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	if _, err := io.WriteString(w, "OK"); err != nil {
-		return err
-	}
-	return nil
 }
 
 // MailboxHTML displays the HTML content of a message. Renders a partial
@@ -388,44 +292,6 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Cont
 
 	w.Header().Set("Content-Type", part.ContentType)
 	if _, err := io.Copy(w, part); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MailboxDelete removes a particular message from a mailbox.  Renders JSON or plain/text OK
-func MailboxDelete(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
-	// Don't have to validate these aren't empty, Gorilla returns 404
-	id := ctx.Vars["id"]
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
-	if err != nil {
-		return err
-	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
-	if err == smtpd.ErrNotExist {
-		http.NotFound(w, req)
-		return nil
-	}
-	if err != nil {
-		// This doesn't indicate missing, likely an IO error
-		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
-	}
-	err = message.Delete()
-	if err != nil {
-		return fmt.Errorf("Delete(%q) failed: %v", id, err)
-	}
-
-	if ctx.IsJSON {
-		return httpd.RenderJSON(w, "OK")
-	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	if _, err := io.WriteString(w, "OK"); err != nil {
 		return err
 	}
 	return nil

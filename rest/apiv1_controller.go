@@ -7,13 +7,13 @@ import (
 	"net/mail"
 	"time"
 
+	"crypto/md5"
+	"encoding/hex"
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/smtpd"
-	"strconv"
-	"crypto/md5"
-	"encoding/hex"
 	"io/ioutil"
+	"strconv"
 )
 
 // JSONMessageHeaderV1 contains the basic header data for a message
@@ -29,24 +29,24 @@ type JSONMessageHeaderV1 struct {
 
 // JSONMessageV1 contains the same data as the header plus a JSONMessageBody
 type JSONMessageV1 struct {
-	Mailbox string             `json:"mailbox"`
-	ID      string             `json:"id"`
-	From    string             `json:"from"`
-	To      []string           `json:"to"`
-	Subject string             `json:"subject"`
-	Date    time.Time          `json:"date"`
-	Size    int64              `json:"size"`
-	Body    *JSONMessageBodyV1 `json:"body"`
-	Header  mail.Header        `json:"header"`
+	Mailbox     string                     `json:"mailbox"`
+	ID          string                     `json:"id"`
+	From        string                     `json:"from"`
+	To          []string                   `json:"to"`
+	Subject     string                     `json:"subject"`
+	Date        time.Time                  `json:"date"`
+	Size        int64                      `json:"size"`
+	Body        *JSONMessageBodyV1         `json:"body"`
+	Header      mail.Header                `json:"header"`
 	Attachments []*JSONMessageAttachmentV1 `json:"attachments"`
 }
 
 type JSONMessageAttachmentV1 struct {
-	FileName     string                `json:"filename"`
-	ContentType  string        `json:"content-type"`
-	DownloadLink string        `json:"download-link"`
-	ViewLink     string        `json:"view-link"`
-	MD5	     string	   `json:"md5"`
+	FileName     string `json:"filename"`
+	ContentType  string `json:"content-type"`
+	DownloadLink string `json:"download-link"`
+	ViewLink     string `json:"view-link"`
+	MD5          string `json:"md5"`
 }
 
 // JSONMessageBodyV1 contains the Text and HTML versions of the message body
@@ -126,11 +126,11 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 		content, err = ioutil.ReadAll(att)
 		var checksum = md5.Sum(content)
 		attachments[i] = &JSONMessageAttachmentV1{
-			ContentType: att.ContentType,
-			FileName: att.FileName,
-			DownloadLink:  "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
-			ViewLink: "http://" + req.Host + "/mailbox/vattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
-			MD5: hex.EncodeToString(checksum[:]),
+			ContentType:  att.ContentType,
+			FileName:     att.FileName,
+			DownloadLink: "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
+			ViewLink:     "http://" + req.Host + "/mailbox/vattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
+			MD5:          hex.EncodeToString(checksum[:]),
 		}
 	}
 
@@ -208,7 +208,7 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Contex
 	return nil
 }
 
-// MailboxDeleteV1 removes a particular message from a mailbox.  Renders JSON or plain/text OK
+// MailboxDeleteV1 removes a particular message from a mailbox
 func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]

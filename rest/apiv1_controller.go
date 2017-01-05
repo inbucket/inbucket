@@ -4,56 +4,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/mail"
-	"time"
 
 	"crypto/md5"
 	"encoding/hex"
-	"github.com/jhillyerd/inbucket/httpd"
-	"github.com/jhillyerd/inbucket/log"
-	"github.com/jhillyerd/inbucket/smtpd"
 	"io/ioutil"
 	"strconv"
+
+	"github.com/jhillyerd/inbucket/httpd"
+	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/rest/model"
+	"github.com/jhillyerd/inbucket/smtpd"
 )
-
-// JSONMessageHeaderV1 contains the basic header data for a message
-type JSONMessageHeaderV1 struct {
-	Mailbox string    `json:"mailbox"`
-	ID      string    `json:"id"`
-	From    string    `json:"from"`
-	To      []string  `json:"to"`
-	Subject string    `json:"subject"`
-	Date    time.Time `json:"date"`
-	Size    int64     `json:"size"`
-}
-
-// JSONMessageV1 contains the same data as the header plus a JSONMessageBody
-type JSONMessageV1 struct {
-	Mailbox     string                     `json:"mailbox"`
-	ID          string                     `json:"id"`
-	From        string                     `json:"from"`
-	To          []string                   `json:"to"`
-	Subject     string                     `json:"subject"`
-	Date        time.Time                  `json:"date"`
-	Size        int64                      `json:"size"`
-	Body        *JSONMessageBodyV1         `json:"body"`
-	Header      mail.Header                `json:"header"`
-	Attachments []*JSONMessageAttachmentV1 `json:"attachments"`
-}
-
-type JSONMessageAttachmentV1 struct {
-	FileName     string `json:"filename"`
-	ContentType  string `json:"content-type"`
-	DownloadLink string `json:"download-link"`
-	ViewLink     string `json:"view-link"`
-	MD5          string `json:"md5"`
-}
-
-// JSONMessageBodyV1 contains the Text and HTML versions of the message body
-type JSONMessageBodyV1 struct {
-	Text string `json:"text"`
-	HTML string `json:"html"`
-}
 
 // MailboxListV1 renders a list of messages in a mailbox
 func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
@@ -74,9 +35,9 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 	}
 	log.Tracef("Got %v messsages", len(messages))
 
-	jmessages := make([]*JSONMessageHeaderV1, len(messages))
+	jmessages := make([]*model.JSONMessageHeaderV1, len(messages))
 	for i, msg := range messages {
-		jmessages[i] = &JSONMessageHeaderV1{
+		jmessages[i] = &model.JSONMessageHeaderV1{
 			Mailbox: name,
 			ID:      msg.ID(),
 			From:    msg.From(),
@@ -120,12 +81,12 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
 	}
 
-	attachments := make([]*JSONMessageAttachmentV1, len(mime.Attachments))
+	attachments := make([]*model.JSONMessageAttachmentV1, len(mime.Attachments))
 	for i, att := range mime.Attachments {
 		var content []byte
 		content, err = ioutil.ReadAll(att)
 		var checksum = md5.Sum(content)
-		attachments[i] = &JSONMessageAttachmentV1{
+		attachments[i] = &model.JSONMessageAttachmentV1{
 			ContentType:  att.ContentType,
 			FileName:     att.FileName,
 			DownloadLink: "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
@@ -135,7 +96,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 	}
 
 	return httpd.RenderJSON(w,
-		&JSONMessageV1{
+		&model.JSONMessageV1{
 			Mailbox: name,
 			ID:      msg.ID(),
 			From:    msg.From(),
@@ -144,7 +105,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 			Date:    msg.Date(),
 			Size:    msg.Size(),
 			Header:  header.Header,
-			Body: &JSONMessageBodyV1{
+			Body: &model.JSONMessageBodyV1{
 				Text: mime.Text,
 				HTML: mime.HTML,
 			},

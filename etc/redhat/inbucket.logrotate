@@ -3,6 +3,6 @@
   notifempty
   create 0644 inbucket inbucket
   postrotate
-    [ -e /etc/init.d/inbucket ] && /etc/init.d/inbucket reload >/dev/null 2>&1 || true
+    [ -x /bin/systemctl ] && /bin/systemctl reload inbucket >/dev/null 2>&1 || true
   endscript
 }

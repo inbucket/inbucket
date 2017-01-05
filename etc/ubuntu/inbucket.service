@@ -1,0 +1,20 @@
+[Unit]
+Description=Inbucket Disposable Email Service
+After=network.target
+
+[Service]
+Type=simple
+User=inbucket
+Group=inbucket
+
+ExecStart=/opt/inbucket/inbucket -logfile /var/log/inbucket.log /etc/opt/inbucket.conf
+
+# Re-open log file after rotation
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Give SMTP connections time to drain
+TimeoutStopSec=20
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

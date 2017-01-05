@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Removed legacy `integral` theme, as most new features only in `bootstrap`
 - Removed old RESTful APIs, must use `/api/v1` base URI now
 - Allow increased local-part length of 128 chars for Mailgun
+- RedHat and Ubuntu now use systemd instead of legacy init systems
 
 [1.1.0] - 2016-09-03
 --------------------

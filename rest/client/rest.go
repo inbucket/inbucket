@@ -37,9 +37,9 @@ func (c *restClient) do(method, uri string) (*http.Response, error) {
 	return c.client.Do(req)
 }
 
-// doGet performs a GET request with this client and marshalls the JSON response into v
-func (c *restClient) doGet(uri string, v interface{}) error {
-	resp, err := c.do("GET", uri)
+// doGet performs an HTTP request with this client and marshalls the JSON response into v
+func (c *restClient) doJSON(method string, uri string, v interface{}) error {
+	resp, err := c.do(method, uri)
 	if err != nil {
 		return err
 	}
@@ -48,8 +48,12 @@ func (c *restClient) doGet(uri string, v interface{}) error {
 		_ = resp.Body.Close()
 	}()
 	if resp.StatusCode == http.StatusOK {
-		// Decode response body
-		return json.NewDecoder(resp.Body).Decode(v)
+		if v == nil {
+			return nil
+		} else {
+			// Decode response body
+			return json.NewDecoder(resp.Body).Decode(v)
+		}
 	}
 
 	return fmt.Errorf("Unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)

@@ -21,13 +21,16 @@ func init() {
 }
 
 type mockHTTPClient struct {
-	req *http.Request
+	req        *http.Request
+	statusCode int
+	body       string
 }
 
 func (m *mockHTTPClient) Do(req *http.Request) (resp *http.Response, err error) {
 	m.req = req
 	resp = &http.Response{
-		Body: ioutil.NopCloser(&bytes.Buffer{}),
+		StatusCode: m.statusCode,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(m.body)),
 	}
 
 	return
@@ -39,7 +42,10 @@ func TestDo(t *testing.T) {
 	mth := &mockHTTPClient{}
 	c := &restClient{mth, baseURL}
 
-	c.do("POST", "/dopost")
+	_, err := c.do("POST", "/dopost")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	want = "POST"
 	got = mth.req.Method
@@ -54,14 +60,51 @@ func TestDo(t *testing.T) {
 	}
 }
 
-func TestDoGet(t *testing.T) {
+func TestDoJSON(t *testing.T) {
 	var want, got string
 
-	mth := &mockHTTPClient{}
+	mth := &mockHTTPClient{
+		statusCode: 200,
+		body:       `{"foo": "bar"}`,
+	}
 	c := &restClient{mth, baseURL}
 
-	v := new(map[string]interface{})
-	c.doGet("/doget", &v)
+	var v map[string]interface{}
+	c.doJSON("GET", "/doget", &v)
+
+	want = "GET"
+	got = mth.req.Method
+	if got != want {
+		t.Errorf("req.Method == %q, want %q", got, want)
+	}
+
+	want = baseURLStr + "/doget"
+	got = mth.req.URL.String()
+	if got != want {
+		t.Errorf("req.URL == %q, want %q", got, want)
+	}
+
+	want = "bar"
+	if val, ok := v["foo"]; ok {
+		got = val.(string)
+		if got != want {
+			t.Errorf("map[foo] == %q, want: %q", got, want)
+		}
+	} else {
+		t.Errorf("Map did not contain key foo, want: %q", want)
+	}
+}
+
+func TestDoJSONNilV(t *testing.T) {
+	var want, got string
+
+	mth := &mockHTTPClient{statusCode: 200}
+	c := &restClient{mth, baseURL}
+
+	err := c.doJSON("GET", "/doget", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	want = "GET"
 	got = mth.req.Method

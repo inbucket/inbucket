@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Storage of To: header in messages (likely breaks existing datastores)
 - Attachment list to [GET message
   JSON](https://github.com/jhillyerd/inbucket/wiki/REST-GET-message)
+- Go client for REST API
 
 ### Fixed
 - No longer run out of file handles when dealing with a large number of

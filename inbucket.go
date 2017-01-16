@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"expvar"
 	"flag"
 	"fmt"
@@ -52,6 +53,9 @@ func main() {
 		return
 	}
 
+	// Root context
+	rootCtx, rootCancel := context.WithCancel(context.Background())
+
 	// Load & Parse config
 	if flag.NArg() != 1 {
 		flag.Usage()
@@ -98,16 +102,16 @@ func main() {
 	httpd.Initialize(config.GetWebConfig(), ds, shutdownChan)
 	webui.SetupRoutes(httpd.Router)
 	rest.SetupRoutes(httpd.Router)
-	go httpd.Start()
+	go httpd.Start(rootCtx)
 
 	// Start POP3 server
 	// TODO pass datastore
 	pop3Server = pop3d.New(shutdownChan)
-	go pop3Server.Start()
+	go pop3Server.Start(rootCtx)
 
 	// Startup SMTP server
 	smtpServer = smtpd.NewServer(config.GetSMTPConfig(), ds, shutdownChan)
-	go smtpServer.Start()
+	go smtpServer.Start(rootCtx)
 
 	// Loop forever waiting for signals or shutdown channel
 signalLoop:
@@ -128,6 +132,7 @@ signalLoop:
 				close(shutdownChan)
 			}
 		case _ = <-shutdownChan:
+			rootCancel()
 			break signalLoop
 		}
 	}

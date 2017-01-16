@@ -2,6 +2,7 @@
 package httpd
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -60,7 +61,7 @@ func Initialize(cfg config.WebConfig, ds smtpd.DataStore, shutdownChan chan bool
 }
 
 // Start begins listening for HTTP requests
-func Start() {
+func Start(ctx context.Context) {
 	addr := fmt.Sprintf("%v:%v", webConfig.IP4address, webConfig.IP4port)
 	server = &http.Server{
 		Addr:         addr,
@@ -80,11 +81,11 @@ func Start() {
 	}
 
 	// Listener go routine
-	go serve()
+	go serve(ctx)
 
 	// Wait for shutdown
 	select {
-	case _ = <-globalShutdown:
+	case _ = <-ctx.Done():
 		log.Tracef("HTTP server shutting down on request")
 	}
 
@@ -95,12 +96,12 @@ func Start() {
 }
 
 // serve begins serving HTTP requests
-func serve() {
+func serve(ctx context.Context) {
 	// server.Serve blocks until we close the listener
 	err := server.Serve(listener)
 
 	select {
-	case _ = <-globalShutdown:
+	case _ = <-ctx.Done():
 		// Nop
 	default:
 		log.Errorf("HTTP server failed: %v", err)

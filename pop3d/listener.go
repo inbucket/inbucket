@@ -1,6 +1,7 @@
 package pop3d
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -18,7 +19,6 @@ type Server struct {
 	dataStore      smtpd.DataStore
 	listener       net.Listener
 	globalShutdown chan bool
-	localShutdown  chan bool
 	waitgroup      *sync.WaitGroup
 }
 
@@ -35,20 +35,17 @@ func New(shutdownChan chan bool) *Server {
 		dataStore:      ds,
 		maxIdleSeconds: cfg.MaxIdleSeconds,
 		globalShutdown: shutdownChan,
-		localShutdown:  make(chan bool),
 		waitgroup:      new(sync.WaitGroup),
 	}
 }
 
 // Start the server and listen for connections
-func (s *Server) Start() {
+func (s *Server) Start(ctx context.Context) {
 	cfg := config.GetPOP3Config()
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
 		cfg.IP4address, cfg.IP4port))
 	if err != nil {
 		log.Errorf("POP3 Failed to build tcp4 address: %v", err)
-		// serve() never called, so we do local shutdown here
-		close(s.localShutdown)
 		s.emergencyShutdown()
 		return
 	}
@@ -57,18 +54,16 @@ func (s *Server) Start() {
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
 		log.Errorf("POP3 failed to start tcp4 listener: %v", err)
-		// serve() never called, so we do local shutdown here
-		close(s.localShutdown)
 		s.emergencyShutdown()
 		return
 	}
 
 	// Listener go routine
-	go s.serve()
+	go s.serve(ctx)
 
 	// Wait for shutdown
 	select {
-	case _ = <-s.globalShutdown:
+	case _ = <-ctx.Done():
 	}
 
 	log.Tracef("POP3 shutdown requested, connections will be drained")
@@ -79,7 +74,7 @@ func (s *Server) Start() {
 }
 
 // serve is the listen/accept loop
-func (s *Server) serve() {
+func (s *Server) serve(ctx context.Context) {
 	// Handle incoming connections
 	var tempDelay time.Duration
 	for sid := 1; ; sid++ {
@@ -100,11 +95,11 @@ func (s *Server) serve() {
 			} else {
 				// Permanent error
 				select {
-				case _ = <-s.globalShutdown:
-					close(s.localShutdown)
+				case <-ctx.Done():
+					// POP3 is shutting down
 					return
 				default:
-					close(s.localShutdown)
+					// Something went wrong
 					s.emergencyShutdown()
 					return
 				}
@@ -128,10 +123,6 @@ func (s *Server) emergencyShutdown() {
 
 // Drain causes the caller to block until all active POP3 sessions have finished
 func (s *Server) Drain() {
-	// Wait for listener to exit
-	select {
-	case _ = <-s.localShutdown:
-	}
 	// Wait for sessions to close
 	s.waitgroup.Wait()
 	log.Tracef("POP3 connections have drained")

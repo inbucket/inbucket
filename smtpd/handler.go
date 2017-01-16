@@ -67,6 +67,12 @@ var commands = map[string]bool{
 	"TURN": true,
 }
 
+// recipientDetails for message delivery
+type recipientDetails struct {
+	address, localPart, domainPart string
+	mailbox                        Mailbox
+}
+
 // Session holds the state of an SMTP session
 type Session struct {
 	server       *Server
@@ -341,13 +347,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 
 // DATA
 func (ss *Session) dataHandler() {
-	type RecipientDetails struct {
-		address, localPart, domainPart string
-		mailbox                        Mailbox
-	}
-	recipients := make([]RecipientDetails, 0, ss.recipients.Len())
-	// Timestamp for Received header
-	stamp := time.Now().Format(timeStampFormat)
+	recipients := make([]recipientDetails, 0, ss.recipients.Len())
 	// Get a Mailbox and a new Message for each recipient
 	msgSize := 0
 	if ss.server.storeMessages {
@@ -369,7 +369,7 @@ func (ss *Session) dataHandler() {
 					ss.reset()
 					return
 				}
-				recipients = append(recipients, RecipientDetails{recip, local, domain, mb})
+				recipients = append(recipients, recipientDetails{recip, local, domain, mb})
 			} else {
 				log.Tracef("Not storing message for %q", recip)
 			}
@@ -399,39 +399,15 @@ func (ss *Session) dataHandler() {
 			if ss.server.storeMessages {
 				// Create a message for each valid recipient
 				for _, r := range recipients {
-					msg, err := r.mailbox.NewMessage()
-					if err != nil {
-						ss.logError("Failed to create message for %q: %s", r.localPart, err)
-						ss.send(fmt.Sprintf("451 Failed to create message for %v", r.localPart))
+					if ok := ss.deliverMessage(r, msgBuf); ok {
+						expReceivedTotal.Add(1)
+					} else {
+						// Delivery failure
+						ss.send(fmt.Sprintf("451 Failed to store message for %v", r.localPart))
 						ss.reset()
 						return
 					}
-
-					// Generate Received header
-					recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
-						ss.remoteDomain, ss.remoteHost, ss.server.domain, r.address, stamp)
-					if err := msg.Append([]byte(recd)); err != nil {
-						ss.logError("Failed to write received header for %q: %s", r.localPart, err)
-						ss.send(fmt.Sprintf("451 Failed to create message for %v", r.localPart))
-						ss.reset()
-						return
-					}
-					// Append lines from msgBuf
-					for _, line = range msgBuf {
-						if err := msg.Append(line); err != nil {
-							ss.logError("Failed to append to mailbox %v: %v",
-								r.mailbox, err)
-							ss.send("554 Something went wrong")
-							ss.reset()
-							// Should really cleanup the crap on filesystem
-							return
-						}
-					}
-					if err := msg.Close(); err != nil {
-						ss.logError("Error: %v while writing message", err)
-					}
-					expReceivedTotal.Add(1)
-				} // end for
+				}
 			} else {
 				expReceivedTotal.Add(1)
 			}
@@ -456,6 +432,39 @@ func (ss *Session) dataHandler() {
 			return
 		}
 	} // end for
+}
+
+// deliverMessage creates and populates a new Message for the specified recipient
+func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool) {
+	msg, err := r.mailbox.NewMessage()
+	if err != nil {
+		ss.logError("Failed to create message for %q: %s", r.localPart, err)
+		return false
+	}
+
+	// Generate Received header
+	stamp := time.Now().Format(timeStampFormat)
+	recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
+		ss.remoteDomain, ss.remoteHost, ss.server.domain, r.address, stamp)
+	if err := msg.Append([]byte(recd)); err != nil {
+		ss.logError("Failed to write received header for %q: %s", r.localPart, err)
+		return false
+	}
+
+	// Append lines from msgBuf
+	for _, line := range msgBuf {
+		if err := msg.Append(line); err != nil {
+			ss.logError("Failed to append to mailbox %v: %v", r.mailbox, err)
+			// Should really cleanup the crap on filesystem
+			return false
+		}
+	}
+	if err := msg.Close(); err != nil {
+		ss.logError("Error while closing message for %v: %v", r.mailbox, err)
+		return false
+	}
+
+	return true
 }
 
 func (ss *Session) enterState(state State) {

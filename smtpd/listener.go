@@ -12,24 +12,27 @@ import (
 
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/msghub"
 )
 
 // Server holds the configuration and state of our SMTP server
 type Server struct {
+	// Configuration
 	domain          string
 	domainNoStore   string
 	maxRecips       int
 	maxIdleSeconds  int
 	maxMessageBytes int
-	dataStore       DataStore
 	storeMessages   bool
-	listener        net.Listener
 
-	// globalShutdown is the signal Inbucket needs to shut down
-	globalShutdown chan bool
+	// Dependencies
+	dataStore      DataStore   // Mailbox/message store
+	globalShutdown chan bool   // Shuts down Inbucket
+	msgHub         *msghub.Hub // Pub/sub for message info
 
-	// waitgroup tracks individual sessions
-	waitgroup *sync.WaitGroup
+	// State
+	listener  net.Listener    // Incoming network connections
+	waitgroup *sync.WaitGroup // Waitgroup tracks individual sessions
 }
 
 var (
@@ -54,17 +57,22 @@ var (
 )
 
 // NewServer creates a new Server instance with the specificed config
-func NewServer(cfg config.SMTPConfig, ds DataStore, globalShutdown chan bool) *Server {
+func NewServer(
+	cfg config.SMTPConfig,
+	globalShutdown chan bool,
+	ds DataStore,
+	msgHub *msghub.Hub) *Server {
 	return &Server{
-		dataStore:       ds,
 		domain:          cfg.Domain,
+		domainNoStore:   strings.ToLower(cfg.DomainNoStore),
 		maxRecips:       cfg.MaxRecipients,
 		maxIdleSeconds:  cfg.MaxIdleSeconds,
 		maxMessageBytes: cfg.MaxMessageBytes,
 		storeMessages:   cfg.StoreMessages,
-		domainNoStore:   strings.ToLower(cfg.DomainNoStore),
-		waitgroup:       new(sync.WaitGroup),
 		globalShutdown:  globalShutdown,
+		dataStore:       ds,
+		msgHub:          msgHub,
+		waitgroup:       new(sync.WaitGroup),
 	}
 }
 

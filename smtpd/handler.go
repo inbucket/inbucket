@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/msghub"
 )
 
 // State tracks the current mode of our SMTP state machine
@@ -463,6 +464,18 @@ func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool)
 		ss.logError("Error while closing message for %v: %v", r.mailbox, err)
 		return false
 	}
+
+	// Broadcast message information
+	broadcast := msghub.Message{
+		Mailbox: r.mailbox.Name(),
+		ID:      msg.ID(),
+		From:    msg.From(),
+		To:      msg.To(),
+		Subject: msg.Subject(),
+		Date:    msg.Date(),
+		Size:    msg.Size(),
+	}
+	ss.server.msgHub.Broadcast(broadcast)
 
 	return true
 }

@@ -106,6 +106,11 @@ func (m *MockMailbox) NewMessage() (Message, error) {
 	return args.Get(0).(Message), args.Error(1)
 }
 
+func (m *MockMailbox) Name() string {
+	args := m.Called()
+	return args.String(0)
+}
+
 func (m *MockMailbox) String() string {
 	args := m.Called()
 	return args.String(0)

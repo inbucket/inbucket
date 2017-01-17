@@ -3,6 +3,7 @@ package httpd
 
 import (
 	"context"
+	"expvar"
 	"fmt"
 	"net"
 	"net/http"
@@ -36,7 +37,15 @@ var (
 	listener       net.Listener
 	sessionStore   sessions.Store
 	globalShutdown chan bool
+
+	// ExpWebSocketConnectsCurrent tracks the number of open WebSockets
+	ExpWebSocketConnectsCurrent = new(expvar.Int)
 )
+
+func init() {
+	m := expvar.NewMap("http")
+	m.Set("WebSocketConnectsCurrent", ExpWebSocketConnectsCurrent)
+}
 
 // Initialize sets up things for unit tests or the Start() method
 func Initialize(

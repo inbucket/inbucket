@@ -143,7 +143,12 @@ func MonitorAllMessagesV1(
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	httpd.ExpWebSocketConnectsCurrent.Add(1)
+	defer func() {
+		_ = conn.Close()
+		httpd.ExpWebSocketConnectsCurrent.Add(-1)
+	}()
+
 	log.Tracef("HTTP[%v] Upgraded to websocket", req.RemoteAddr)
 
 	// Create, register listener; then interact with conn

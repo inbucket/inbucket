@@ -104,6 +104,7 @@ function displayMetrics(data, textStatus, jqXHR) {
   metric('memstatsHeapSys', data.memstats.HeapSys, sizeFilter, true);
   metric('memstatsHeapObjects', data.memstats.HeapObjects, numberFilter, true);
   metric('smtpConnectsCurrent', data.smtp.ConnectsCurrent, numberFilter, true);
+  metric('httpWebSocketConnectsCurrent', data.http.WebSocketConnectsCurrent, numberFilter, true);
 
   // Server-side history
   metric('smtpReceivedTotal', data.smtp.ReceivedTotal, numberFilter, false);

@@ -12,6 +12,7 @@ import (
 	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/httpd"
+	"github.com/jhillyerd/inbucket/msghub"
 	"github.com/jhillyerd/inbucket/smtpd"
 )
 
@@ -199,7 +200,7 @@ func setupWebServer(ds smtpd.DataStore) *bytes.Buffer {
 		PublicDir:   "../themes/bootstrap/public",
 	}
 	shutdownChan := make(chan bool)
-	httpd.Initialize(cfg, ds, shutdownChan)
+	httpd.Initialize(cfg, shutdownChan, ds, &msghub.Hub{})
 	SetupRoutes(httpd.Router)
 
 	return buf

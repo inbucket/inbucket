@@ -103,7 +103,7 @@ func main() {
 	ds := smtpd.DefaultFileDataStore()
 
 	// Start HTTP server
-	httpd.Initialize(config.GetWebConfig(), ds, shutdownChan)
+	httpd.Initialize(config.GetWebConfig(), shutdownChan, ds, msgHub)
 	webui.SetupRoutes(httpd.Router)
 	rest.SetupRoutes(httpd.Router)
 	go httpd.Start(rootCtx)

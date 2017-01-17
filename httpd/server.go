@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/msghub"
 	"github.com/jhillyerd/inbucket/smtpd"
 )
 
@@ -22,6 +23,9 @@ type Handler func(http.ResponseWriter, *http.Request, *Context) error
 var (
 	// DataStore is where all the mailboxes and messages live
 	DataStore smtpd.DataStore
+
+	// msgHub holds a reference to the message pub/sub system
+	msgHub *msghub.Hub
 
 	// Router is shared between httpd, webui and rest packages. It sends
 	// incoming requests to the correct handler function
@@ -35,12 +39,18 @@ var (
 )
 
 // Initialize sets up things for unit tests or the Start() method
-func Initialize(cfg config.WebConfig, ds smtpd.DataStore, shutdownChan chan bool) {
+func Initialize(
+	cfg config.WebConfig,
+	shutdownChan chan bool,
+	ds smtpd.DataStore,
+	mh *msghub.Hub) {
+
 	webConfig = cfg
 	globalShutdown = shutdownChan
 
 	// NewContext() will use this DataStore for the web handlers
 	DataStore = ds
+	msgHub = mh
 
 	// Content Paths
 	log.Infof("HTTP templates mapped to %q", cfg.TemplateDir)

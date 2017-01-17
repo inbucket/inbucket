@@ -20,6 +20,7 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) 
 
 	if len(name) == 0 {
 		ctx.Session.AddFlash("Account name is required", "errors")
+		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
@@ -27,12 +28,16 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) 
 	name, err = smtpd.ParseMailboxName(name)
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
+		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
 
 	// Remember this mailbox was visited
 	RememberMailbox(ctx, name)
+	if err = ctx.Session.Save(req, w); err != nil {
+		return err
+	}
 
 	return httpd.RenderTemplate("mailbox/index.html", w, map[string]interface{}{
 		"ctx":      ctx,
@@ -48,6 +53,7 @@ func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
+		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
@@ -57,7 +63,7 @@ func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 	return nil
 }
 
-// MailboxList renders a list of messages in a mailbox. Renders JSON or a partial
+// MailboxList renders a list of messages in a mailbox. Renders a partial
 func MailboxList(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
@@ -203,6 +209,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
+		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
@@ -210,6 +217,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.
 	num, err := strconv.ParseUint(numStr, 10, 32)
 	if err != nil {
 		ctx.Session.AddFlash("Attachment number must be unsigned numeric", "errors")
+		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
@@ -234,6 +242,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.
 	}
 	if int(num) >= len(body.Attachments) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
+		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
@@ -253,6 +262,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Cont
 	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
+		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
@@ -261,6 +271,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Cont
 	num, err := strconv.ParseUint(numStr, 10, 32)
 	if err != nil {
 		ctx.Session.AddFlash("Attachment number must be unsigned numeric", "errors")
+		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
@@ -285,6 +296,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Cont
 	}
 	if int(num) >= len(body.Attachments) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
+		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}

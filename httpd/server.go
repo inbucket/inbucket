@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/goods/httpbuf"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -122,25 +121,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	defer ctx.Close()
 
 	// Run the handler, grab the error, and report it
-	buf := new(httpbuf.Buffer)
 	log.Tracef("HTTP[%v] %v %v %q", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
-	err = h(buf, req, ctx)
+	err = h(w, req, ctx)
 	if err != nil {
 		log.Errorf("HTTP error handling %q: %v", req.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	// Save the session
-	if err = ctx.Session.Save(req, buf); err != nil {
-		log.Errorf("HTTP failed to save session: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Apply the buffered response to the writer
-	if _, err = buf.Apply(w); err != nil {
-		log.Errorf("HTTP failed to write response: %v", err)
 	}
 }
 

@@ -97,7 +97,7 @@ func main() {
 	}
 
 	// Create message hub
-	msgHub := msghub.New(rootCtx, 100)
+	msgHub := msghub.New(rootCtx, 30)
 
 	// Grab our datastore
 	ds := smtpd.DefaultFileDataStore()

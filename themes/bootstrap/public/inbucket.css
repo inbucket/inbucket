@@ -81,3 +81,8 @@ table.metrics {
   width: 200px;
 }
 
+/* Monitor */
+#monitor-message-list td {
+  cursor: pointer;
+  font-size: 12px;
+}

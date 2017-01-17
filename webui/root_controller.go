@@ -23,6 +23,13 @@ func RootIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (er
 	})
 }
 
+// RootMonitor serves the Inbucket monitor page
+func RootMonitor(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
+	return httpd.RenderTemplate("root/monitor.html", w, map[string]interface{}{
+		"ctx": ctx,
+	})
+}
+
 // RootStatus serves the Inbucket status page
 func RootStatus(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	smtpListener := fmt.Sprintf("%s:%d", config.GetSMTPConfig().IP4address.String(),

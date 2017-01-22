@@ -64,16 +64,6 @@ $(document).ready(function() {
   </div>
 </div>
 <div id="message-container" class="col-md-9">
-  {{with .ctx.Session.Flashes "errors"}}
-  <div class="errors">
-    <p>Please fix the following errors and resubmit:<p>
-    <ul>
-      {{range .}}
-      <li>{{.}}</li>
-      {{end}}
-    </ul>
-  </div>
-  {{end}}
   <div id="message-content">
     <p>Select a message at left, or enter a different username into the box on upper right.</p>
   </div>

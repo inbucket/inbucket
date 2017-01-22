@@ -69,9 +69,9 @@
     </nav>
 
     <div class="container">
-      {{with .ctx.Session.Flashes "errors"}}
+      {{with .errorFlash}}
       <div class="alert alert-danger">
-        <p>Please fix the following errors and resubmit:<p>
+        <p>Please fix the following errors and try again:<p>
         <ul>
           {{range .}}
           <li>{{.}}</li>

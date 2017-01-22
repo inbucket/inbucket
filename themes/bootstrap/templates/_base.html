@@ -48,7 +48,9 @@
               </ul>
             </li>
             {{end}}
+            {{if .ctx.WebConfig.MonitorVisible}}
             <li id="nav-monitor"><a href="/monitor" accesskey="2">Monitor</a></li>
+            {{end}}
             <li id="nav-status"><a href="/status" accesskey="3">Status</a></li>
           </ul>
           <form class="navbar-form navbar-right" action="{{reverse "MailboxIndex"}}" method="GET">

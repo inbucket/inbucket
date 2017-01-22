@@ -31,6 +31,12 @@ func RootIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (er
 
 // RootMonitor serves the Inbucket monitor page
 func RootMonitor(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
+	if !config.GetWebConfig().MonitorVisible {
+		ctx.Session.AddFlash("Monitor is disabled in configuration", "errors")
+		_ = ctx.Session.Save(req, w)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
 	// Get flash messages, save session
 	errorFlash := ctx.Session.Flashes("errors")
 	if err = ctx.Session.Save(req, w); err != nil {

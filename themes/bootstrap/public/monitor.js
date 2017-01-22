@@ -18,6 +18,9 @@ function startMonitor() {
   var url = ((l.protocol === "https:") ? "wss://" : "ws://") + l.host + uri
   var ws = new WebSocket(url);
 
+  ws.addEventListener('open', function (e) {
+    $('#conn-status').text('Connected.');
+  });
   ws.addEventListener('message', function (e) {
     var msg = JSON.parse(e.data);
     msg['href'] = '/mailbox?name=' + msg.mailbox + '&id=' + msg.id;
@@ -25,6 +28,9 @@ function startMonitor() {
         $('#message-template'),
         msg,
         { append: true });
+  });
+  ws.addEventListener('close', function (e) {
+    $('#conn-status').text('Disconnected!');
   });
 }
 

@@ -86,3 +86,7 @@ table.metrics {
   cursor: pointer;
   font-size: 12px;
 }
+
+#conn-status {
+  font-style: italic;
+}

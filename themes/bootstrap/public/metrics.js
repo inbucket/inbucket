@@ -104,6 +104,7 @@ function displayMetrics(data, textStatus, jqXHR) {
   metric('memstatsHeapSys', data.memstats.HeapSys, sizeFilter, true);
   metric('memstatsHeapObjects', data.memstats.HeapObjects, numberFilter, true);
   metric('smtpConnectsCurrent', data.smtp.ConnectsCurrent, numberFilter, true);
+  metric('goroutinesCurrent', data.goroutines, numberFilter, true);
   metric('httpWebSocketConnectsCurrent', data.http.WebSocketConnectsCurrent, numberFilter, true);
 
   // Server-side history
@@ -125,4 +126,3 @@ function loadMetrics() {
   // jQuery.getJSON( url [, data] [, success(data, textStatus, jqXHR)] )
   jQuery.getJSON('/debug/vars', null, displayMetrics);
 }
-

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -33,9 +34,6 @@ var (
 	pidfile = flag.String("pidfile", "none", "Write our PID into the specified file")
 	logfile = flag.String("logfile", "stderr", "Write out log into the specified file")
 
-	// startTime is used to calculate uptime of Inbucket
-	startTime = time.Now()
-
 	// shutdownChan - close it to tell Inbucket to shut down cleanly
 	shutdownChan = make(chan bool)
 
@@ -43,6 +41,24 @@ var (
 	smtpServer *smtpd.Server
 	pop3Server *pop3d.Server
 )
+
+func init() {
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage of inbucket [options] <conf file>:")
+		flag.PrintDefaults()
+	}
+
+	// Server uptime for status page
+	startTime := time.Now()
+	expvar.Publish("uptime", expvar.Func(func() interface{} {
+		return time.Since(startTime) / time.Second
+	}))
+
+	// Goroutine count for status page
+	expvar.Publish("goroutines", expvar.Func(func() interface{} {
+		return runtime.NumGoroutine()
+	}))
+}
 
 func main() {
 	config.Version = VERSION
@@ -165,18 +181,4 @@ func timedExit() {
 	log.Errorf("Clean shutdown took too long, forcing exit")
 	removePIDFile()
 	os.Exit(0)
-}
-
-func init() {
-	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage of inbucket [options] <conf file>:")
-		flag.PrintDefaults()
-	}
-
-	expvar.Publish("uptime", expvar.Func(uptime))
-}
-
-// uptime() is published as an expvar
-func uptime() interface{} {
-	return time.Since(startTime) / time.Second
 }

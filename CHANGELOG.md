@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   recipients for a single message.
 
 ### Changed
+- Build now requires Go 1.7 or later
 - Removed legacy `integral` theme, as most new features only in `bootstrap`
 - Removed old RESTful APIs, must use `/api/v1` base URI now
 - Allow increased local-part length of 128 chars for Mailgun

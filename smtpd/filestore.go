@@ -148,6 +148,10 @@ type FileMailbox struct {
 	messages    []*FileMessage
 }
 
+func (mb *FileMailbox) Name() string {
+	return mb.name
+}
+
 func (mb *FileMailbox) String() string {
 	return mb.name + "[" + mb.dirName + "]"
 }

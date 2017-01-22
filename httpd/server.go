@@ -3,17 +3,18 @@ package httpd
 
 import (
 	"context"
+	"expvar"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 
-	"github.com/goods/httpbuf"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/msghub"
 	"github.com/jhillyerd/inbucket/smtpd"
 )
 
@@ -24,6 +25,9 @@ var (
 	// DataStore is where all the mailboxes and messages live
 	DataStore smtpd.DataStore
 
+	// msgHub holds a reference to the message pub/sub system
+	msgHub *msghub.Hub
+
 	// Router is shared between httpd, webui and rest packages. It sends
 	// incoming requests to the correct handler function
 	Router = mux.NewRouter()
@@ -33,15 +37,29 @@ var (
 	listener       net.Listener
 	sessionStore   sessions.Store
 	globalShutdown chan bool
+
+	// ExpWebSocketConnectsCurrent tracks the number of open WebSockets
+	ExpWebSocketConnectsCurrent = new(expvar.Int)
 )
 
+func init() {
+	m := expvar.NewMap("http")
+	m.Set("WebSocketConnectsCurrent", ExpWebSocketConnectsCurrent)
+}
+
 // Initialize sets up things for unit tests or the Start() method
-func Initialize(cfg config.WebConfig, ds smtpd.DataStore, shutdownChan chan bool) {
+func Initialize(
+	cfg config.WebConfig,
+	shutdownChan chan bool,
+	ds smtpd.DataStore,
+	mh *msghub.Hub) {
+
 	webConfig = cfg
 	globalShutdown = shutdownChan
 
 	// NewContext() will use this DataStore for the web handlers
 	DataStore = ds
+	msgHub = mh
 
 	// Content Paths
 	log.Infof("HTTP templates mapped to %q", cfg.TemplateDir)
@@ -122,25 +140,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	defer ctx.Close()
 
 	// Run the handler, grab the error, and report it
-	buf := new(httpbuf.Buffer)
 	log.Tracef("HTTP[%v] %v %v %q", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
-	err = h(buf, req, ctx)
+	err = h(w, req, ctx)
 	if err != nil {
 		log.Errorf("HTTP error handling %q: %v", req.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	// Save the session
-	if err = ctx.Session.Save(req, buf); err != nil {
-		log.Errorf("HTTP failed to save session: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Apply the buffered response to the writer
-	if _, err = buf.Apply(w); err != nil {
-		log.Errorf("HTTP failed to write response: %v", err)
 	}
 }
 

@@ -48,7 +48,10 @@
               </ul>
             </li>
             {{end}}
-            <li id="nav-status"><a href="/status" accesskey="2">Status</a></li>
+            {{if .ctx.WebConfig.MonitorVisible}}
+            <li id="nav-monitor"><a href="/monitor" accesskey="2">Monitor</a></li>
+            {{end}}
+            <li id="nav-status"><a href="/status" accesskey="3">Status</a></li>
           </ul>
           <form class="navbar-form navbar-right" action="{{reverse "MailboxIndex"}}" method="GET">
             <div class="form-group">
@@ -68,9 +71,9 @@
     </nav>
 
     <div class="container">
-      {{with .ctx.Session.Flashes "errors"}}
+      {{with .errorFlash}}
       <div class="alert alert-danger">
-        <p>Please fix the following errors and resubmit:<p>
+        <p>Please fix the following errors and try again:<p>
         <ul>
           {{range .}}
           <li>{{.}}</li>

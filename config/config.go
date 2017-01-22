@@ -33,13 +33,15 @@ type POP3Config struct {
 
 // WebConfig contains the HTTP server configuration
 type WebConfig struct {
-	IP4address    net.IP
-	IP4port       int
-	TemplateDir   string
-	TemplateCache bool
-	PublicDir     string
-	GreetingFile  string
-	CookieAuthKey string
+	IP4address     net.IP
+	IP4port        int
+	TemplateDir    string
+	TemplateCache  bool
+	PublicDir      string
+	GreetingFile   string
+	CookieAuthKey  string
+	MonitorVisible bool
+	MonitorHistory int
 }
 
 // DataStoreConfig contains the mail store configuration
@@ -130,6 +132,8 @@ func LoadConfig(filename string) error {
 	requireOption(messages, "web", "template.dir")
 	requireOption(messages, "web", "template.cache")
 	requireOption(messages, "web", "public.dir")
+	requireOption(messages, "web", "monitor.visible")
+	requireOption(messages, "web", "monitor.history")
 	requireOption(messages, "datastore", "path")
 	requireOption(messages, "datastore", "retention.minutes")
 	requireOption(messages, "datastore", "retention.sleep.millis")
@@ -348,6 +352,19 @@ func parseWebConfig() error {
 		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
 	}
 	webConfig.GreetingFile = str
+
+	option = "monitor.visible"
+	flag, err = Config.Bool(section, option)
+	if err != nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
+	webConfig.MonitorVisible = flag
+
+	option = "monitor.history"
+	webConfig.MonitorHistory, err = Config.Int(section, option)
+	if err != nil {
+		return fmt.Errorf("Failed to parse [%v]%v: '%v'", section, option, err)
+	}
 
 	option = "cookie.auth.key"
 	if Config.HasOption(section, option) {

@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/jhillyerd/inbucket/config"
 	"log"
 	"net"
 	"net/textproto"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/msghub"
 )
 
 type scriptStep struct {
@@ -153,6 +155,13 @@ func TestMailState(t *testing.T) {
 	msg1 := &MockMessage{}
 	mds.On("MailboxFor").Return(mb1, nil)
 	mb1.On("NewMessage").Return(msg1, nil)
+	mb1.On("Name").Return("u1")
+	msg1.On("ID").Return("")
+	msg1.On("From").Return("")
+	msg1.On("To").Return(make([]string, 0))
+	msg1.On("Date").Return(time.Time{})
+	msg1.On("Subject").Return("")
+	msg1.On("Size").Return(0)
 	msg1.On("Close").Return(nil)
 
 	server, logbuf := setupSMTPServer(mds)
@@ -263,6 +272,13 @@ func TestDataState(t *testing.T) {
 	msg1 := &MockMessage{}
 	mds.On("MailboxFor").Return(mb1, nil)
 	mb1.On("NewMessage").Return(msg1, nil)
+	mb1.On("Name").Return("u1")
+	msg1.On("ID").Return("")
+	msg1.On("From").Return("")
+	msg1.On("To").Return(make([]string, 0))
+	msg1.On("Date").Return(time.Time{})
+	msg1.On("Subject").Return("")
+	msg1.On("Size").Return(0)
 	msg1.On("Close").Return(nil)
 
 	server, logbuf := setupSMTPServer(mds)
@@ -378,7 +394,7 @@ func setupSMTPServer(ds DataStore) (*Server, *bytes.Buffer) {
 
 	// Create a server, don't start it
 	shutdownChan := make(chan bool)
-	return NewServer(cfg, ds, shutdownChan), buf
+	return NewServer(cfg, shutdownChan, ds, &msghub.Hub{}), buf
 }
 
 var sessionNum int

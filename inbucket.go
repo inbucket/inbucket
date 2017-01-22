@@ -14,6 +14,7 @@ import (
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/msghub"
 	"github.com/jhillyerd/inbucket/pop3d"
 	"github.com/jhillyerd/inbucket/rest"
 	"github.com/jhillyerd/inbucket/smtpd"
@@ -95,11 +96,14 @@ func main() {
 		}
 	}
 
+	// Create message hub
+	msgHub := msghub.New(rootCtx, config.GetWebConfig().MonitorHistory)
+
 	// Grab our datastore
 	ds := smtpd.DefaultFileDataStore()
 
 	// Start HTTP server
-	httpd.Initialize(config.GetWebConfig(), ds, shutdownChan)
+	httpd.Initialize(config.GetWebConfig(), shutdownChan, ds, msgHub)
 	webui.SetupRoutes(httpd.Router)
 	rest.SetupRoutes(httpd.Router)
 	go httpd.Start(rootCtx)
@@ -110,7 +114,7 @@ func main() {
 	go pop3Server.Start(rootCtx)
 
 	// Startup SMTP server
-	smtpServer = smtpd.NewServer(config.GetSMTPConfig(), ds, shutdownChan)
+	smtpServer = smtpd.NewServer(config.GetSMTPConfig(), shutdownChan, ds, msgHub)
 	go smtpServer.Start(rootCtx)
 
 	// Loop forever waiting for signals or shutdown channel

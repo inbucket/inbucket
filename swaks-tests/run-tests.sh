@@ -31,7 +31,7 @@ export SWAKS_OPT_to="$to@inbucket.local"
 swaks $* --h-Subject: "Swaks Plain Text" --body text.txt
 
 # Multi-recipient test
-swaks $* --to="$to@inbucket.local,Alt User <alternate@inbucket.local>" --h-Subject: "Swaks Multi-Recipient" \
+swaks $* --to="$to@inbucket.local,alternate@inbucket.local" --h-Subject: "Swaks Multi-Recipient" \
   --body text.txt
 
 # HTML test

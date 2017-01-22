@@ -4,11 +4,12 @@ Inbucket
 
 Inbucket is an email testing service; it will accept messages for any email
 address and make them available via web, REST and POP3.  Once compiled,
-Inbucket does not have an external dependencies (HTTP, SMTP, POP3 and storage
+Inbucket does not have any external dependencies (HTTP, SMTP, POP3 and storage
 are all built in).
 
 Read more at the [Inbucket Website]
 
+![Screenshot](http://www.inbucket.org/images/inbucket-ss1.png "Viewing a message")
 
 ## Development Status
 

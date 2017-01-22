@@ -8,6 +8,7 @@ import (
 
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/httpd"
+	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 // RootIndex serves the Inbucket landing page
@@ -46,6 +47,34 @@ func RootMonitor(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 	return httpd.RenderTemplate("root/monitor.html", w, map[string]interface{}{
 		"ctx":        ctx,
 		"errorFlash": errorFlash,
+	})
+}
+
+// RootMonitorMailbox serves the Inbucket monitor page for a particular mailbox
+func RootMonitorMailbox(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
+	if !config.GetWebConfig().MonitorVisible {
+		ctx.Session.AddFlash("Monitor is disabled in configuration", "errors")
+		_ = ctx.Session.Save(req, w)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		ctx.Session.AddFlash(err.Error(), "errors")
+		_ = ctx.Session.Save(req, w)
+		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
+	// Get flash messages, save session
+	errorFlash := ctx.Session.Flashes("errors")
+	if err = ctx.Session.Save(req, w); err != nil {
+		return err
+	}
+	// Render template
+	return httpd.RenderTemplate("root/monitor.html", w, map[string]interface{}{
+		"ctx":        ctx,
+		"errorFlash": errorFlash,
+		"name":       name,
 	})
 }
 

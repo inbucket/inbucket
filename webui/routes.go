@@ -12,6 +12,8 @@ func SetupRoutes(r *mux.Router) {
 		httpd.Handler(RootIndex)).Name("RootIndex").Methods("GET")
 	r.Path("/monitor").Handler(
 		httpd.Handler(RootMonitor)).Name("RootMonitor").Methods("GET")
+	r.Path("/monitor/{name}").Handler(
+		httpd.Handler(RootMonitorMailbox)).Name("RootMonitorMailbox").Methods("GET")
 	r.Path("/status").Handler(
 		httpd.Handler(RootStatus)).Name("RootStatus").Methods("GET")
 	r.Path("/link/{name}/{id}").Handler(

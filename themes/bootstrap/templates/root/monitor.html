@@ -5,7 +5,7 @@
 <script>
 $(document).ready(function () {
   $('#nav-monitor').addClass('active');
-  startMonitor();
+  startMonitor('{{.name}}');
 });
 </script>
 <script type="text/html" id="message-template">
@@ -32,7 +32,12 @@ $(document).ready(function () {
   <button class="btn btn-primary" onclick="clearClick();">Clear</button>
 </div>
 
-<p class="small">Messages will be listed here shortly after delivery.</p>
+<p class="small">
+  Messages will be listed here shortly after delivery.
+  {{with .name}}
+  Only showing messages for mailbox <code>{{.}}</code>.
+  {{end}}
+</p>
 
 <div class="table-responsive clearfix">
   <table class="table table-condensed table-hover">

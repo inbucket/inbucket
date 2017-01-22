@@ -16,6 +16,8 @@ func SetupRoutes(r *mux.Router) {
 		httpd.Handler(MailboxDeleteV1)).Name("MailboxDeleteV1").Methods("DELETE")
 	r.Path("/api/v1/mailbox/{name}/{id}/source").Handler(
 		httpd.Handler(MailboxSourceV1)).Name("MailboxSourceV1").Methods("GET")
-	r.Path("/api/v1/monitor/all/messages").Handler(
+	r.Path("/api/v1/monitor/messages").Handler(
 		httpd.Handler(MonitorAllMessagesV1)).Name("MonitorAllMessagesV1").Methods("GET")
+	r.Path("/api/v1/monitor/messages/{name}").Handler(
+		httpd.Handler(MonitorMailboxMessagesV1)).Name("MonitorMailboxMessagesV1").Methods("GET")
 }

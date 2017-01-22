@@ -1,6 +1,6 @@
 var baseURL = window.location.protocol + '//' + window.location.host;
 
-function startMonitor() {
+function startMonitor(mailbox) {
   $.addTemplateFormatter({
     "date": function(value, template) {
       return moment(value).calendar();
@@ -13,7 +13,10 @@ function startMonitor() {
     }
   });
 
-  var uri = '/api/v1/monitor/all/messages'
+  var uri = '/api/v1/monitor/messages'
+  if (mailbox) {
+    uri += '/' + mailbox;
+  }
   var l = window.location;
   var url = ((l.protocol === "https:") ? "wss://" : "ws://") + l.host + uri
   var ws = new WebSocket(url);

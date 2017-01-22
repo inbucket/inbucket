@@ -9,6 +9,7 @@ import (
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/msghub"
 	"github.com/jhillyerd/inbucket/rest/model"
+	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 const (
@@ -33,15 +34,18 @@ var upgrader = websocket.Upgrader{
 
 // msgListener handles messages from the msghub
 type msgListener struct {
-	hub *msghub.Hub
-	c   chan msghub.Message
+	hub     *msghub.Hub         // Global message hub
+	c       chan msghub.Message // Queue of messages from Receive()
+	mailbox string              // Name of mailbox to monitor, "" == all mailboxes
 }
 
-// newMsgListener creates a listener and registers it
-func newMsgListener(hub *msghub.Hub) *msgListener {
+// newMsgListener creates a listener and registers it.  Optional mailbox parameter will restrict
+// messages sent to WebSocket to that mailbox only.
+func newMsgListener(hub *msghub.Hub, mailbox string) *msgListener {
 	ml := &msgListener{
-		hub: hub,
-		c:   make(chan msghub.Message, 100),
+		hub:     hub,
+		c:       make(chan msghub.Message, 100),
+		mailbox: mailbox,
 	}
 	hub.AddListener(ml)
 	return ml
@@ -49,11 +53,15 @@ func newMsgListener(hub *msghub.Hub) *msgListener {
 
 // Receive handles an incoming message
 func (ml *msgListener) Receive(msg msghub.Message) error {
+	if ml.mailbox != "" && ml.mailbox != msg.Mailbox {
+		// Did not match mailbox name
+		return nil
+	}
 	ml.c <- msg
 	return nil
 }
 
-// WSReader makes sure the websocket client is still connected
+// WSReader makes sure the websocket client is still connected, discards any messages from client
 func (ml *msgListener) WSReader(conn *websocket.Conn) {
 	defer ml.Close()
 	conn.SetReadLimit(maxMessageSize)
@@ -152,7 +160,34 @@ func MonitorAllMessagesV1(
 	log.Tracef("HTTP[%v] Upgraded to websocket", req.RemoteAddr)
 
 	// Create, register listener; then interact with conn
-	ml := newMsgListener(ctx.MsgHub)
+	ml := newMsgListener(ctx.MsgHub, "")
+	go ml.WSWriter(conn)
+	ml.WSReader(conn)
+
+	return nil
+}
+
+func MonitorMailboxMessagesV1(
+	w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
+	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	if err != nil {
+		return err
+	}
+	// Upgrade to Websocket
+	conn, err := upgrader.Upgrade(w, req, nil)
+	if err != nil {
+		return err
+	}
+	httpd.ExpWebSocketConnectsCurrent.Add(1)
+	defer func() {
+		_ = conn.Close()
+		httpd.ExpWebSocketConnectsCurrent.Add(-1)
+	}()
+
+	log.Tracef("HTTP[%v] Upgraded to websocket", req.RemoteAddr)
+
+	// Create, register listener; then interact with conn
+	ml := newMsgListener(ctx.MsgHub, name)
 	go ml.WSWriter(conn)
 	ml.WSReader(conn)
 

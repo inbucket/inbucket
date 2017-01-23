@@ -26,9 +26,10 @@ type Server struct {
 	storeMessages   bool
 
 	// Dependencies
-	dataStore      DataStore   // Mailbox/message store
-	globalShutdown chan bool   // Shuts down Inbucket
-	msgHub         *msghub.Hub // Pub/sub for message info
+	dataStore        DataStore         // Mailbox/message store
+	globalShutdown   chan bool         // Shuts down Inbucket
+	msgHub           *msghub.Hub       // Pub/sub for message info
+	retentionScanner *RetentionScanner // Deletes expired messages
 
 	// State
 	listener  net.Listener    // Incoming network connections
@@ -63,16 +64,17 @@ func NewServer(
 	ds DataStore,
 	msgHub *msghub.Hub) *Server {
 	return &Server{
-		domain:          cfg.Domain,
-		domainNoStore:   strings.ToLower(cfg.DomainNoStore),
-		maxRecips:       cfg.MaxRecipients,
-		maxIdleSeconds:  cfg.MaxIdleSeconds,
-		maxMessageBytes: cfg.MaxMessageBytes,
-		storeMessages:   cfg.StoreMessages,
-		globalShutdown:  globalShutdown,
-		dataStore:       ds,
-		msgHub:          msgHub,
-		waitgroup:       new(sync.WaitGroup),
+		domain:           cfg.Domain,
+		domainNoStore:    strings.ToLower(cfg.DomainNoStore),
+		maxRecips:        cfg.MaxRecipients,
+		maxIdleSeconds:   cfg.MaxIdleSeconds,
+		maxMessageBytes:  cfg.MaxMessageBytes,
+		storeMessages:    cfg.StoreMessages,
+		globalShutdown:   globalShutdown,
+		dataStore:        ds,
+		msgHub:           msgHub,
+		retentionScanner: NewRetentionScanner(ds, globalShutdown),
+		waitgroup:        new(sync.WaitGroup),
 	}
 }
 
@@ -102,7 +104,7 @@ func (s *Server) Start(ctx context.Context) {
 	}
 
 	// Start retention scanner
-	StartRetentionScanner(s.dataStore, s.globalShutdown)
+	s.retentionScanner.Start()
 
 	// Listener go routine
 	go s.serve(ctx)
@@ -174,7 +176,7 @@ func (s *Server) Drain() {
 	// Wait for sessions to close
 	s.waitgroup.Wait()
 	log.Tracef("SMTP connections have drained")
-	RetentionJoin()
+	s.retentionScanner.Join()
 }
 
 // When the provided Ticker ticks, we update our metrics history

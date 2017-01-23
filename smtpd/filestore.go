@@ -19,11 +19,14 @@ import (
 const indexFileName = "index.gob"
 
 var (
-	// indexLock is locked while reading/writing an index file
+	// indexMx is locked while reading/writing an index file
 	//
 	// NOTE: This is a bottleneck because it's a single lock even if we have a
 	// million index files
-	indexLock = new(sync.RWMutex)
+	indexMx = new(sync.RWMutex)
+
+	// dirMx is locked while creating/removing directories
+	dirMx = new(sync.Mutex)
 
 	// countChannel is filled with a sequential numbers (0000..9999), which are
 	// used by generateID() to generate unique message IDs.  It's global
@@ -198,8 +201,8 @@ func (mb *FileMailbox) readIndex() error {
 	// Clear message slice, open index
 	mb.messages = mb.messages[:0]
 	// Lock for reading
-	indexLock.RLock()
-	defer indexLock.RUnlock()
+	indexMx.RLock()
+	defer indexMx.RUnlock()
 	// Check if index exists
 	if _, err := os.Stat(mb.indexPath); err != nil {
 		// Does not exist, but that's not an error in our world
@@ -238,6 +241,8 @@ func (mb *FileMailbox) readIndex() error {
 
 // createDir checks for the presence of the path for this mailbox, creates it if needed
 func (mb *FileMailbox) createDir() error {
+	dirMx.Lock()
+	defer dirMx.Unlock()
 	if _, err := os.Stat(mb.path); err != nil {
 		if err := os.MkdirAll(mb.path, 0770); err != nil {
 			log.Errorf("Failed to create directory %v, %v", mb.path, err)
@@ -250,8 +255,8 @@ func (mb *FileMailbox) createDir() error {
 // writeIndex overwrites the index on disk with the current mailbox data
 func (mb *FileMailbox) writeIndex() error {
 	// Lock for writing
-	indexLock.Lock()
-	defer indexLock.Unlock()
+	indexMx.Lock()
+	defer indexMx.Unlock()
 	if len(mb.messages) > 0 {
 		// Ensure mailbox directory exists
 		if err := mb.createDir(); err != nil {
@@ -283,6 +288,9 @@ func (mb *FileMailbox) writeIndex() error {
 	} else {
 		// No messages, delete index+maildir
 		log.Tracef("Removing mailbox %v", mb.path)
+		// deletes are dangerous, requires write lock
+		dirMx.Lock()
+		defer dirMx.Unlock()
 		return os.RemoveAll(mb.path)
 	}
 

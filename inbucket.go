@@ -89,8 +89,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 
 	// Initialize logging
-	level, _ := config.Config.String("logging", "level")
-	log.SetLogLevel(level)
+	log.SetLogLevel(config.GetLogLevel())
 	if err := log.Initialize(*logfile); err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)

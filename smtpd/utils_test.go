@@ -99,7 +99,8 @@ func TestValidateLocal(t *testing.T) {
 	}{
 		{"", false, "Empty local is not valid"},
 		{"a", true, "Single letter should be fine"},
-		{strings.Repeat("a", 65), false, "Only valid up to 64 characters"},
+		{strings.Repeat("a", 128), true, "Valid up to 128 characters"},
+		{strings.Repeat("a", 129), false, "Only valid up to 128 characters"},
 		{"FirstLast", true, "Mixed case permitted"},
 		{"user123", true, "Numbers permitted"},
 		{"a!#$%&'*+-/=?^_`{|}~", true, "Any of !#$%&'*+-/=?^_`{|}~ are permitted"},

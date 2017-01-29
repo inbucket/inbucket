@@ -1,28 +1,31 @@
-Inbucket [![Build Status](https://travis-ci.org/jhillyerd/inbucket.png?branch=master)][Build Status]
-========
+Inbucket 
+=============================================================================
+[![Build Status](https://travis-ci.org/jhillyerd/inbucket.png?branch=master)][Build Status]
 
 Inbucket is an email testing service; it will accept messages for any email
 address and make them available via web, REST and POP3.  Once compiled,
-Inbucket does not have an external dependencies (HTTP, SMTP, POP3 and storage
+Inbucket does not have any external dependencies (HTTP, SMTP, POP3 and storage
 are all built in).
 
 Read more at the [Inbucket Website]
 
-Development Status
-------------------
+![Screenshot](http://www.inbucket.org/images/inbucket-ss1.png "Viewing a message")
+
+## Development Status
 
 Inbucket is currently production quality: it is being used for real work.
 
-Please see the [Change Log] and [Issues List] for more details.
+Please see the [Change Log] and [Issues List] for more details.  If you'd like
+to contribute code to the project check out [CONTRIBUTING.md].
 
-Homebrew Tap
-------------
+
+## Homebrew Tap
 
 Inbucket has an OS X [Homebrew] tap available as [jhillyerd/inbucket][Homebrew Tap],
 see the `README.md` there for installation instructions.
 
-Building from Source
---------------------
+
+## Building from Source
 
 You will need a functioning [Go installation][Google Go] for this to work.
 
@@ -41,8 +44,8 @@ the web interface will be available at [localhost:9000](http://localhost:9000/).
 The Inbucket website has a more complete guide to
 [installing from source][From Source]
 
-About
------
+
+## About
 
 Inbucket is written in [Google Go]
 
@@ -51,6 +54,7 @@ version can be found at https://github.com/jhillyerd/inbucket
 
 [Build Status]:     https://travis-ci.org/jhillyerd/inbucket
 [Change Log]:       https://github.com/jhillyerd/inbucket/blob/master/CHANGELOG.md
+[CONTRIBUTING.md]:  https://github.com/jhillyerd/inbucket/blob/develop/CONTRIBUTING.md
 [From Source]:      http://www.inbucket.org/installation/from-source.html
 [Google Go]:        http://golang.org/
 [Homebrew]:         http://brew.sh/

@@ -17,7 +17,7 @@ function deleteMessage(id) {
   $('#message-content').empty();
   $.ajax({
     type: 'DELETE',
-    url: '/mailbox/' + mailbox + '/' + id,
+    url: '/api/v1/mailbox/' + mailbox + '/' + id,
     success: loadList
   })
 }

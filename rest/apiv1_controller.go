@@ -4,41 +4,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/mail"
-	"time"
+
+	"crypto/md5"
+	"encoding/hex"
+	"io/ioutil"
+	"strconv"
 
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/rest/model"
 	"github.com/jhillyerd/inbucket/smtpd"
 )
-
-// JSONMessageHeaderV1 contains the basic header data for a message
-type JSONMessageHeaderV1 struct {
-	Mailbox string    `json:"mailbox"`
-	ID      string    `json:"id"`
-	From    string    `json:"from"`
-	Subject string    `json:"subject"`
-	Date    time.Time `json:"date"`
-	Size    int64     `json:"size"`
-}
-
-// JSONMessageV1 contains the same data as the header plus a JSONMessageBody
-type JSONMessageV1 struct {
-	Mailbox string             `json:"mailbox"`
-	ID      string             `json:"id"`
-	From    string             `json:"from"`
-	Subject string             `json:"subject"`
-	Date    time.Time          `json:"date"`
-	Size    int64              `json:"size"`
-	Body    *JSONMessageBodyV1 `json:"body"`
-	Header  mail.Header        `json:"header"`
-}
-
-// JSONMessageBodyV1 contains the Text and HTML versions of the message body
-type JSONMessageBodyV1 struct {
-	Text string `json:"text"`
-	HTML string `json:"html"`
-}
 
 // MailboxListV1 renders a list of messages in a mailbox
 func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
@@ -59,12 +35,13 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 	}
 	log.Tracef("Got %v messsages", len(messages))
 
-	jmessages := make([]*JSONMessageHeaderV1, len(messages))
+	jmessages := make([]*model.JSONMessageHeaderV1, len(messages))
 	for i, msg := range messages {
-		jmessages[i] = &JSONMessageHeaderV1{
+		jmessages[i] = &model.JSONMessageHeaderV1{
 			Mailbox: name,
 			ID:      msg.ID(),
 			From:    msg.From(),
+			To:      msg.To(),
 			Subject: msg.Subject(),
 			Date:    msg.Date(),
 			Size:    msg.Size(),
@@ -104,19 +81,35 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
 	}
 
+	attachments := make([]*model.JSONMessageAttachmentV1, len(mime.Attachments))
+	for i, att := range mime.Attachments {
+		var content []byte
+		content, err = ioutil.ReadAll(att)
+		var checksum = md5.Sum(content)
+		attachments[i] = &model.JSONMessageAttachmentV1{
+			ContentType:  att.ContentType,
+			FileName:     att.FileName,
+			DownloadLink: "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
+			ViewLink:     "http://" + req.Host + "/mailbox/vattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
+			MD5:          hex.EncodeToString(checksum[:]),
+		}
+	}
+
 	return httpd.RenderJSON(w,
-		&JSONMessageV1{
+		&model.JSONMessageV1{
 			Mailbox: name,
 			ID:      msg.ID(),
 			From:    msg.From(),
+			To:      msg.To(),
 			Subject: msg.Subject(),
 			Date:    msg.Date(),
 			Size:    msg.Size(),
 			Header:  header.Header,
-			Body: &JSONMessageBodyV1{
+			Body: &model.JSONMessageBodyV1{
 				Text: mime.Text,
 				HTML: mime.HTML,
 			},
+			Attachments: attachments,
 		})
 }
 
@@ -176,7 +169,7 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Contex
 	return nil
 }
 
-// MailboxDeleteV1 removes a particular message from a mailbox.  Renders JSON or plain/text OK
+// MailboxDeleteV1 removes a particular message from a mailbox
 func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]

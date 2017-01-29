@@ -9,14 +9,16 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/jhillyerd/go.enmime"
+	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/httpd"
+	"github.com/jhillyerd/inbucket/msghub"
 	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 type InputMessageData struct {
 	Mailbox, ID, From, Subject string
+	To                         []string
 	Date                       time.Time
 	Size                       int
 	Header                     mail.Header
@@ -27,6 +29,7 @@ func (d *InputMessageData) MockMessage() *MockMessage {
 	msg := &MockMessage{}
 	msg.On("ID").Return(d.ID)
 	msg.On("From").Return(d.From)
+	msg.On("To").Return(d.To)
 	msg.On("Subject").Return(d.Subject)
 	msg.On("Date").Return(d.Date)
 	msg.On("Size").Return(d.Size)
@@ -34,7 +37,7 @@ func (d *InputMessageData) MockMessage() *MockMessage {
 		Header: d.Header,
 	}
 	msg.On("ReadHeader").Return(gomsg, nil)
-	body := &enmime.MIMEBody{
+	body := &enmime.Envelope{
 		Text: d.Text,
 		HTML: d.HTML,
 	}
@@ -78,6 +81,11 @@ func (d *InputMessageData) CompareToJSONHeaderMap(json interface{}) (errors []st
 		}
 		if msg, ok := isJSONStringEqual(fromKey, d.From, m[fromKey]); !ok {
 			errors = append(errors, msg)
+		}
+		for i, inputTo := range d.To {
+			if msg, ok := isJSONStringEqual(toKey, inputTo, m[toKey].([]interface{})[i]); !ok {
+				errors = append(errors, msg)
+			}
 		}
 		if msg, ok := isJSONStringEqual(subjectKey, d.Subject, m[subjectKey]); !ok {
 			errors = append(errors, msg)
@@ -188,11 +196,11 @@ func setupWebServer(ds smtpd.DataStore) *bytes.Buffer {
 	// Have to reset default mux to prevent duplicate routes
 	http.DefaultServeMux = http.NewServeMux()
 	cfg := config.WebConfig{
-		TemplateDir: "../themes/integral/templates",
-		PublicDir:   "../themes/integral/public",
+		TemplateDir: "../themes/bootstrap/templates",
+		PublicDir:   "../themes/bootstrap/public",
 	}
 	shutdownChan := make(chan bool)
-	httpd.Initialize(cfg, ds, shutdownChan)
+	httpd.Initialize(cfg, shutdownChan, ds, &msghub.Hub{})
 	SetupRoutes(httpd.Router)
 
 	return buf

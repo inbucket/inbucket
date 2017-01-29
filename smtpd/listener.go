@@ -2,6 +2,7 @@ package smtpd
 
 import (
 	"container/list"
+	"context"
 	"expvar"
 	"fmt"
 	"net"
@@ -11,27 +12,28 @@ import (
 
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/msghub"
 )
 
 // Server holds the configuration and state of our SMTP server
 type Server struct {
+	// Configuration
 	domain          string
 	domainNoStore   string
 	maxRecips       int
 	maxIdleSeconds  int
 	maxMessageBytes int
-	dataStore       DataStore
 	storeMessages   bool
-	listener        net.Listener
 
-	// globalShutdown is the signal Inbucket needs to shut down
-	globalShutdown chan bool
+	// Dependencies
+	dataStore        DataStore         // Mailbox/message store
+	globalShutdown   chan bool         // Shuts down Inbucket
+	msgHub           *msghub.Hub       // Pub/sub for message info
+	retentionScanner *RetentionScanner // Deletes expired messages
 
-	// localShutdown indicates this component has completed shutting down
-	localShutdown chan bool
-
-	// waitgroup tracks individual sessions
-	waitgroup *sync.WaitGroup
+	// State
+	listener  net.Listener    // Incoming network connections
+	waitgroup *sync.WaitGroup // Waitgroup tracks individual sessions
 }
 
 var (
@@ -56,30 +58,33 @@ var (
 )
 
 // NewServer creates a new Server instance with the specificed config
-func NewServer(cfg config.SMTPConfig, ds DataStore, globalShutdown chan bool) *Server {
+func NewServer(
+	cfg config.SMTPConfig,
+	globalShutdown chan bool,
+	ds DataStore,
+	msgHub *msghub.Hub) *Server {
 	return &Server{
-		dataStore:       ds,
-		domain:          cfg.Domain,
-		maxRecips:       cfg.MaxRecipients,
-		maxIdleSeconds:  cfg.MaxIdleSeconds,
-		maxMessageBytes: cfg.MaxMessageBytes,
-		storeMessages:   cfg.StoreMessages,
-		domainNoStore:   strings.ToLower(cfg.DomainNoStore),
-		waitgroup:       new(sync.WaitGroup),
-		globalShutdown:  globalShutdown,
-		localShutdown:   make(chan bool),
+		domain:           cfg.Domain,
+		domainNoStore:    strings.ToLower(cfg.DomainNoStore),
+		maxRecips:        cfg.MaxRecipients,
+		maxIdleSeconds:   cfg.MaxIdleSeconds,
+		maxMessageBytes:  cfg.MaxMessageBytes,
+		storeMessages:    cfg.StoreMessages,
+		globalShutdown:   globalShutdown,
+		dataStore:        ds,
+		msgHub:           msgHub,
+		retentionScanner: NewRetentionScanner(ds, globalShutdown),
+		waitgroup:        new(sync.WaitGroup),
 	}
 }
 
 // Start the listener and handle incoming connections
-func (s *Server) Start() {
+func (s *Server) Start(ctx context.Context) {
 	cfg := config.GetSMTPConfig()
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
 		cfg.IP4address, cfg.IP4port))
 	if err != nil {
 		log.Errorf("Failed to build tcp4 address: %v", err)
-		// serve() never called, so we do local shutdown here
-		close(s.localShutdown)
 		s.emergencyShutdown()
 		return
 	}
@@ -88,8 +93,6 @@ func (s *Server) Start() {
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
 		log.Errorf("SMTP failed to start tcp4 listener: %v", err)
-		// serve() never called, so we do local shutdown here
-		close(s.localShutdown)
 		s.emergencyShutdown()
 		return
 	}
@@ -101,14 +104,14 @@ func (s *Server) Start() {
 	}
 
 	// Start retention scanner
-	StartRetentionScanner(s.dataStore, s.globalShutdown)
+	s.retentionScanner.Start()
 
 	// Listener go routine
-	go s.serve()
+	go s.serve(ctx)
 
 	// Wait for shutdown
 	select {
-	case _ = <-s.globalShutdown:
+	case <-ctx.Done():
 		log.Tracef("SMTP shutdown requested, connections will be drained")
 	}
 
@@ -119,7 +122,7 @@ func (s *Server) Start() {
 }
 
 // serve is the listen/accept loop
-func (s *Server) serve() {
+func (s *Server) serve(ctx context.Context) {
 	// Handle incoming connections
 	var tempDelay time.Duration
 	for sessionID := 1; ; sessionID++ {
@@ -141,11 +144,11 @@ func (s *Server) serve() {
 			} else {
 				// Permanent error
 				select {
-				case _ = <-s.globalShutdown:
-					close(s.localShutdown)
+				case <-ctx.Done():
+					// SMTP is shutting down
 					return
 				default:
-					close(s.localShutdown)
+					// Something went wrong
 					s.emergencyShutdown()
 					return
 				}
@@ -170,14 +173,10 @@ func (s *Server) emergencyShutdown() {
 
 // Drain causes the caller to block until all active SMTP sessions have finished
 func (s *Server) Drain() {
-	// Wait for listener to exit
-	select {
-	case _ = <-s.localShutdown:
-	}
 	// Wait for sessions to close
 	s.waitgroup.Wait()
 	log.Tracef("SMTP connections have drained")
-	RetentionJoin()
+	s.retentionScanner.Join()
 }
 
 // When the provided Ticker ticks, we update our metrics history

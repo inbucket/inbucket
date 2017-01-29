@@ -1,0 +1,8 @@
+/var/log/inbucket.log {
+  missingok
+  notifempty
+  create 0644 inbucket inbucket
+  postrotate
+    [ -x /bin/systemctl ] && /bin/systemctl reload inbucket >/dev/null 2>&1 || true
+  endscript
+}

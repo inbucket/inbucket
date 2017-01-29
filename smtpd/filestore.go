@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/mail"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/jhillyerd/go.enmime"
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/log"
 )
@@ -21,11 +19,14 @@ import (
 const indexFileName = "index.gob"
 
 var (
-	// indexLock is locked while reading/writing an index file
+	// indexMx is locked while reading/writing an index file
 	//
-	// NOTE: This is a bottleneck because  it's a single lock even if we have a
+	// NOTE: This is a bottleneck because it's a single lock even if we have a
 	// million index files
-	indexLock = new(sync.RWMutex)
+	indexMx = new(sync.RWMutex)
+
+	// dirMx is locked while creating/removing directories
+	dirMx = new(sync.Mutex)
 
 	// countChannel is filled with a sequential numbers (0000..9999), which are
 	// used by generateID() to generate unique message IDs.  It's global
@@ -148,6 +149,10 @@ type FileMailbox struct {
 	messages    []*FileMessage
 }
 
+func (mb *FileMailbox) Name() string {
+	return mb.name
+}
+
 func (mb *FileMailbox) String() string {
 	return mb.name + "[" + mb.dirName + "]"
 }
@@ -196,8 +201,8 @@ func (mb *FileMailbox) readIndex() error {
 	// Clear message slice, open index
 	mb.messages = mb.messages[:0]
 	// Lock for reading
-	indexLock.RLock()
-	defer indexLock.RUnlock()
+	indexMx.RLock()
+	defer indexMx.RUnlock()
 	// Check if index exists
 	if _, err := os.Stat(mb.indexPath); err != nil {
 		// Does not exist, but that's not an error in our world
@@ -234,22 +239,11 @@ func (mb *FileMailbox) readIndex() error {
 	return nil
 }
 
-// createDir checks for the presence of the path for this mailbox, creates it if needed
-func (mb *FileMailbox) createDir() error {
-	if _, err := os.Stat(mb.path); err != nil {
-		if err := os.MkdirAll(mb.path, 0770); err != nil {
-			log.Errorf("Failed to create directory %v, %v", mb.path, err)
-			return err
-		}
-	}
-	return nil
-}
-
 // writeIndex overwrites the index on disk with the current mailbox data
 func (mb *FileMailbox) writeIndex() error {
 	// Lock for writing
-	indexLock.Lock()
-	defer indexLock.Unlock()
+	indexMx.Lock()
+	defer indexMx.Unlock()
 	if len(mb.messages) > 0 {
 		// Ensure mailbox directory exists
 		if err := mb.createDir(); err != nil {
@@ -281,248 +275,64 @@ func (mb *FileMailbox) writeIndex() error {
 	} else {
 		// No messages, delete index+maildir
 		log.Tracef("Removing mailbox %v", mb.path)
-		return os.RemoveAll(mb.path)
+		return mb.removeDir()
 	}
 
 	return nil
 }
 
-// FileMessage implements Message and contains a little bit of data about a
-// particular email message, and methods to retrieve the rest of it from disk.
-type FileMessage struct {
-	mailbox *FileMailbox
-	// Stored in GOB
-	Fid      string
-	Fdate    time.Time
-	Ffrom    string
-	Fsubject string
-	Fsize    int64
-	// These are for creating new messages only
-	writable   bool
-	writerFile *os.File
-	writer     *bufio.Writer
-}
-
-// NewMessage creates a new FileMessage object and sets the Date and Id fields.
-// It will also delete messages over messageCap if configured.
-func (mb *FileMailbox) NewMessage() (Message, error) {
-	// Load index
-	if !mb.indexLoaded {
-		if err := mb.readIndex(); err != nil {
-			return nil, err
-		}
-	}
-
-	// Delete old messages over messageCap
-	if mb.store.messageCap > 0 {
-		for len(mb.messages) >= mb.store.messageCap {
-			log.Infof("Mailbox %q over configured message cap", mb.name)
-			if err := mb.messages[0].Delete(); err != nil {
-				log.Errorf("Error deleting message: %s", err)
-			}
-		}
-	}
-
-	date := time.Now()
-	id := generateID(date)
-	return &FileMessage{mailbox: mb, Fid: id, Fdate: date, writable: true}, nil
-}
-
-// ID gets the ID of the Message
-func (m *FileMessage) ID() string {
-	return m.Fid
-}
-
-// Date returns the date/time this Message was received by Inbucket
-func (m *FileMessage) Date() time.Time {
-	return m.Fdate
-}
-
-// From returns the value of the Message From header
-func (m *FileMessage) From() string {
-	return m.Ffrom
-}
-
-// Subject returns the value of the Message Subject header
-func (m *FileMessage) Subject() string {
-	return m.Fsubject
-}
-
-// String returns a string in the form: "Subject()" from From()
-func (m *FileMessage) String() string {
-	return fmt.Sprintf("\"%v\" from %v", m.Fsubject, m.Ffrom)
-}
-
-// Size returns the size of the Message on disk in bytes
-func (m *FileMessage) Size() int64 {
-	return m.Fsize
-}
-
-func (m *FileMessage) rawPath() string {
-	return filepath.Join(m.mailbox.path, m.Fid+".raw")
-}
-
-// ReadHeader opens the .raw portion of a Message and returns a standard Go mail.Message object
-func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
-	file, err := os.Open(m.rawPath())
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", m.rawPath(), err)
-		}
-	}()
-
-	reader := bufio.NewReader(file)
-	return mail.ReadMessage(reader)
-}
-
-// ReadBody opens the .raw portion of a Message and returns a MIMEBody object
-func (m *FileMessage) ReadBody() (body *enmime.MIMEBody, err error) {
-	file, err := os.Open(m.rawPath())
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", m.rawPath(), err)
-		}
-	}()
-
-	reader := bufio.NewReader(file)
-	msg, err := mail.ReadMessage(reader)
-	if err != nil {
-		return nil, err
-	}
-	mime, err := enmime.ParseMIMEBody(msg)
-	if err != nil {
-		return nil, err
-	}
-	return mime, nil
-}
-
-// RawReader opens the .raw portion of a Message as an io.ReadCloser
-func (m *FileMessage) RawReader() (reader io.ReadCloser, err error) {
-	file, err := os.Open(m.rawPath())
-	if err != nil {
-		return nil, err
-	}
-	return file, nil
-}
-
-// ReadRaw opens the .raw portion of a Message and returns it as a string
-func (m *FileMessage) ReadRaw() (raw *string, err error) {
-	reader, err := m.RawReader()
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := reader.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", m.rawPath(), err)
-		}
-	}()
-
-	bodyBytes, err := ioutil.ReadAll(bufio.NewReader(reader))
-	if err != nil {
-		return nil, err
-	}
-	bodyString := string(bodyBytes)
-	return &bodyString, nil
-}
-
-// Append data to a newly opened Message, this will fail on a pre-existing Message and
-// after Close() is called.
-func (m *FileMessage) Append(data []byte) error {
-	// Prevent Appending to a pre-existing Message
-	if !m.writable {
-		return ErrNotWritable
-	}
-	// Open file for writing if we haven't yet
-	if m.writer == nil {
-		// Ensure mailbox directory exists
-		if err := m.mailbox.createDir(); err != nil {
-			return err
-		}
-		file, err := os.Create(m.rawPath())
-		if err != nil {
-			// Set writable false just in case something calls me a million times
-			m.writable = false
-			return err
-		}
-		m.writerFile = file
-		m.writer = bufio.NewWriter(file)
-	}
-	_, err := m.writer.Write(data)
-	m.Fsize += int64(len(data))
-	return err
-}
-
-// Close this Message for writing - no more data may be Appended.  Close() will also
-// trigger the creation of the .gob file.
-func (m *FileMessage) Close() error {
-	// nil out the writer fields so they can't be used
-	writer := m.writer
-	writerFile := m.writerFile
-	m.writer = nil
-	m.writerFile = nil
-
-	if writer != nil {
-		if err := writer.Flush(); err != nil {
+// createDir checks for the presence of the path for this mailbox, creates it if needed
+func (mb *FileMailbox) createDir() error {
+	dirMx.Lock()
+	defer dirMx.Unlock()
+	if _, err := os.Stat(mb.path); err != nil {
+		if err := os.MkdirAll(mb.path, 0770); err != nil {
+			log.Errorf("Failed to create directory %v, %v", mb.path, err)
 			return err
 		}
 	}
-	if writerFile != nil {
-		if err := writerFile.Close(); err != nil {
-			return err
-		}
-	}
+	return nil
+}
 
-	// Fetch headers
-	body, err := m.ReadBody()
-	if err != nil {
+// removeDir removes the mailbox, plus empty higher level directories
+func (mb *FileMailbox) removeDir() error {
+	dirMx.Lock()
+	defer dirMx.Unlock()
+	// remove mailbox dir, including index file
+	if err := os.RemoveAll(mb.path); err != nil {
 		return err
 	}
-
-	// Only public fields are stored in gob
-	m.Ffrom = body.GetHeader("From")
-	m.Fsubject = body.GetHeader("Subject")
-
-	// Refresh the index before adding our message
-	err = m.mailbox.readIndex()
-	if err != nil {
-		return err
+	// remove parents if empty
+	dir := filepath.Dir(mb.path)
+	if removeDirIfEmpty(dir) {
+		removeDirIfEmpty(filepath.Dir(dir))
 	}
-
-	// Made it this far without errors, add it to the index
-	m.mailbox.messages = append(m.mailbox.messages, m)
-	return m.mailbox.writeIndex()
+	return nil
 }
 
-// Delete this Message from disk by removing it from the index and deleting the
-// raw files.
-func (m *FileMessage) Delete() error {
-	messages := m.mailbox.messages
-	for i, mm := range messages {
-		if m == mm {
-			// Slice around message we are deleting
-			m.mailbox.messages = append(messages[:i], messages[i+1:]...)
-			break
-		}
+// removeDirIfEmpty will remove the specified directory if it contains no files or directories.
+// Caller should hold dirMx.  Returns true if dir was removed.
+func removeDirIfEmpty(path string) (removed bool) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
 	}
-	if err := m.mailbox.writeIndex(); err != nil {
-		return err
+	files, err := f.Readdirnames(0)
+	_ = f.Close()
+	if err != nil {
+		return false
 	}
-
-	if len(m.mailbox.messages) == 0 {
-		// This was the last message, thus writeIndex() has removed the entire
-		// directory; we don't need to delete the raw file.
-		return nil
+	if len(files) > 0 {
+		// Dir not empty
+		return false
 	}
-
-	// There are still messages in the index
-	log.Tracef("Deleting %v", m.rawPath())
-	return os.Remove(m.rawPath())
+	log.Tracef("Removing dir %v", path)
+	err = os.Remove(path)
+	if err != nil {
+		log.Errorf("Failed to remove %q: %v", path, err)
+		return false
+	}
+	return true
 }
 
 // generatePrefix converts a Time object into the ISO style format we use

@@ -182,8 +182,8 @@ LOOP:
 				inCharQuote = false
 			} else {
 				// End of local-part
-				if i > 63 {
-					return "", "", fmt.Errorf("Local part must not exceed 64 characters")
+				if i > 128 {
+					return "", "", fmt.Errorf("Local part must not exceed 128 characters")
 				}
 				if prev == '.' {
 					return "", "", fmt.Errorf("Local part cannot end with a period")

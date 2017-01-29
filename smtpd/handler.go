@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/msghub"
 )
 
 // State tracks the current mode of our SMTP state machine
@@ -65,6 +66,12 @@ var commands = map[string]bool{
 	"NOOP": true,
 	"QUIT": true,
 	"TURN": true,
+}
+
+// recipientDetails for message delivery
+type recipientDetails struct {
+	address, localPart, domainPart string
+	mailbox                        Mailbox
 }
 
 // Session holds the state of an SMTP session
@@ -341,14 +348,10 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 
 // DATA
 func (ss *Session) dataHandler() {
-	// Timestamp for Received header
-	stamp := time.Now().Format(timeStampFormat)
+	recipients := make([]recipientDetails, 0, ss.recipients.Len())
 	// Get a Mailbox and a new Message for each recipient
-	mailboxes := make([]Mailbox, ss.recipients.Len())
-	messages := make([]Message, ss.recipients.Len())
 	msgSize := 0
 	if ss.server.storeMessages {
-		i := 0
 		for e := ss.recipients.Front(); e != nil; e = e.Next() {
 			recip := e.Value.(string)
 			local, domain, err := ParseEmailAddress(recip)
@@ -367,35 +370,19 @@ func (ss *Session) dataHandler() {
 					ss.reset()
 					return
 				}
-				mailboxes[i] = mb
-				if messages[i], err = mb.NewMessage(); err != nil {
-					ss.logError("Failed to create message for %q: %s", local, err)
-					ss.send(fmt.Sprintf("451 Failed to create message for %v", local))
-					ss.reset()
-					return
-				}
-
-				// Generate Received header
-				recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
-					ss.remoteDomain, ss.remoteHost, ss.server.domain, recip, stamp)
-				if err := messages[i].Append([]byte(recd)); err != nil {
-					ss.logError("Failed to write received header for %q: %s", local, err)
-					ss.send(fmt.Sprintf("451 Failed to create message for %v", local))
-					ss.reset()
-					return
-				}
+				recipients = append(recipients, recipientDetails{recip, local, domain, mb})
 			} else {
 				log.Tracef("Not storing message for %q", recip)
 			}
-			i++
 		}
 	}
 
 	ss.send("354 Start mail input; end with <CRLF>.<CRLF>")
-	var buf bytes.Buffer
+	var lineBuf bytes.Buffer
+	msgBuf := make([][]byte, 0, 1024)
 	for {
-		buf.Reset()
-		err := ss.readByteLine(&buf)
+		lineBuf.Reset()
+		err := ss.readByteLine(&lineBuf)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
@@ -406,20 +393,20 @@ func (ss *Session) dataHandler() {
 			ss.enterState(QUIT)
 			return
 		}
-		line := buf.Bytes()
-		if string(line) == ".\r\n" {
+		line := lineBuf.Bytes()
+		// ss.logTrace("DATA: %q", line)
+		if string(line) == ".\r\n" || string(line) == ".\n" {
 			// Mail data complete
 			if ss.server.storeMessages {
-				for _, m := range messages {
-					if m != nil {
-						if err := m.Close(); err != nil {
-							// This logic should be updated to report failures
-							// writing the initial message file to the client
-							// after we implement a single-store system (issue
-							// #23)
-							ss.logError("Error: %v while writing message", err)
-						}
+				// Create a message for each valid recipient
+				for _, r := range recipients {
+					if ok := ss.deliverMessage(r, msgBuf); ok {
 						expReceivedTotal.Add(1)
+					} else {
+						// Delivery failure
+						ss.send(fmt.Sprintf("451 Failed to store message for %v", r.localPart))
+						ss.reset()
+						return
 					}
 				}
 			} else {
@@ -434,6 +421,8 @@ func (ss *Session) dataHandler() {
 		if len(line) > 0 && line[0] == '.' {
 			line = line[1:]
 		}
+		// Second append copies line/lineBuf so we can reuse it
+		msgBuf = append(msgBuf, append([]byte{}, line...))
 		msgSize += len(line)
 		if msgSize > ss.server.maxMessageBytes {
 			// Max message size exceeded
@@ -443,21 +432,52 @@ func (ss *Session) dataHandler() {
 			// Should really cleanup the crap on filesystem (after issue #23)
 			return
 		}
-		// Append to message objects
-		if ss.server.storeMessages {
-			for i, m := range messages {
-				if m != nil {
-					if err := m.Append(line); err != nil {
-						ss.logError("Failed to append to mailbox %v: %v", mailboxes[i], err)
-						ss.send("554 Something went wrong")
-						ss.reset()
-						// Should really cleanup the crap on filesystem (after issue #23)
-						return
-					}
-				}
-			}
+	} // end for
+}
+
+// deliverMessage creates and populates a new Message for the specified recipient
+func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool) {
+	msg, err := r.mailbox.NewMessage()
+	if err != nil {
+		ss.logError("Failed to create message for %q: %s", r.localPart, err)
+		return false
+	}
+
+	// Generate Received header
+	stamp := time.Now().Format(timeStampFormat)
+	recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
+		ss.remoteDomain, ss.remoteHost, ss.server.domain, r.address, stamp)
+	if err := msg.Append([]byte(recd)); err != nil {
+		ss.logError("Failed to write received header for %q: %s", r.localPart, err)
+		return false
+	}
+
+	// Append lines from msgBuf
+	for _, line := range msgBuf {
+		if err := msg.Append(line); err != nil {
+			ss.logError("Failed to append to mailbox %v: %v", r.mailbox, err)
+			// Should really cleanup the crap on filesystem
+			return false
 		}
 	}
+	if err := msg.Close(); err != nil {
+		ss.logError("Error while closing message for %v: %v", r.mailbox, err)
+		return false
+	}
+
+	// Broadcast message information
+	broadcast := msghub.Message{
+		Mailbox: r.mailbox.Name(),
+		ID:      msg.ID(),
+		From:    msg.From(),
+		To:      msg.To(),
+		Subject: msg.Subject(),
+		Date:    msg.Date(),
+		Size:    msg.Size(),
+	}
+	ss.server.msgHub.Dispatch(broadcast)
+
+	return true
 }
 
 func (ss *Session) enterState(state State) {
@@ -495,28 +515,15 @@ func (ss *Session) readByteLine(buf *bytes.Buffer) error {
 		return err
 	}
 	for {
-		line, err := ss.reader.ReadBytes('\r')
+		line, err := ss.reader.ReadBytes('\n')
 		if err != nil {
 			return err
 		}
 		if _, err = buf.Write(line); err != nil {
 			return err
 		}
-		// Read the next byte looking for '\n'
-		c, err := ss.reader.ReadByte()
-		if err != nil {
-			return err
-		}
-		if err = buf.WriteByte(c); err != nil {
-			return err
-		}
-		if c == '\n' {
-			// We've reached the end of the line, return
-			return nil
-		}
-		// Else, keep looking
+		return nil
 	}
-	// Should be unreachable
 }
 
 // Reads a line of input

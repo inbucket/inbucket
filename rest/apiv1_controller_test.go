@@ -19,6 +19,7 @@ const (
 	mailboxKey = "mailbox"
 	idKey      = "id"
 	fromKey    = "from"
+	toKey      = "to"
 	subjectKey = "subject"
 	dateKey    = "date"
 	sizeKey    = "size"
@@ -94,6 +95,7 @@ func TestRestMailboxList(t *testing.T) {
 		Mailbox: "good",
 		ID:      "0001",
 		From:    "from1",
+		To:      []string{"to1"},
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
 	}
@@ -101,6 +103,7 @@ func TestRestMailboxList(t *testing.T) {
 		Mailbox: "good",
 		ID:      "0002",
 		From:    "from2",
+		To:      []string{"to1"},
 		Subject: "subject 2",
 		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, time.FixedZone("PDT", -700)),
 	}

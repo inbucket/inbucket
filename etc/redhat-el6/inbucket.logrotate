@@ -1,8 +1,0 @@
-/var/log/inbucket.log {
-  missingok
-  notifempty
-  create 0644 inbucket inbucket
-  postrotate
-    [ -e /etc/init.d/inbucket ] && /etc/init.d/inbucket reload >/dev/null 2>&1 || true
-  endscript
-}

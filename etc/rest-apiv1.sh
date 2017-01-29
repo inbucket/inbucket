@@ -103,7 +103,7 @@ main() {
   esac
 
   # Use jq to pretty-print if installed and we are expecting JSON output
-  if [ $pretty ] && [ $is_json ] && type -P jq; then
+  if [ $pretty ] && [ $is_json ] && type -P jq >/dev/null; then
     curl -s $curl_opts -H "Accept: application/json" --noproxy "$API_HOST" -X "$method" "$url" | jq .
   else
     curl -s $curl_opts -H "Accept: application/json" --noproxy "$API_HOST" -X "$method" "$url"

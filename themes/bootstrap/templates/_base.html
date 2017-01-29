@@ -14,7 +14,7 @@
     <script src="/public/bower_components/jquery/dist/jquery.min.js"></script>
     <script src="/public/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
     <script src="/public/bower_components/clipboard/dist/clipboard.min.js"></script>
-    <script src="/public/bower_components/jquery-load-template/dist/jquery.loadTemplate-1.5.6.min.js"></script>
+    <script src="/public/bower_components/jquery-load-template/dist/jquery.loadTemplate.min.js"></script>
     <script src="/public/bower_components/moment/min/moment.min.js"></script>
     {{template "script" .}}
   </head>
@@ -48,7 +48,10 @@
               </ul>
             </li>
             {{end}}
-            <li id="nav-status"><a href="/status" accesskey="2">Status</a></li>
+            {{if .ctx.WebConfig.MonitorVisible}}
+            <li id="nav-monitor"><a href="/monitor" accesskey="2">Monitor</a></li>
+            {{end}}
+            <li id="nav-status"><a href="/status" accesskey="3">Status</a></li>
           </ul>
           <form class="navbar-form navbar-right" action="{{reverse "MailboxIndex"}}" method="GET">
             <div class="form-group">
@@ -58,7 +61,9 @@
                        placeholder="mailbox"
                        class="form-control"
                        aria-describedby="at-inbucket-addon"/>
-                <span class="input-group-addon" id="at-inbucket-addon">@inbucket</span>
+                {{with .ctx.WebConfig.MailboxPrompt}}
+                <span class="input-group-addon" id="at-inbucket-addon">{{.}}</span>
+                {{end}}
               </div>
             </div>
             <button type="submit" class="btn btn-success">View</button>
@@ -68,9 +73,9 @@
     </nav>
 
     <div class="container">
-      {{with .ctx.Session.Flashes "errors"}}
+      {{with .errorFlash}}
       <div class="alert alert-danger">
-        <p>Please fix the following errors and resubmit:<p>
+        <p>Please fix the following errors and try again:<p>
         <ul>
           {{range .}}
           <li>{{.}}</li>

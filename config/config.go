@@ -39,6 +39,7 @@ type WebConfig struct {
 	TemplateCache  bool
 	PublicDir      string
 	GreetingFile   string
+	MailboxPrompt  string
 	CookieAuthKey  string
 	MonitorVisible bool
 	MonitorHistory int
@@ -139,6 +140,7 @@ func LoadConfig(filename string) error {
 		{"web", "template.dir", &webConfig.TemplateDir, true},
 		{"web", "public.dir", &webConfig.PublicDir, true},
 		{"web", "greeting.file", &webConfig.GreetingFile, true},
+		{"web", "mailbox.prompt", &webConfig.MailboxPrompt, false},
 		{"web", "cookie.auth.key", &webConfig.CookieAuthKey, false},
 		{"datastore", "path", &dataStoreConfig.Path, true},
 	}

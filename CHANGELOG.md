@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Go client for REST API
 - Monitor feature: lists messages as they arrive, regardless of their
   destination mailbox
+- Make `@inbucket` mailbox prompt configurable
 
 ### Fixed
 - No longer run out of file handles when dealing with a large number of

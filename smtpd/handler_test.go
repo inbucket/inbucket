@@ -2,6 +2,7 @@ package smtpd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
@@ -28,8 +29,8 @@ func TestGreetState(t *testing.T) {
 	mb1 := &MockMailbox{}
 	mds.On("MailboxFor").Return(mb1, nil)
 
-	server, logbuf := setupSMTPServer(mds)
-	defer teardownSMTPServer(server)
+	server, logbuf, teardown := setupSMTPServer(mds)
+	defer teardown()
 
 	var script []scriptStep
 
@@ -89,8 +90,8 @@ func TestReadyState(t *testing.T) {
 	mb1 := &MockMailbox{}
 	mds.On("MailboxFor").Return(mb1, nil)
 
-	server, logbuf := setupSMTPServer(mds)
-	defer teardownSMTPServer(server)
+	server, logbuf, teardown := setupSMTPServer(mds)
+	defer teardown()
 
 	var script []scriptStep
 
@@ -164,8 +165,8 @@ func TestMailState(t *testing.T) {
 	msg1.On("Size").Return(0)
 	msg1.On("Close").Return(nil)
 
-	server, logbuf := setupSMTPServer(mds)
-	defer teardownSMTPServer(server)
+	server, logbuf, teardown := setupSMTPServer(mds)
+	defer teardown()
 
 	var script []scriptStep
 
@@ -281,8 +282,8 @@ func TestDataState(t *testing.T) {
 	msg1.On("Size").Return(0)
 	msg1.On("Close").Return(nil)
 
-	server, logbuf := setupSMTPServer(mds)
-	defer teardownSMTPServer(server)
+	server, logbuf, teardown := setupSMTPServer(mds)
+	defer teardown()
 
 	var script []scriptStep
 	pipe := setupSMTPSession(server)
@@ -375,7 +376,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupSMTPServer(ds DataStore) (*Server, *bytes.Buffer) {
+func setupSMTPServer(ds DataStore) (s *Server, buf *bytes.Buffer, teardown func()) {
 	// Test Server Config
 	cfg := config.SMTPConfig{
 		IP4address:      net.IPv4(127, 0, 0, 1),
@@ -389,12 +390,18 @@ func setupSMTPServer(ds DataStore) (*Server, *bytes.Buffer) {
 	}
 
 	// Capture log output
-	buf := new(bytes.Buffer)
+	buf = new(bytes.Buffer)
 	log.SetOutput(buf)
 
 	// Create a server, don't start it
 	shutdownChan := make(chan bool)
-	return NewServer(cfg, shutdownChan, ds, &msghub.Hub{}), buf
+	ctx, cancel := context.WithCancel(context.Background())
+	teardown = func() {
+		close(shutdownChan)
+		cancel()
+	}
+	s = NewServer(cfg, shutdownChan, ds, msghub.New(ctx, 100))
+	return s, buf, teardown
 }
 
 var sessionNum int
@@ -408,8 +415,4 @@ func setupSMTPSession(server *Server) net.Conn {
 	go server.startSession(sessionNum, &mockConn{serverConn})
 
 	return clientConn
-}
-
-func teardownSMTPServer(server *Server) {
-	//log.SetOutput(os.Stderr)
 }

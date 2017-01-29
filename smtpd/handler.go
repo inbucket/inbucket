@@ -475,7 +475,7 @@ func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool)
 		Date:    msg.Date(),
 		Size:    msg.Size(),
 	}
-	ss.server.msgHub.Broadcast(broadcast)
+	ss.server.msgHub.Dispatch(broadcast)
 
 	return true
 }

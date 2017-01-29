@@ -66,7 +66,7 @@ func TestHubZeroListeners(t *testing.T) {
 	hub := New(ctx, 5)
 	m := Message{}
 	for i := 0; i < 100; i++ {
-		hub.Broadcast(m)
+		hub.Dispatch(m)
 	}
 	// Just making sure Hub doesn't panic
 }
@@ -79,7 +79,7 @@ func TestHubOneListener(t *testing.T) {
 	l := newTestListener(1)
 
 	hub.AddListener(l)
-	hub.Broadcast(m)
+	hub.Dispatch(m)
 
 	// Wait for messages
 	select {
@@ -97,15 +97,16 @@ func TestHubRemoveListener(t *testing.T) {
 	l := newTestListener(1)
 
 	hub.AddListener(l)
-	hub.Broadcast(m)
+	hub.Dispatch(m)
 	hub.RemoveListener(l)
-	hub.Broadcast(m)
+	hub.Dispatch(m)
+	hub.Sync()
 
 	// Wait for messages
 	select {
 	case <-l.overflow:
 		t.Error(l)
-	case <-time.After(250 * time.Millisecond):
+	case <-time.After(50 * time.Millisecond):
 		// Expected result, no overflow
 	}
 }
@@ -121,21 +122,22 @@ func TestHubRemoveListenerOnError(t *testing.T) {
 	l.errorAfter = 1
 
 	hub.AddListener(l)
-	hub.Broadcast(m)
-	hub.Broadcast(m)
-	hub.Broadcast(m)
-	hub.Broadcast(m)
+	hub.Dispatch(m)
+	hub.Dispatch(m)
+	hub.Dispatch(m)
+	hub.Dispatch(m)
+	hub.Sync()
 
 	// Wait for messages
 	select {
 	case <-l.overflow:
 		t.Error(l)
-	case <-time.After(250 * time.Millisecond):
+	case <-time.After(50 * time.Millisecond):
 		// Expected result, no overflow
 	}
 }
 
-func TestHubLogReplay(t *testing.T) {
+func TestHubHistoryReplay(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	hub := New(ctx, 100)
@@ -148,7 +150,7 @@ func TestHubLogReplay(t *testing.T) {
 		msgs[i] = Message{
 			Subject: fmt.Sprintf("subj %v", i),
 		}
-		hub.Broadcast(msgs[i])
+		hub.Dispatch(msgs[i])
 	}
 
 	// Wait for messages (live)
@@ -162,7 +164,7 @@ func TestHubLogReplay(t *testing.T) {
 	l2 := newTestListener(3)
 	hub.AddListener(l2)
 
-	// Wait for messages (log)
+	// Wait for messages (history)
 	select {
 	case <-l2.done:
 	case <-time.After(time.Second):
@@ -178,7 +180,7 @@ func TestHubLogReplay(t *testing.T) {
 	}
 }
 
-func TestHubLogReplayWrap(t *testing.T) {
+func TestHubHistoryReplayWrap(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	hub := New(ctx, 5)
@@ -191,7 +193,7 @@ func TestHubLogReplayWrap(t *testing.T) {
 		msgs[i] = Message{
 			Subject: fmt.Sprintf("subj %v", i),
 		}
-		hub.Broadcast(msgs[i])
+		hub.Dispatch(msgs[i])
 	}
 
 	// Wait for messages (live)
@@ -205,7 +207,7 @@ func TestHubLogReplayWrap(t *testing.T) {
 	l2 := newTestListener(5)
 	hub.AddListener(l2)
 
-	// Wait for messages (log)
+	// Wait for messages (history)
 	select {
 	case <-l2.done:
 	case <-time.After(time.Second):
@@ -228,16 +230,15 @@ func TestHubContextCancel(t *testing.T) {
 	l := newTestListener(1)
 
 	hub.AddListener(l)
-	hub.Broadcast(m)
+	hub.Dispatch(m)
+	hub.Sync()
 	cancel()
-	time.Sleep(50 * time.Millisecond)
-	hub.Broadcast(m)
 
 	// Wait for messages
 	select {
 	case <-l.overflow:
 		t.Error(l)
-	case <-time.After(250 * time.Millisecond):
+	case <-time.After(50 * time.Millisecond):
 		// Expected result, no overflow
 	}
 }

@@ -3,9 +3,11 @@ package msghub
 import (
 	"container/ring"
 	"context"
-	"sync"
 	"time"
 )
+
+// Length of msghub operation queue
+const opChanLen = 100
 
 // Message contains the basic header data for a message
 type Message struct {
@@ -18,33 +20,27 @@ type Message struct {
 	Size    int64
 }
 
-// Listener receives the contents of the log, followed by new messages
+// Listener receives the contents of the history buffer, followed by new messages
 type Listener interface {
 	Receive(msg Message) error
 }
 
 // Hub relays messages on to its listeners
 type Hub struct {
-	// log stores history, points next spot to write.  First non-nil entry is oldest Message
-	log   *ring.Ring
-	logMx sync.RWMutex
-
-	// listeners interested in new messages
-	listeners   map[Listener]struct{}
-	listenersMx sync.RWMutex
-
-	// broadcast receives new messages
-	broadcast chan Message
+	// history buffer, points next Message to write.  Proceeding non-nil entry is oldest Message
+	history   *ring.Ring
+	listeners map[Listener]struct{} // listeners interested in new messages
+	opChan    chan func(h *Hub)     // operations queued for this actor
 }
 
-// New constructs a new Hub which will cache logSize messages in memory for playback to future
+// New constructs a new Hub which will cache historyLen messages in memory for playback to future
 // listeners.  A goroutine is created to handle incoming messages; it will run until the provided
 // context is canceled.
-func New(ctx context.Context, logSize int) *Hub {
+func New(ctx context.Context, historyLen int) *Hub {
 	h := &Hub{
-		log:       ring.New(logSize),
+		history:   ring.New(historyLen),
 		listeners: make(map[Listener]struct{}),
-		broadcast: make(chan Message, 100),
+		opChan:    make(chan func(h *Hub), opChanLen),
 	}
 
 	go func() {
@@ -52,17 +48,10 @@ func New(ctx context.Context, logSize int) *Hub {
 			select {
 			case <-ctx.Done():
 				// Shutdown
-				close(h.broadcast)
-				h.broadcast = nil
+				close(h.opChan)
 				return
-			case msg := <-h.broadcast:
-				// Log message
-				h.logMx.Lock()
-				h.log.Value = msg
-				h.log = h.log.Next()
-				h.logMx.Unlock()
-				// Deliver message to listeners
-				h.deliver(msg)
+			case op := <-h.opChan:
+				op(h)
 			}
 		}
 	}()
@@ -70,47 +59,50 @@ func New(ctx context.Context, logSize int) *Hub {
 	return h
 }
 
-// Broadcast queues a message for processing by the hub.  The message will be placed into the
-// in-memory log and relayed to all registered listeners.
-func (h *Hub) Broadcast(msg Message) {
-	if h.broadcast != nil {
-		h.broadcast <- msg
+// Dispatch queues a message for broadcast by the hub.  The message will be placed into the
+// history buffer and then relayed to all registered listeners.
+func (hub *Hub) Dispatch(msg Message) {
+	hub.opChan <- func(h *Hub) {
+		// Add to history buffer
+		h.history.Value = msg
+		h.history = h.history.Next()
+		// Deliver message to all listeners, removing listeners if they return an error
+		for l := range h.listeners {
+			if err := l.Receive(msg); err != nil {
+				delete(h.listeners, l)
+			}
+		}
 	}
 }
 
 // AddListener registers a listener to receive broadcasted messages.
-func (h *Hub) AddListener(l Listener) {
-	// Playback log
-	h.logMx.RLock()
-	h.log.Do(func(v interface{}) {
-		if v != nil {
-			l.Receive(v.(Message))
-		}
-	})
-	h.logMx.RUnlock()
+func (hub *Hub) AddListener(l Listener) {
+	hub.opChan <- func(h *Hub) {
+		// Playback log
+		h.history.Do(func(v interface{}) {
+			if v != nil {
+				l.Receive(v.(Message))
+			}
+		})
 
-	// Add to listeners
-	h.listenersMx.Lock()
-	h.listeners[l] = struct{}{}
-	h.listenersMx.Unlock()
+		// Add to listeners
+		h.listeners[l] = struct{}{}
+	}
 }
 
 // RemoveListener deletes a listener registration, it will cease to receive messages.
-func (h *Hub) RemoveListener(l Listener) {
-	h.listenersMx.Lock()
-	defer h.listenersMx.Unlock()
-	if _, ok := h.listeners[l]; ok {
+func (hub *Hub) RemoveListener(l Listener) {
+	hub.opChan <- func(h *Hub) {
 		delete(h.listeners, l)
 	}
 }
 
-// deliver message to all listeners, removing listeners if they return an error
-func (h *Hub) deliver(msg Message) {
-	h.listenersMx.RLock()
-	defer h.listenersMx.RUnlock()
-	for l := range h.listeners {
-		if err := l.Receive(msg); err != nil {
-			h.RemoveListener(l)
-		}
+// Sync blocks until the msghub has processed its queue up to this point, useful
+// for unit tests.
+func (hub *Hub) Sync() {
+	done := make(chan struct{})
+	hub.opChan <- func(h *Hub) {
+		close(done)
 	}
+	<-done
 }

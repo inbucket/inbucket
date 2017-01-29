@@ -11,10 +11,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Storage of `To:` header in messages (likely breaks existing datastores)
 - Attachment list to [GET message
   JSON](https://github.com/jhillyerd/inbucket/wiki/REST-GET-message)
-- Go client for REST API
+- [Go client for REST
+  API](https://godoc.org/github.com/jhillyerd/inbucket/rest/client)
 - Monitor feature: lists messages as they arrive, regardless of their
   destination mailbox
 - Make `@inbucket` mailbox prompt configurable
+- Warnings and errors from MIME parser are displayed with message
 
 ### Fixed
 - No longer run out of file handles when dealing with a large number of

@@ -24,7 +24,7 @@ import (
 
 var (
 	// VERSION contains the build version number, populated during linking by goxc
-	VERSION = "1.1.0"
+	VERSION = "1.2.0-rc1"
 
 	// BUILDDATE contains the build date, populated during linking by goxc
 	BUILDDATE = "undefined"

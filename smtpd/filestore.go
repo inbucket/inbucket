@@ -239,19 +239,6 @@ func (mb *FileMailbox) readIndex() error {
 	return nil
 }
 
-// createDir checks for the presence of the path for this mailbox, creates it if needed
-func (mb *FileMailbox) createDir() error {
-	dirMx.Lock()
-	defer dirMx.Unlock()
-	if _, err := os.Stat(mb.path); err != nil {
-		if err := os.MkdirAll(mb.path, 0770); err != nil {
-			log.Errorf("Failed to create directory %v, %v", mb.path, err)
-			return err
-		}
-	}
-	return nil
-}
-
 // writeIndex overwrites the index on disk with the current mailbox data
 func (mb *FileMailbox) writeIndex() error {
 	// Lock for writing
@@ -288,13 +275,64 @@ func (mb *FileMailbox) writeIndex() error {
 	} else {
 		// No messages, delete index+maildir
 		log.Tracef("Removing mailbox %v", mb.path)
-		// deletes are dangerous, requires write lock
-		dirMx.Lock()
-		defer dirMx.Unlock()
-		return os.RemoveAll(mb.path)
+		return mb.removeDir()
 	}
 
 	return nil
+}
+
+// createDir checks for the presence of the path for this mailbox, creates it if needed
+func (mb *FileMailbox) createDir() error {
+	dirMx.Lock()
+	defer dirMx.Unlock()
+	if _, err := os.Stat(mb.path); err != nil {
+		if err := os.MkdirAll(mb.path, 0770); err != nil {
+			log.Errorf("Failed to create directory %v, %v", mb.path, err)
+			return err
+		}
+	}
+	return nil
+}
+
+// removeDir removes the mailbox, plus empty higher level directories
+func (mb *FileMailbox) removeDir() error {
+	dirMx.Lock()
+	defer dirMx.Unlock()
+	// remove mailbox dir, including index file
+	if err := os.RemoveAll(mb.path); err != nil {
+		return err
+	}
+	// remove parents if empty
+	dir := filepath.Dir(mb.path)
+	if removeDirIfEmpty(dir) {
+		removeDirIfEmpty(filepath.Dir(dir))
+	}
+	return nil
+}
+
+// removeDirIfEmpty will remove the specified directory if it contains no files or directories.
+// Caller should hold dirMx.  Returns true if dir was removed.
+func removeDirIfEmpty(path string) (removed bool) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	files, err := f.Readdirnames(0)
+	_ = f.Close()
+	if err != nil {
+		return false
+	}
+	if len(files) > 0 {
+		// Dir not empty
+		return false
+	}
+	log.Tracef("Removing dir %v", path)
+	err = os.Remove(path)
+	if err != nil {
+		log.Errorf("Failed to remove %q: %v", path, err)
+		return false
+	}
+	return true
 }
 
 // generatePrefix converts a Time object into the ISO style format we use

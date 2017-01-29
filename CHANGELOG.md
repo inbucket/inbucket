@@ -18,6 +18,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - No longer run out of file handles when dealing with a large number of
   recipients for a single message.
+- Empty intermediate directories are now removed when a mailbox is deleted,
+  leaving less junk on your filesystem.
 
 ### Changed
 - Build now requires Go 1.7 or later

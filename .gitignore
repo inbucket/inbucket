@@ -25,10 +25,12 @@ _testmain.go
 *.swp
 *.swo
 
-# our binary
+# our binaries
 /inbucket
 /inbucket.exe
 /target/**
+/cmd/client/client
+/cmd/client/client.exe
 
 # local goxc config
 .goxc.local.json

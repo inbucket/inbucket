@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/google/subcommands"
 	"github.com/jhillyerd/inbucket/rest/client"
@@ -16,9 +17,11 @@ type matchCmd struct {
 	output  string
 	outFunc func(headers []*client.MessageHeader) error
 	delete  bool
+	// match criteria
 	from    regexFlag
 	subject regexFlag
 	to      regexFlag
+	maxAge  time.Duration
 }
 
 func (*matchCmd) Name() string {
@@ -30,7 +33,7 @@ func (*matchCmd) Synopsis() string {
 }
 
 func (*matchCmd) Usage() string {
-	return `match [options] <mailbox>:
+	return `match [flags] <mailbox>:
 	output messages matching all specified criteria
 	exit status will be 1 if no matches were found, otherwise 0
 `
@@ -42,6 +45,9 @@ func (m *matchCmd) SetFlags(f *flag.FlagSet) {
 	f.Var(&m.from, "from", "From header matching regexp")
 	f.Var(&m.subject, "subject", "Subject header matching regexp")
 	f.Var(&m.to, "to", "To header matching regexp (must match one)")
+	f.DurationVar(
+		&m.maxAge, "maxage", 0,
+		"Matches must have been received in this time frame (ex: \"10s\", \"5m\")")
 }
 
 func (m *matchCmd) Execute(
@@ -101,6 +107,11 @@ func (m *matchCmd) Execute(
 
 // match returns true if header matches all defined criteria
 func (m *matchCmd) match(header *client.MessageHeader) bool {
+	if m.maxAge > 0 {
+		if time.Since(header.Date) > m.maxAge {
+			return false
+		}
+	}
 	if m.subject.Defined() {
 		if !m.subject.MatchString(header.Subject) {
 			return false

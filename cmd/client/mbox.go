@@ -24,7 +24,7 @@ func (*mboxCmd) Synopsis() string {
 }
 
 func (*mboxCmd) Usage() string {
-	return `mbox [options] <mailbox>:
+	return `mbox [flags] <mailbox>:
 	output mailbox in mbox format
 `
 }

@@ -4,6 +4,18 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+[Unreleased]
+------------
+
+### Added
+- `rest/client` types `MessageHeader` and `Message` with convenience methods;
+  provides a more natural API
+
+### Changed
+- `rest/client.NewV1` renamed to `New`
+- `rest/client` package now embeds the shared `rest/model` structs into its own
+  types
+
 [1.2.0-rc1] - 2017-01-29
 ------------------------
 

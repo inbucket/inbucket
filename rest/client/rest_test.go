@@ -28,6 +28,9 @@ type mockHTTPClient struct {
 
 func (m *mockHTTPClient) Do(req *http.Request) (resp *http.Response, err error) {
 	m.req = req
+	if m.statusCode == 0 {
+		m.statusCode = 200
+	}
 	resp = &http.Response{
 		StatusCode: m.statusCode,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(m.body)),
@@ -64,13 +67,15 @@ func TestDoJSON(t *testing.T) {
 	var want, got string
 
 	mth := &mockHTTPClient{
-		statusCode: 200,
-		body:       `{"foo": "bar"}`,
+		body: `{"foo": "bar"}`,
 	}
 	c := &restClient{mth, baseURL}
 
 	var v map[string]interface{}
-	c.doJSON("GET", "/doget", &v)
+	err := c.doJSON("GET", "/doget", &v)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	want = "GET"
 	got = mth.req.Method
@@ -98,7 +103,7 @@ func TestDoJSON(t *testing.T) {
 func TestDoJSONNilV(t *testing.T) {
 	var want, got string
 
-	mth := &mockHTTPClient{statusCode: 200}
+	mth := &mockHTTPClient{}
 	c := &restClient{mth, baseURL}
 
 	err := c.doJSON("GET", "/doget", nil)

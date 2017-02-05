@@ -50,10 +50,9 @@ func (c *restClient) doJSON(method string, uri string, v interface{}) error {
 	if resp.StatusCode == http.StatusOK {
 		if v == nil {
 			return nil
-		} else {
-			// Decode response body
-			return json.NewDecoder(resp.Body).Decode(v)
 		}
+		// Decode response body
+		return json.NewDecoder(resp.Body).Decode(v)
 	}
 
 	return fmt.Errorf("Unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/mail"
 	"os"
 	"time"
 
@@ -42,9 +43,9 @@ func (*matchCmd) Usage() string {
 func (m *matchCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&m.output, "output", "id", "output format: id, json, or mbox")
 	f.BoolVar(&m.delete, "delete", false, "delete matched messages after output")
-	f.Var(&m.from, "from", "From header matching regexp")
+	f.Var(&m.from, "from", "From header matching regexp (address, not name)")
 	f.Var(&m.subject, "subject", "Subject header matching regexp")
-	f.Var(&m.to, "to", "To header matching regexp (must match one)")
+	f.Var(&m.to, "to", "To header matching regexp (must match 1+ to address)")
 	f.DurationVar(
 		&m.maxAge, "maxage", 0,
 		"Matches must have been received in this time frame (ex: \"10s\", \"5m\")")
@@ -118,13 +119,24 @@ func (m *matchCmd) match(header *client.MessageHeader) bool {
 		}
 	}
 	if m.from.Defined() {
-		if !m.from.MatchString(header.From) {
+		from := header.From
+		addr, err := mail.ParseAddress(from)
+		if err == nil {
+			// Parsed successfully
+			from = addr.Address
+		}
+		if !m.from.MatchString(from) {
 			return false
 		}
 	}
 	if m.to.Defined() {
 		match := false
 		for _, to := range header.To {
+			addr, err := mail.ParseAddress(to)
+			if err == nil {
+				// Parsed successfully
+				to = addr.Address
+			}
 			if m.to.MatchString(to) {
 				match = true
 				break

@@ -39,7 +39,7 @@ func (m *mboxCmd) Execute(
 	if mailbox == "" {
 		return usage("mailbox required")
 	}
-	// Setup rest client
+	// Setup REST client
 	c, err := client.New(baseURL())
 	if err != nil {
 		return fatal("Couldn't build client", err)
@@ -49,22 +49,34 @@ func (m *mboxCmd) Execute(
 	if err != nil {
 		return fatal("List REST call failed", err)
 	}
-	for _, h := range headers {
-		source, err := h.GetSource()
-		if err != nil {
-			return fatal("Source REST call failed", err)
-		}
-		fmt.Printf("From %s\n", h.From)
-		// TODO Escape "From " in message bodies with >
-		source.WriteTo(os.Stdout)
-		fmt.Println()
-		if m.delete {
+	err = outputMbox(headers)
+	if err != nil {
+		return fatal("Error", err)
+	}
+	if m.delete {
+		// Delete matches
+		for _, h := range headers {
 			err = h.Delete()
 			if err != nil {
 				return fatal("Delete REST call failed", err)
 			}
 		}
 	}
-
 	return subcommands.ExitSuccess
+}
+
+// outputMbox renders messages in mbox format
+// also used by match subcommand
+func outputMbox(headers []*client.MessageHeader) error {
+	for _, h := range headers {
+		source, err := h.GetSource()
+		if err != nil {
+			return fmt.Errorf("Get source REST failed: %v", err)
+		}
+		fmt.Printf("From %s\n", h.From)
+		// TODO Escape "From " in message bodies with >
+		source.WriteTo(os.Stdout)
+		fmt.Println()
+	}
+	return nil
 }

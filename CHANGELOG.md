@@ -10,6 +10,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - `rest/client` types `MessageHeader` and `Message` with convenience methods;
   provides a more natural API
+- Powerful command line REST
+  [client](https://github.com/jhillyerd/inbucket/wiki/cmd-client)
 
 ### Changed
 - `rest/client.NewV1` renamed to `New`

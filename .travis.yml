@@ -7,3 +7,5 @@ before_script:
 go:
   - 1.7.5
   - master
+
+script: go test -race -v ./...

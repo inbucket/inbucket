@@ -181,9 +181,13 @@ func (mb *FileMailbox) GetMessage(id string) (Message, error) {
 		}
 	}
 
-	for _, m := range mb.messages {
-		if m.Fid == id {
-			return m, nil
+	if id == "latest" && len(mb.messages) != 0 {
+		return mb.messages[len(mb.messages)-1], nil
+	} else {
+		for _, m := range mb.messages {
+			if m.Fid == id {
+				return m, nil
+			}
 		}
 	}
 

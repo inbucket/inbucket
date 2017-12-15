@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `rest/client.NewV1` renamed to `New`
 - `rest/client` package now embeds the shared `rest/model` structs into its own
   types
+- Fixed panic when `monitor.history` set to 0
 
 [1.2.0-rc1] - 2017-01-29
 ------------------------

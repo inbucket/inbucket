@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   provides a more natural API
 - Powerful command line REST
   [client](https://github.com/jhillyerd/inbucket/wiki/cmd-client)
+- Allow use of `latest` as a message ID in REST calls
 
 ### Changed
 - `rest/client.NewV1` renamed to `New`

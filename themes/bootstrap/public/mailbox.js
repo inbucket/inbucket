@@ -22,6 +22,19 @@ function deleteMessage(id) {
   })
 }
 
+// Delete the mailbox
+function deleteMailBox() {
+  cont = confirm("Are you sure you want delete the Mailbox?")
+  if (cont == false) {
+    return;
+  }
+  $.ajax({
+    type: 'DELETE',
+    url: '/api/v1/mailbox/' + mailbox,
+    success: loadList
+  })
+}
+
 // flashTooltip temporarily changes the text of a tooltip
 function flashTooltip(el, text) {
   var prevText = $(el).attr('data-original-title');

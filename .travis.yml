@@ -5,5 +5,7 @@ before_script:
   - go vet ./...
 
 go:
-  - 1.7.5
-  - master
+  - 1.8.5
+  - 1.9.2
+
+script: go test -race -v ./...

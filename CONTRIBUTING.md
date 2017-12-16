@@ -4,6 +4,8 @@ How to Contribute
 Inbucket encourages third-party patches. It's valuable to know how other
 developers are using the product.
 
+**tl;dr:** File pull requests against the `develop` branch, not `master`!
+
 
 ## Getting Started
 

@@ -458,6 +458,55 @@ func TestFSNoMessageCap(t *testing.T) {
 	}
 }
 
+// Test Get the latest message
+func TestGetLatestMessage(t *testing.T) {
+	ds, logbuf := setupDataStore(config.DataStoreConfig{})
+	defer teardownDataStore(ds)
+
+	// james hashes to 474ba67bdb289c6263b36dfd8a7bed6c85b04943
+	mbName := "james"
+
+	// Test empty mailbox
+	mb, err := ds.MailboxFor(mbName)
+	assert.Nil(t, err)
+	msg, err := mb.GetMessage("latest")
+	assert.Error(t, err)
+	fmt.Println(msg)
+
+	// Deliver test message
+	deliverMessage(ds, mbName, "test", time.Now())
+
+	// Deliver test message 2
+	id2, _ := deliverMessage(ds, mbName, "test 2", time.Now())
+
+	// Test get the latest message
+	mb, err = ds.MailboxFor(mbName)
+	assert.Nil(t, err)
+	msg, err = mb.GetMessage("latest")
+	assert.Nil(t, err)
+	assert.True(t, msg.ID() == id2, "Expected %q to be equal to %q", msg.ID(), id2)
+
+	// Deliver test message 3
+	id3, _ := deliverMessage(ds, mbName, "test 3", time.Now())
+
+	mb, err = ds.MailboxFor(mbName)
+	assert.Nil(t, err)
+	msg, err = mb.GetMessage("latest")
+	assert.Nil(t, err)
+	assert.True(t, msg.ID() == id3, "Expected %q to be equal to %q", msg.ID(), id3)
+
+	// Test wrong id
+	msg, err = mb.GetMessage("wrongid")
+	assert.Error(t, err)
+
+	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure
+		_, _ = io.Copy(os.Stderr, logbuf)
+	}
+}
+
 // setupDataStore creates a new FileDataStore in a temporary directory
 func setupDataStore(cfg config.DataStoreConfig) (*FileDataStore, *bytes.Buffer) {
 	path, err := ioutil.TempDir("", "inbucket")

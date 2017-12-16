@@ -60,6 +60,17 @@ func TestHubNew(t *testing.T) {
 	}
 }
 
+func TestHubZeroLen(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	hub := New(ctx, 0)
+	m := Message{}
+	for i := 0; i < 100; i++ {
+		hub.Dispatch(m)
+	}
+	// Just making sure Hub doesn't panic
+}
+
 func TestHubZeroListeners(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

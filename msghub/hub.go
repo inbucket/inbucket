@@ -63,13 +63,15 @@ func New(ctx context.Context, historyLen int) *Hub {
 // history buffer and then relayed to all registered listeners.
 func (hub *Hub) Dispatch(msg Message) {
 	hub.opChan <- func(h *Hub) {
-		// Add to history buffer
-		h.history.Value = msg
-		h.history = h.history.Next()
-		// Deliver message to all listeners, removing listeners if they return an error
-		for l := range h.listeners {
-			if err := l.Receive(msg); err != nil {
-				delete(h.listeners, l)
+		if h.history != nil {
+			// Add to history buffer
+			h.history.Value = msg
+			h.history = h.history.Next()
+			// Deliver message to all listeners, removing listeners if they return an error
+			for l := range h.listeners {
+				if err := l.Receive(msg); err != nil {
+					delete(h.listeners, l)
+				}
 			}
 		}
 	}

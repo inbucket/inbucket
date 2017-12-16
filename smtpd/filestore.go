@@ -181,9 +181,13 @@ func (mb *FileMailbox) GetMessage(id string) (Message, error) {
 		}
 	}
 
-	for _, m := range mb.messages {
-		if m.Fid == id {
-			return m, nil
+	if id == "latest" && len(mb.messages) != 0 {
+		return mb.messages[len(mb.messages)-1], nil
+	} else {
+		for _, m := range mb.messages {
+			if m.Fid == id {
+				return m, nil
+			}
 		}
 	}
 
@@ -254,22 +258,22 @@ func (mb *FileMailbox) writeIndex() error {
 		if err != nil {
 			return err
 		}
-		defer func() {
-			if err := file.Close(); err != nil {
-				log.Errorf("Failed to close %q: %v", mb.indexPath, err)
-			}
-		}()
 		writer := bufio.NewWriter(file)
-
 		// Write each message and then flush
 		enc := gob.NewEncoder(writer)
 		for _, m := range mb.messages {
 			err = enc.Encode(m)
 			if err != nil {
+				_ = file.Close()
 				return err
 			}
 		}
 		if err := writer.Flush(); err != nil {
+			_ = file.Close()
+			return err
+		}
+		if err := file.Close(); err != nil {
+			log.Errorf("Failed to close %q: %v", mb.indexPath, err)
 			return err
 		}
 	} else {

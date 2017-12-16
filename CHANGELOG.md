@@ -4,8 +4,8 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-[Unreleased]
-------------
+[1.2.0-rc2] - 2017-12-15
+------------------------
 
 ### Added
 - `rest/client` types `MessageHeader` and `Message` with convenience methods;
@@ -92,6 +92,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   specific message.
 
 [Unreleased]: https://github.com/jhillyerd/inbucket/compare/master...develop
+[1.2.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.2.0-rc1...1.2.0-rc2
 [1.2.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.1.0...1.2.0-rc1
 [1.1.0]:      https://github.com/jhillyerd/inbucket/compare/1.1.0-rc2...1.1.0
 [1.1.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.1.0-rc1...1.1.0-rc2
@@ -107,7 +108,7 @@ Release Checklist
   - Ensure *Unreleased* section is up to date
   - Rename *Unreleased* section to release name and date.
   - Add new GitHub `/compare` link
-3.  Update goxc version info: `goxc -wc -pv=1.x.0 -pr=snapshot`
+3.  Update goxc version info: `goxc -wc -pv=1.x.0 -pr=rc1`
 4.  Run: `goxc interpolate-source` to update VERSION var
 5.  Run tests
 6.  Test cross-compile: `goxc`

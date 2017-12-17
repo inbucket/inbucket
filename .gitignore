@@ -28,6 +28,7 @@ _testmain.go
 # our binaries
 /inbucket
 /inbucket.exe
+/dist/**
 /target/**
 /cmd/client/client
 /cmd/client/client.exe

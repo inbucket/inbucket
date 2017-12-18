@@ -1,0 +1,60 @@
+project_name: inbucket
+release:
+  github:
+    owner: jhillyerd
+    name: inbucket
+  name_template: '{{.Tag}}'
+brew:
+  commit_author:
+    name: goreleaserbot
+    email: goreleaser@carlosbecker.com
+  install: bin.install ""
+builds:
+  - binary: inbucket
+    goos:
+      - darwin
+      - freebsd
+      - linux
+      - windows
+    goarch:
+      - amd64
+    goarm:
+      - "6"
+    main: .
+    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+  - binary: client
+    goos:
+      - darwin
+      - freebsd
+      - linux
+      - windows
+    goarch:
+      - amd64
+    goarm:
+      - "6"
+    main: ./cmd/client
+    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+archive:
+  format: tar.gz
+  wrap_in_directory: true
+  name_template: '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{
+    .Arm }}{{ end }}'
+  format_overrides:
+    - goos: windows
+      format: zip
+  files:
+    - LICENSE*
+    - README*
+    - CHANGELOG*
+    - inbucket.bat
+    - etc/**/*
+    - themes/**/*
+fpm:
+  bindir: /usr/local/bin
+snapshot:
+  name_template: SNAPSHOT-{{ .Commit }}
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+dist: dist
+sign:
+  artifacts: none

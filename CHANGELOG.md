@@ -108,12 +108,11 @@ Release Checklist
   - Ensure *Unreleased* section is up to date
   - Rename *Unreleased* section to release name and date.
   - Add new GitHub `/compare` link
-3.  Update goxc version info: `goxc -wc -pv=1.x.0 -pr=rc1`
-4.  Run: `goxc interpolate-source` to update VERSION var
-5.  Run tests
-6.  Test cross-compile: `goxc`
-7.  Commit changes and merge release: `git flow release finish 1.x.0`
-8.  Upload to bintray: `goxc bintray`
-9.  Update `binary_versions` option in `inbucket-site/_config.yml`
+3.  Run tests
+4.  Test cross-compile: `goreleaser --snapshot`
+5.  Commit changes and merge release: `git flow release finish`
+6.  Push tags and wait for https://travis-ci.org/jhillyerd/inbucket build to
+    complete
+7.  Update `binary_versions` option in `inbucket-site/_config.yml`
 
 See http://keepachangelog.com/ for additional instructions on how to update this file.

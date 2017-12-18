@@ -23,11 +23,11 @@ import (
 )
 
 var (
-	// VERSION contains the build version number, populated during linking by goxc
-	VERSION = "1.2.0-rc2"
+	// version contains the build version number, populated during linking
+	version = "undefined"
 
-	// BUILDDATE contains the build date, populated during linking by goxc
-	BUILDDATE = "undefined"
+	// date contains the build date, populated during linking
+	date = "undefined"
 
 	// Command line flags
 	help    = flag.Bool("help", false, "Displays this help")
@@ -61,8 +61,8 @@ func init() {
 }
 
 func main() {
-	config.Version = VERSION
-	config.BuildDate = BUILDDATE
+	config.Version = version
+	config.BuildDate = date
 
 	flag.Parse()
 	if *help {

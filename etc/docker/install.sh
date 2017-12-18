@@ -16,6 +16,7 @@ apk add --no-cache --virtual .build-deps git
 # Setup
 export GOBIN="$bindir"
 cd "$srcdir"
+git fetch -t
 builddate="$(date -Iseconds)"
 buildver="$(git describe --tags)"
 

@@ -1,6 +1,8 @@
+project_name: inbucket
 release:
   github:
-    owner: 'https:'
+    owner: jhillyerd
+    name: inbucket
   name_template: '{{.Tag}}'
 brew:
   commit_author:
@@ -8,29 +10,33 @@ brew:
     email: goreleaser@carlosbecker.com
   install: bin.install ""
 builds:
-  - goos:
-      - linux
+  - binary: inbucket
+    goos:
       - darwin
+      - freebsd
+      - linux
+      - windows
     goarch:
       - amd64
-      - "386"
     goarm:
       - "6"
-    main: .
+    main: inbucket.go
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 archive:
   format: tar.gz
+  wrap_in_directory: true
   name_template: '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{
     .Arm }}{{ end }}'
+  format_overrides:
+    - goos: windows
+      format: zip
   files:
-    - licence*
-    - LICENCE*
-    - license*
     - LICENSE*
-    - readme*
     - README*
-    - changelog*
     - CHANGELOG*
+    - inbucket.bat
+    - etc/**/*
+    - themes/**/*
 fpm:
   bindir: /usr/local/bin
 snapshot:

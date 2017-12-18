@@ -29,9 +29,5 @@ _testmain.go
 /inbucket
 /inbucket.exe
 /dist/**
-/target/**
 /cmd/client/client
 /cmd/client/client.exe
-
-# local goxc config
-.goxc.local.json

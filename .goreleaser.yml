@@ -20,7 +20,19 @@ builds:
       - amd64
     goarm:
       - "6"
-    main: inbucket.go
+    main: .
+    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+  - binary: client
+    goos:
+      - darwin
+      - freebsd
+      - linux
+      - windows
+    goarch:
+      - amd64
+    goarm:
+      - "6"
+    main: ./cmd/client
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 archive:
   format: tar.gz

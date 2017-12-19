@@ -24,7 +24,7 @@ import (
 
 var (
 	// version contains the build version number, populated during linking
-	version = "undefined"
+	version = "1.2.0-rc2"
 
 	// date contains the build date, populated during linking
 	date = "undefined"

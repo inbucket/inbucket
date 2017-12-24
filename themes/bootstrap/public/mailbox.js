@@ -56,7 +56,7 @@ function loadList() {
     dataType: "json",
     url: '/api/v1/mailbox/' + mailbox,
     success: function(data) {
-      messageListData = data;
+      messageListData = data.reverse();
       // Render list
       $('#message-list').loadTemplate($('#list-entry-template'), data);
       $('.message-list-entry').click(onMessageListClick);

@@ -30,7 +30,7 @@ function startMonitor(mailbox) {
     $('#monitor-message-list').loadTemplate(
         $('#message-template'),
         msg,
-        { append: true });
+        { prepend: true });
   });
   ws.addEventListener('close', function (e) {
     $('#conn-status').text('Disconnected!');

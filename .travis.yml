@@ -1,14 +1,21 @@
 language: go
 sudo: false
 
+env:
+  - DEPLOY_WITH_MAJOR="1.9"
+
 before_script:
   - go vet ./...
 
 go:
-  - 1.8.5
-  - 1.9.2
+  - 1.8.x
+  - 1.9.x
 
 script: go test -race -v ./...
 
-after_success:
-  - test -n "$TRAVIS_TAG" && curl -sL https://git.io/goreleaser | bash
+deploy:
+  provider: script
+  script: etc/travis-deploy.sh
+  on:
+    tags: true
+    branch: master

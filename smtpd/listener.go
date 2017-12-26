@@ -18,6 +18,7 @@ import (
 // Server holds the configuration and state of our SMTP server
 type Server struct {
 	// Configuration
+	host            string
 	domain          string
 	domainNoStore   string
 	maxRecips       int
@@ -64,6 +65,7 @@ func NewServer(
 	ds DataStore,
 	msgHub *msghub.Hub) *Server {
 	return &Server{
+		host:             fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
 		domain:           cfg.Domain,
 		domainNoStore:    strings.ToLower(cfg.DomainNoStore),
 		maxRecips:        cfg.MaxRecipients,
@@ -80,9 +82,7 @@ func NewServer(
 
 // Start the listener and handle incoming connections
 func (s *Server) Start(ctx context.Context) {
-	cfg := config.GetSMTPConfig()
-	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
-		cfg.IP4address, cfg.IP4port))
+	addr, err := net.ResolveTCPAddr("tcp4", s.host)
 	if err != nil {
 		log.Errorf("Failed to build tcp4 address: %v", err)
 		s.emergencyShutdown()

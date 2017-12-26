@@ -124,8 +124,7 @@ func main() {
 	go httpd.Start(rootCtx)
 
 	// Start POP3 server
-	// TODO pass datastore
-	pop3Server = pop3d.New(shutdownChan)
+	pop3Server = pop3d.New(config.GetPOP3Config(), shutdownChan, ds)
 	go pop3Server.Start(rootCtx)
 
 	// Startup SMTP server

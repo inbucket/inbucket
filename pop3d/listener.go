@@ -14,6 +14,7 @@ import (
 
 // Server defines an instance of our POP3 server
 type Server struct {
+	host           string
 	domain         string
 	maxIdleSeconds int
 	dataStore      smtpd.DataStore
@@ -23,14 +24,9 @@ type Server struct {
 }
 
 // New creates a new Server struct
-func New(shutdownChan chan bool) *Server {
-	// Get a new instance of the the FileDataStore - the locking and counting
-	// mechanisms are both global variables in the smtpd package.  If that
-	// changes in the future, this should be modified to use the same DataStore
-	// instance.
-	ds := smtpd.DefaultFileDataStore()
-	cfg := config.GetPOP3Config()
+func New(cfg config.POP3Config, shutdownChan chan bool, ds smtpd.DataStore) *Server {
 	return &Server{
+		host:           fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
 		domain:         cfg.Domain,
 		dataStore:      ds,
 		maxIdleSeconds: cfg.MaxIdleSeconds,
@@ -41,9 +37,7 @@ func New(shutdownChan chan bool) *Server {
 
 // Start the server and listen for connections
 func (s *Server) Start(ctx context.Context) {
-	cfg := config.GetPOP3Config()
-	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
-		cfg.IP4address, cfg.IP4port))
+	addr, err := net.ResolveTCPAddr("tcp4", s.host)
 	if err != nil {
 		log.Errorf("POP3 Failed to build tcp4 address: %v", err)
 		s.emergencyShutdown()

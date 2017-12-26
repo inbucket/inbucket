@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/msghub"
 )
@@ -71,7 +72,7 @@ var commands = map[string]bool{
 // recipientDetails for message delivery
 type recipientDetails struct {
 	address, localPart, domainPart string
-	mailbox                        Mailbox
+	mailbox                        datastore.Mailbox
 }
 
 // Session holds the state of an SMTP session

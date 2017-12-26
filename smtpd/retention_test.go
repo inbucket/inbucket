@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/enmime"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -28,12 +29,12 @@ func TestDoRetentionScan(t *testing.T) {
 	old3 := mockMessage(24)
 
 	// First it should ask for all mailboxes
-	mds.On("AllMailboxes").Return([]Mailbox{mb1, mb2, mb3}, nil)
+	mds.On("AllMailboxes").Return([]datastore.Mailbox{mb1, mb2, mb3}, nil)
 
 	// Then for all messages on each box
-	mb1.On("GetMessages").Return([]Message{new1, old1, old2}, nil)
-	mb2.On("GetMessages").Return([]Message{old3, new2}, nil)
-	mb3.On("GetMessages").Return([]Message{new3}, nil)
+	mb1.On("GetMessages").Return([]datastore.Message{new1, old1, old2}, nil)
+	mb2.On("GetMessages").Return([]datastore.Message{old3, new2}, nil)
+	mb3.On("GetMessages").Return([]datastore.Message{new3}, nil)
 
 	// Test 4 hour retention
 	rs := &RetentionScanner{
@@ -76,14 +77,14 @@ type MockDataStore struct {
 	mock.Mock
 }
 
-func (m *MockDataStore) MailboxFor(name string) (Mailbox, error) {
+func (m *MockDataStore) MailboxFor(name string) (datastore.Mailbox, error) {
 	args := m.Called()
-	return args.Get(0).(Mailbox), args.Error(1)
+	return args.Get(0).(datastore.Mailbox), args.Error(1)
 }
 
-func (m *MockDataStore) AllMailboxes() ([]Mailbox, error) {
+func (m *MockDataStore) AllMailboxes() ([]datastore.Mailbox, error) {
 	args := m.Called()
-	return args.Get(0).([]Mailbox), args.Error(1)
+	return args.Get(0).([]datastore.Mailbox), args.Error(1)
 }
 
 // Mock Mailbox object
@@ -91,14 +92,14 @@ type MockMailbox struct {
 	mock.Mock
 }
 
-func (m *MockMailbox) GetMessages() ([]Message, error) {
+func (m *MockMailbox) GetMessages() ([]datastore.Message, error) {
 	args := m.Called()
-	return args.Get(0).([]Message), args.Error(1)
+	return args.Get(0).([]datastore.Message), args.Error(1)
 }
 
-func (m *MockMailbox) GetMessage(id string) (Message, error) {
+func (m *MockMailbox) GetMessage(id string) (datastore.Message, error) {
 	args := m.Called(id)
-	return args.Get(0).(Message), args.Error(1)
+	return args.Get(0).(datastore.Message), args.Error(1)
 }
 
 func (m *MockMailbox) Purge() error {
@@ -106,9 +107,9 @@ func (m *MockMailbox) Purge() error {
 	return args.Error(0)
 }
 
-func (m *MockMailbox) NewMessage() (Message, error) {
+func (m *MockMailbox) NewMessage() (datastore.Message, error) {
 	args := m.Called()
-	return args.Get(0).(Message), args.Error(1)
+	return args.Get(0).(datastore.Message), args.Error(1)
 }
 
 func (m *MockMailbox) Name() string {

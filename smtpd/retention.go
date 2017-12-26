@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
 )
 
@@ -42,14 +43,14 @@ func init() {
 type RetentionScanner struct {
 	globalShutdown    chan bool // Closes when Inbucket needs to shut down
 	retentionShutdown chan bool // Closed after the scanner has shut down
-	ds                DataStore
+	ds                datastore.DataStore
 	retentionPeriod   time.Duration
 	retentionSleep    time.Duration
 }
 
 // NewRetentionScanner launches a go-routine that scans for expired
 // messages, following the configured interval
-func NewRetentionScanner(ds DataStore, shutdownChannel chan bool) *RetentionScanner {
+func NewRetentionScanner(ds datastore.DataStore, shutdownChannel chan bool) *RetentionScanner {
 	cfg := config.GetDataStoreConfig()
 	rs := &RetentionScanner{
 		globalShutdown:    shutdownChannel,

@@ -11,9 +11,9 @@ import (
 
 	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/msghub"
-	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 type InputMessageData struct {
@@ -188,7 +188,7 @@ func testRestGet(url string) (*httptest.ResponseRecorder, error) {
 	return w, nil
 }
 
-func setupWebServer(ds smtpd.DataStore) *bytes.Buffer {
+func setupWebServer(ds datastore.DataStore) *bytes.Buffer {
 	// Capture log output
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)

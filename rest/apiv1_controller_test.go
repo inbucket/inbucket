@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jhillyerd/inbucket/smtpd"
+	"github.com/jhillyerd/inbucket/datastore"
 )
 
 const (
@@ -47,7 +47,7 @@ func TestRestMailboxList(t *testing.T) {
 	// Test empty mailbox
 	emptybox := &MockMailbox{}
 	ds.On("MailboxFor", "empty").Return(emptybox, nil)
-	emptybox.On("GetMessages").Return([]smtpd.Message{}, nil)
+	emptybox.On("GetMessages").Return([]datastore.Message{}, nil)
 
 	w, err = testRestGet(baseURL + "/mailbox/empty")
 	expectCode = 200
@@ -79,7 +79,7 @@ func TestRestMailboxList(t *testing.T) {
 	// Test MailboxFor error
 	error2box := &MockMailbox{}
 	ds.On("MailboxFor", "error2").Return(error2box, nil)
-	error2box.On("GetMessages").Return([]smtpd.Message{}, fmt.Errorf("Internal error 2"))
+	error2box.On("GetMessages").Return([]datastore.Message{}, fmt.Errorf("Internal error 2"))
 
 	w, err = testRestGet(baseURL + "/mailbox/error2")
 	expectCode = 500
@@ -111,7 +111,7 @@ func TestRestMailboxList(t *testing.T) {
 	ds.On("MailboxFor", "good").Return(goodbox, nil)
 	msg1 := data1.MockMessage()
 	msg2 := data2.MockMessage()
-	goodbox.On("GetMessages").Return([]smtpd.Message{msg1, msg2}, nil)
+	goodbox.On("GetMessages").Return([]datastore.Message{msg1, msg2}, nil)
 
 	// Check return code
 	w, err = testRestGet(baseURL + "/mailbox/good")
@@ -171,7 +171,7 @@ func TestRestMessage(t *testing.T) {
 	// Test requesting a message that does not exist
 	emptybox := &MockMailbox{}
 	ds.On("MailboxFor", "empty").Return(emptybox, nil)
-	emptybox.On("GetMessage", "0001").Return(&MockMessage{}, smtpd.ErrNotExist)
+	emptybox.On("GetMessage", "0001").Return(&MockMessage{}, datastore.ErrNotExist)
 
 	w, err = testRestGet(baseURL + "/mailbox/empty/0001")
 	expectCode = 404

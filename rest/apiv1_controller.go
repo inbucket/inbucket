@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"strconv"
 
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/rest/model"
@@ -64,7 +65,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	msg, err := mb.GetMessage(id)
-	if err == smtpd.ErrNotExist {
+	if err == datastore.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
@@ -149,7 +150,7 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Contex
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
-	if err == smtpd.ErrNotExist {
+	if err == datastore.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
@@ -183,7 +184,7 @@ func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *httpd.Contex
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
-	if err == smtpd.ErrNotExist {
+	if err == datastore.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}

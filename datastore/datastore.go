@@ -1,4 +1,4 @@
-package smtpd
+package datastore
 
 import (
 	"errors"

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/msghub"
 )
 
@@ -376,7 +377,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupSMTPServer(ds DataStore) (s *Server, buf *bytes.Buffer, teardown func()) {
+func setupSMTPServer(ds datastore.DataStore) (s *Server, buf *bytes.Buffer, teardown func()) {
 	// Test Server Config
 	cfg := config.SMTPConfig{
 		IP4address:      net.IPv4(127, 0, 0, 1),

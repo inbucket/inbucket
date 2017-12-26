@@ -1,4 +1,4 @@
-package rest
+package datastore
 
 import (
 	"io"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/jhillyerd/enmime"
-	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -15,14 +14,14 @@ type MockDataStore struct {
 	mock.Mock
 }
 
-func (m *MockDataStore) MailboxFor(name string) (datastore.Mailbox, error) {
+func (m *MockDataStore) MailboxFor(name string) (Mailbox, error) {
 	args := m.Called(name)
-	return args.Get(0).(datastore.Mailbox), args.Error(1)
+	return args.Get(0).(Mailbox), args.Error(1)
 }
 
-func (m *MockDataStore) AllMailboxes() ([]datastore.Mailbox, error) {
+func (m *MockDataStore) AllMailboxes() ([]Mailbox, error) {
 	args := m.Called()
-	return args.Get(0).([]datastore.Mailbox), args.Error(1)
+	return args.Get(0).([]Mailbox), args.Error(1)
 }
 
 // Mock Mailbox object
@@ -30,14 +29,14 @@ type MockMailbox struct {
 	mock.Mock
 }
 
-func (m *MockMailbox) GetMessages() ([]datastore.Message, error) {
+func (m *MockMailbox) GetMessages() ([]Message, error) {
 	args := m.Called()
-	return args.Get(0).([]datastore.Message), args.Error(1)
+	return args.Get(0).([]Message), args.Error(1)
 }
 
-func (m *MockMailbox) GetMessage(id string) (datastore.Message, error) {
+func (m *MockMailbox) GetMessage(id string) (Message, error) {
 	args := m.Called(id)
-	return args.Get(0).(datastore.Message), args.Error(1)
+	return args.Get(0).(Message), args.Error(1)
 }
 
 func (m *MockMailbox) Purge() error {
@@ -45,9 +44,9 @@ func (m *MockMailbox) Purge() error {
 	return args.Error(0)
 }
 
-func (m *MockMailbox) NewMessage() (datastore.Message, error) {
+func (m *MockMailbox) NewMessage() (Message, error) {
 	args := m.Called()
-	return args.Get(0).(datastore.Message), args.Error(1)
+	return args.Get(0).(Message), args.Error(1)
 }
 
 func (m *MockMailbox) Name() string {

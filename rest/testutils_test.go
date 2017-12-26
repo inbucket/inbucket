@@ -25,8 +25,8 @@ type InputMessageData struct {
 	HTML, Text                 string
 }
 
-func (d *InputMessageData) MockMessage() *MockMessage {
-	msg := &MockMessage{}
+func (d *InputMessageData) MockMessage() *datastore.MockMessage {
+	msg := &datastore.MockMessage{}
 	msg.On("ID").Return(d.ID)
 	msg.On("From").Return(d.From)
 	msg.On("To").Return(d.To)

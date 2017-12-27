@@ -9,7 +9,7 @@ import (
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/msghub"
 	"github.com/jhillyerd/inbucket/rest/model"
-	"github.com/jhillyerd/inbucket/smtpd"
+	"github.com/jhillyerd/inbucket/stringutil"
 )
 
 const (
@@ -169,7 +169,7 @@ func MonitorAllMessagesV1(
 
 func MonitorMailboxMessagesV1(
 	w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}

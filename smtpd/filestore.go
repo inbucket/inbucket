@@ -14,6 +14,7 @@ import (
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/stringutil"
 )
 
 // Name of index file in each mailbox
@@ -82,11 +83,11 @@ func DefaultFileDataStore() datastore.DataStore {
 // MailboxFor retrieves the Mailbox object for a specified email address, if the mailbox
 // does not exist, it will attempt to create it.
 func (ds *FileDataStore) MailboxFor(emailAddress string) (datastore.Mailbox, error) {
-	name, err := ParseMailboxName(emailAddress)
+	name, err := stringutil.ParseMailboxName(emailAddress)
 	if err != nil {
 		return nil, err
 	}
-	dir := HashMailboxName(name)
+	dir := stringutil.HashMailboxName(name)
 	s1 := dir[0:3]
 	s2 := dir[0:6]
 	path := filepath.Join(ds.mailPath, s1, s2, dir)

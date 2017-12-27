@@ -15,6 +15,7 @@ import (
 	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/msghub"
+	"github.com/jhillyerd/inbucket/stringutil"
 )
 
 // State tracks the current mode of our SMTP state machine
@@ -266,7 +267,7 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 			return
 		}
 		from := m[1]
-		if _, _, err := ParseEmailAddress(from); err != nil {
+		if _, _, err := stringutil.ParseEmailAddress(from); err != nil {
 			ss.send("501 Bad sender address syntax")
 			ss.logWarn("Bad address as MAIL arg: %q, %s", from, err)
 			return
@@ -315,7 +316,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 		}
 		// This trim is probably too forgiving
 		recip := strings.Trim(arg[3:], "<> ")
-		if _, _, err := ParseEmailAddress(recip); err != nil {
+		if _, _, err := stringutil.ParseEmailAddress(recip); err != nil {
 			ss.send("501 Bad recipient address syntax")
 			ss.logWarn("Bad address as RCPT arg: %q, %s", recip, err)
 			return
@@ -355,7 +356,7 @@ func (ss *Session) dataHandler() {
 	if ss.server.storeMessages {
 		for e := ss.recipients.Front(); e != nil; e = e.Next() {
 			recip := e.Value.(string)
-			local, domain, err := ParseEmailAddress(recip)
+			local, domain, err := stringutil.ParseEmailAddress(recip)
 			if err != nil {
 				ss.logError("Failed to parse address for %q", recip)
 				ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))

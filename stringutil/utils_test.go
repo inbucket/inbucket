@@ -1,4 +1,4 @@
-package smtpd
+package stringutil
 
 import (
 	"strings"

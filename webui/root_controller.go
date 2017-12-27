@@ -8,7 +8,7 @@ import (
 
 	"github.com/jhillyerd/inbucket/config"
 	"github.com/jhillyerd/inbucket/httpd"
-	"github.com/jhillyerd/inbucket/smtpd"
+	"github.com/jhillyerd/inbucket/stringutil"
 )
 
 // RootIndex serves the Inbucket landing page
@@ -58,7 +58,7 @@ func RootMonitorMailbox(w http.ResponseWriter, req *http.Request, ctx *httpd.Con
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)

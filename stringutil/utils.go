@@ -1,4 +1,4 @@
-package smtpd
+package stringutil
 
 import (
 	"bytes"
@@ -41,7 +41,7 @@ func ParseMailboxName(localPart string) (result string, err error) {
 	return result, nil
 }
 
-// HashMailboxName accepts a mailbox name and hashes it.  Inbucket uses this as
+// HashMailboxName accepts a mailbox name and hashes it.  filestore uses this as
 // the directory to house the mailbox
 func HashMailboxName(mailbox string) string {
 	h := sha1.New()

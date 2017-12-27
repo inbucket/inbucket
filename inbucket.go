@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/filestore"
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/msghub"
@@ -115,7 +116,7 @@ func main() {
 	msgHub := msghub.New(rootCtx, config.GetWebConfig().MonitorHistory)
 
 	// Grab our datastore
-	ds := smtpd.DefaultFileDataStore()
+	ds := filestore.DefaultFileDataStore()
 
 	// Start HTTP server
 	httpd.Initialize(config.GetWebConfig(), shutdownChan, ds, msgHub)

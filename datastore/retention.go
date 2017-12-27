@@ -1,4 +1,4 @@
-package smtpd
+package datastore
 
 import (
 	"container/list"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
-	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
 )
 
@@ -37,20 +36,25 @@ func init() {
 	rm.Set("Period", expRetentionPeriod)
 	rm.Set("RetainedHist", expRetainedHist)
 	rm.Set("RetainedCurrent", expRetainedCurrent)
+
+	log.AddTickerFunc(func() {
+		expRetentionDeletesHist.Set(log.PushMetric(retentionDeletesHist, expRetentionDeletesTotal))
+		expRetainedHist.Set(log.PushMetric(retainedHist, expRetainedCurrent))
+	})
 }
 
 // RetentionScanner looks for messages older than the configured retention period and deletes them.
 type RetentionScanner struct {
 	globalShutdown    chan bool // Closes when Inbucket needs to shut down
 	retentionShutdown chan bool // Closed after the scanner has shut down
-	ds                datastore.DataStore
+	ds                DataStore
 	retentionPeriod   time.Duration
 	retentionSleep    time.Duration
 }
 
 // NewRetentionScanner launches a go-routine that scans for expired
 // messages, following the configured interval
-func NewRetentionScanner(ds datastore.DataStore, shutdownChannel chan bool) *RetentionScanner {
+func NewRetentionScanner(ds DataStore, shutdownChannel chan bool) *RetentionScanner {
 	cfg := config.GetDataStoreConfig()
 	rs := &RetentionScanner{
 		globalShutdown:    shutdownChannel,

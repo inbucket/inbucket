@@ -33,8 +33,6 @@ func init() {
 		expConnectsHist.Set(log.PushMetric(connectsHist, expConnectsTotal))
 		expErrorsHist.Set(log.PushMetric(errorsHist, expErrorsTotal))
 		expWarnsHist.Set(log.PushMetric(warnsHist, expWarnsTotal))
-		expRetentionDeletesHist.Set(log.PushMetric(retentionDeletesHist, expRetentionDeletesTotal))
-		expRetainedHist.Set(log.PushMetric(retainedHist, expRetainedCurrent))
 	})
 }
 
@@ -50,10 +48,10 @@ type Server struct {
 	storeMessages   bool
 
 	// Dependencies
-	dataStore        datastore.DataStore // Mailbox/message store
-	globalShutdown   chan bool           // Shuts down Inbucket
-	msgHub           *msghub.Hub         // Pub/sub for message info
-	retentionScanner *RetentionScanner   // Deletes expired messages
+	dataStore        datastore.DataStore         // Mailbox/message store
+	globalShutdown   chan bool                   // Shuts down Inbucket
+	msgHub           *msghub.Hub                 // Pub/sub for message info
+	retentionScanner *datastore.RetentionScanner // Deletes expired messages
 
 	// State
 	listener  net.Listener    // Incoming network connections
@@ -98,7 +96,7 @@ func NewServer(
 		globalShutdown:   globalShutdown,
 		dataStore:        ds,
 		msgHub:           msgHub,
-		retentionScanner: NewRetentionScanner(ds, globalShutdown),
+		retentionScanner: datastore.NewRetentionScanner(ds, globalShutdown),
 		waitgroup:        new(sync.WaitGroup),
 	}
 }

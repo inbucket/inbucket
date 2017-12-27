@@ -150,10 +150,12 @@ type FileMailbox struct {
 	messages    []*FileMessage
 }
 
+// Name of the mailbox
 func (mb *FileMailbox) Name() string {
 	return mb.name
 }
 
+// String renders the name and directory path of the mailbox
 func (mb *FileMailbox) String() string {
 	return mb.name + "[" + mb.dirName + "]"
 }
@@ -184,11 +186,11 @@ func (mb *FileMailbox) GetMessage(id string) (datastore.Message, error) {
 
 	if id == "latest" && len(mb.messages) != 0 {
 		return mb.messages[len(mb.messages)-1], nil
-	} else {
-		for _, m := range mb.messages {
-			if m.Fid == id {
-				return m, nil
-			}
+	}
+
+	for _, m := range mb.messages {
+		if m.Fid == id {
+			return m, nil
 		}
 	}
 

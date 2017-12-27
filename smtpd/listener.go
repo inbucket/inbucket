@@ -131,10 +131,8 @@ func (s *Server) Start(ctx context.Context) {
 	go s.serve(ctx)
 
 	// Wait for shutdown
-	select {
-	case <-ctx.Done():
-		log.Tracef("SMTP shutdown requested, connections will be drained")
-	}
+	<-ctx.Done()
+	log.Tracef("SMTP shutdown requested, connections will be drained")
 
 	// Closing the listener will cause the serve() go routine to exit
 	if err := s.listener.Close(); err != nil {
@@ -186,7 +184,7 @@ func (s *Server) serve(ctx context.Context) {
 func (s *Server) emergencyShutdown() {
 	// Shutdown Inbucket
 	select {
-	case _ = <-s.globalShutdown:
+	case <-s.globalShutdown:
 	default:
 		close(s.globalShutdown)
 	}

@@ -130,15 +130,24 @@ LOOP:
 		switch {
 		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'):
 			// Letters are OK
-			_ = buf.WriteByte(c)
+			err = buf.WriteByte(c)
+			if err != nil {
+				return
+			}
 			inCharQuote = false
 		case '0' <= c && c <= '9':
 			// Numbers are OK
-			_ = buf.WriteByte(c)
+			err = buf.WriteByte(c)
+			if err != nil {
+				return
+			}
 			inCharQuote = false
 		case bytes.IndexByte([]byte("!#$%&'*+-/=?^_`{|}~"), c) >= 0:
 			// These specials can be used unquoted
-			_ = buf.WriteByte(c)
+			err = buf.WriteByte(c)
+			if err != nil {
+				return
+			}
 			inCharQuote = false
 		case c == '.':
 			// A single period is OK
@@ -146,13 +155,19 @@ LOOP:
 				// Sequence of periods is not permitted
 				return "", "", fmt.Errorf("Sequence of periods is not permitted")
 			}
-			_ = buf.WriteByte(c)
+			err = buf.WriteByte(c)
+			if err != nil {
+				return
+			}
 			inCharQuote = false
 		case c == '\\':
 			inCharQuote = true
 		case c == '"':
 			if inCharQuote {
-				_ = buf.WriteByte(c)
+				err = buf.WriteByte(c)
+				if err != nil {
+					return
+				}
 				inCharQuote = false
 			} else if inStringQuote {
 				inStringQuote = false
@@ -165,7 +180,10 @@ LOOP:
 			}
 		case c == '@':
 			if inCharQuote || inStringQuote {
-				_ = buf.WriteByte(c)
+				err = buf.WriteByte(c)
+				if err != nil {
+					return
+				}
 				inCharQuote = false
 			} else {
 				// End of local-part
@@ -182,7 +200,10 @@ LOOP:
 			return "", "", fmt.Errorf("Characters outside of US-ASCII range not permitted")
 		default:
 			if inCharQuote || inStringQuote {
-				_ = buf.WriteByte(c)
+				err = buf.WriteByte(c)
+				if err != nil {
+					return
+				}
 				inCharQuote = false
 			} else {
 				return "", "", fmt.Errorf("Character %q must be quoted", c)

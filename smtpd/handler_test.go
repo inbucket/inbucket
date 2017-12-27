@@ -31,10 +31,8 @@ func TestGreetState(t *testing.T) {
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 
-	var script []scriptStep
-
 	// Test out some mangled HELOs
-	script = []scriptStep{
+	script := []scriptStep{
 		{"HELO", 501},
 		{"EHLO", 501},
 		{"HELLO", 500},
@@ -90,10 +88,8 @@ func TestReadyState(t *testing.T) {
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 
-	var script []scriptStep
-
 	// Test out some mangled READY commands
-	script = []scriptStep{
+	script := []scriptStep{
 		{"HELO localhost", 250},
 		{"FOOB", 500},
 		{"HELO", 503},
@@ -165,10 +161,8 @@ func TestMailState(t *testing.T) {
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 
-	var script []scriptStep
-
 	// Test out some mangled READY commands
-	script = []scriptStep{
+	script := []scriptStep{
 		{"HELO localhost", 250},
 		{"MAIL FROM:<john@gmail.com>", 250},
 		{"FOOB", 500},

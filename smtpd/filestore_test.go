@@ -496,7 +496,7 @@ func TestGetLatestMessage(t *testing.T) {
 	assert.True(t, msg.ID() == id3, "Expected %q to be equal to %q", msg.ID(), id3)
 
 	// Test wrong id
-	msg, err = mb.GetMessage("wrongid")
+	_, err = mb.GetMessage("wrongid")
 	assert.Error(t, err)
 
 	if t.Failed() {

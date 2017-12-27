@@ -72,7 +72,7 @@ func (m *FileMessage) From() string {
 	return m.Ffrom
 }
 
-// From returns the value of the Message To header
+// To returns the value of the Message To header
 func (m *FileMessage) To() []string {
 	return m.Fto
 }

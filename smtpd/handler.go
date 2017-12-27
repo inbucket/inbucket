@@ -511,20 +511,16 @@ func (ss *Session) send(msg string) {
 
 // readByteLine reads a line of input into the provided buffer. Does
 // not reset the Buffer - please do so prior to calling.
-func (ss *Session) readByteLine(buf *bytes.Buffer) error {
+func (ss *Session) readByteLine(buf io.Writer) error {
 	if err := ss.conn.SetReadDeadline(ss.nextDeadline()); err != nil {
 		return err
 	}
-	for {
-		line, err := ss.reader.ReadBytes('\n')
-		if err != nil {
-			return err
-		}
-		if _, err = buf.Write(line); err != nil {
-			return err
-		}
-		return nil
+	line, err := ss.reader.ReadBytes('\n')
+	if err != nil {
+		return err
 	}
+	_, err = buf.Write(line)
+	return err
 }
 
 // Reads a line of input
@@ -573,7 +569,7 @@ func (ss *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 // The leading space is mandatory.
 func (ss *Session) parseArgs(arg string) (args map[string]string, ok bool) {
 	args = make(map[string]string)
-	re := regexp.MustCompile(" (\\w+)=(\\w+)")
+	re := regexp.MustCompile(` (\w+)=(\w+)`)
 	pm := re.FindAllStringSubmatch(arg, -1)
 	if pm == nil {
 		ss.logWarn("Failed to parse arg string: %q")

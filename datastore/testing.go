@@ -1,196 +1,156 @@
-package smtpd
+package datastore
 
 import (
-	"fmt"
 	"io"
 	"net/mail"
-	"testing"
 	"time"
 
 	"github.com/jhillyerd/enmime"
 	"github.com/stretchr/testify/mock"
 )
 
-func TestDoRetentionScan(t *testing.T) {
-	// Create mock objects
-	mds := &MockDataStore{}
-
-	mb1 := &MockMailbox{}
-	mb2 := &MockMailbox{}
-	mb3 := &MockMailbox{}
-
-	// Mockup some different aged messages (num is in hours)
-	new1 := mockMessage(0)
-	new2 := mockMessage(1)
-	new3 := mockMessage(2)
-	old1 := mockMessage(4)
-	old2 := mockMessage(12)
-	old3 := mockMessage(24)
-
-	// First it should ask for all mailboxes
-	mds.On("AllMailboxes").Return([]Mailbox{mb1, mb2, mb3}, nil)
-
-	// Then for all messages on each box
-	mb1.On("GetMessages").Return([]Message{new1, old1, old2}, nil)
-	mb2.On("GetMessages").Return([]Message{old3, new2}, nil)
-	mb3.On("GetMessages").Return([]Message{new3}, nil)
-
-	// Test 4 hour retention
-	rs := &RetentionScanner{
-		ds:              mds,
-		retentionPeriod: 4*time.Hour - time.Minute,
-		retentionSleep:  0,
-	}
-	if err := rs.doScan(); err != nil {
-		t.Error(err)
-	}
-
-	// Check our assertions
-	mds.AssertExpectations(t)
-	mb1.AssertExpectations(t)
-	mb2.AssertExpectations(t)
-	mb3.AssertExpectations(t)
-
-	// Delete should not have been called on new messages
-	new1.AssertNotCalled(t, "Delete")
-	new2.AssertNotCalled(t, "Delete")
-	new3.AssertNotCalled(t, "Delete")
-
-	// Delete should have been called once on old messages
-	old1.AssertNumberOfCalls(t, "Delete", 1)
-	old2.AssertNumberOfCalls(t, "Delete", 1)
-	old3.AssertNumberOfCalls(t, "Delete", 1)
-}
-
-// Make a MockMessage of a specific age
-func mockMessage(ageHours int) *MockMessage {
-	msg := &MockMessage{}
-	msg.On("ID").Return(fmt.Sprintf("MSG[age=%vh]", ageHours))
-	msg.On("Date").Return(time.Now().Add(time.Duration(ageHours*-1) * time.Hour))
-	msg.On("Delete").Return(nil)
-	return msg
-}
-
-// Mock DataStore object
+// MockDataStore is a shared mock for unit testing
 type MockDataStore struct {
 	mock.Mock
 }
 
+// MailboxFor mock function
 func (m *MockDataStore) MailboxFor(name string) (Mailbox, error) {
-	args := m.Called()
+	args := m.Called(name)
 	return args.Get(0).(Mailbox), args.Error(1)
 }
 
+// AllMailboxes mock function
 func (m *MockDataStore) AllMailboxes() ([]Mailbox, error) {
 	args := m.Called()
 	return args.Get(0).([]Mailbox), args.Error(1)
 }
 
-// Mock Mailbox object
+// MockMailbox is a shared mock for unit testing
 type MockMailbox struct {
 	mock.Mock
 }
 
+// GetMessages mock function
 func (m *MockMailbox) GetMessages() ([]Message, error) {
 	args := m.Called()
 	return args.Get(0).([]Message), args.Error(1)
 }
 
+// GetMessage mock function
 func (m *MockMailbox) GetMessage(id string) (Message, error) {
 	args := m.Called(id)
 	return args.Get(0).(Message), args.Error(1)
 }
 
+// Purge mock function
 func (m *MockMailbox) Purge() error {
 	args := m.Called()
 	return args.Error(0)
 }
 
+// NewMessage mock function
 func (m *MockMailbox) NewMessage() (Message, error) {
 	args := m.Called()
 	return args.Get(0).(Message), args.Error(1)
 }
 
+// Name mock function
 func (m *MockMailbox) Name() string {
 	args := m.Called()
 	return args.String(0)
 }
 
+// String mock function
 func (m *MockMailbox) String() string {
 	args := m.Called()
 	return args.String(0)
 }
 
-// Mock Message object
+// MockMessage is a shared mock for unit testing
 type MockMessage struct {
 	mock.Mock
 }
 
+// ID mock function
 func (m *MockMessage) ID() string {
 	args := m.Called()
 	return args.String(0)
 }
 
+// From mock function
 func (m *MockMessage) From() string {
 	args := m.Called()
 	return args.String(0)
 }
 
+// To mock function
 func (m *MockMessage) To() []string {
 	args := m.Called()
 	return args.Get(0).([]string)
 }
 
+// Date mock function
 func (m *MockMessage) Date() time.Time {
 	args := m.Called()
 	return args.Get(0).(time.Time)
 }
 
+// Subject mock function
 func (m *MockMessage) Subject() string {
 	args := m.Called()
 	return args.String(0)
 }
 
+// ReadHeader mock function
 func (m *MockMessage) ReadHeader() (msg *mail.Message, err error) {
 	args := m.Called()
 	return args.Get(0).(*mail.Message), args.Error(1)
 }
 
+// ReadBody mock function
 func (m *MockMessage) ReadBody() (body *enmime.Envelope, err error) {
 	args := m.Called()
 	return args.Get(0).(*enmime.Envelope), args.Error(1)
 }
 
+// ReadRaw mock function
 func (m *MockMessage) ReadRaw() (raw *string, err error) {
 	args := m.Called()
 	return args.Get(0).(*string), args.Error(1)
 }
 
+// RawReader mock function
 func (m *MockMessage) RawReader() (reader io.ReadCloser, err error) {
 	args := m.Called()
 	return args.Get(0).(io.ReadCloser), args.Error(1)
 }
 
+// Size mock function
 func (m *MockMessage) Size() int64 {
 	args := m.Called()
 	return int64(args.Int(0))
 }
 
+// Append mock function
 func (m *MockMessage) Append(data []byte) error {
 	// []byte arg seems to mess up testify/mock
 	return nil
 }
 
+// Close mock function
 func (m *MockMessage) Close() error {
 	args := m.Called()
 	return args.Error(0)
 }
 
+// Delete mock function
 func (m *MockMessage) Delete() error {
 	args := m.Called()
 	return args.Error(0)
 }
 
+// String mock function
 func (m *MockMessage) String() string {
 	args := m.Called()
 	return args.String(0)

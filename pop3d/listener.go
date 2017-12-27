@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
-	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 // Server defines an instance of our POP3 server
@@ -17,14 +17,14 @@ type Server struct {
 	host           string
 	domain         string
 	maxIdleSeconds int
-	dataStore      smtpd.DataStore
+	dataStore      datastore.DataStore
 	listener       net.Listener
 	globalShutdown chan bool
 	waitgroup      *sync.WaitGroup
 }
 
 // New creates a new Server struct
-func New(cfg config.POP3Config, shutdownChan chan bool, ds smtpd.DataStore) *Server {
+func New(cfg config.POP3Config, shutdownChan chan bool, ds datastore.DataStore) *Server {
 	return &Server{
 		host:           fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
 		domain:         cfg.Domain,

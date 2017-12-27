@@ -1,8 +1,7 @@
-package smtpd
+package stringutil
 
 import (
 	"bytes"
-	"container/list"
 	"crypto/sha1"
 	"fmt"
 	"io"
@@ -42,7 +41,7 @@ func ParseMailboxName(localPart string) (result string, err error) {
 	return result, nil
 }
 
-// HashMailboxName accepts a mailbox name and hashes it.  Inbucket uses this as
+// HashMailboxName accepts a mailbox name and hashes it.  filestore uses this as
 // the directory to house the mailbox
 func HashMailboxName(mailbox string) string {
 	h := sha1.New()
@@ -51,18 +50,6 @@ func HashMailboxName(mailbox string) string {
 		return ""
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-// JoinStringList joins a List containing strings by commas
-func JoinStringList(listOfStrings *list.List) string {
-	if listOfStrings.Len() == 0 {
-		return ""
-	}
-	s := make([]string, 0, listOfStrings.Len())
-	for e := listOfStrings.Front(); e != nil; e = e.Next() {
-		s = append(s, e.Value.(string))
-	}
-	return strings.Join(s, ",")
 }
 
 // ValidateDomainPart returns true if the domain part complies to RFC3696, RFC1035
@@ -143,15 +130,24 @@ LOOP:
 		switch {
 		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'):
 			// Letters are OK
-			_ = buf.WriteByte(c)
+			err = buf.WriteByte(c)
+			if err != nil {
+				return
+			}
 			inCharQuote = false
 		case '0' <= c && c <= '9':
 			// Numbers are OK
-			_ = buf.WriteByte(c)
+			err = buf.WriteByte(c)
+			if err != nil {
+				return
+			}
 			inCharQuote = false
 		case bytes.IndexByte([]byte("!#$%&'*+-/=?^_`{|}~"), c) >= 0:
 			// These specials can be used unquoted
-			_ = buf.WriteByte(c)
+			err = buf.WriteByte(c)
+			if err != nil {
+				return
+			}
 			inCharQuote = false
 		case c == '.':
 			// A single period is OK
@@ -159,13 +155,19 @@ LOOP:
 				// Sequence of periods is not permitted
 				return "", "", fmt.Errorf("Sequence of periods is not permitted")
 			}
-			_ = buf.WriteByte(c)
+			err = buf.WriteByte(c)
+			if err != nil {
+				return
+			}
 			inCharQuote = false
 		case c == '\\':
 			inCharQuote = true
 		case c == '"':
 			if inCharQuote {
-				_ = buf.WriteByte(c)
+				err = buf.WriteByte(c)
+				if err != nil {
+					return
+				}
 				inCharQuote = false
 			} else if inStringQuote {
 				inStringQuote = false
@@ -178,7 +180,10 @@ LOOP:
 			}
 		case c == '@':
 			if inCharQuote || inStringQuote {
-				_ = buf.WriteByte(c)
+				err = buf.WriteByte(c)
+				if err != nil {
+					return
+				}
 				inCharQuote = false
 			} else {
 				// End of local-part
@@ -195,7 +200,10 @@ LOOP:
 			return "", "", fmt.Errorf("Characters outside of US-ASCII range not permitted")
 		default:
 			if inCharQuote || inStringQuote {
-				_ = buf.WriteByte(c)
+				err = buf.WriteByte(c)
+				if err != nil {
+					return
+				}
 				inCharQuote = false
 			} else {
 				return "", "", fmt.Errorf("Character %q must be quoted", c)

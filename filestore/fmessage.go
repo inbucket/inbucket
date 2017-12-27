@@ -1,4 +1,4 @@
-package smtpd
+package filestore
 
 import (
 	"bufio"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/enmime"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
 )
 
@@ -33,7 +34,7 @@ type FileMessage struct {
 
 // NewMessage creates a new FileMessage object and sets the Date and Id fields.
 // It will also delete messages over messageCap if configured.
-func (mb *FileMailbox) NewMessage() (Message, error) {
+func (mb *FileMailbox) NewMessage() (datastore.Message, error) {
 	// Load index
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
@@ -71,7 +72,7 @@ func (m *FileMessage) From() string {
 	return m.Ffrom
 }
 
-// From returns the value of the Message To header
+// To returns the value of the Message To header
 func (m *FileMessage) To() []string {
 	return m.Fto
 }
@@ -165,7 +166,7 @@ func (m *FileMessage) ReadRaw() (raw *string, err error) {
 func (m *FileMessage) Append(data []byte) error {
 	// Prevent Appending to a pre-existing Message
 	if !m.writable {
-		return ErrNotWritable
+		return datastore.ErrNotWritable
 	}
 	// Open file for writing if we haven't yet
 	if m.writer == nil {

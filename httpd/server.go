@@ -13,9 +13,9 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/msghub"
-	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 // Handler is a function type that handles an HTTP request in Inbucket
@@ -23,7 +23,7 @@ type Handler func(http.ResponseWriter, *http.Request, *Context) error
 
 var (
 	// DataStore is where all the mailboxes and messages live
-	DataStore smtpd.DataStore
+	DataStore datastore.DataStore
 
 	// msgHub holds a reference to the message pub/sub system
 	msgHub *msghub.Hub
@@ -51,7 +51,7 @@ func init() {
 func Initialize(
 	cfg config.WebConfig,
 	shutdownChan chan bool,
-	ds smtpd.DataStore,
+	ds datastore.DataStore,
 	mh *msghub.Hub) {
 
 	webConfig = cfg

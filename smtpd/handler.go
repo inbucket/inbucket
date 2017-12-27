@@ -12,8 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/msghub"
+	"github.com/jhillyerd/inbucket/stringutil"
 )
 
 // State tracks the current mode of our SMTP state machine
@@ -71,7 +73,7 @@ var commands = map[string]bool{
 // recipientDetails for message delivery
 type recipientDetails struct {
 	address, localPart, domainPart string
-	mailbox                        Mailbox
+	mailbox                        datastore.Mailbox
 }
 
 // Session holds the state of an SMTP session
@@ -265,7 +267,7 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 			return
 		}
 		from := m[1]
-		if _, _, err := ParseEmailAddress(from); err != nil {
+		if _, _, err := stringutil.ParseEmailAddress(from); err != nil {
 			ss.send("501 Bad sender address syntax")
 			ss.logWarn("Bad address as MAIL arg: %q, %s", from, err)
 			return
@@ -314,7 +316,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 		}
 		// This trim is probably too forgiving
 		recip := strings.Trim(arg[3:], "<> ")
-		if _, _, err := ParseEmailAddress(recip); err != nil {
+		if _, _, err := stringutil.ParseEmailAddress(recip); err != nil {
 			ss.send("501 Bad recipient address syntax")
 			ss.logWarn("Bad address as RCPT arg: %q, %s", recip, err)
 			return
@@ -354,7 +356,7 @@ func (ss *Session) dataHandler() {
 	if ss.server.storeMessages {
 		for e := ss.recipients.Front(); e != nil; e = e.Next() {
 			recip := e.Value.(string)
-			local, domain, err := ParseEmailAddress(recip)
+			local, domain, err := stringutil.ParseEmailAddress(recip)
 			if err != nil {
 				ss.logError("Failed to parse address for %q", recip)
 				ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
@@ -510,20 +512,16 @@ func (ss *Session) send(msg string) {
 
 // readByteLine reads a line of input into the provided buffer. Does
 // not reset the Buffer - please do so prior to calling.
-func (ss *Session) readByteLine(buf *bytes.Buffer) error {
+func (ss *Session) readByteLine(buf io.Writer) error {
 	if err := ss.conn.SetReadDeadline(ss.nextDeadline()); err != nil {
 		return err
 	}
-	for {
-		line, err := ss.reader.ReadBytes('\n')
-		if err != nil {
-			return err
-		}
-		if _, err = buf.Write(line); err != nil {
-			return err
-		}
-		return nil
+	line, err := ss.reader.ReadBytes('\n')
+	if err != nil {
+		return err
 	}
+	_, err = buf.Write(line)
+	return err
 }
 
 // Reads a line of input
@@ -572,7 +570,7 @@ func (ss *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 // The leading space is mandatory.
 func (ss *Session) parseArgs(arg string) (args map[string]string, ok bool) {
 	args = make(map[string]string)
-	re := regexp.MustCompile(" (\\w+)=(\\w+)")
+	re := regexp.MustCompile(` (\w+)=(\w+)`)
 	pm := re.FindAllStringSubmatch(arg, -1)
 	if pm == nil {
 		ss.logWarn("Failed to parse arg string: %q")

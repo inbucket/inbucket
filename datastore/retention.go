@@ -1,4 +1,4 @@
-package smtpd
+package datastore
 
 import (
 	"container/list"
@@ -36,6 +36,11 @@ func init() {
 	rm.Set("Period", expRetentionPeriod)
 	rm.Set("RetainedHist", expRetainedHist)
 	rm.Set("RetainedCurrent", expRetainedCurrent)
+
+	log.AddTickerFunc(func() {
+		expRetentionDeletesHist.Set(log.PushMetric(retentionDeletesHist, expRetentionDeletesTotal))
+		expRetainedHist.Set(log.PushMetric(retainedHist, expRetainedCurrent))
+	})
 }
 
 // RetentionScanner looks for messages older than the configured retention period and deletes them.
@@ -85,9 +90,9 @@ retentionLoop:
 			dur := time.Minute - since
 			log.Tracef("Retention scanner sleeping for %v", dur)
 			select {
-			case _ = <-rs.globalShutdown:
+			case <-rs.globalShutdown:
 				break retentionLoop
-			case _ = <-time.After(dur):
+			case <-time.After(dur):
 			}
 		}
 		// Kickoff scan
@@ -97,7 +102,7 @@ retentionLoop:
 		}
 		// Check for global shutdown
 		select {
-		case _ = <-rs.globalShutdown:
+		case <-rs.globalShutdown:
 			break retentionLoop
 		default:
 		}
@@ -154,9 +159,7 @@ func (rs *RetentionScanner) doScan() error {
 // Join does not retun until the retention scanner has shut down
 func (rs *RetentionScanner) Join() {
 	if rs.retentionShutdown != nil {
-		select {
-		case <-rs.retentionShutdown:
-		}
+		<-rs.retentionShutdown
 	}
 }
 

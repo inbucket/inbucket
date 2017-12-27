@@ -7,15 +7,15 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/msghub"
-	"github.com/jhillyerd/inbucket/smtpd"
 )
 
 // Context is passed into every request handler function
 type Context struct {
 	Vars      map[string]string
 	Session   *sessions.Session
-	DataStore smtpd.DataStore
+	DataStore datastore.DataStore
 	MsgHub    *msghub.Hub
 	WebConfig config.WebConfig
 	IsJSON    bool

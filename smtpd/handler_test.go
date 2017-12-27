@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/msghub"
 )
 
@@ -25,17 +26,13 @@ type scriptStep struct {
 // Test commands in GREET state
 func TestGreetState(t *testing.T) {
 	// Setup mock objects
-	mds := &MockDataStore{}
-	mb1 := &MockMailbox{}
-	mds.On("MailboxFor").Return(mb1, nil)
+	mds := &datastore.MockDataStore{}
 
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 
-	var script []scriptStep
-
 	// Test out some mangled HELOs
-	script = []scriptStep{
+	script := []scriptStep{
 		{"HELO", 501},
 		{"EHLO", 501},
 		{"HELLO", 500},
@@ -86,17 +83,13 @@ func TestGreetState(t *testing.T) {
 // Test commands in READY state
 func TestReadyState(t *testing.T) {
 	// Setup mock objects
-	mds := &MockDataStore{}
-	mb1 := &MockMailbox{}
-	mds.On("MailboxFor").Return(mb1, nil)
+	mds := &datastore.MockDataStore{}
 
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 
-	var script []scriptStep
-
 	// Test out some mangled READY commands
-	script = []scriptStep{
+	script := []scriptStep{
 		{"HELO localhost", 250},
 		{"FOOB", 500},
 		{"HELO", 503},
@@ -151,10 +144,10 @@ func TestReadyState(t *testing.T) {
 // Test commands in MAIL state
 func TestMailState(t *testing.T) {
 	// Setup mock objects
-	mds := &MockDataStore{}
-	mb1 := &MockMailbox{}
-	msg1 := &MockMessage{}
-	mds.On("MailboxFor").Return(mb1, nil)
+	mds := &datastore.MockDataStore{}
+	mb1 := &datastore.MockMailbox{}
+	msg1 := &datastore.MockMessage{}
+	mds.On("MailboxFor", "u1").Return(mb1, nil)
 	mb1.On("NewMessage").Return(msg1, nil)
 	mb1.On("Name").Return("u1")
 	msg1.On("ID").Return("")
@@ -168,10 +161,8 @@ func TestMailState(t *testing.T) {
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 
-	var script []scriptStep
-
 	// Test out some mangled READY commands
-	script = []scriptStep{
+	script := []scriptStep{
 		{"HELO localhost", 250},
 		{"MAIL FROM:<john@gmail.com>", 250},
 		{"FOOB", 500},
@@ -268,10 +259,10 @@ func TestMailState(t *testing.T) {
 // Test commands in DATA state
 func TestDataState(t *testing.T) {
 	// Setup mock objects
-	mds := &MockDataStore{}
-	mb1 := &MockMailbox{}
-	msg1 := &MockMessage{}
-	mds.On("MailboxFor").Return(mb1, nil)
+	mds := &datastore.MockDataStore{}
+	mb1 := &datastore.MockMailbox{}
+	msg1 := &datastore.MockMessage{}
+	mds.On("MailboxFor", "u1").Return(mb1, nil)
 	mb1.On("NewMessage").Return(msg1, nil)
 	mb1.On("Name").Return("u1")
 	msg1.On("ID").Return("")
@@ -376,7 +367,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupSMTPServer(ds DataStore) (s *Server, buf *bytes.Buffer, teardown func()) {
+func setupSMTPServer(ds datastore.DataStore) (s *Server, buf *bytes.Buffer, teardown func()) {
 	// Test Server Config
 	cfg := config.SMTPConfig{
 		IP4address:      net.IPv4(127, 0, 0, 1),

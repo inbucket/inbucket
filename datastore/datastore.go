@@ -1,4 +1,5 @@
-package smtpd
+// Package datastore contains implementation independent datastore logic
+package datastore
 
 import (
 	"errors"

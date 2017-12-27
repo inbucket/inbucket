@@ -1,4 +1,4 @@
-package smtpd
+package filestore
 
 import (
 	"bytes"
@@ -470,8 +470,8 @@ func TestGetLatestMessage(t *testing.T) {
 	mb, err := ds.MailboxFor(mbName)
 	assert.Nil(t, err)
 	msg, err := mb.GetMessage("latest")
+	assert.Nil(t, msg)
 	assert.Error(t, err)
-	fmt.Println(msg)
 
 	// Deliver test message
 	deliverMessage(ds, mbName, "test", time.Now())
@@ -496,7 +496,7 @@ func TestGetLatestMessage(t *testing.T) {
 	assert.True(t, msg.ID() == id3, "Expected %q to be equal to %q", msg.ID(), id3)
 
 	// Test wrong id
-	msg, err = mb.GetMessage("wrongid")
+	_, err = mb.GetMessage("wrongid")
 	assert.Error(t, err)
 
 	if t.Failed() {

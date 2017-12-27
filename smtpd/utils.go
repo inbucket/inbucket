@@ -2,7 +2,6 @@ package smtpd
 
 import (
 	"bytes"
-	"container/list"
 	"crypto/sha1"
 	"fmt"
 	"io"
@@ -51,18 +50,6 @@ func HashMailboxName(mailbox string) string {
 		return ""
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-// JoinStringList joins a List containing strings by commas
-func JoinStringList(listOfStrings *list.List) string {
-	if listOfStrings.Len() == 0 {
-		return ""
-	}
-	s := make([]string, 0, listOfStrings.Len())
-	for e := listOfStrings.Front(); e != nil; e = e.Next() {
-		s = append(s, e.Value.(string))
-	}
-	return strings.Join(s, ",")
 }
 
 // ValidateDomainPart returns true if the domain part complies to RFC3696, RFC1035

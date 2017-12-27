@@ -16,6 +16,28 @@ import (
 	"github.com/jhillyerd/inbucket/msghub"
 )
 
+func init() {
+	m := expvar.NewMap("smtp")
+	m.Set("ConnectsTotal", expConnectsTotal)
+	m.Set("ConnectsHist", expConnectsHist)
+	m.Set("ConnectsCurrent", expConnectsCurrent)
+	m.Set("ReceivedTotal", expReceivedTotal)
+	m.Set("ReceivedHist", expReceivedHist)
+	m.Set("ErrorsTotal", expErrorsTotal)
+	m.Set("ErrorsHist", expErrorsHist)
+	m.Set("WarnsTotal", expWarnsTotal)
+	m.Set("WarnsHist", expWarnsHist)
+
+	log.AddTickerFunc(func() {
+		expReceivedHist.Set(log.PushMetric(deliveredHist, expReceivedTotal))
+		expConnectsHist.Set(log.PushMetric(connectsHist, expConnectsTotal))
+		expErrorsHist.Set(log.PushMetric(errorsHist, expErrorsTotal))
+		expWarnsHist.Set(log.PushMetric(warnsHist, expWarnsTotal))
+		expRetentionDeletesHist.Set(log.PushMetric(retentionDeletesHist, expRetentionDeletesTotal))
+		expRetainedHist.Set(log.PushMetric(retainedHist, expRetainedCurrent))
+	})
+}
+
 // Server holds the configuration and state of our SMTP server
 type Server struct {
 	// Configuration
@@ -178,45 +200,4 @@ func (s *Server) Drain() {
 	s.waitgroup.Wait()
 	log.Tracef("SMTP connections have drained")
 	s.retentionScanner.Join()
-}
-
-// When the provided Ticker ticks, we update our metrics history
-func metricsTicker(t *time.Ticker) {
-	ok := true
-	for ok {
-		_, ok = <-t.C
-		expReceivedHist.Set(pushMetric(deliveredHist, expReceivedTotal))
-		expConnectsHist.Set(pushMetric(connectsHist, expConnectsTotal))
-		expErrorsHist.Set(pushMetric(errorsHist, expErrorsTotal))
-		expWarnsHist.Set(pushMetric(warnsHist, expWarnsTotal))
-		expRetentionDeletesHist.Set(pushMetric(retentionDeletesHist, expRetentionDeletesTotal))
-		expRetainedHist.Set(pushMetric(retainedHist, expRetainedCurrent))
-	}
-}
-
-// pushMetric adds the metric to the end of the list and returns a comma separated string of the
-// previous 61 entries.  We return 61 instead of 60 (an hour) because the chart on the client
-// tracks deltas between these values - there is nothing to compare the first value against.
-func pushMetric(history *list.List, ev expvar.Var) string {
-	history.PushBack(ev.String())
-	if history.Len() > 61 {
-		history.Remove(history.Front())
-	}
-	return JoinStringList(history)
-}
-
-func init() {
-	m := expvar.NewMap("smtp")
-	m.Set("ConnectsTotal", expConnectsTotal)
-	m.Set("ConnectsHist", expConnectsHist)
-	m.Set("ConnectsCurrent", expConnectsCurrent)
-	m.Set("ReceivedTotal", expReceivedTotal)
-	m.Set("ReceivedHist", expReceivedHist)
-	m.Set("ErrorsTotal", expErrorsTotal)
-	m.Set("ErrorsHist", expErrorsHist)
-	m.Set("WarnsTotal", expWarnsTotal)
-	m.Set("WarnsHist", expWarnsHist)
-
-	t := time.NewTicker(time.Minute)
-	go metricsTicker(t)
 }

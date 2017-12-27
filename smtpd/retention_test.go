@@ -78,7 +78,7 @@ type MockDataStore struct {
 }
 
 func (m *MockDataStore) MailboxFor(name string) (datastore.Mailbox, error) {
-	args := m.Called()
+	args := m.Called(name)
 	return args.Get(0).(datastore.Mailbox), args.Error(1)
 }
 

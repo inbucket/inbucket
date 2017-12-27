@@ -26,9 +26,7 @@ type scriptStep struct {
 // Test commands in GREET state
 func TestGreetState(t *testing.T) {
 	// Setup mock objects
-	mds := &MockDataStore{}
-	mb1 := &MockMailbox{}
-	mds.On("MailboxFor").Return(mb1, nil)
+	mds := &datastore.MockDataStore{}
 
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
@@ -87,9 +85,7 @@ func TestGreetState(t *testing.T) {
 // Test commands in READY state
 func TestReadyState(t *testing.T) {
 	// Setup mock objects
-	mds := &MockDataStore{}
-	mb1 := &MockMailbox{}
-	mds.On("MailboxFor").Return(mb1, nil)
+	mds := &datastore.MockDataStore{}
 
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
@@ -152,10 +148,10 @@ func TestReadyState(t *testing.T) {
 // Test commands in MAIL state
 func TestMailState(t *testing.T) {
 	// Setup mock objects
-	mds := &MockDataStore{}
-	mb1 := &MockMailbox{}
-	msg1 := &MockMessage{}
-	mds.On("MailboxFor").Return(mb1, nil)
+	mds := &datastore.MockDataStore{}
+	mb1 := &datastore.MockMailbox{}
+	msg1 := &datastore.MockMessage{}
+	mds.On("MailboxFor", "u1").Return(mb1, nil)
 	mb1.On("NewMessage").Return(msg1, nil)
 	mb1.On("Name").Return("u1")
 	msg1.On("ID").Return("")
@@ -269,10 +265,10 @@ func TestMailState(t *testing.T) {
 // Test commands in DATA state
 func TestDataState(t *testing.T) {
 	// Setup mock objects
-	mds := &MockDataStore{}
-	mb1 := &MockMailbox{}
-	msg1 := &MockMessage{}
-	mds.On("MailboxFor").Return(mb1, nil)
+	mds := &datastore.MockDataStore{}
+	mb1 := &datastore.MockMailbox{}
+	msg1 := &datastore.MockMessage{}
+	mds.On("MailboxFor", "u1").Return(mb1, nil)
 	mb1.On("NewMessage").Return(msg1, nil)
 	mb1.On("Name").Return("u1")
 	msg1.On("ID").Return("")

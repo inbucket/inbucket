@@ -51,12 +51,17 @@ body {
   }
 }
 
+#body-tabs > li > a {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
 .message-body {
-  padding: 0 5px;
+  padding: 10px 4px;
 }
 
 .message-attachments {
-  margin-top: 20px;
+  margin-top: 5px;
   padding: 10px 10px 0 0;
 }
 

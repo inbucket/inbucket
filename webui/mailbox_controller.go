@@ -10,6 +10,7 @@ import (
 	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/sanitize"
 	"github.com/jhillyerd/inbucket/stringutil"
 )
 
@@ -118,6 +119,14 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 	}
 	body := template.HTML(httpd.TextToHTML(mime.Text))
 	htmlAvailable := mime.HTML != ""
+	var htmlBody template.HTML
+	if htmlAvailable {
+		if str, err := sanitize.HTML(mime.HTML); err == nil {
+			htmlBody = template.HTML(str)
+		} else {
+			log.Warnf("HTML sanitizer failed: %s", err)
+		}
+	}
 	// Render partial template
 	return httpd.RenderPartial("mailbox/_show.html", w, map[string]interface{}{
 		"ctx":           ctx,
@@ -125,6 +134,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 		"message":       msg,
 		"body":          body,
 		"htmlAvailable": htmlAvailable,
+		"htmlBody":      htmlBody,
 		"mimeErrors":    mime.Errors,
 		"attachments":   mime.Attachments,
 	})

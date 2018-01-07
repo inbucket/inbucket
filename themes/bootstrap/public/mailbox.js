@@ -157,6 +157,7 @@ function onMessageLoaded(responseText, textStatus, XMLHttpRequest) {
     return;
   }
   onDocumentChange();
+  $('#body-tabs a:first').tab('show')
   var top = $('#message-container').offset().top - navBarOffset;
   $(window).scrollTop(top);
 }

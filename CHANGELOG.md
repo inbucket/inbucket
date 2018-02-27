@@ -4,8 +4,16 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-[1.2.0-rc2] - 2017-12-15
-------------------------
+## [Unreleased]
+
+### Added
+- Button to purge mailbox contents from the UI.
+- Simple HTML/CSS sanitization; `Safe HTML` and `Plain Text` UI tabs.
+
+### Changed
+- Reverse message display sort order in the UI; now newest first.
+
+## [1.2.0-rc2] - 2017-12-15
 
 ### Added
 - `rest/client` types `MessageHeader` and `Message` with convenience methods;
@@ -20,8 +28,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   types
 - Fixed panic when `monitor.history` set to 0
 
-[1.2.0-rc1] - 2017-01-29
-------------------------
+## [1.2.0-rc1] - 2017-01-29
 
 ### Added
 - Storage of `To:` header in messages (likely breaks existing datastores)
@@ -47,8 +54,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Allow increased local-part length of 128 chars for Mailgun
 - RedHat and Ubuntu now use systemd instead of legacy init systems
 
-[1.1.0] - 2016-09-03
---------------------
+## [1.1.0] - 2016-09-03
 
 ### Added
 - Homebrew inbucket.conf and formula (see README)
@@ -56,8 +62,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Log and continue when unable to delete oldest message during cap enforcement
 
-[1.1.0-rc2] - 2016-03-06
-------------------------
+## [1.1.0-rc2] - 2016-03-06
 
 ### Added
 - Message Cap to status page
@@ -67,8 +72,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Shutdown hang in retention scanner
 - Display empty subject as `(No Subject)`
 
-[1.1.0-rc1] - 2016-03-04
-------------------------
+## [1.1.0-rc1] - 2016-03-04
 
 ### Added
 - Inbucket now builds with Go 1.5 or 1.6
@@ -82,8 +86,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - RESTful API moved to `/api/v1` base URI
 - More graceful shutdown on Ctrl-C or when errors encountered
 
-[1.0] - 2014-04-14
-------------------
+## [1.0] - 2014-04-14
 
 ### Added
 - Add new configuration option `mailbox.message.cap` to prevent individual
@@ -100,8 +103,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 [1.0]:        https://github.com/jhillyerd/inbucket/compare/1.0-rc1...1.0
 
 
-Release Checklist
------------------
+## Release Checklist
 
 1.  Create release branch: `git flow release start 1.x.0`
 2.  Update CHANGELOG.md:

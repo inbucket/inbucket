@@ -53,5 +53,6 @@ swaks $* --data gmail.raw
 # Outlook test
 swaks $* --data outlook.raw
 
-# Nonemime responsive HTML test
+# Non-mime responsive HTML test
 swaks $* --data nonmime-html-responsive.raw
+swaks $* --data nonmime-html-inlined.raw

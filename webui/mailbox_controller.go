@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
-	"github.com/jhillyerd/inbucket/smtpd"
+	"github.com/jhillyerd/inbucket/sanitize"
+	"github.com/jhillyerd/inbucket/stringutil"
 )
 
 // MailboxIndex renders the index page for a particular mailbox
@@ -23,7 +25,7 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) 
 		http.Redirect(w, req, httpd.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	name, err = smtpd.ParseMailboxName(name)
+	name, err = stringutil.ParseMailboxName(name)
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -50,7 +52,7 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) 
 func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -66,7 +68,7 @@ func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 // MailboxList renders a list of messages in a mailbox. Renders a partial
 func MailboxList(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -93,7 +95,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -103,7 +105,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	msg, err := mb.GetMessage(id)
-	if err == smtpd.ErrNotExist {
+	if err == datastore.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
@@ -117,6 +119,14 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 	}
 	body := template.HTML(httpd.TextToHTML(mime.Text))
 	htmlAvailable := mime.HTML != ""
+	var htmlBody template.HTML
+	if htmlAvailable {
+		if str, err := sanitize.HTML(mime.HTML); err == nil {
+			htmlBody = template.HTML(str)
+		} else {
+			log.Warnf("HTML sanitizer failed: %s", err)
+		}
+	}
 	// Render partial template
 	return httpd.RenderPartial("mailbox/_show.html", w, map[string]interface{}{
 		"ctx":           ctx,
@@ -124,6 +134,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 		"message":       msg,
 		"body":          body,
 		"htmlAvailable": htmlAvailable,
+		"htmlBody":      htmlBody,
 		"mimeErrors":    mime.Errors,
 		"attachments":   mime.Attachments,
 	})
@@ -133,7 +144,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -143,7 +154,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
-	if err == smtpd.ErrNotExist {
+	if err == datastore.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
@@ -170,7 +181,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (
 func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -180,7 +191,7 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
-	if err == smtpd.ErrNotExist {
+	if err == datastore.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
@@ -205,7 +216,7 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *httpd.Context)
 func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -226,7 +237,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
-	if err == smtpd.ErrNotExist {
+	if err == datastore.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
@@ -257,7 +268,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.
 // MailboxViewAttach sends the attachment to the client for online viewing
 func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name, err := smtpd.ParseMailboxName(ctx.Vars["name"])
+	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -279,7 +290,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *httpd.Cont
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
-	if err == smtpd.ErrNotExist {
+	if err == datastore.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}

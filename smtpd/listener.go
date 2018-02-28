@@ -11,13 +11,35 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/msghub"
 )
 
+func init() {
+	m := expvar.NewMap("smtp")
+	m.Set("ConnectsTotal", expConnectsTotal)
+	m.Set("ConnectsHist", expConnectsHist)
+	m.Set("ConnectsCurrent", expConnectsCurrent)
+	m.Set("ReceivedTotal", expReceivedTotal)
+	m.Set("ReceivedHist", expReceivedHist)
+	m.Set("ErrorsTotal", expErrorsTotal)
+	m.Set("ErrorsHist", expErrorsHist)
+	m.Set("WarnsTotal", expWarnsTotal)
+	m.Set("WarnsHist", expWarnsHist)
+
+	log.AddTickerFunc(func() {
+		expReceivedHist.Set(log.PushMetric(deliveredHist, expReceivedTotal))
+		expConnectsHist.Set(log.PushMetric(connectsHist, expConnectsTotal))
+		expErrorsHist.Set(log.PushMetric(errorsHist, expErrorsTotal))
+		expWarnsHist.Set(log.PushMetric(warnsHist, expWarnsTotal))
+	})
+}
+
 // Server holds the configuration and state of our SMTP server
 type Server struct {
 	// Configuration
+	host            string
 	domain          string
 	domainNoStore   string
 	maxRecips       int
@@ -26,10 +48,10 @@ type Server struct {
 	storeMessages   bool
 
 	// Dependencies
-	dataStore        DataStore         // Mailbox/message store
-	globalShutdown   chan bool         // Shuts down Inbucket
-	msgHub           *msghub.Hub       // Pub/sub for message info
-	retentionScanner *RetentionScanner // Deletes expired messages
+	dataStore        datastore.DataStore         // Mailbox/message store
+	globalShutdown   chan bool                   // Shuts down Inbucket
+	msgHub           *msghub.Hub                 // Pub/sub for message info
+	retentionScanner *datastore.RetentionScanner // Deletes expired messages
 
 	// State
 	listener  net.Listener    // Incoming network connections
@@ -61,9 +83,10 @@ var (
 func NewServer(
 	cfg config.SMTPConfig,
 	globalShutdown chan bool,
-	ds DataStore,
+	ds datastore.DataStore,
 	msgHub *msghub.Hub) *Server {
 	return &Server{
+		host:             fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
 		domain:           cfg.Domain,
 		domainNoStore:    strings.ToLower(cfg.DomainNoStore),
 		maxRecips:        cfg.MaxRecipients,
@@ -73,16 +96,14 @@ func NewServer(
 		globalShutdown:   globalShutdown,
 		dataStore:        ds,
 		msgHub:           msgHub,
-		retentionScanner: NewRetentionScanner(ds, globalShutdown),
+		retentionScanner: datastore.NewRetentionScanner(ds, globalShutdown),
 		waitgroup:        new(sync.WaitGroup),
 	}
 }
 
 // Start the listener and handle incoming connections
 func (s *Server) Start(ctx context.Context) {
-	cfg := config.GetSMTPConfig()
-	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%v:%v",
-		cfg.IP4address, cfg.IP4port))
+	addr, err := net.ResolveTCPAddr("tcp4", s.host)
 	if err != nil {
 		log.Errorf("Failed to build tcp4 address: %v", err)
 		s.emergencyShutdown()
@@ -110,10 +131,8 @@ func (s *Server) Start(ctx context.Context) {
 	go s.serve(ctx)
 
 	// Wait for shutdown
-	select {
-	case <-ctx.Done():
-		log.Tracef("SMTP shutdown requested, connections will be drained")
-	}
+	<-ctx.Done()
+	log.Tracef("SMTP shutdown requested, connections will be drained")
 
 	// Closing the listener will cause the serve() go routine to exit
 	if err := s.listener.Close(); err != nil {
@@ -165,7 +184,7 @@ func (s *Server) serve(ctx context.Context) {
 func (s *Server) emergencyShutdown() {
 	// Shutdown Inbucket
 	select {
-	case _ = <-s.globalShutdown:
+	case <-s.globalShutdown:
 	default:
 		close(s.globalShutdown)
 	}
@@ -177,45 +196,4 @@ func (s *Server) Drain() {
 	s.waitgroup.Wait()
 	log.Tracef("SMTP connections have drained")
 	s.retentionScanner.Join()
-}
-
-// When the provided Ticker ticks, we update our metrics history
-func metricsTicker(t *time.Ticker) {
-	ok := true
-	for ok {
-		_, ok = <-t.C
-		expReceivedHist.Set(pushMetric(deliveredHist, expReceivedTotal))
-		expConnectsHist.Set(pushMetric(connectsHist, expConnectsTotal))
-		expErrorsHist.Set(pushMetric(errorsHist, expErrorsTotal))
-		expWarnsHist.Set(pushMetric(warnsHist, expWarnsTotal))
-		expRetentionDeletesHist.Set(pushMetric(retentionDeletesHist, expRetentionDeletesTotal))
-		expRetainedHist.Set(pushMetric(retainedHist, expRetainedCurrent))
-	}
-}
-
-// pushMetric adds the metric to the end of the list and returns a comma separated string of the
-// previous 61 entries.  We return 61 instead of 60 (an hour) because the chart on the client
-// tracks deltas between these values - there is nothing to compare the first value against.
-func pushMetric(history *list.List, ev expvar.Var) string {
-	history.PushBack(ev.String())
-	if history.Len() > 61 {
-		history.Remove(history.Front())
-	}
-	return JoinStringList(history)
-}
-
-func init() {
-	m := expvar.NewMap("smtp")
-	m.Set("ConnectsTotal", expConnectsTotal)
-	m.Set("ConnectsHist", expConnectsHist)
-	m.Set("ConnectsCurrent", expConnectsCurrent)
-	m.Set("ReceivedTotal", expReceivedTotal)
-	m.Set("ReceivedHist", expReceivedHist)
-	m.Set("ErrorsTotal", expErrorsTotal)
-	m.Set("ErrorsHist", expErrorsHist)
-	m.Set("WarnsTotal", expWarnsTotal)
-	m.Set("WarnsHist", expWarnsHist)
-
-	t := time.NewTicker(time.Minute)
-	go metricsTicker(t)
 }

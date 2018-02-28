@@ -4,15 +4,19 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-[1.2.0] - 2017-12-27
---------------------
+## [v1.3.0] - 2018-02-28
+
+### Added
+- Button to purge mailbox contents from the UI.
+- Simple HTML/CSS sanitization; `Safe HTML` and `Plain Text` UI tabs.
 
 ### Changed
+- Reverse message display sort order in the UI; now newest first.
 
+## [v1.2.0] - 2017-12-27
+
+### Changed
 - No significant code changes from rc2
-
-[1.2.0-rc2] - 2017-12-15
-------------------------
 
 ### Added
 - `rest/client` types `MessageHeader` and `Message` with convenience methods;
@@ -27,8 +31,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   types
 - Fixed panic when `monitor.history` set to 0
 
-[1.2.0-rc1] - 2017-01-29
-------------------------
+## [v1.2.0-rc1] - 2017-01-29
 
 ### Added
 - Storage of `To:` header in messages (likely breaks existing datastores)
@@ -54,8 +57,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Allow increased local-part length of 128 chars for Mailgun
 - RedHat and Ubuntu now use systemd instead of legacy init systems
 
-[1.1.0] - 2016-09-03
---------------------
+## [v1.1.0] - 2016-09-03
 
 ### Added
 - Homebrew inbucket.conf and formula (see README)
@@ -63,8 +65,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Log and continue when unable to delete oldest message during cap enforcement
 
-[1.1.0-rc2] - 2016-03-06
-------------------------
+## [v1.1.0-rc2] - 2016-03-06
 
 ### Added
 - Message Cap to status page
@@ -74,8 +75,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Shutdown hang in retention scanner
 - Display empty subject as `(No Subject)`
 
-[1.1.0-rc1] - 2016-03-04
-------------------------
+## [v1.1.0-rc1] - 2016-03-04
 
 ### Added
 - Inbucket now builds with Go 1.5 or 1.6
@@ -89,8 +89,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - RESTful API moved to `/api/v1` base URI
 - More graceful shutdown on Ctrl-C or when errors encountered
 
-[1.0] - 2014-04-14
-------------------
+## [v1.0] - 2014-04-14
 
 ### Added
 - Add new configuration option `mailbox.message.cap` to prevent individual
@@ -98,30 +97,29 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Add Link button to messages, allows for directing another person to a
   specific message.
 
-[Unreleased]: https://github.com/jhillyerd/inbucket/compare/master...develop
-[1.2.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0-rc2...1.2.0
-[1.2.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.2.0-rc1...1.2.0-rc2
-[1.2.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.1.0...1.2.0-rc1
-[1.1.0]:      https://github.com/jhillyerd/inbucket/compare/1.1.0-rc2...1.1.0
-[1.1.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.1.0-rc1...1.1.0-rc2
-[1.1.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.0...1.1.0-rc1
-[1.0]:        https://github.com/jhillyerd/inbucket/compare/1.0-rc1...1.0
+[Unreleased]:  https://github.com/jhillyerd/inbucket/compare/master...develop
+[v1.3.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0...1.3.0
+[v1.2.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0-rc2...1.2.0
+[v1.2.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.2.0-rc1...1.2.0-rc2
+[v1.2.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.1.0...1.2.0-rc1
+[v1.1.0]:      https://github.com/jhillyerd/inbucket/compare/1.1.0-rc2...1.1.0
+[v1.1.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.1.0-rc1...1.1.0-rc2
+[v1.1.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.0...1.1.0-rc1
+[v1.0]:        https://github.com/jhillyerd/inbucket/compare/1.0-rc1...1.0
 
 
-Release Checklist
------------------
+## Release Checklist
 
 1.  Create release branch: `git flow release start 1.x.0`
 2.  Update CHANGELOG.md:
-  - Ensure *Unreleased* section is up to date
-  - Rename *Unreleased* section to release name and date.
-  - Add new GitHub `/compare` link
-3.  Update goxc version info: `goxc -wc -pv=1.x.0 -pr=rc1`
-4.  Run: `goxc interpolate-source` to update VERSION var
-5.  Run tests
-6.  Test cross-compile: `goxc`
-7.  Commit changes and merge release: `git flow release finish 1.x.0`
-8.  Upload to bintray: `goxc bintray`
-9.  Update `binary_versions` option in `inbucket-site/_config.yml`
+    - Ensure *Unreleased* section is up to date
+    - Rename *Unreleased* section to release name and date.
+    - Add new GitHub `/compare` link
+3.  Run tests
+4.  Test cross-compile: `goreleaser --snapshot`
+5.  Commit changes and merge release: `git flow release finish`
+6.  Push tags and wait for https://travis-ci.org/jhillyerd/inbucket build to
+    complete
+7.  Update `binary_versions` option in `inbucket-site/_config.yml`
 
 See http://keepachangelog.com/ for additional instructions on how to update this file.

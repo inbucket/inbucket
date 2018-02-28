@@ -24,7 +24,7 @@
             class="btn btn-primary"
             onClick="htmlView('{{.message.ID}}');">
       <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span>
-      HTML
+      Raw HTML
     </button>
   {{end}}
 </div>
@@ -78,7 +78,22 @@
 </div>
 {{end}}
 
-<div class="message-body">{{.body}}</div>
+<nav>
+  <ul id="body-tabs" class="nav nav-tabs" role="tablist">
+    {{if .htmlAvailable}}
+    <li role="presentation">
+      <a href="#body-html" aria-controls="body-html" role="tab" data-toggle="tab">Safe HTML</a>
+    </li>
+    {{end}}
+    <li role="presentation">
+      <a href="#body-text" aria-controls="body-text" role="tab" data-toggle="tab">Plain Text</a>
+    </li>
+  </ul>
+</nav>
+<div class="tab-content">
+  <div role="tabpanel" class="tab-pane message-body" id="body-html">{{.htmlBody}}</div>
+  <div role="tabpanel" class="tab-pane message-body" id="body-text">{{.body}}</div>
+</div>
 
 {{with .attachments}}
 <div class="well message-attachments">

@@ -22,6 +22,17 @@ function deleteMessage(id) {
   })
 }
 
+// deleteMailbox clears the mailbox
+function deleteMailbox() {
+  if (confirm("Are you sure you want delete this mailbox?")) {
+    $.ajax({
+      type: 'DELETE',
+      url: '/api/v1/mailbox/' + mailbox,
+      success: loadList
+    })
+  }
+}
+
 // flashTooltip temporarily changes the text of a tooltip
 function flashTooltip(el, text) {
   var prevText = $(el).attr('data-original-title');
@@ -43,7 +54,7 @@ function loadList() {
     dataType: "json",
     url: '/api/v1/mailbox/' + mailbox,
     success: function(data) {
-      messageListData = data;
+      messageListData = data.reverse();
       // Render list
       $('#message-list').loadTemplate($('#list-entry-template'), data);
       $('.message-list-entry').click(onMessageListClick);
@@ -144,6 +155,7 @@ function onMessageLoaded(responseText, textStatus, XMLHttpRequest) {
     return;
   }
   onDocumentChange();
+  $('#body-tabs a:first').tab('show')
   var top = $('#message-container').offset().top - navBarOffset;
   $(window).scrollTop(top);
 }

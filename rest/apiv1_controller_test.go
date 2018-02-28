@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jhillyerd/inbucket/smtpd"
+	"github.com/jhillyerd/inbucket/datastore"
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 
 func TestRestMailboxList(t *testing.T) {
 	// Setup
-	ds := &MockDataStore{}
+	ds := &datastore.MockDataStore{}
 	logbuf := setupWebServer(ds)
 
 	// Test invalid mailbox name
@@ -45,9 +45,9 @@ func TestRestMailboxList(t *testing.T) {
 	}
 
 	// Test empty mailbox
-	emptybox := &MockMailbox{}
+	emptybox := &datastore.MockMailbox{}
 	ds.On("MailboxFor", "empty").Return(emptybox, nil)
-	emptybox.On("GetMessages").Return([]smtpd.Message{}, nil)
+	emptybox.On("GetMessages").Return([]datastore.Message{}, nil)
 
 	w, err = testRestGet(baseURL + "/mailbox/empty")
 	expectCode = 200
@@ -59,7 +59,7 @@ func TestRestMailboxList(t *testing.T) {
 	}
 
 	// Test MailboxFor error
-	ds.On("MailboxFor", "error").Return(&MockMailbox{}, fmt.Errorf("Internal error"))
+	ds.On("MailboxFor", "error").Return(&datastore.MockMailbox{}, fmt.Errorf("Internal error"))
 	w, err = testRestGet(baseURL + "/mailbox/error")
 	expectCode = 500
 	if err != nil {
@@ -77,9 +77,9 @@ func TestRestMailboxList(t *testing.T) {
 	}
 
 	// Test MailboxFor error
-	error2box := &MockMailbox{}
+	error2box := &datastore.MockMailbox{}
 	ds.On("MailboxFor", "error2").Return(error2box, nil)
-	error2box.On("GetMessages").Return([]smtpd.Message{}, fmt.Errorf("Internal error 2"))
+	error2box.On("GetMessages").Return([]datastore.Message{}, fmt.Errorf("Internal error 2"))
 
 	w, err = testRestGet(baseURL + "/mailbox/error2")
 	expectCode = 500
@@ -107,11 +107,11 @@ func TestRestMailboxList(t *testing.T) {
 		Subject: "subject 2",
 		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, time.FixedZone("PDT", -700)),
 	}
-	goodbox := &MockMailbox{}
+	goodbox := &datastore.MockMailbox{}
 	ds.On("MailboxFor", "good").Return(goodbox, nil)
 	msg1 := data1.MockMessage()
 	msg2 := data2.MockMessage()
-	goodbox.On("GetMessages").Return([]smtpd.Message{msg1, msg2}, nil)
+	goodbox.On("GetMessages").Return([]datastore.Message{msg1, msg2}, nil)
 
 	// Check return code
 	w, err = testRestGet(baseURL + "/mailbox/good")
@@ -155,7 +155,7 @@ func TestRestMailboxList(t *testing.T) {
 
 func TestRestMessage(t *testing.T) {
 	// Setup
-	ds := &MockDataStore{}
+	ds := &datastore.MockDataStore{}
 	logbuf := setupWebServer(ds)
 
 	// Test invalid mailbox name
@@ -169,9 +169,9 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Test requesting a message that does not exist
-	emptybox := &MockMailbox{}
+	emptybox := &datastore.MockMailbox{}
 	ds.On("MailboxFor", "empty").Return(emptybox, nil)
-	emptybox.On("GetMessage", "0001").Return(&MockMessage{}, smtpd.ErrNotExist)
+	emptybox.On("GetMessage", "0001").Return(&datastore.MockMessage{}, datastore.ErrNotExist)
 
 	w, err = testRestGet(baseURL + "/mailbox/empty/0001")
 	expectCode = 404
@@ -183,7 +183,7 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Test MailboxFor error
-	ds.On("MailboxFor", "error").Return(&MockMailbox{}, fmt.Errorf("Internal error"))
+	ds.On("MailboxFor", "error").Return(&datastore.MockMailbox{}, fmt.Errorf("Internal error"))
 	w, err = testRestGet(baseURL + "/mailbox/error/0001")
 	expectCode = 500
 	if err != nil {
@@ -201,9 +201,9 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Test GetMessage error
-	error2box := &MockMailbox{}
+	error2box := &datastore.MockMailbox{}
 	ds.On("MailboxFor", "error2").Return(error2box, nil)
-	error2box.On("GetMessage", "0001").Return(&MockMessage{}, fmt.Errorf("Internal error 2"))
+	error2box.On("GetMessage", "0001").Return(&datastore.MockMessage{}, fmt.Errorf("Internal error 2"))
 
 	w, err = testRestGet(baseURL + "/mailbox/error2/0001")
 	expectCode = 500
@@ -228,7 +228,7 @@ func TestRestMessage(t *testing.T) {
 		Text: "This is some text",
 		HTML: "This is some HTML",
 	}
-	goodbox := &MockMailbox{}
+	goodbox := &datastore.MockMailbox{}
 	ds.On("MailboxFor", "good").Return(goodbox, nil)
 	msg1 := data1.MockMessage()
 	goodbox.On("GetMessage", "0001").Return(msg1, nil)

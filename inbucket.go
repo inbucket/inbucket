@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/filestore"
 	"github.com/jhillyerd/inbucket/httpd"
 	"github.com/jhillyerd/inbucket/log"
 	"github.com/jhillyerd/inbucket/msghub"
@@ -24,7 +25,7 @@ import (
 
 var (
 	// version contains the build version number, populated during linking
-	version = "1.2.0"
+	version = "undefined"
 
 	// date contains the build date, populated during linking
 	date = "undefined"
@@ -85,7 +86,7 @@ func main() {
 	}
 
 	// Setup signal handler
-	sigChan := make(chan os.Signal)
+	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 
 	// Initialize logging
@@ -115,7 +116,7 @@ func main() {
 	msgHub := msghub.New(rootCtx, config.GetWebConfig().MonitorHistory)
 
 	// Grab our datastore
-	ds := smtpd.DefaultFileDataStore()
+	ds := filestore.DefaultFileDataStore()
 
 	// Start HTTP server
 	httpd.Initialize(config.GetWebConfig(), shutdownChan, ds, msgHub)
@@ -124,8 +125,7 @@ func main() {
 	go httpd.Start(rootCtx)
 
 	// Start POP3 server
-	// TODO pass datastore
-	pop3Server = pop3d.New(shutdownChan)
+	pop3Server = pop3d.New(config.GetPOP3Config(), shutdownChan, ds)
 	go pop3Server.Start(rootCtx)
 
 	// Startup SMTP server
@@ -150,7 +150,7 @@ signalLoop:
 				log.Infof("Received SIGTERM, shutting down")
 				close(shutdownChan)
 			}
-		case _ = <-shutdownChan:
+		case <-shutdownChan:
 			rootCancel()
 			break signalLoop
 		}

@@ -1,4 +1,4 @@
-package smtpd
+package filestore
 
 import (
 	"bufio"
@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/config"
+	"github.com/jhillyerd/inbucket/datastore"
 	"github.com/jhillyerd/inbucket/log"
+	"github.com/jhillyerd/inbucket/stringutil"
 )
 
 // Name of index file in each mailbox
@@ -55,7 +57,7 @@ type FileDataStore struct {
 }
 
 // NewFileDataStore creates a new DataStore object using the specified path
-func NewFileDataStore(cfg config.DataStoreConfig) DataStore {
+func NewFileDataStore(cfg config.DataStoreConfig) datastore.DataStore {
 	path := cfg.Path
 	if path == "" {
 		log.Errorf("No value configured for datastore path")
@@ -73,19 +75,19 @@ func NewFileDataStore(cfg config.DataStoreConfig) DataStore {
 
 // DefaultFileDataStore creates a new DataStore object.  It uses the inbucket.Config object to
 // construct it's path.
-func DefaultFileDataStore() DataStore {
+func DefaultFileDataStore() datastore.DataStore {
 	cfg := config.GetDataStoreConfig()
 	return NewFileDataStore(cfg)
 }
 
 // MailboxFor retrieves the Mailbox object for a specified email address, if the mailbox
 // does not exist, it will attempt to create it.
-func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
-	name, err := ParseMailboxName(emailAddress)
+func (ds *FileDataStore) MailboxFor(emailAddress string) (datastore.Mailbox, error) {
+	name, err := stringutil.ParseMailboxName(emailAddress)
 	if err != nil {
 		return nil, err
 	}
-	dir := HashMailboxName(name)
+	dir := stringutil.HashMailboxName(name)
 	s1 := dir[0:3]
 	s2 := dir[0:6]
 	path := filepath.Join(ds.mailPath, s1, s2, dir)
@@ -96,8 +98,8 @@ func (ds *FileDataStore) MailboxFor(emailAddress string) (Mailbox, error) {
 }
 
 // AllMailboxes returns a slice with all Mailboxes
-func (ds *FileDataStore) AllMailboxes() ([]Mailbox, error) {
-	mailboxes := make([]Mailbox, 0, 100)
+func (ds *FileDataStore) AllMailboxes() ([]datastore.Mailbox, error) {
+	mailboxes := make([]datastore.Mailbox, 0, 100)
 	infos1, err := ioutil.ReadDir(ds.mailPath)
 	if err != nil {
 		return nil, err
@@ -149,24 +151,26 @@ type FileMailbox struct {
 	messages    []*FileMessage
 }
 
+// Name of the mailbox
 func (mb *FileMailbox) Name() string {
 	return mb.name
 }
 
+// String renders the name and directory path of the mailbox
 func (mb *FileMailbox) String() string {
 	return mb.name + "[" + mb.dirName + "]"
 }
 
 // GetMessages scans the mailbox directory for .gob files and decodes them into
 // a slice of Message objects.
-func (mb *FileMailbox) GetMessages() ([]Message, error) {
+func (mb *FileMailbox) GetMessages() ([]datastore.Message, error) {
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
 			return nil, err
 		}
 	}
 
-	messages := make([]Message, len(mb.messages))
+	messages := make([]datastore.Message, len(mb.messages))
 	for i, m := range mb.messages {
 		messages[i] = m
 	}
@@ -174,7 +178,7 @@ func (mb *FileMailbox) GetMessages() ([]Message, error) {
 }
 
 // GetMessage decodes a single message by Id and returns a Message object
-func (mb *FileMailbox) GetMessage(id string) (Message, error) {
+func (mb *FileMailbox) GetMessage(id string) (datastore.Message, error) {
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
 			return nil, err
@@ -183,15 +187,15 @@ func (mb *FileMailbox) GetMessage(id string) (Message, error) {
 
 	if id == "latest" && len(mb.messages) != 0 {
 		return mb.messages[len(mb.messages)-1], nil
-	} else {
-		for _, m := range mb.messages {
-			if m.Fid == id {
-				return m, nil
-			}
+	}
+
+	for _, m := range mb.messages {
+		if m.Fid == id {
+			return m, nil
 		}
 	}
 
-	return nil, ErrNotExist
+	return nil, datastore.ErrNotExist
 }
 
 // Purge deletes all messages in this mailbox

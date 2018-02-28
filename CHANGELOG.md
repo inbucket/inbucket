@@ -13,6 +13,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Reverse message display sort order in the UI; now newest first.
 
+## [1.2.0] - 2017-12-27
+
+### Changed
+- No significant code changes from rc2
+
 ## [1.2.0-rc2] - 2017-12-15
 
 ### Added
@@ -95,6 +100,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   specific message.
 
 [Unreleased]: https://github.com/jhillyerd/inbucket/compare/master...develop
+[1.2.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0-rc2...1.2.0
 [1.2.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.2.0-rc1...1.2.0-rc2
 [1.2.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.1.0...1.2.0-rc1
 [1.1.0]:      https://github.com/jhillyerd/inbucket/compare/1.1.0-rc2...1.1.0

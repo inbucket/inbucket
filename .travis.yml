@@ -5,13 +5,11 @@ env:
   - DEPLOY_WITH_MAJOR="1.9"
 
 before_script:
-  - go vet ./...
+  - go get github.com/golang/lint/golint
 
 go:
-  - 1.8.x
   - 1.9.x
-
-script: go test -race -v ./...
+  - "1.10"
 
 deploy:
   provider: script

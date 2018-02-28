@@ -86,7 +86,7 @@ func main() {
 	}
 
 	// Setup signal handler
-	sigChan := make(chan os.Signal)
+	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 
 	// Initialize logging
@@ -150,7 +150,7 @@ signalLoop:
 				log.Infof("Received SIGTERM, shutting down")
 				close(shutdownChan)
 			}
-		case _ = <-shutdownChan:
+		case <-shutdownChan:
 			rootCancel()
 			break signalLoop
 		}

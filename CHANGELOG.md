@@ -98,7 +98,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   specific message.
 
 [Unreleased]:  https://github.com/jhillyerd/inbucket/compare/master...develop
-[v1.3.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0...1.3.0
+[v1.3.0]:      https://github.com/jhillyerd/inbucket/compare/v1.2.0...v1.3.0
 [v1.2.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0-rc2...1.2.0
 [v1.2.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.2.0-rc1...1.2.0-rc2
 [v1.2.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.1.0...1.2.0-rc1

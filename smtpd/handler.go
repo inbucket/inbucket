@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jhillyerd/inbucket/datastore"
@@ -20,6 +21,11 @@ import (
 
 // State tracks the current mode of our SMTP state machine
 type State int
+
+var (
+	// This mutex guards whole deliverMessage operation
+	deliverMx = new(sync.RWMutex)
+)
 
 const (
 	// GREET State: Waiting for HELO
@@ -439,6 +445,8 @@ func (ss *Session) dataHandler() {
 
 // deliverMessage creates and populates a new Message for the specified recipient
 func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool) {
+	deliverMx.Lock()
+	defer deliverMx.Unlock()
 	msg, err := r.mailbox.NewMessage()
 	if err != nil {
 		ss.logError("Failed to create message for %q: %s", r.localPart, err)

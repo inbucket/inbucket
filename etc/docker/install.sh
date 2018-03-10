@@ -16,8 +16,6 @@ apk add --no-cache --virtual .build-deps git
 # Setup
 export GOBIN="$bindir"
 cd "$srcdir"
-# Fetch tags for describe
-git fetch -t
 builddate="$(date -Iseconds)"
 buildver="$(git describe --tags --always)"
 
@@ -30,7 +28,7 @@ echo "### Testing Inbucket"
 go test ./...
 
 echo "### Building Inbucket"
-go build -o inbucket -ldflags "-X 'main.version=$buildver' -X 'main.date=$builddate'" -v .
+go build -o inbucket -ldflags "-X 'main.version=$buildver' -X 'main.date=$builddate'" -v ./cmd/inbucket
 
 echo "### Installing Inbucket"
 set -x

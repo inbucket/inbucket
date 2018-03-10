@@ -4,6 +4,14 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v1.3.1] - 2018-03-10
+
+### Fixed
+
+- Adding additional locking during message delivery to prevent race condition
+  that could lose messages.
+
+
 ## [v1.3.0] - 2018-02-28
 
 ### Added
@@ -12,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - Reverse message display sort order in the UI; now newest first.
+
 
 ## [v1.2.0] - 2017-12-27
 
@@ -30,6 +39,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `rest/client` package now embeds the shared `rest/model` structs into its own
   types
 - Fixed panic when `monitor.history` set to 0
+
 
 ## [v1.2.0-rc1] - 2017-01-29
 
@@ -57,6 +67,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Allow increased local-part length of 128 chars for Mailgun
 - RedHat and Ubuntu now use systemd instead of legacy init systems
 
+
 ## [v1.1.0] - 2016-09-03
 
 ### Added
@@ -64,6 +75,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Log and continue when unable to delete oldest message during cap enforcement
+
 
 ## [v1.1.0-rc2] - 2016-03-06
 
@@ -74,6 +86,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Shutdown hang in retention scanner
 - Display empty subject as `(No Subject)`
+
 
 ## [v1.1.0-rc1] - 2016-03-04
 
@@ -89,6 +102,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - RESTful API moved to `/api/v1` base URI
 - More graceful shutdown on Ctrl-C or when errors encountered
 
+
 ## [v1.0] - 2014-04-14
 
 ### Added
@@ -98,6 +112,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   specific message.
 
 [Unreleased]:  https://github.com/jhillyerd/inbucket/compare/master...develop
+[v1.3.1]:      https://github.com/jhillyerd/inbucket/compare/v1.3.0...v1.3.1
 [v1.3.0]:      https://github.com/jhillyerd/inbucket/compare/v1.2.0...v1.3.0
 [v1.2.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0-rc2...1.2.0
 [v1.2.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.2.0-rc1...1.2.0-rc2

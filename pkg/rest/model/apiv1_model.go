@@ -30,6 +30,7 @@ type JSONMessageV1 struct {
 	Attachments []*JSONMessageAttachmentV1 `json:"attachments"`
 }
 
+// JSONMessageAttachmentV1 contains information about a MIME attachment
 type JSONMessageAttachmentV1 struct {
 	FileName     string `json:"filename"`
 	ContentType  string `json:"content-type"`

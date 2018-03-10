@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/jhillyerd/enmime"
-	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
 // FileMessage implements Message and contains a little bit of data about a

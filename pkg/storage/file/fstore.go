@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
 
@@ -140,6 +140,7 @@ func (ds *FileDataStore) AllMailboxes() ([]datastore.Mailbox, error) {
 	return mailboxes, nil
 }
 
+// LockFor returns the RWMutex for this mailbox, or an error.
 func (ds *FileDataStore) LockFor(emailAddress string) (*sync.RWMutex, error) {
 	name, err := stringutil.ParseMailboxName(emailAddress)
 	if err != nil {

@@ -27,6 +27,7 @@ func (m *MockDataStore) AllMailboxes() ([]Mailbox, error) {
 	return args.Get(0).([]Mailbox), args.Error(1)
 }
 
+// LockFor mock function returns a new RWMutex, never errors.
 func (m *MockDataStore) LockFor(name string) (*sync.RWMutex, error) {
 	return &sync.RWMutex{}, nil
 }

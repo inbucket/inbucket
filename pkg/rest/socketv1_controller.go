@@ -144,6 +144,8 @@ func (ml *msgListener) Close() {
 	}
 }
 
+// MonitorAllMessagesV1 is a web handler which upgrades the connection to a websocket and notifies
+// the client of all messages received.
 func MonitorAllMessagesV1(
 	w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Upgrade to Websocket
@@ -167,6 +169,8 @@ func MonitorAllMessagesV1(
 	return nil
 }
 
+// MonitorMailboxMessagesV1 is a web handler which upgrades the connection to a websocket and
+// notifies the client of messages received by a particular mailbox.
 func MonitorMailboxMessagesV1(
 	w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])

@@ -128,7 +128,7 @@ func openLogFile() error {
 	var err error
 	logf, err = os.OpenFile(logfname, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
-		return fmt.Errorf("Failed to create %v: %v\n", logfname, err)
+		return fmt.Errorf("failed to create %v: %v", logfname, err)
 	}
 	golog.SetOutput(logf)
 	Tracef("Opened new logfile")

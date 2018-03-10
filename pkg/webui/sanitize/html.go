@@ -18,6 +18,7 @@ var (
 		AllowAttrs("style").Matching(cssSafe).Globally()
 )
 
+// HTML sanitizes the provided html, while attempting to preserve inline CSS styling.
 func HTML(html string) (output string, err error) {
 	output, err = sanitizeStyleTags(html)
 	if err != nil {

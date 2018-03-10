@@ -1,11 +1,11 @@
 SHELL = /bin/sh
 
-SRC ::= $(shell find . -type f -name '*.go' -not -path "./vendor/*")
-PKGS ::= $(shell go list ./... | grep -v /vendor/)
+SRC := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+PKGS := $(shell go list ./... | grep -v /vendor/)
 
 .PHONY: all build clean fmt lint simplify test
 
-commands ::= client inbucket
+commands = client inbucket
 
 all: clean test lint build
 

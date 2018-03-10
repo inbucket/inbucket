@@ -402,7 +402,19 @@ func (ss *Session) dataHandler() {
 			if ss.server.storeMessages {
 				// Create a message for each valid recipient
 				for _, r := range recipients {
-					if ok := ss.deliverMessage(r, msgBuf); ok {
+					// TODO temporary hack to fix #77 until datastore revamp
+					mu, err := ss.server.dataStore.LockFor(r.localPart)
+					if err != nil {
+						ss.logError("Failed to get lock for %q: %s", r.localPart, err)
+						// Delivery failure
+						ss.send(fmt.Sprintf("451 Failed to store message for %v", r.localPart))
+						ss.reset()
+						return
+					}
+					mu.Lock()
+					ok := ss.deliverMessage(r, msgBuf)
+					mu.Unlock()
+					if ok {
 						expReceivedTotal.Add(1)
 					} else {
 						// Delivery failure

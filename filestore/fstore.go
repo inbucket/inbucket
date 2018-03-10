@@ -51,6 +51,7 @@ func countGenerator(c chan int) {
 // FileDataStore implements DataStore aand is the root of the mail storage
 // hiearchy.  It provides access to Mailbox objects
 type FileDataStore struct {
+	hashLock   datastore.HashLock
 	path       string
 	mailPath   string
 	messageCap int
@@ -137,6 +138,15 @@ func (ds *FileDataStore) AllMailboxes() ([]datastore.Mailbox, error) {
 	}
 
 	return mailboxes, nil
+}
+
+func (ds *FileDataStore) LockFor(emailAddress string) (*sync.RWMutex, error) {
+	name, err := stringutil.ParseMailboxName(emailAddress)
+	if err != nil {
+		return nil, err
+	}
+	hash := stringutil.HashMailboxName(name)
+	return ds.hashLock.Get(hash), nil
 }
 
 // FileMailbox implements Mailbox, manages the mail for a specific user and

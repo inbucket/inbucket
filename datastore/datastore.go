@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/mail"
+	"sync"
 	"time"
 
 	"github.com/jhillyerd/enmime"
@@ -22,6 +23,8 @@ var (
 type DataStore interface {
 	MailboxFor(emailAddress string) (Mailbox, error)
 	AllMailboxes() ([]Mailbox, error)
+	// LockFor is a temporary hack to fix #77 until Datastore revamp
+	LockFor(emailAddress string) (*sync.RWMutex, error)
 }
 
 // Mailbox is an interface to get and manipulate messages in a DataStore

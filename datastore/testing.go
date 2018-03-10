@@ -3,6 +3,7 @@ package datastore
 import (
 	"io"
 	"net/mail"
+	"sync"
 	"time"
 
 	"github.com/jhillyerd/enmime"
@@ -24,6 +25,10 @@ func (m *MockDataStore) MailboxFor(name string) (Mailbox, error) {
 func (m *MockDataStore) AllMailboxes() ([]Mailbox, error) {
 	args := m.Called()
 	return args.Get(0).([]Mailbox), args.Error(1)
+}
+
+func (m *MockDataStore) LockFor(name string) (*sync.RWMutex, error) {
+	return &sync.RWMutex{}, nil
 }
 
 // MockMailbox is a shared mock for unit testing

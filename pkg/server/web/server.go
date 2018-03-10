@@ -23,7 +23,7 @@ type Handler func(http.ResponseWriter, *http.Request, *Context) error
 
 var (
 	// DataStore is where all the mailboxes and messages live
-	DataStore datastore.DataStore
+	DataStore storage.Store
 
 	// msgHub holds a reference to the message pub/sub system
 	msgHub *msghub.Hub
@@ -51,7 +51,7 @@ func init() {
 func Initialize(
 	cfg config.WebConfig,
 	shutdownChan chan bool,
-	ds datastore.DataStore,
+	ds storage.Store,
 	mh *msghub.Hub) {
 
 	webConfig = cfg

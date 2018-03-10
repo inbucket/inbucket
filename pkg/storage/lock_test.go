@@ -1,4 +1,4 @@
-package datastore_test
+package storage_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestHashLock(t *testing.T) {
-	hl := &datastore.HashLock{}
+	hl := &storage.HashLock{}
 
 	// Invalid hashes
 	testCases := []struct {

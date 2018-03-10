@@ -57,18 +57,18 @@ var commands = map[string]bool{
 
 // Session defines an active POP3 session
 type Session struct {
-	server     *Server             // Reference to the server we belong to
-	id         int                 // Session ID number
-	conn       net.Conn            // Our network connection
-	remoteHost string              // IP address of client
-	sendError  error               // Used to bail out of read loop on send error
-	state      State               // Current session state
-	reader     *bufio.Reader       // Buffered reader for our net conn
-	user       string              // Mailbox name
-	mailbox    datastore.Mailbox   // Mailbox instance
-	messages   []datastore.Message // Slice of messages in mailbox
-	retain     []bool              // Messages to retain upon UPDATE (true=retain)
-	msgCount   int                 // Number of undeleted messages
+	server     *Server           // Reference to the server we belong to
+	id         int               // Session ID number
+	conn       net.Conn          // Our network connection
+	remoteHost string            // IP address of client
+	sendError  error             // Used to bail out of read loop on send error
+	state      State             // Current session state
+	reader     *bufio.Reader     // Buffered reader for our net conn
+	user       string            // Mailbox name
+	mailbox    storage.Mailbox   // Mailbox instance
+	messages   []storage.Message // Slice of messages in mailbox
+	retain     []bool            // Messages to retain upon UPDATE (true=retain)
+	msgCount   int               // Number of undeleted messages
 }
 
 // NewSession creates a new POP3 session
@@ -432,7 +432,7 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 }
 
 // Send the contents of the message to the client
-func (ses *Session) sendMessage(msg datastore.Message) {
+func (ses *Session) sendMessage(msg storage.Message) {
 	reader, err := msg.RawReader()
 	if err != nil {
 		ses.logError("Failed to read message for RETR command")
@@ -465,7 +465,7 @@ func (ses *Session) sendMessage(msg datastore.Message) {
 }
 
 // Send the headers plus the top N lines to the client
-func (ses *Session) sendMessageTop(msg datastore.Message, lineCount int) {
+func (ses *Session) sendMessageTop(msg storage.Message, lineCount int) {
 	reader, err := msg.RawReader()
 	if err != nil {
 		ses.logError("Failed to read message for RETR command")

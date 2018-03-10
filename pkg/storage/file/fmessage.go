@@ -1,4 +1,4 @@
-package filestore
+package file
 
 import (
 	"bufio"
@@ -15,10 +15,10 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
-// FileMessage implements Message and contains a little bit of data about a
+// Message implements Message and contains a little bit of data about a
 // particular email message, and methods to retrieve the rest of it from disk.
-type FileMessage struct {
-	mailbox *FileMailbox
+type Message struct {
+	mailbox *Mailbox
 	// Stored in GOB
 	Fid      string
 	Fdate    time.Time
@@ -34,7 +34,7 @@ type FileMessage struct {
 
 // NewMessage creates a new FileMessage object and sets the Date and Id fields.
 // It will also delete messages over messageCap if configured.
-func (mb *FileMailbox) NewMessage() (datastore.Message, error) {
+func (mb *Mailbox) NewMessage() (storage.Message, error) {
 	// Load index
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
@@ -54,50 +54,50 @@ func (mb *FileMailbox) NewMessage() (datastore.Message, error) {
 
 	date := time.Now()
 	id := generateID(date)
-	return &FileMessage{mailbox: mb, Fid: id, Fdate: date, writable: true}, nil
+	return &Message{mailbox: mb, Fid: id, Fdate: date, writable: true}, nil
 }
 
 // ID gets the ID of the Message
-func (m *FileMessage) ID() string {
+func (m *Message) ID() string {
 	return m.Fid
 }
 
 // Date returns the date/time this Message was received by Inbucket
-func (m *FileMessage) Date() time.Time {
+func (m *Message) Date() time.Time {
 	return m.Fdate
 }
 
 // From returns the value of the Message From header
-func (m *FileMessage) From() string {
+func (m *Message) From() string {
 	return m.Ffrom
 }
 
 // To returns the value of the Message To header
-func (m *FileMessage) To() []string {
+func (m *Message) To() []string {
 	return m.Fto
 }
 
 // Subject returns the value of the Message Subject header
-func (m *FileMessage) Subject() string {
+func (m *Message) Subject() string {
 	return m.Fsubject
 }
 
 // String returns a string in the form: "Subject()" from From()
-func (m *FileMessage) String() string {
+func (m *Message) String() string {
 	return fmt.Sprintf("\"%v\" from %v", m.Fsubject, m.Ffrom)
 }
 
 // Size returns the size of the Message on disk in bytes
-func (m *FileMessage) Size() int64 {
+func (m *Message) Size() int64 {
 	return m.Fsize
 }
 
-func (m *FileMessage) rawPath() string {
+func (m *Message) rawPath() string {
 	return filepath.Join(m.mailbox.path, m.Fid+".raw")
 }
 
 // ReadHeader opens the .raw portion of a Message and returns a standard Go mail.Message object
-func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
+func (m *Message) ReadHeader() (msg *mail.Message, err error) {
 	file, err := os.Open(m.rawPath())
 	if err != nil {
 		return nil, err
@@ -113,7 +113,7 @@ func (m *FileMessage) ReadHeader() (msg *mail.Message, err error) {
 }
 
 // ReadBody opens the .raw portion of a Message and returns a MIMEBody object
-func (m *FileMessage) ReadBody() (body *enmime.Envelope, err error) {
+func (m *Message) ReadBody() (body *enmime.Envelope, err error) {
 	file, err := os.Open(m.rawPath())
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (m *FileMessage) ReadBody() (body *enmime.Envelope, err error) {
 }
 
 // RawReader opens the .raw portion of a Message as an io.ReadCloser
-func (m *FileMessage) RawReader() (reader io.ReadCloser, err error) {
+func (m *Message) RawReader() (reader io.ReadCloser, err error) {
 	file, err := os.Open(m.rawPath())
 	if err != nil {
 		return nil, err
@@ -142,7 +142,7 @@ func (m *FileMessage) RawReader() (reader io.ReadCloser, err error) {
 }
 
 // ReadRaw opens the .raw portion of a Message and returns it as a string
-func (m *FileMessage) ReadRaw() (raw *string, err error) {
+func (m *Message) ReadRaw() (raw *string, err error) {
 	reader, err := m.RawReader()
 	if err != nil {
 		return nil, err
@@ -163,10 +163,10 @@ func (m *FileMessage) ReadRaw() (raw *string, err error) {
 
 // Append data to a newly opened Message, this will fail on a pre-existing Message and
 // after Close() is called.
-func (m *FileMessage) Append(data []byte) error {
+func (m *Message) Append(data []byte) error {
 	// Prevent Appending to a pre-existing Message
 	if !m.writable {
-		return datastore.ErrNotWritable
+		return storage.ErrNotWritable
 	}
 	// Open file for writing if we haven't yet
 	if m.writer == nil {
@@ -190,7 +190,7 @@ func (m *FileMessage) Append(data []byte) error {
 
 // Close this Message for writing - no more data may be Appended.  Close() will also
 // trigger the creation of the .gob file.
-func (m *FileMessage) Close() error {
+func (m *Message) Close() error {
 	// nil out the writer fields so they can't be used
 	writer := m.writer
 	writerFile := m.writerFile
@@ -245,7 +245,7 @@ func (m *FileMessage) Close() error {
 
 // Delete this Message from disk by removing it from the index and deleting the
 // raw files.
-func (m *FileMessage) Delete() error {
+func (m *Message) Delete() error {
 	messages := m.mailbox.messages
 	for i, mm := range messages {
 		if m == mm {

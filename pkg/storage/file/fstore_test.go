@@ -1,4 +1,4 @@
-package filestore
+package file
 
 import (
 	"bytes"
@@ -359,7 +359,7 @@ func TestFSMissing(t *testing.T) {
 	// Delete a message file without removing it from index
 	msg, err := mb.GetMessage(sentIds[1])
 	assert.Nil(t, err)
-	fmsg := msg.(*FileMessage)
+	fmsg := msg.(*Message)
 	_ = os.Remove(fmsg.rawPath())
 	msg, err = mb.GetMessage(sentIds[1])
 	assert.Nil(t, err)
@@ -508,7 +508,7 @@ func TestGetLatestMessage(t *testing.T) {
 }
 
 // setupDataStore creates a new FileDataStore in a temporary directory
-func setupDataStore(cfg config.DataStoreConfig) (*FileDataStore, *bytes.Buffer) {
+func setupDataStore(cfg config.DataStoreConfig) (*Store, *bytes.Buffer) {
 	path, err := ioutil.TempDir("", "inbucket")
 	if err != nil {
 		panic(err)
@@ -519,12 +519,12 @@ func setupDataStore(cfg config.DataStoreConfig) (*FileDataStore, *bytes.Buffer) 
 	log.SetOutput(buf)
 
 	cfg.Path = path
-	return NewFileDataStore(cfg).(*FileDataStore), buf
+	return New(cfg).(*Store), buf
 }
 
 // deliverMessage creates and delivers a message to the specific mailbox, returning
 // the size of the generated message.
-func deliverMessage(ds *FileDataStore, mbName string, subject string,
+func deliverMessage(ds *Store, mbName string, subject string,
 	date time.Time) (id string, size int64) {
 	// Build fake SMTP message for delivery
 	testMsg := make([]byte, 0, 300)
@@ -544,7 +544,7 @@ func deliverMessage(ds *FileDataStore, mbName string, subject string,
 	if err != nil {
 		panic(err)
 	}
-	fmsg := msg.(*FileMessage)
+	fmsg := msg.(*Message)
 	fmsg.Fdate = date
 	fmsg.Fid = id
 	if err = msg.Append(testMsg); err != nil {
@@ -557,7 +557,7 @@ func deliverMessage(ds *FileDataStore, mbName string, subject string,
 	return id, int64(len(testMsg))
 }
 
-func teardownDataStore(ds *FileDataStore) {
+func teardownDataStore(ds *Store) {
 	if err := os.RemoveAll(ds.path); err != nil {
 		panic(err)
 	}

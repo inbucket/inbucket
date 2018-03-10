@@ -15,7 +15,7 @@ import (
 type Context struct {
 	Vars      map[string]string
 	Session   *sessions.Session
-	DataStore datastore.DataStore
+	DataStore storage.Store
 	MsgHub    *msghub.Hub
 	WebConfig config.WebConfig
 	IsJSON    bool

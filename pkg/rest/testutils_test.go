@@ -25,8 +25,8 @@ type InputMessageData struct {
 	HTML, Text                 string
 }
 
-func (d *InputMessageData) MockMessage() *datastore.MockMessage {
-	msg := &datastore.MockMessage{}
+func (d *InputMessageData) MockMessage() *storage.MockMessage {
+	msg := &storage.MockMessage{}
 	msg.On("ID").Return(d.ID)
 	msg.On("From").Return(d.From)
 	msg.On("To").Return(d.To)
@@ -188,7 +188,7 @@ func testRestGet(url string) (*httptest.ResponseRecorder, error) {
 	return w, nil
 }
 
-func setupWebServer(ds datastore.DataStore) *bytes.Buffer {
+func setupWebServer(ds storage.Store) *bytes.Buffer {
 	// Capture log output
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)

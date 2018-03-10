@@ -73,7 +73,7 @@ var commands = map[string]bool{
 // recipientDetails for message delivery
 type recipientDetails struct {
 	address, localPart, domainPart string
-	mailbox                        datastore.Mailbox
+	mailbox                        storage.Mailbox
 }
 
 // Session holds the state of an SMTP session

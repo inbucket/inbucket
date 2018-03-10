@@ -65,7 +65,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	msg, err := mb.GetMessage(id)
-	if err == datastore.ErrNotExist {
+	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
@@ -150,7 +150,7 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
-	if err == datastore.ErrNotExist {
+	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
@@ -184,7 +184,7 @@ func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
 	}
 	message, err := mb.GetMessage(id)
-	if err == datastore.ErrNotExist {
+	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}

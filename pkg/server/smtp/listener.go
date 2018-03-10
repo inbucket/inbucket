@@ -48,10 +48,10 @@ type Server struct {
 	storeMessages   bool
 
 	// Dependencies
-	dataStore        datastore.DataStore         // Mailbox/message store
-	globalShutdown   chan bool                   // Shuts down Inbucket
-	msgHub           *msghub.Hub                 // Pub/sub for message info
-	retentionScanner *datastore.RetentionScanner // Deletes expired messages
+	dataStore        storage.Store             // Mailbox/message store
+	globalShutdown   chan bool                 // Shuts down Inbucket
+	msgHub           *msghub.Hub               // Pub/sub for message info
+	retentionScanner *storage.RetentionScanner // Deletes expired messages
 
 	// State
 	listener  net.Listener    // Incoming network connections
@@ -83,7 +83,7 @@ var (
 func NewServer(
 	cfg config.SMTPConfig,
 	globalShutdown chan bool,
-	ds datastore.DataStore,
+	ds storage.Store,
 	msgHub *msghub.Hub) *Server {
 	return &Server{
 		host:             fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
@@ -96,7 +96,7 @@ func NewServer(
 		globalShutdown:   globalShutdown,
 		dataStore:        ds,
 		msgHub:           msgHub,
-		retentionScanner: datastore.NewRetentionScanner(ds, globalShutdown),
+		retentionScanner: storage.NewRetentionScanner(ds, globalShutdown),
 		waitgroup:        new(sync.WaitGroup),
 	}
 }

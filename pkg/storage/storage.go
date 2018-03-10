@@ -1,5 +1,5 @@
-// Package datastore contains implementation independent datastore logic
-package datastore
+// Package storage contains implementation independent datastore logic
+package storage
 
 import (
 	"errors"
@@ -19,8 +19,8 @@ var (
 	ErrNotWritable = errors.New("Message not writable")
 )
 
-// DataStore is an interface to get Mailboxes stored in Inbucket
-type DataStore interface {
+// Store is an interface to get Mailboxes stored in Inbucket
+type Store interface {
 	MailboxFor(emailAddress string) (Mailbox, error)
 	AllMailboxes() ([]Mailbox, error)
 	// LockFor is a temporary hack to fix #77 until Datastore revamp

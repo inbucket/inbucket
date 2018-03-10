@@ -116,7 +116,7 @@ func main() {
 	msgHub := msghub.New(rootCtx, config.GetWebConfig().MonitorHistory)
 
 	// Grab our datastore
-	ds := filestore.DefaultFileDataStore()
+	ds := file.DefaultStore()
 
 	// Start HTTP server
 	web.Initialize(config.GetWebConfig(), shutdownChan, ds, msgHub)

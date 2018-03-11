@@ -72,12 +72,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	messages, err := mb.GetMessages()
+	messages, err := ctx.DataStore.GetMessages(name)
 	if err != nil {
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
@@ -99,12 +94,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	msg, err := mb.GetMessage(id)
+	msg, err := ctx.DataStore.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -148,12 +138,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
+	message, err := ctx.DataStore.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -172,8 +157,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 		"ctx":     ctx,
 		"name":    name,
 		"message": message,
-		// TODO It is not really safe to render, need to sanitize, issue #5
-		"body": template.HTML(mime.HTML),
+		"body":    template.HTML(mime.HTML),
 	})
 }
 
@@ -185,12 +169,7 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
+	message, err := ctx.DataStore.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -231,12 +210,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Co
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
+	message, err := ctx.DataStore.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -284,12 +258,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
+	message, err := ctx.DataStore.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil

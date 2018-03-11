@@ -15,6 +15,24 @@ type MockDataStore struct {
 	mock.Mock
 }
 
+// GetMessage mock function
+func (m *MockDataStore) GetMessage(name, id string) (Message, error) {
+	args := m.Called(name, id)
+	return args.Get(0).(Message), args.Error(1)
+}
+
+// GetMessages mock function
+func (m *MockDataStore) GetMessages(name string) ([]Message, error) {
+	args := m.Called(name)
+	return args.Get(0).([]Message), args.Error(1)
+}
+
+// PurgeMessages mock function
+func (m *MockDataStore) PurgeMessages(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
 // MailboxFor mock function
 func (m *MockDataStore) MailboxFor(name string) (Mailbox, error) {
 	args := m.Called(name)
@@ -59,12 +77,6 @@ func (m *MockMailbox) Purge() error {
 func (m *MockMailbox) NewMessage() (Message, error) {
 	args := m.Called()
 	return args.Get(0).(Message), args.Error(1)
-}
-
-// Name mock function
-func (m *MockMailbox) Name() string {
-	args := m.Called()
-	return args.String(0)
 }
 
 // String mock function

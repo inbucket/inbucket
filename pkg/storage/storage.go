@@ -21,6 +21,9 @@ var (
 
 // Store is an interface to get Mailboxes stored in Inbucket
 type Store interface {
+	GetMessage(mailbox string, id string) (Message, error)
+	GetMessages(mailbox string) ([]Message, error)
+	PurgeMessages(mailbox string) error
 	MailboxFor(emailAddress string) (Mailbox, error)
 	AllMailboxes() ([]Mailbox, error)
 	// LockFor is a temporary hack to fix #77 until Datastore revamp
@@ -30,10 +33,7 @@ type Store interface {
 // Mailbox is an interface to get and manipulate messages in a DataStore
 type Mailbox interface {
 	GetMessages() ([]Message, error)
-	GetMessage(id string) (Message, error)
-	Purge() error
 	NewMessage() (Message, error)
-	Name() string
 	String() string
 }
 

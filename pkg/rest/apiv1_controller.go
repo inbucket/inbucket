@@ -24,12 +24,7 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	messages, err := mb.GetMessages()
+	messages, err := ctx.DataStore.GetMessages(name)
 	if err != nil {
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
@@ -59,12 +54,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	msg, err := mb.GetMessage(id)
+	msg, err := ctx.DataStore.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -121,13 +111,8 @@ func MailboxPurgeV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
 	// Delete all messages
-	err = mb.Purge()
+	err = ctx.DataStore.PurgeMessages(name)
 	if err != nil {
 		return fmt.Errorf("Mailbox(%q) purge failed: %v", name, err)
 	}
@@ -144,12 +129,7 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
+	message, err := ctx.DataStore.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -178,12 +158,7 @@ func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
+	message, err := ctx.DataStore.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil

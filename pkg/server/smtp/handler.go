@@ -478,10 +478,15 @@ func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool)
 		ss.logError("Error while closing message for %v: %v", r.mailbox, err)
 		return false
 	}
+	name, err := stringutil.ParseMailboxName(r.localPart)
+	if err != nil {
+		// This parse already succeeded when MailboxFor was called, shouldn't fail here.
+		return false
+	}
 
 	// Broadcast message information
 	broadcast := msghub.Message{
-		Mailbox: r.mailbox.Name(),
+		Mailbox: name,
 		ID:      msg.ID(),
 		From:    msg.From(),
 		To:      msg.To(),

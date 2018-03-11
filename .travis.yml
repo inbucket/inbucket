@@ -6,6 +6,7 @@ env:
 
 before_script:
   - go get github.com/golang/lint/golint
+  - make deps
 
 go:
   - "1.10"

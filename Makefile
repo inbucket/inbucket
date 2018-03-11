@@ -19,9 +19,9 @@ clean:
 deps:
 	go get -t ./...
 
-build: deps $(commands)
+build: $(commands)
 
-test: deps
+test:
 	go test -race ./...
 
 fmt:

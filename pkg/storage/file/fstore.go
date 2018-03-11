@@ -81,9 +81,36 @@ func DefaultStore() storage.Store {
 	return New(cfg)
 }
 
+// GetMessage returns the messages in the named mailbox, or an error.
+func (fs *Store) GetMessage(mailbox, id string) (storage.Message, error) {
+	mb, err := fs.MailboxFor(mailbox)
+	if err != nil {
+		return nil, err
+	}
+	return mb.(*Mailbox).GetMessage(id)
+}
+
+// GetMessages returns the messages in the named mailbox, or an error.
+func (fs *Store) GetMessages(mailbox string) ([]storage.Message, error) {
+	mb, err := fs.MailboxFor(mailbox)
+	if err != nil {
+		return nil, err
+	}
+	return mb.(*Mailbox).GetMessages()
+}
+
+// PurgeMessages deletes all messages in the named mailbox, or returns an error.
+func (fs *Store) PurgeMessages(name string) error {
+	mb, err := fs.MailboxFor(name)
+	if err != nil {
+		return err
+	}
+	return mb.(*Mailbox).Purge()
+}
+
 // MailboxFor retrieves the Mailbox object for a specified email address, if the mailbox
 // does not exist, it will attempt to create it.
-func (ds *Store) MailboxFor(emailAddress string) (storage.Mailbox, error) {
+func (fs *Store) MailboxFor(emailAddress string) (storage.Mailbox, error) {
 	name, err := stringutil.ParseMailboxName(emailAddress)
 	if err != nil {
 		return nil, err
@@ -91,17 +118,17 @@ func (ds *Store) MailboxFor(emailAddress string) (storage.Mailbox, error) {
 	dir := stringutil.HashMailboxName(name)
 	s1 := dir[0:3]
 	s2 := dir[0:6]
-	path := filepath.Join(ds.mailPath, s1, s2, dir)
+	path := filepath.Join(fs.mailPath, s1, s2, dir)
 	indexPath := filepath.Join(path, indexFileName)
 
-	return &Mailbox{store: ds, name: name, dirName: dir, path: path,
+	return &Mailbox{store: fs, name: name, dirName: dir, path: path,
 		indexPath: indexPath}, nil
 }
 
 // AllMailboxes returns a slice with all Mailboxes
-func (ds *Store) AllMailboxes() ([]storage.Mailbox, error) {
+func (fs *Store) AllMailboxes() ([]storage.Mailbox, error) {
 	mailboxes := make([]storage.Mailbox, 0, 100)
-	infos1, err := ioutil.ReadDir(ds.mailPath)
+	infos1, err := ioutil.ReadDir(fs.mailPath)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +136,7 @@ func (ds *Store) AllMailboxes() ([]storage.Mailbox, error) {
 	for _, inf1 := range infos1 {
 		if inf1.IsDir() {
 			l1 := inf1.Name()
-			infos2, err := ioutil.ReadDir(filepath.Join(ds.mailPath, l1))
+			infos2, err := ioutil.ReadDir(filepath.Join(fs.mailPath, l1))
 			if err != nil {
 				return nil, err
 			}
@@ -117,7 +144,7 @@ func (ds *Store) AllMailboxes() ([]storage.Mailbox, error) {
 			for _, inf2 := range infos2 {
 				if inf2.IsDir() {
 					l2 := inf2.Name()
-					infos3, err := ioutil.ReadDir(filepath.Join(ds.mailPath, l1, l2))
+					infos3, err := ioutil.ReadDir(filepath.Join(fs.mailPath, l1, l2))
 					if err != nil {
 						return nil, err
 					}
@@ -125,9 +152,9 @@ func (ds *Store) AllMailboxes() ([]storage.Mailbox, error) {
 					for _, inf3 := range infos3 {
 						if inf3.IsDir() {
 							mbdir := inf3.Name()
-							mbpath := filepath.Join(ds.mailPath, l1, l2, mbdir)
+							mbpath := filepath.Join(fs.mailPath, l1, l2, mbdir)
 							idx := filepath.Join(mbpath, indexFileName)
-							mb := &Mailbox{store: ds, dirName: mbdir, path: mbpath,
+							mb := &Mailbox{store: fs, dirName: mbdir, path: mbpath,
 								indexPath: idx}
 							mailboxes = append(mailboxes, mb)
 						}
@@ -141,13 +168,13 @@ func (ds *Store) AllMailboxes() ([]storage.Mailbox, error) {
 }
 
 // LockFor returns the RWMutex for this mailbox, or an error.
-func (ds *Store) LockFor(emailAddress string) (*sync.RWMutex, error) {
+func (fs *Store) LockFor(emailAddress string) (*sync.RWMutex, error) {
 	name, err := stringutil.ParseMailboxName(emailAddress)
 	if err != nil {
 		return nil, err
 	}
 	hash := stringutil.HashMailboxName(name)
-	return ds.hashLock.Get(hash), nil
+	return fs.hashLock.Get(hash), nil
 }
 
 // Mailbox implements Mailbox, manages the mail for a specific user and

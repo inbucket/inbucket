@@ -62,9 +62,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
 
 	// Delete message
-	mb, err := ds.MailboxFor(mbName)
-	assert.Nil(t, err)
-	msg, err := mb.GetMessage(id1)
+	msg, err := ds.GetMessage(mbName, id1)
 	assert.Nil(t, err)
 	err = msg.Delete()
 	assert.Nil(t, err)
@@ -76,7 +74,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
 
 	// Delete message
-	msg, err = mb.GetMessage(id2)
+	msg, err = ds.GetMessage(mbName, id2)
 	assert.Nil(t, err)
 	err = msg.Delete()
 	assert.Nil(t, err)
@@ -137,11 +135,7 @@ func TestFSDeliverMany(t *testing.T) {
 
 	for i, subj := range subjects {
 		// Check number of messages
-		mb, err := ds.MailboxFor(mbName)
-		if err != nil {
-			t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-		}
-		msgs, err := mb.GetMessages()
+		msgs, err := ds.GetMessages(mbName)
 		if err != nil {
 			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 		}
@@ -151,11 +145,7 @@ func TestFSDeliverMany(t *testing.T) {
 		deliverMessage(ds, mbName, subj, time.Now())
 	}
 
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err := mb.GetMessages()
+	msgs, err := ds.GetMessages(mbName)
 	if err != nil {
 		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
@@ -189,11 +179,7 @@ func TestFSDelete(t *testing.T) {
 		deliverMessage(ds, mbName, subj, time.Now())
 	}
 
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err := mb.GetMessages()
+	msgs, err := ds.GetMessages(mbName)
 	if err != nil {
 		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
@@ -205,11 +191,7 @@ func TestFSDelete(t *testing.T) {
 	_ = msgs[3].Delete()
 
 	// Confirm deletion
-	mb, err = ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err = mb.GetMessages()
+	msgs, err = ds.GetMessages(mbName)
 	if err != nil {
 		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
@@ -225,11 +207,7 @@ func TestFSDelete(t *testing.T) {
 	// Try appending one more
 	deliverMessage(ds, mbName, "foxtrot", time.Now())
 
-	mb, err = ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err = mb.GetMessages()
+	msgs, err = ds.GetMessages(mbName)
 	if err != nil {
 		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
@@ -263,11 +241,7 @@ func TestFSPurge(t *testing.T) {
 		deliverMessage(ds, mbName, subj, time.Now())
 	}
 
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err := mb.GetMessages()
+	msgs, err := ds.GetMessages(mbName)
 	if err != nil {
 		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
@@ -275,15 +249,11 @@ func TestFSPurge(t *testing.T) {
 		len(subjects), len(msgs))
 
 	// Purge mailbox
-	err = mb.Purge()
+	err = ds.PurgeMessages(mbName)
 	assert.Nil(t, err)
 
 	// Confirm deletion
-	mb, err = ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err = mb.GetMessages()
+	msgs, err = ds.GetMessages(mbName)
 	if err != nil {
 		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 	}
@@ -315,12 +285,8 @@ func TestFSSize(t *testing.T) {
 		sentSizes[i] = size
 	}
 
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
 	for i, id := range sentIds {
-		msg, err := mb.GetMessage(id)
+		msg, err := ds.GetMessage(mbName, id)
 		assert.Nil(t, err)
 
 		expect := sentSizes[i]
@@ -351,17 +317,12 @@ func TestFSMissing(t *testing.T) {
 		sentIds[i] = id
 	}
 
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-
 	// Delete a message file without removing it from index
-	msg, err := mb.GetMessage(sentIds[1])
+	msg, err := ds.GetMessage(mbName, sentIds[1])
 	assert.Nil(t, err)
 	fmsg := msg.(*Message)
 	_ = os.Remove(fmsg.rawPath())
-	msg, err = mb.GetMessage(sentIds[1])
+	msg, err = ds.GetMessage(mbName, sentIds[1])
 	assert.Nil(t, err)
 
 	// Try to read parts of message
@@ -392,11 +353,7 @@ func TestFSMessageCap(t *testing.T) {
 		t.Logf("Delivered %q", subj)
 
 		// Check number of messages
-		mb, err := ds.MailboxFor(mbName)
-		if err != nil {
-			t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-		}
-		msgs, err := mb.GetMessages()
+		msgs, err := ds.GetMessages(mbName)
 		if err != nil {
 			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 		}
@@ -437,11 +394,7 @@ func TestFSNoMessageCap(t *testing.T) {
 		t.Logf("Delivered %q", subj)
 
 		// Check number of messages
-		mb, err := ds.MailboxFor(mbName)
-		if err != nil {
-			t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-		}
-		msgs, err := mb.GetMessages()
+		msgs, err := ds.GetMessages(mbName)
 		if err != nil {
 			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 		}
@@ -467,9 +420,7 @@ func TestGetLatestMessage(t *testing.T) {
 	mbName := "james"
 
 	// Test empty mailbox
-	mb, err := ds.MailboxFor(mbName)
-	assert.Nil(t, err)
-	msg, err := mb.GetMessage("latest")
+	msg, err := ds.GetMessage(mbName, "latest")
 	assert.Nil(t, msg)
 	assert.Error(t, err)
 
@@ -480,23 +431,19 @@ func TestGetLatestMessage(t *testing.T) {
 	id2, _ := deliverMessage(ds, mbName, "test 2", time.Now())
 
 	// Test get the latest message
-	mb, err = ds.MailboxFor(mbName)
-	assert.Nil(t, err)
-	msg, err = mb.GetMessage("latest")
+	msg, err = ds.GetMessage(mbName, "latest")
 	assert.Nil(t, err)
 	assert.True(t, msg.ID() == id2, "Expected %q to be equal to %q", msg.ID(), id2)
 
 	// Deliver test message 3
 	id3, _ := deliverMessage(ds, mbName, "test 3", time.Now())
 
-	mb, err = ds.MailboxFor(mbName)
-	assert.Nil(t, err)
-	msg, err = mb.GetMessage("latest")
+	msg, err = ds.GetMessage(mbName, "latest")
 	assert.Nil(t, err)
 	assert.True(t, msg.ID() == id3, "Expected %q to be equal to %q", msg.ID(), id3)
 
 	// Test wrong id
-	_, err = mb.GetMessage("wrongid")
+	_, err = ds.GetMessage(mbName, "wrongid")
 	assert.Error(t, err)
 
 	if t.Failed() {

@@ -513,12 +513,11 @@ func (ses *Session) sendMessageTop(msg storage.Message, lineCount int) {
 
 // Load the users mailbox
 func (ses *Session) loadMailbox() {
-	var err error
-	ses.messages, err = ses.mailbox.GetMessages()
+	m, err := ses.server.dataStore.GetMessages(ses.user)
 	if err != nil {
-		ses.logError("Failed to load messages for %v", ses.user)
+		ses.logError("Failed to load messages for %v: %v", ses.user, err)
 	}
-
+	ses.messages = m
 	ses.retainAll()
 }
 

@@ -18,7 +18,7 @@ import (
 // Message implements Message and contains a little bit of data about a
 // particular email message, and methods to retrieve the rest of it from disk.
 type Message struct {
-	mailbox *Mailbox
+	mailbox *mbox
 	// Stored in GOB
 	Fid      string
 	Fdate    time.Time
@@ -32,16 +32,15 @@ type Message struct {
 	writer     *bufio.Writer
 }
 
-// NewMessage creates a new FileMessage object and sets the Date and Id fields.
+// newMessage creates a new FileMessage object and sets the Date and ID fields.
 // It will also delete messages over messageCap if configured.
-func (mb *Mailbox) NewMessage() (storage.Message, error) {
+func (mb *mbox) newMessage() (storage.Message, error) {
 	// Load index
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
 			return nil, err
 		}
 	}
-
 	// Delete old messages over messageCap
 	if mb.store.messageCap > 0 {
 		for len(mb.messages) >= mb.store.messageCap {
@@ -51,7 +50,6 @@ func (mb *Mailbox) NewMessage() (storage.Message, error) {
 			}
 		}
 	}
-
 	date := time.Now()
 	id := generateID(date)
 	return &Message{mailbox: mb, Fid: id, Fdate: date, writable: true}, nil

@@ -14,7 +14,6 @@ import (
 
 	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
 
@@ -73,7 +72,6 @@ var commands = map[string]bool{
 // recipientDetails for message delivery
 type recipientDetails struct {
 	address, localPart, domainPart string
-	mailbox                        storage.Mailbox
 }
 
 // Session holds the state of an SMTP session
@@ -365,14 +363,7 @@ func (ss *Session) dataHandler() {
 			}
 			if strings.ToLower(domain) != ss.server.domainNoStore {
 				// Not our "no store" domain, so store the message
-				mb, err := ss.server.dataStore.MailboxFor(local)
-				if err != nil {
-					ss.logError("Failed to open mailbox for %q: %s", local, err)
-					ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", local))
-					ss.reset()
-					return
-				}
-				recipients = append(recipients, recipientDetails{recip, local, domain, mb})
+				recipients = append(recipients, recipientDetails{recip, local, domain})
 			} else {
 				log.Tracef("Not storing message for %q", recip)
 			}
@@ -469,13 +460,13 @@ func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool)
 	// Append lines from msgBuf
 	for _, line := range msgBuf {
 		if err := msg.Append(line); err != nil {
-			ss.logError("Failed to append to mailbox %v: %v", r.mailbox, err)
+			ss.logError("Failed to append to mailbox %v: %v", r.localPart, err)
 			// Should really cleanup the crap on filesystem
 			return false
 		}
 	}
 	if err := msg.Close(); err != nil {
-		ss.logError("Error while closing message for %v: %v", r.mailbox, err)
+		ss.logError("Error while closing message for %v: %v", r.localPart, err)
 		return false
 	}
 	name, err := stringutil.ParseMailboxName(r.localPart)

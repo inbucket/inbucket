@@ -65,7 +65,6 @@ type Session struct {
 	state      State             // Current session state
 	reader     *bufio.Reader     // Buffered reader for our net conn
 	user       string            // Mailbox name
-	mailbox    storage.Mailbox   // Mailbox instance
 	messages   []storage.Message // Slice of messages in mailbox
 	retain     []bool            // Messages to retain upon UPDATE (true=retain)
 	msgCount   int               // Number of undeleted messages
@@ -195,14 +194,6 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 		if ses.user == "" {
 			ses.ooSeq(cmd)
 		} else {
-			var err error
-			ses.mailbox, err = ses.server.dataStore.MailboxFor(ses.user)
-			if err != nil {
-				ses.logError("Failed to open mailbox for %v", ses.user)
-				ses.send(fmt.Sprintf("-ERR Failed to open mailbox for %v", ses.user))
-				ses.enterState(QUIT)
-				return
-			}
 			ses.loadMailbox()
 			ses.send(fmt.Sprintf("+OK Found %v messages for %v", ses.msgCount, ses.user))
 			ses.enterState(TRANSACTION)
@@ -214,14 +205,6 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 			return
 		}
 		ses.user = args[0]
-		var err error
-		ses.mailbox, err = ses.server.dataStore.MailboxFor(ses.user)
-		if err != nil {
-			ses.logError("Failed to open mailbox for %v", ses.user)
-			ses.send(fmt.Sprintf("-ERR Failed to open mailbox for %v", ses.user))
-			ses.enterState(QUIT)
-			return
-		}
 		ses.loadMailbox()
 		ses.send(fmt.Sprintf("+OK Found %v messages for %v", ses.msgCount, ses.user))
 		ses.enterState(TRANSACTION)

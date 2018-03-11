@@ -33,12 +33,6 @@ func (m *MockDataStore) PurgeMessages(name string) error {
 	return args.Error(0)
 }
 
-// MailboxFor mock function
-func (m *MockDataStore) MailboxFor(name string) (Mailbox, error) {
-	args := m.Called(name)
-	return args.Get(0).(Mailbox), args.Error(1)
-}
-
 // LockFor mock function returns a new RWMutex, never errors.
 func (m *MockDataStore) LockFor(name string) (*sync.RWMutex, error) {
 	return &sync.RWMutex{}, nil
@@ -54,41 +48,6 @@ func (m *MockDataStore) NewMessage(mailbox string) (Message, error) {
 // continues to return true.
 func (m *MockDataStore) VisitMailboxes(f func([]Message) (cont bool)) error {
 	return nil
-}
-
-// MockMailbox is a shared mock for unit testing
-type MockMailbox struct {
-	mock.Mock
-}
-
-// GetMessages mock function
-func (m *MockMailbox) GetMessages() ([]Message, error) {
-	args := m.Called()
-	return args.Get(0).([]Message), args.Error(1)
-}
-
-// GetMessage mock function
-func (m *MockMailbox) GetMessage(id string) (Message, error) {
-	args := m.Called(id)
-	return args.Get(0).(Message), args.Error(1)
-}
-
-// Purge mock function
-func (m *MockMailbox) Purge() error {
-	args := m.Called()
-	return args.Error(0)
-}
-
-// NewMessage mock function
-func (m *MockMailbox) NewMessage() (Message, error) {
-	args := m.Called()
-	return args.Get(0).(Message), args.Error(1)
-}
-
-// String mock function
-func (m *MockMailbox) String() string {
-	args := m.Called()
-	return args.String(0)
 }
 
 // MockMessage is a shared mock for unit testing

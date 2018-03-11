@@ -63,9 +63,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
 
 	// Delete message
-	msg, err := ds.GetMessage(mbName, id1)
-	assert.Nil(t, err)
-	err = msg.Delete()
+	err := ds.RemoveMessage(mbName, id1)
 	assert.Nil(t, err)
 
 	// Message should be removed
@@ -75,9 +73,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
 
 	// Delete message
-	msg, err = ds.GetMessage(mbName, id2)
-	assert.Nil(t, err)
-	err = msg.Delete()
+	err = ds.RemoveMessage(mbName, id2)
 	assert.Nil(t, err)
 
 	// Message should be removed
@@ -114,7 +110,7 @@ func TestFSVisitMailboxes(t *testing.T) {
 	}
 
 	seen := 0
-	err := ds.VisitMailboxes(func(messages []storage.Message) bool {
+	err := ds.VisitMailboxes(func(messages []storage.StoreMessage) bool {
 		seen++
 		count := len(messages)
 		if count != 2 {
@@ -196,8 +192,14 @@ func TestFSDelete(t *testing.T) {
 		len(subjects), len(msgs))
 
 	// Delete a couple messages
-	_ = msgs[1].Delete()
-	_ = msgs[3].Delete()
+	err = ds.RemoveMessage(mbName, msgs[1].ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ds.RemoveMessage(mbName, msgs[3].ID())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Confirm deletion
 	msgs, err = ds.GetMessages(mbName)

@@ -34,7 +34,7 @@ type Message struct {
 
 // newMessage creates a new FileMessage object and sets the Date and ID fields.
 // It will also delete messages over messageCap if configured.
-func (mb *mbox) newMessage() (storage.Message, error) {
+func (mb *mbox) newMessage() (storage.StoreMessage, error) {
 	// Load index
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
@@ -45,7 +45,7 @@ func (mb *mbox) newMessage() (storage.Message, error) {
 	if mb.store.messageCap > 0 {
 		for len(mb.messages) >= mb.store.messageCap {
 			log.Infof("Mailbox %q over configured message cap", mb.name)
-			if err := mb.messages[0].Delete(); err != nil {
+			if err := mb.removeMessage(mb.messages[0].ID()); err != nil {
 				log.Errorf("Error deleting message: %s", err)
 			}
 		}
@@ -53,6 +53,11 @@ func (mb *mbox) newMessage() (storage.Message, error) {
 	date := time.Now()
 	id := generateID(date)
 	return &Message{mailbox: mb, Fid: id, Fdate: date, writable: true}, nil
+}
+
+// Mailbox returns the name of the mailbox this message resides in.
+func (m *Message) Mailbox() string {
+	return m.mailbox.name
 }
 
 // ID gets the ID of the Message
@@ -239,30 +244,4 @@ func (m *Message) Close() error {
 	// Made it this far without errors, add it to the index
 	m.mailbox.messages = append(m.mailbox.messages, m)
 	return m.mailbox.writeIndex()
-}
-
-// Delete this Message from disk by removing it from the index and deleting the
-// raw files.
-func (m *Message) Delete() error {
-	messages := m.mailbox.messages
-	for i, mm := range messages {
-		if m == mm {
-			// Slice around message we are deleting
-			m.mailbox.messages = append(messages[:i], messages[i+1:]...)
-			break
-		}
-	}
-	if err := m.mailbox.writeIndex(); err != nil {
-		return err
-	}
-
-	if len(m.mailbox.messages) == 0 {
-		// This was the last message, thus writeIndex() has removed the entire
-		// directory; we don't need to delete the raw file.
-		return nil
-	}
-
-	// There are still messages in the index
-	log.Tracef("Deleting %v", m.rawPath())
-	return os.Remove(m.rawPath())
 }

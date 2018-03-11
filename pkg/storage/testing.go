@@ -16,15 +16,21 @@ type MockDataStore struct {
 }
 
 // GetMessage mock function
-func (m *MockDataStore) GetMessage(name, id string) (Message, error) {
+func (m *MockDataStore) GetMessage(name, id string) (StoreMessage, error) {
 	args := m.Called(name, id)
-	return args.Get(0).(Message), args.Error(1)
+	return args.Get(0).(StoreMessage), args.Error(1)
 }
 
 // GetMessages mock function
-func (m *MockDataStore) GetMessages(name string) ([]Message, error) {
+func (m *MockDataStore) GetMessages(name string) ([]StoreMessage, error) {
 	args := m.Called(name)
-	return args.Get(0).([]Message), args.Error(1)
+	return args.Get(0).([]StoreMessage), args.Error(1)
+}
+
+// RemoveMessage mock function
+func (m *MockDataStore) RemoveMessage(name, id string) error {
+	args := m.Called(name, id)
+	return args.Error(0)
 }
 
 // PurgeMessages mock function
@@ -39,20 +45,26 @@ func (m *MockDataStore) LockFor(name string) (*sync.RWMutex, error) {
 }
 
 // NewMessage temporary for #69
-func (m *MockDataStore) NewMessage(mailbox string) (Message, error) {
+func (m *MockDataStore) NewMessage(mailbox string) (StoreMessage, error) {
 	args := m.Called(mailbox)
-	return args.Get(0).(Message), args.Error(1)
+	return args.Get(0).(StoreMessage), args.Error(1)
 }
 
 // VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
 // continues to return true.
-func (m *MockDataStore) VisitMailboxes(f func([]Message) (cont bool)) error {
+func (m *MockDataStore) VisitMailboxes(f func([]StoreMessage) (cont bool)) error {
 	return nil
 }
 
 // MockMessage is a shared mock for unit testing
 type MockMessage struct {
 	mock.Mock
+}
+
+// Mailbox mock function
+func (m *MockMessage) Mailbox() string {
+	args := m.Called()
+	return args.String(0)
 }
 
 // ID mock function
@@ -123,12 +135,6 @@ func (m *MockMessage) Append(data []byte) error {
 
 // Close mock function
 func (m *MockMessage) Close() error {
-	args := m.Called()
-	return args.Error(0)
-}
-
-// Delete mock function
-func (m *MockMessage) Delete() error {
 	args := m.Called()
 	return args.Error(0)
 }

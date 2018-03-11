@@ -158,18 +158,14 @@ func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 	if err != nil {
 		return err
 	}
-	message, err := ctx.DataStore.GetMessage(name, id)
+	err = ctx.DataStore.RemoveMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
 		// This doesn't indicate missing, likely an IO error
-		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
-	}
-	err = message.Delete()
-	if err != nil {
-		return fmt.Errorf("Delete(%q) failed: %v", id, err)
+		return fmt.Errorf("RemoveMessage(%q) failed: %v", id, err)
 	}
 
 	return web.RenderJSON(w, "OK")

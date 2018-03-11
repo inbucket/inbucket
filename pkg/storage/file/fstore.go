@@ -75,7 +75,7 @@ func New(cfg config.DataStoreConfig) storage.Store {
 }
 
 // GetMessage returns the messages in the named mailbox, or an error.
-func (fs *Store) GetMessage(mailbox, id string) (storage.Message, error) {
+func (fs *Store) GetMessage(mailbox, id string) (storage.StoreMessage, error) {
 	mb, err := fs.mbox(mailbox)
 	if err != nil {
 		return nil, err
@@ -84,12 +84,21 @@ func (fs *Store) GetMessage(mailbox, id string) (storage.Message, error) {
 }
 
 // GetMessages returns the messages in the named mailbox, or an error.
-func (fs *Store) GetMessages(mailbox string) ([]storage.Message, error) {
+func (fs *Store) GetMessages(mailbox string) ([]storage.StoreMessage, error) {
 	mb, err := fs.mbox(mailbox)
 	if err != nil {
 		return nil, err
 	}
 	return mb.getMessages()
+}
+
+// RemoveMessage deletes a message by ID from the specified mailbox.
+func (fs *Store) RemoveMessage(mailbox, id string) error {
+	mb, err := fs.mbox(mailbox)
+	if err != nil {
+		return err
+	}
+	return mb.removeMessage(id)
 }
 
 // PurgeMessages deletes all messages in the named mailbox, or returns an error.
@@ -103,7 +112,7 @@ func (fs *Store) PurgeMessages(mailbox string) error {
 
 // VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
 // continues to return true.
-func (fs *Store) VisitMailboxes(f func([]storage.Message) (cont bool)) error {
+func (fs *Store) VisitMailboxes(f func([]storage.StoreMessage) (cont bool)) error {
 	infos1, err := ioutil.ReadDir(fs.mailPath)
 	if err != nil {
 		return err
@@ -159,7 +168,7 @@ func (fs *Store) LockFor(emailAddress string) (*sync.RWMutex, error) {
 }
 
 // NewMessage is temproary until #69 MessageData refactor
-func (fs *Store) NewMessage(mailbox string) (storage.Message, error) {
+func (fs *Store) NewMessage(mailbox string) (storage.StoreMessage, error) {
 	mb, err := fs.mbox(mailbox)
 	if err != nil {
 		return nil, err
@@ -196,13 +205,13 @@ type mbox struct {
 
 // getMessages scans the mailbox directory for .gob files and decodes them into
 // a slice of Message objects.
-func (mb *mbox) getMessages() ([]storage.Message, error) {
+func (mb *mbox) getMessages() ([]storage.StoreMessage, error) {
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
 			return nil, err
 		}
 	}
-	messages := make([]storage.Message, len(mb.messages))
+	messages := make([]storage.StoreMessage, len(mb.messages))
 	for i, m := range mb.messages {
 		messages[i] = m
 	}
@@ -210,7 +219,7 @@ func (mb *mbox) getMessages() ([]storage.Message, error) {
 }
 
 // getMessage decodes a single message by ID and returns a Message object.
-func (mb *mbox) getMessage(id string) (storage.Message, error) {
+func (mb *mbox) getMessage(id string) (storage.StoreMessage, error) {
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
 			return nil, err
@@ -225,6 +234,38 @@ func (mb *mbox) getMessage(id string) (storage.Message, error) {
 		}
 	}
 	return nil, storage.ErrNotExist
+}
+
+// removeMessage deletes the message off disk and removes it from the index.
+func (mb *mbox) removeMessage(id string) error {
+	if !mb.indexLoaded {
+		if err := mb.readIndex(); err != nil {
+			return err
+		}
+	}
+	var msg *Message
+	for i, m := range mb.messages {
+		if id == m.ID() {
+			msg = m
+			// Slice around message we are deleting
+			mb.messages = append(mb.messages[:i], mb.messages[i+1:]...)
+			break
+		}
+	}
+	if msg == nil {
+		return storage.ErrNotExist
+	}
+	if err := mb.writeIndex(); err != nil {
+		return err
+	}
+	if len(mb.messages) == 0 {
+		// This was the last message, thus writeIndex() has removed the entire
+		// directory; we don't need to delete the raw file.
+		return nil
+	}
+	// There are still messages in the index
+	log.Tracef("Deleting %v", msg.rawPath())
+	return os.Remove(msg.rawPath())
 }
 
 // purge deletes all messages in this mailbox.
@@ -256,14 +297,18 @@ func (mb *mbox) readIndex() error {
 			log.Errorf("Failed to close %q: %v", mb.indexPath, err)
 		}
 	}()
-
 	// Decode gob data
 	dec := gob.NewDecoder(bufio.NewReader(file))
+	name := ""
+	if err = dec.Decode(&name); err != nil {
+		return fmt.Errorf("Corrupt mailbox %q: %v", mb.indexPath, err)
+	}
+	mb.name = name
 	for {
-		msg := new(Message)
+		// Load messages until EOF
+		msg := &Message{}
 		if err = dec.Decode(msg); err != nil {
 			if err == io.EOF {
-				// It's OK to get an EOF here
 				break
 			}
 			return fmt.Errorf("Corrupt mailbox %q: %v", mb.indexPath, err)
@@ -271,7 +316,6 @@ func (mb *mbox) readIndex() error {
 		msg.mailbox = mb
 		mb.messages = append(mb.messages, msg)
 	}
-
 	mb.indexLoaded = true
 	return nil
 }
@@ -294,9 +338,12 @@ func (mb *mbox) writeIndex() error {
 		writer := bufio.NewWriter(file)
 		// Write each message and then flush
 		enc := gob.NewEncoder(writer)
+		if err = enc.Encode(mb.name); err != nil {
+			_ = file.Close()
+			return err
+		}
 		for _, m := range mb.messages {
-			err = enc.Encode(m)
-			if err != nil {
+			if err = enc.Encode(m); err != nil {
 				_ = file.Close()
 				return err
 			}
@@ -314,7 +361,6 @@ func (mb *mbox) writeIndex() error {
 		log.Tracef("Removing mailbox %v", mb.path)
 		return mb.removeDir()
 	}
-
 	return nil
 }
 

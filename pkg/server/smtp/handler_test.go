@@ -16,6 +16,7 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/jhillyerd/inbucket/pkg/test"
 )
 
 type scriptStep struct {
@@ -25,10 +26,8 @@ type scriptStep struct {
 
 // Test commands in GREET state
 func TestGreetState(t *testing.T) {
-	// Setup mock objects
-	mds := &storage.MockDataStore{}
-
-	server, logbuf, teardown := setupSMTPServer(mds)
+	ds := test.NewStore()
+	server, logbuf, teardown := setupSMTPServer(ds)
 	defer teardown()
 
 	// Test out some mangled HELOs
@@ -82,10 +81,8 @@ func TestGreetState(t *testing.T) {
 
 // Test commands in READY state
 func TestReadyState(t *testing.T) {
-	// Setup mock objects
-	mds := &storage.MockDataStore{}
-
-	server, logbuf, teardown := setupSMTPServer(mds)
+	ds := test.NewStore()
+	server, logbuf, teardown := setupSMTPServer(ds)
 	defer teardown()
 
 	// Test out some mangled READY commands

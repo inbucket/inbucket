@@ -20,11 +20,17 @@ func TestDoRetentionScan(t *testing.T) {
 	old2 := mockMessage(12)
 	old3 := mockMessage(24)
 	ds.AddMessage("mb1", new1)
+	new1.On("Mailbox").Return("mb1")
 	ds.AddMessage("mb1", old1)
+	old1.On("Mailbox").Return("mb1")
 	ds.AddMessage("mb1", old2)
+	old2.On("Mailbox").Return("mb1")
 	ds.AddMessage("mb2", old3)
+	old3.On("Mailbox").Return("mb2")
 	ds.AddMessage("mb2", new2)
+	new2.On("Mailbox").Return("mb2")
 	ds.AddMessage("mb3", new3)
+	new3.On("Mailbox").Return("mb3")
 	// Test 4 hour retention
 	cfg := config.DataStoreConfig{
 		RetentionMinutes: 239,
@@ -36,13 +42,17 @@ func TestDoRetentionScan(t *testing.T) {
 		t.Error(err)
 	}
 	// Delete should not have been called on new messages
-	new1.AssertNotCalled(t, "Delete")
-	new2.AssertNotCalled(t, "Delete")
-	new3.AssertNotCalled(t, "Delete")
+	for _, m := range []storage.StoreMessage{new1, new2, new3} {
+		if ds.MessageDeleted(m) {
+			t.Errorf("Expected %v to be present, was deleted", m.ID())
+		}
+	}
 	// Delete should have been called once on old messages
-	old1.AssertNumberOfCalls(t, "Delete", 1)
-	old2.AssertNumberOfCalls(t, "Delete", 1)
-	old3.AssertNumberOfCalls(t, "Delete", 1)
+	for _, m := range []storage.StoreMessage{old1, old2, old3} {
+		if !ds.MessageDeleted(m) {
+			t.Errorf("Expected %v to be deleted, was present", m.ID())
+		}
+	}
 }
 
 // Make a MockMessage of a specific age

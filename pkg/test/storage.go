@@ -45,3 +45,14 @@ func (s *StoreStub) GetMessages(mailbox string) ([]storage.Message, error) {
 	}
 	return s.mailboxes[mailbox], nil
 }
+
+// VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
+// continues to return true.
+func (s *StoreStub) VisitMailboxes(f func([]storage.Message) (cont bool)) error {
+	for _, v := range s.mailboxes {
+		if !f(v) {
+			return nil
+		}
+	}
+	return nil
+}

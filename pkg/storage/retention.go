@@ -52,10 +52,12 @@ type RetentionScanner struct {
 	retentionSleep    time.Duration
 }
 
-// NewRetentionScanner launches a go-routine that scans for expired
-// messages, following the configured interval
-func NewRetentionScanner(ds Store, shutdownChannel chan bool) *RetentionScanner {
-	cfg := config.GetDataStoreConfig()
+// NewRetentionScanner configures a new RententionScanner.
+func NewRetentionScanner(
+	cfg config.DataStoreConfig,
+	ds Store,
+	shutdownChannel chan bool,
+) *RetentionScanner {
 	rs := &RetentionScanner{
 		globalShutdown:    shutdownChannel,
 		retentionShutdown: make(chan bool),
@@ -97,7 +99,7 @@ retentionLoop:
 		}
 		// Kickoff scan
 		start = time.Now()
-		if err := rs.doScan(); err != nil {
+		if err := rs.DoScan(); err != nil {
 			log.Errorf("Error during retention scan: %v", err)
 		}
 		// Check for global shutdown
@@ -111,28 +113,17 @@ retentionLoop:
 	close(rs.retentionShutdown)
 }
 
-// doScan does a single pass of all mailboxes looking for messages that can be purged
-func (rs *RetentionScanner) doScan() error {
+// DoScan does a single pass of all mailboxes looking for messages that can be purged.
+func (rs *RetentionScanner) DoScan() error {
 	log.Tracef("Starting retention scan")
 	cutoff := time.Now().Add(-1 * rs.retentionPeriod)
-	mboxes, err := rs.ds.AllMailboxes()
-	if err != nil {
-		return err
-	}
 	retained := 0
-	// Loop over all mailboxes
-	for _, mb := range mboxes {
-		messages, err := mb.GetMessages()
-		if err != nil {
-			return err
-		}
-		// Loop over all messages in mailbox
+	// Loop over all mailboxes.
+	err := rs.ds.VisitMailboxes(func(messages []Message) bool {
 		for _, msg := range messages {
 			if msg.Date().Before(cutoff) {
 				log.Tracef("Purging expired message %v", msg.ID())
-				err = msg.Delete()
-				if err != nil {
-					// Log but don't abort
+				if err := msg.Delete(); err != nil {
 					log.Errorf("Failed to purge message %v: %v", msg.ID(), err)
 				} else {
 					expRetentionDeletesTotal.Add(1)
@@ -141,14 +132,17 @@ func (rs *RetentionScanner) doScan() error {
 				retained++
 			}
 		}
-		// Sleep after completing a mailbox
 		select {
 		case <-rs.globalShutdown:
 			log.Tracef("Retention scan aborted due to shutdown")
-			return nil
+			return false
 		case <-time.After(rs.retentionSleep):
 			// Reduce disk thrashing
 		}
+		return true
+	})
+	if err != nil {
+		return err
 	}
 	// Update metrics
 	setRetentionScanCompleted(time.Now())
@@ -156,7 +150,7 @@ func (rs *RetentionScanner) doScan() error {
 	return nil
 }
 
-// Join does not retun until the retention scanner has shut down
+// Join does not return until the retention scanner has shut down.
 func (rs *RetentionScanner) Join() {
 	if rs.retentionShutdown != nil {
 		<-rs.retentionShutdown

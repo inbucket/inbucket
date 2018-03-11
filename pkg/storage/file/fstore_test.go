@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,12 +98,12 @@ func TestFSDirStructure(t *testing.T) {
 	}
 }
 
-// Test FileDataStore.AllMailboxes()
-func TestFSAllMailboxes(t *testing.T) {
+// TestFSVisitMailboxes tests VisitMailboxes
+func TestFSVisitMailboxes(t *testing.T) {
 	ds, logbuf := setupDataStore(config.DataStoreConfig{})
 	defer teardownDataStore(ds)
-
-	for _, name := range []string{"abby", "bill", "christa", "donald", "evelyn"} {
+	boxes := []string{"abby", "bill", "christa", "donald", "evelyn"}
+	for _, name := range boxes {
 		// Create day old message
 		date := time.Now().Add(-24 * time.Hour)
 		deliverMessage(ds, name, "Old Message", date)
@@ -112,9 +113,17 @@ func TestFSAllMailboxes(t *testing.T) {
 		deliverMessage(ds, name, "New Message", date)
 	}
 
-	mboxes, err := ds.AllMailboxes()
+	seen := 0
+	err := ds.VisitMailboxes(func(messages []storage.Message) bool {
+		seen++
+		count := len(messages)
+		if count != 2 {
+			t.Errorf("got: %v messages, want: 2", count)
+		}
+		return true
+	})
 	assert.Nil(t, err)
-	assert.Equal(t, len(mboxes), 5)
+	assert.Equal(t, 5, seen)
 
 	if t.Failed() {
 		// Wait for handler to finish logging

@@ -39,15 +39,15 @@ func (m *MockDataStore) MailboxFor(name string) (Mailbox, error) {
 	return args.Get(0).(Mailbox), args.Error(1)
 }
 
-// AllMailboxes mock function
-func (m *MockDataStore) AllMailboxes() ([]Mailbox, error) {
-	args := m.Called()
-	return args.Get(0).([]Mailbox), args.Error(1)
-}
-
 // LockFor mock function returns a new RWMutex, never errors.
 func (m *MockDataStore) LockFor(name string) (*sync.RWMutex, error) {
 	return &sync.RWMutex{}, nil
+}
+
+// VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
+// continues to return true.
+func (m *MockDataStore) VisitMailboxes(f func([]Message) (cont bool)) error {
+	return nil
 }
 
 // MockMailbox is a shared mock for unit testing

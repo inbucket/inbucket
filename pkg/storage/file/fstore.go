@@ -74,13 +74,6 @@ func New(cfg config.DataStoreConfig) storage.Store {
 	return &Store{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}
 }
 
-// DefaultStore creates a new DataStore object.  It uses the inbucket.Config object to
-// construct it's path.
-func DefaultStore() storage.Store {
-	cfg := config.GetDataStoreConfig()
-	return New(cfg)
-}
-
 // GetMessage returns the messages in the named mailbox, or an error.
 func (fs *Store) GetMessage(mailbox, id string) (storage.Message, error) {
 	mb, err := fs.MailboxFor(mailbox)
@@ -125,12 +118,12 @@ func (fs *Store) MailboxFor(emailAddress string) (storage.Mailbox, error) {
 		indexPath: indexPath}, nil
 }
 
-// AllMailboxes returns a slice with all Mailboxes
-func (fs *Store) AllMailboxes() ([]storage.Mailbox, error) {
-	mailboxes := make([]storage.Mailbox, 0, 100)
+// VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
+// continues to return true.
+func (fs *Store) VisitMailboxes(f func([]storage.Message) (cont bool)) error {
 	infos1, err := ioutil.ReadDir(fs.mailPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// Loop over level 1 directories
 	for _, inf1 := range infos1 {
@@ -138,7 +131,7 @@ func (fs *Store) AllMailboxes() ([]storage.Mailbox, error) {
 			l1 := inf1.Name()
 			infos2, err := ioutil.ReadDir(filepath.Join(fs.mailPath, l1))
 			if err != nil {
-				return nil, err
+				return err
 			}
 			// Loop over level 2 directories
 			for _, inf2 := range infos2 {
@@ -146,7 +139,7 @@ func (fs *Store) AllMailboxes() ([]storage.Mailbox, error) {
 					l2 := inf2.Name()
 					infos3, err := ioutil.ReadDir(filepath.Join(fs.mailPath, l1, l2))
 					if err != nil {
-						return nil, err
+						return err
 					}
 					// Loop over mailboxes
 					for _, inf3 := range infos3 {
@@ -156,15 +149,20 @@ func (fs *Store) AllMailboxes() ([]storage.Mailbox, error) {
 							idx := filepath.Join(mbpath, indexFileName)
 							mb := &Mailbox{store: fs, dirName: mbdir, path: mbpath,
 								indexPath: idx}
-							mailboxes = append(mailboxes, mb)
+							msgs, err := mb.GetMessages()
+							if err != nil {
+								return err
+							}
+							if !f(msgs) {
+								return nil
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-
-	return mailboxes, nil
+	return nil
 }
 
 // LockFor returns the RWMutex for this mailbox, or an error.

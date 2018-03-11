@@ -19,6 +19,7 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/server/pop3"
 	"github.com/jhillyerd/inbucket/pkg/server/smtp"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
+	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/storage/file"
 	"github.com/jhillyerd/inbucket/pkg/webui"
 )
@@ -115,8 +116,11 @@ func main() {
 	// Create message hub
 	msgHub := msghub.New(rootCtx, config.GetWebConfig().MonitorHistory)
 
-	// Grab our datastore
-	ds := file.DefaultStore()
+	// Setup our datastore
+	dscfg := config.GetDataStoreConfig()
+	ds := file.New(dscfg)
+	retentionScanner := storage.NewRetentionScanner(dscfg, ds, shutdownChan)
+	retentionScanner.Start()
 
 	// Start HTTP server
 	web.Initialize(config.GetWebConfig(), shutdownChan, ds, msgHub)
@@ -160,6 +164,7 @@ signalLoop:
 	go timedExit()
 	smtpServer.Drain()
 	pop3Server.Drain()
+	retentionScanner.Join()
 
 	removePIDFile()
 }

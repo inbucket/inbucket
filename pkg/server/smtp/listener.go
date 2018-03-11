@@ -48,10 +48,9 @@ type Server struct {
 	storeMessages   bool
 
 	// Dependencies
-	dataStore        storage.Store             // Mailbox/message store
-	globalShutdown   chan bool                 // Shuts down Inbucket
-	msgHub           *msghub.Hub               // Pub/sub for message info
-	retentionScanner *storage.RetentionScanner // Deletes expired messages
+	dataStore      storage.Store // Mailbox/message store
+	globalShutdown chan bool     // Shuts down Inbucket
+	msgHub         *msghub.Hub   // Pub/sub for message info
 
 	// State
 	listener  net.Listener    // Incoming network connections
@@ -86,18 +85,17 @@ func NewServer(
 	ds storage.Store,
 	msgHub *msghub.Hub) *Server {
 	return &Server{
-		host:             fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
-		domain:           cfg.Domain,
-		domainNoStore:    strings.ToLower(cfg.DomainNoStore),
-		maxRecips:        cfg.MaxRecipients,
-		maxIdleSeconds:   cfg.MaxIdleSeconds,
-		maxMessageBytes:  cfg.MaxMessageBytes,
-		storeMessages:    cfg.StoreMessages,
-		globalShutdown:   globalShutdown,
-		dataStore:        ds,
-		msgHub:           msgHub,
-		retentionScanner: storage.NewRetentionScanner(ds, globalShutdown),
-		waitgroup:        new(sync.WaitGroup),
+		host:            fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
+		domain:          cfg.Domain,
+		domainNoStore:   strings.ToLower(cfg.DomainNoStore),
+		maxRecips:       cfg.MaxRecipients,
+		maxIdleSeconds:  cfg.MaxIdleSeconds,
+		maxMessageBytes: cfg.MaxMessageBytes,
+		storeMessages:   cfg.StoreMessages,
+		globalShutdown:  globalShutdown,
+		dataStore:       ds,
+		msgHub:          msgHub,
+		waitgroup:       new(sync.WaitGroup),
 	}
 }
 
@@ -123,9 +121,6 @@ func (s *Server) Start(ctx context.Context) {
 	} else if s.domainNoStore != "" {
 		log.Infof("Messages sent to domain '%v' will be discarded", s.domainNoStore)
 	}
-
-	// Start retention scanner
-	s.retentionScanner.Start()
 
 	// Listener go routine
 	go s.serve(ctx)
@@ -195,5 +190,4 @@ func (s *Server) Drain() {
 	// Wait for sessions to close
 	s.waitgroup.Wait()
 	log.Tracef("SMTP connections have drained")
-	s.retentionScanner.Join()
 }

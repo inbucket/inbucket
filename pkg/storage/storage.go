@@ -24,8 +24,8 @@ type Store interface {
 	GetMessage(mailbox string, id string) (Message, error)
 	GetMessages(mailbox string) ([]Message, error)
 	PurgeMessages(mailbox string) error
+	VisitMailboxes(f func([]Message) (cont bool)) error
 	MailboxFor(emailAddress string) (Mailbox, error)
-	AllMailboxes() ([]Mailbox, error)
 	// LockFor is a temporary hack to fix #77 until Datastore revamp
 	LockFor(emailAddress string) (*sync.RWMutex, error)
 }

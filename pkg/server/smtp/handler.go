@@ -451,7 +451,7 @@ func (ss *Session) dataHandler() {
 
 // deliverMessage creates and populates a new Message for the specified recipient
 func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool) {
-	msg, err := r.mailbox.NewMessage()
+	msg, err := ss.server.dataStore.NewMessage(r.localPart)
 	if err != nil {
 		ss.logError("Failed to create message for %q: %s", r.localPart, err)
 		return false

@@ -44,6 +44,12 @@ func (m *MockDataStore) LockFor(name string) (*sync.RWMutex, error) {
 	return &sync.RWMutex{}, nil
 }
 
+// NewMessage temporary for #69
+func (m *MockDataStore) NewMessage(mailbox string) (Message, error) {
+	args := m.Called(mailbox)
+	return args.Get(0).(Message), args.Error(1)
+}
+
 // VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
 // continues to return true.
 func (m *MockDataStore) VisitMailboxes(f func([]Message) (cont bool)) error {

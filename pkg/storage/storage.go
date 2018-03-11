@@ -28,12 +28,13 @@ type Store interface {
 	MailboxFor(emailAddress string) (Mailbox, error)
 	// LockFor is a temporary hack to fix #77 until Datastore revamp
 	LockFor(emailAddress string) (*sync.RWMutex, error)
+	// NewMessage is temproary until #69 MessageData refactor
+	NewMessage(mailbox string) (Message, error)
 }
 
 // Mailbox is an interface to get and manipulate messages in a DataStore
 type Mailbox interface {
 	GetMessages() ([]Message, error)
-	NewMessage() (Message, error)
 	String() string
 }
 

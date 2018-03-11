@@ -175,6 +175,15 @@ func (fs *Store) LockFor(emailAddress string) (*sync.RWMutex, error) {
 	return fs.hashLock.Get(hash), nil
 }
 
+// NewMessage is temproary until #69 MessageData refactor
+func (fs *Store) NewMessage(mailbox string) (storage.Message, error) {
+	mb, err := fs.MailboxFor(mailbox)
+	if err != nil {
+		return nil, err
+	}
+	return mb.(*Mailbox).NewMessage()
+}
+
 // Mailbox implements Mailbox, manages the mail for a specific user and
 // correlates to a particular directory on disk.
 type Mailbox struct {

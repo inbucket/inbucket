@@ -56,3 +56,8 @@ func (s *StoreStub) VisitMailboxes(f func([]storage.Message) (cont bool)) error 
 	}
 	return nil
 }
+
+// NewMessage is temproary until #69 MessageData refactor
+func (s *StoreStub) NewMessage(mailbox string) (storage.Message, error) {
+	return nil, nil
+}

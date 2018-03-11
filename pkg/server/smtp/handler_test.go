@@ -148,7 +148,7 @@ func TestMailState(t *testing.T) {
 	mb1 := &storage.MockMailbox{}
 	msg1 := &storage.MockMessage{}
 	mds.On("MailboxFor", "u1").Return(mb1, nil)
-	mb1.On("NewMessage").Return(msg1, nil)
+	mds.On("NewMessage", "u1").Return(msg1, nil)
 	mb1.On("Name").Return("u1")
 	msg1.On("ID").Return("")
 	msg1.On("From").Return("")
@@ -263,7 +263,7 @@ func TestDataState(t *testing.T) {
 	mb1 := &storage.MockMailbox{}
 	msg1 := &storage.MockMessage{}
 	mds.On("MailboxFor", "u1").Return(mb1, nil)
-	mb1.On("NewMessage").Return(msg1, nil)
+	mds.On("NewMessage", "u1").Return(msg1, nil)
 	mb1.On("Name").Return("u1")
 	msg1.On("ID").Return("")
 	msg1.On("From").Return("")

@@ -490,13 +490,9 @@ func deliverMessage(ds *Store, mbName string, subject string,
 	testMsg = append(testMsg, []byte("\r\n")...)
 	testMsg = append(testMsg, []byte("Test Body\r\n")...)
 
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		panic(err)
-	}
 	// Create message object
 	id = generateID(date)
-	msg, err := mb.NewMessage()
+	msg, err := ds.NewMessage(mbName)
 	if err != nil {
 		panic(err)
 	}

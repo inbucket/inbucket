@@ -22,8 +22,8 @@ type Message struct {
 	// Stored in GOB
 	Fid      string
 	Fdate    time.Time
-	Ffrom    string
-	Fto      []string
+	Ffrom    *mail.Address
+	Fto      []*mail.Address
 	Fsubject string
 	Fsize    int64
 	// These are for creating new messages only
@@ -71,12 +71,12 @@ func (m *Message) Date() time.Time {
 }
 
 // From returns the value of the Message From header
-func (m *Message) From() string {
+func (m *Message) From() *mail.Address {
 	return m.Ffrom
 }
 
 // To returns the value of the Message To header
-func (m *Message) To() []string {
+func (m *Message) To() []*mail.Address {
 	return m.Fto
 }
 
@@ -220,19 +220,17 @@ func (m *Message) Close() error {
 	// Only public fields are stored in gob, hence starting with capital F
 	// Parse From address
 	if address, err := mail.ParseAddress(body.GetHeader("From")); err == nil {
-		m.Ffrom = address.String()
+		m.Ffrom = address
 	} else {
-		m.Ffrom = body.GetHeader("From")
+		m.Ffrom = &mail.Address{Address: body.GetHeader("From")}
 	}
 	m.Fsubject = body.GetHeader("Subject")
 
 	// Turn the To header into a slice
 	if addresses, err := body.AddressList("To"); err == nil {
-		for _, a := range addresses {
-			m.Fto = append(m.Fto, a.String())
-		}
+		m.Fto = addresses
 	} else {
-		m.Fto = []string{body.GetHeader("To")}
+		m.Fto = []*mail.Address{{Address: body.GetHeader("To")}}
 	}
 
 	// Refresh the index before adding our message

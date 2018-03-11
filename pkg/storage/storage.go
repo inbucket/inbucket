@@ -36,8 +36,8 @@ type Store interface {
 type StoreMessage interface {
 	Mailbox() string
 	ID() string
-	From() string
-	To() []string
+	From() *mail.Address
+	To() []*mail.Address
 	Date() time.Time
 	Subject() string
 	RawReader() (reader io.ReadCloser, err error)

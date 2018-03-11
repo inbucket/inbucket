@@ -26,10 +26,15 @@ type InputMessageData struct {
 }
 
 func (d *InputMessageData) MockMessage() *storage.MockMessage {
+	from, _ := mail.ParseAddress(d.From)
+	to := make([]*mail.Address, len(d.To))
+	for i, a := range d.To {
+		to[i], _ = mail.ParseAddress(a)
+	}
 	msg := &storage.MockMessage{}
 	msg.On("ID").Return(d.ID)
-	msg.On("From").Return(d.From)
-	msg.On("To").Return(d.To)
+	msg.On("From").Return(from)
+	msg.On("To").Return(to)
 	msg.On("Subject").Return(d.Subject)
 	msg.On("Date").Return(d.Date)
 	msg.On("Size").Return(d.Size)

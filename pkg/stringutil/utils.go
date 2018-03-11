@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"net/mail"
 	"strings"
 )
 
@@ -223,4 +224,15 @@ LOOP:
 	}
 
 	return buf.String(), domain, nil
+}
+
+// StringAddressList converts a list of addresses to a list of strings
+func StringAddressList(addrs []*mail.Address) []string {
+	s := make([]string, len(addrs))
+	for i, a := range addrs {
+		if a != nil {
+			s[i] = a.String()
+		}
+	}
+	return s
 }

@@ -479,8 +479,8 @@ func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool)
 	broadcast := msghub.Message{
 		Mailbox: name,
 		ID:      msg.ID(),
-		From:    msg.From(),
-		To:      msg.To(),
+		From:    msg.From().String(),
+		To:      stringutil.StringAddressList(msg.To()),
 		Subject: msg.Subject(),
 		Date:    msg.Date(),
 		Size:    msg.Size(),

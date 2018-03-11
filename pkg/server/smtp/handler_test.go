@@ -8,6 +8,7 @@ import (
 
 	"log"
 	"net"
+	"net/mail"
 	"net/textproto"
 	"os"
 	"testing"
@@ -145,8 +146,8 @@ func TestMailState(t *testing.T) {
 	msg1 := &storage.MockMessage{}
 	mds.On("NewMessage", "u1").Return(msg1, nil)
 	msg1.On("ID").Return("")
-	msg1.On("From").Return("")
-	msg1.On("To").Return(make([]string, 0))
+	msg1.On("From").Return(&mail.Address{})
+	msg1.On("To").Return(make([]*mail.Address, 0))
 	msg1.On("Date").Return(time.Time{})
 	msg1.On("Subject").Return("")
 	msg1.On("Size").Return(0)
@@ -257,8 +258,8 @@ func TestDataState(t *testing.T) {
 	msg1 := &storage.MockMessage{}
 	mds.On("NewMessage", "u1").Return(msg1, nil)
 	msg1.On("ID").Return("")
-	msg1.On("From").Return("")
-	msg1.On("To").Return(make([]string, 0))
+	msg1.On("From").Return(&mail.Address{})
+	msg1.On("To").Return(make([]*mail.Address, 0))
 	msg1.On("Date").Return(time.Time{})
 	msg1.On("Subject").Return("")
 	msg1.On("Size").Return(0)

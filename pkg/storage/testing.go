@@ -74,15 +74,15 @@ func (m *MockMessage) ID() string {
 }
 
 // From mock function
-func (m *MockMessage) From() string {
+func (m *MockMessage) From() *mail.Address {
 	args := m.Called()
-	return args.String(0)
+	return args.Get(0).(*mail.Address)
 }
 
 // To mock function
-func (m *MockMessage) To() []string {
+func (m *MockMessage) To() []*mail.Address {
 	args := m.Called()
-	return args.Get(0).([]string)
+	return args.Get(0).([]*mail.Address)
 }
 
 // Date mock function

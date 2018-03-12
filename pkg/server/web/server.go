@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 )
@@ -27,6 +28,7 @@ var (
 
 	// msgHub holds a reference to the message pub/sub system
 	msgHub *msghub.Hub
+	msgSvc message.Manager
 
 	// Router is shared between httpd, webui and rest packages. It sends
 	// incoming requests to the correct handler function
@@ -51,6 +53,7 @@ func init() {
 func Initialize(
 	cfg config.WebConfig,
 	shutdownChan chan bool,
+	mm message.Manager,
 	ds storage.Store,
 	mh *msghub.Hub) {
 
@@ -60,6 +63,7 @@ func Initialize(
 	// NewContext() will use this DataStore for the web handlers
 	DataStore = ds
 	msgHub = mh
+	msgSvc = mm
 
 	// Content Paths
 	log.Infof("HTTP templates mapped to %q", cfg.TemplateDir)

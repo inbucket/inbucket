@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 )
@@ -17,6 +18,7 @@ type Context struct {
 	Session   *sessions.Session
 	DataStore storage.Store
 	MsgHub    *msghub.Hub
+	MsgSvc    message.Manager
 	WebConfig config.WebConfig
 	IsJSON    bool
 }
@@ -61,6 +63,7 @@ func NewContext(req *http.Request) (*Context, error) {
 		Session:   sess,
 		DataStore: DataStore,
 		MsgHub:    msgHub,
+		MsgSvc:    msgSvc,
 		WebConfig: webConfig,
 		IsJSON:    headerMatch(req, "Accept", "application/json"),
 	}

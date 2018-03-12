@@ -41,7 +41,6 @@ type StoreMessage interface {
 	Date() time.Time
 	Subject() string
 	RawReader() (reader io.ReadCloser, err error)
-	ReadHeader() (msg *mail.Message, err error)
 	ReadBody() (body *enmime.Envelope, err error)
 	ReadRaw() (raw *string, err error)
 	Append(data []byte) error

@@ -11,6 +11,7 @@ import (
 
 	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 	"github.com/jhillyerd/inbucket/pkg/storage"
@@ -193,7 +194,7 @@ func testRestGet(url string) (*httptest.ResponseRecorder, error) {
 	return w, nil
 }
 
-func setupWebServer(ds storage.Store) *bytes.Buffer {
+func setupWebServer(mm message.Manager, ds storage.Store) *bytes.Buffer {
 	// Capture log output
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
@@ -205,7 +206,7 @@ func setupWebServer(ds storage.Store) *bytes.Buffer {
 		PublicDir:   "../themes/bootstrap/public",
 	}
 	shutdownChan := make(chan bool)
-	web.Initialize(cfg, shutdownChan, ds, &msghub.Hub{})
+	web.Initialize(cfg, shutdownChan, mm, ds, &msghub.Hub{})
 	SetupRoutes(web.Router)
 
 	return buf

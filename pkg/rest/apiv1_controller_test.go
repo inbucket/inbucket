@@ -4,10 +4,14 @@ import (
 	"encoding/json"
 	"io"
 	"net/mail"
+	"net/textproto"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/jhillyerd/enmime"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/test"
 )
 
@@ -31,7 +35,8 @@ const (
 func TestRestMailboxList(t *testing.T) {
 	// Setup
 	ds := test.NewStore()
-	logbuf := setupWebServer(ds)
+	mm := test.NewManager()
+	logbuf := setupWebServer(mm, ds)
 
 	// Test invalid mailbox name
 	w, err := testRestGet(baseURL + "/mailbox/foo@bar")
@@ -80,10 +85,24 @@ func TestRestMailboxList(t *testing.T) {
 		Subject: "subject 2",
 		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, time.FixedZone("PDT", -700)),
 	}
-	msg1 := data1.MockMessage()
-	msg2 := data2.MockMessage()
-	ds.AddMessage("good", msg1)
-	ds.AddMessage("good", msg2)
+	meta1 := message.Metadata{
+		Mailbox: "good",
+		ID:      "0001",
+		From:    &mail.Address{Name: "", Address: "from1@host"},
+		To:      []*mail.Address{{Name: "", Address: "to1@host"}},
+		Subject: "subject 1",
+		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
+	}
+	meta2 := message.Metadata{
+		Mailbox: "good",
+		ID:      "0002",
+		From:    &mail.Address{Name: "", Address: "from2@host"},
+		To:      []*mail.Address{{Name: "", Address: "to1@host"}},
+		Subject: "subject 2",
+		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, time.FixedZone("PDT", -700)),
+	}
+	mm.AddMessage("good", &message.Message{Metadata: meta1})
+	mm.AddMessage("good", &message.Message{Metadata: meta2})
 
 	// Check return code
 	w, err = testRestGet(baseURL + "/mailbox/good")
@@ -96,6 +115,25 @@ func TestRestMailboxList(t *testing.T) {
 	}
 
 	// Check JSON
+	got := w.Body.String()
+	testStrings := []string{
+		`{"mailbox":"good","id":"0001","from":"\u003cfrom1@host\u003e",` +
+			`"to":["\u003cto1@host\u003e"],"subject":"subject 1",` +
+			`"date":"2012-02-01T10:11:12.000000253-00:13","size":0}`,
+		`{"mailbox":"good","id":"0002","from":"\u003cfrom2@host\u003e",` +
+			`"to":["\u003cto1@host\u003e"],"subject":"subject 2",` +
+			`"date":"2012-07-01T10:11:12.000000253-00:11","size":0}`,
+	}
+	for _, ts := range testStrings {
+		t.Run(ts, func(t *testing.T) {
+			if !strings.Contains(got, ts) {
+				t.Errorf("got:\n%s\nwant to contain:\n%s", got, ts)
+			}
+		})
+	}
+
+	// Check JSON
+	// TODO transitional while refactoring
 	dec := json.NewDecoder(w.Body)
 	var result []interface{}
 	if err := dec.Decode(&result); err != nil {
@@ -128,7 +166,8 @@ func TestRestMailboxList(t *testing.T) {
 func TestRestMessage(t *testing.T) {
 	// Setup
 	ds := test.NewStore()
-	logbuf := setupWebServer(ds)
+	mm := test.NewManager()
+	logbuf := setupWebServer(mm, ds)
 
 	// Test invalid mailbox name
 	w, err := testRestGet(baseURL + "/mailbox/foo@bar/0001")
@@ -168,6 +207,26 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Test JSON message headers
+	msg1 := &message.Message{
+		Metadata: message.Metadata{
+			Mailbox: "good",
+			ID:      "0001",
+			From:    &mail.Address{Name: "", Address: "from1@host"},
+			To:      []*mail.Address{{Name: "", Address: "to1@host"}},
+			Subject: "subject 1",
+			Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
+		},
+		Envelope: &enmime.Envelope{
+			Text: "This is some text",
+			HTML: "This is some HTML",
+			Root: &enmime.Part{
+				Header: textproto.MIMEHeader{
+					"To":   []string{"fred@fish.com", "keyword@nsa.gov"},
+					"From": []string{"noreply@inbucket.org"},
+				},
+			},
+		},
+	}
 	data1 := &InputMessageData{
 		Mailbox: "good",
 		ID:      "0001",
@@ -181,8 +240,7 @@ func TestRestMessage(t *testing.T) {
 		Text: "This is some text",
 		HTML: "This is some HTML",
 	}
-	msg1 := data1.MockMessage()
-	ds.AddMessage("good", msg1)
+	mm.AddMessage("good", msg1)
 
 	// Check return code
 	w, err = testRestGet(baseURL + "/mailbox/good/0001")
@@ -195,6 +253,7 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Check JSON
+	// TODO transitional while refactoring
 	dec := json.NewDecoder(w.Body)
 	var result map[string]interface{}
 	if err := dec.Decode(&result); err != nil {

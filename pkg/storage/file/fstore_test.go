@@ -337,8 +337,6 @@ func TestFSMissing(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Try to read parts of message
-	_, err = msg.ReadHeader()
-	assert.Error(t, err)
 	_, err = msg.ReadBody()
 	assert.Error(t, err)
 

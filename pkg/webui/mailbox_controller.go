@@ -72,7 +72,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 	if err != nil {
 		return err
 	}
-	messages, err := ctx.DataStore.GetMessages(name)
+	messages, err := ctx.MsgSvc.GetMetadata(name)
 	if err != nil {
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
@@ -94,7 +94,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 	if err != nil {
 		return err
 	}
-	msg, err := ctx.DataStore.GetMessage(name, id)
+	msg, err := ctx.MsgSvc.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -103,10 +103,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	mime, err := msg.ReadBody()
-	if err != nil {
-		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
-	}
+	mime := msg.Envelope
 	body := template.HTML(web.TextToHTML(mime.Text))
 	htmlAvailable := mime.HTML != ""
 	var htmlBody template.HTML
@@ -138,25 +135,22 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 	if err != nil {
 		return err
 	}
-	message, err := ctx.DataStore.GetMessage(name, id)
+	msg, err := ctx.MsgSvc.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
-		// This doesn't indicate missing, likely an IO error
+		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	mime, err := message.ReadBody()
-	if err != nil {
-		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
-	}
+	mime := msg.Envelope
 	// Render partial template
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	return web.RenderPartial("mailbox/_html.html", w, map[string]interface{}{
 		"ctx":     ctx,
 		"name":    name,
-		"message": message,
+		"message": msg,
 		"body":    template.HTML(mime.HTML),
 	})
 }
@@ -169,25 +163,19 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	if err != nil {
 		return err
 	}
-	message, err := ctx.DataStore.GetMessage(name, id)
+	r, err := ctx.MsgSvc.SourceReader(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
 		// This doesn't indicate missing, likely an IO error
-		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
-	}
-	raw, err := message.ReadRaw()
-	if err != nil {
-		return fmt.Errorf("ReadRaw(%q) failed: %v", id, err)
+		return fmt.Errorf("SourceReader(%q) failed: %v", id, err)
 	}
 	// Output message source
 	w.Header().Set("Content-Type", "text/plain")
-	if _, err := io.WriteString(w, *raw); err != nil {
-		return err
-	}
-	return nil
+	_, err = io.Copy(w, r)
+	return err
 }
 
 // MailboxDownloadAttach sends the attachment to the client; disposition:
@@ -210,19 +198,16 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Co
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	message, err := ctx.DataStore.GetMessage(name, id)
+	msg, err := ctx.MsgSvc.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
-		// This doesn't indicate missing, likely an IO error
+		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	body, err := message.ReadBody()
-	if err != nil {
-		return err
-	}
+	body := msg.Envelope
 	if int(num) >= len(body.Attachments) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
 		_ = ctx.Session.Save(req, w)
@@ -233,10 +218,8 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Co
 	// Output attachment
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment")
-	if _, err := io.Copy(w, part); err != nil {
-		return err
-	}
-	return nil
+	_, err = io.Copy(w, part)
+	return err
 }
 
 // MailboxViewAttach sends the attachment to the client for online viewing
@@ -258,19 +241,16 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	message, err := ctx.DataStore.GetMessage(name, id)
+	msg, err := ctx.MsgSvc.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
-		// This doesn't indicate missing, likely an IO error
+		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	body, err := message.ReadBody()
-	if err != nil {
-		return err
-	}
+	body := msg.Envelope
 	if int(num) >= len(body.Attachments) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
 		_ = ctx.Session.Save(req, w)
@@ -280,8 +260,6 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 	part := body.Attachments[num]
 	// Output attachment
 	w.Header().Set("Content-Type", part.ContentType)
-	if _, err := io.Copy(w, part); err != nil {
-		return err
-	}
-	return nil
+	_, err = io.Copy(w, part)
+	return err
 }

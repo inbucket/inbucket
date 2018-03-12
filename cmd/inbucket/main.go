@@ -14,6 +14,7 @@ import (
 
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/rest"
 	"github.com/jhillyerd/inbucket/pkg/server/pop3"
@@ -123,7 +124,8 @@ func main() {
 	retentionScanner.Start()
 
 	// Start HTTP server
-	web.Initialize(config.GetWebConfig(), shutdownChan, ds, msgHub)
+	mm := &message.StoreManager{Store: ds}
+	web.Initialize(config.GetWebConfig(), shutdownChan, mm, ds, msgHub)
 	webui.SetupRoutes(web.Router)
 	rest.SetupRoutes(web.Router)
 	go web.Start(rootCtx)

@@ -99,22 +99,6 @@ func (m *Message) rawPath() string {
 	return filepath.Join(m.mailbox.path, m.Fid+".raw")
 }
 
-// ReadHeader opens the .raw portion of a Message and returns a standard Go mail.Message object
-func (m *Message) ReadHeader() (msg *mail.Message, err error) {
-	file, err := os.Open(m.rawPath())
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", m.rawPath(), err)
-		}
-	}()
-
-	reader := bufio.NewReader(file)
-	return mail.ReadMessage(reader)
-}
-
 // ReadBody opens the .raw portion of a Message and returns a MIMEBody object
 func (m *Message) ReadBody() (body *enmime.Envelope, err error) {
 	file, err := os.Open(m.rawPath())

@@ -24,7 +24,7 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	if err != nil {
 		return err
 	}
-	messages, err := ctx.DataStore.GetMessages(name)
+	messages, err := ctx.MsgSvc.GetMetadata(name)
 	if err != nil {
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
@@ -35,12 +35,12 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	for i, msg := range messages {
 		jmessages[i] = &model.JSONMessageHeaderV1{
 			Mailbox: name,
-			ID:      msg.ID(),
-			From:    msg.From().String(),
-			To:      stringutil.StringAddressList(msg.To()),
-			Subject: msg.Subject(),
-			Date:    msg.Date(),
-			Size:    msg.Size(),
+			ID:      msg.ID,
+			From:    msg.From.String(),
+			To:      stringutil.StringAddressList(msg.To),
+			Subject: msg.Subject,
+			Date:    msg.Date,
+			Size:    msg.Size,
 		}
 	}
 	return web.RenderJSON(w, jmessages)
@@ -54,7 +54,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	if err != nil {
 		return err
 	}
-	msg, err := ctx.DataStore.GetMessage(name, id)
+	msg, err := ctx.MsgSvc.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -63,14 +63,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	header, err := msg.ReadHeader()
-	if err != nil {
-		return fmt.Errorf("ReadHeader(%q) failed: %v", id, err)
-	}
-	mime, err := msg.ReadBody()
-	if err != nil {
-		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
-	}
+	mime := msg.Envelope
 
 	attachments := make([]*model.JSONMessageAttachmentV1, len(mime.Attachments))
 	for i, att := range mime.Attachments {
@@ -89,13 +82,13 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	return web.RenderJSON(w,
 		&model.JSONMessageV1{
 			Mailbox: name,
-			ID:      msg.ID(),
-			From:    msg.From().String(),
-			To:      stringutil.StringAddressList(msg.To()),
-			Subject: msg.Subject(),
-			Date:    msg.Date(),
-			Size:    msg.Size(),
-			Header:  header.Header,
+			ID:      msg.ID,
+			From:    msg.From.String(),
+			To:      stringutil.StringAddressList(msg.To),
+			Subject: msg.Subject,
+			Date:    msg.Date,
+			Size:    msg.Size,
+			Header:  mime.Root.Header,
 			Body: &model.JSONMessageBodyV1{
 				Text: mime.Text,
 				HTML: mime.HTML,
@@ -112,7 +105,7 @@ func MailboxPurgeV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 		return err
 	}
 	// Delete all messages
-	err = ctx.DataStore.PurgeMessages(name)
+	err = ctx.MsgSvc.PurgeMessages(name)
 	if err != nil {
 		return fmt.Errorf("Mailbox(%q) purge failed: %v", name, err)
 	}
@@ -129,25 +122,20 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 	if err != nil {
 		return err
 	}
-	message, err := ctx.DataStore.GetMessage(name, id)
+
+	r, err := ctx.MsgSvc.SourceReader(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
 		// This doesn't indicate missing, likely an IO error
-		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
+		return fmt.Errorf("SourceReader(%q) failed: %v", id, err)
 	}
-	raw, err := message.ReadRaw()
-	if err != nil {
-		return fmt.Errorf("ReadRaw(%q) failed: %v", id, err)
-	}
-
+	// Output message source
 	w.Header().Set("Content-Type", "text/plain")
-	if _, err := io.WriteString(w, *raw); err != nil {
-		return err
-	}
-	return nil
+	_, err = io.Copy(w, r)
+	return err
 }
 
 // MailboxDeleteV1 removes a particular message from a mailbox
@@ -158,7 +146,7 @@ func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 	if err != nil {
 		return err
 	}
-	err = ctx.DataStore.RemoveMessage(name, id)
+	err = ctx.MsgSvc.RemoveMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil

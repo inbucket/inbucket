@@ -16,19 +16,15 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
 // Handler is a function type that handles an HTTP request in Inbucket
 type Handler func(http.ResponseWriter, *http.Request, *Context) error
 
 var (
-	// DataStore is where all the mailboxes and messages live
-	DataStore storage.Store
-
 	// msgHub holds a reference to the message pub/sub system
-	msgHub *msghub.Hub
-	msgSvc message.Manager
+	msgHub  *msghub.Hub
+	manager message.Manager
 
 	// Router is shared between httpd, webui and rest packages. It sends
 	// incoming requests to the correct handler function
@@ -54,16 +50,14 @@ func Initialize(
 	cfg config.WebConfig,
 	shutdownChan chan bool,
 	mm message.Manager,
-	ds storage.Store,
 	mh *msghub.Hub) {
 
 	webConfig = cfg
 	globalShutdown = shutdownChan
 
 	// NewContext() will use this DataStore for the web handlers
-	DataStore = ds
 	msgHub = mh
-	msgSvc = mm
+	manager = mm
 
 	// Content Paths
 	log.Infof("HTTP templates mapped to %q", cfg.TemplateDir)

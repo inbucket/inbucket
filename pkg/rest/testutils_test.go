@@ -194,7 +194,7 @@ func testRestGet(url string) (*httptest.ResponseRecorder, error) {
 	return w, nil
 }
 
-func setupWebServer(mm message.Manager, ds storage.Store) *bytes.Buffer {
+func setupWebServer(mm message.Manager) *bytes.Buffer {
 	// Capture log output
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
@@ -206,7 +206,7 @@ func setupWebServer(mm message.Manager, ds storage.Store) *bytes.Buffer {
 		PublicDir:   "../themes/bootstrap/public",
 	}
 	shutdownChan := make(chan bool)
-	web.Initialize(cfg, shutdownChan, mm, ds, &msghub.Hub{})
+	web.Initialize(cfg, shutdownChan, mm, &msghub.Hub{})
 	SetupRoutes(web.Router)
 
 	return buf

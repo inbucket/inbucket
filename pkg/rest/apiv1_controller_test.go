@@ -34,9 +34,8 @@ const (
 
 func TestRestMailboxList(t *testing.T) {
 	// Setup
-	ds := test.NewStore()
 	mm := test.NewManager()
-	logbuf := setupWebServer(mm, ds)
+	logbuf := setupWebServer(mm)
 
 	// Test invalid mailbox name
 	w, err := testRestGet(baseURL + "/mailbox/foo@bar")
@@ -165,9 +164,8 @@ func TestRestMailboxList(t *testing.T) {
 
 func TestRestMessage(t *testing.T) {
 	// Setup
-	ds := test.NewStore()
 	mm := test.NewManager()
-	logbuf := setupWebServer(mm, ds)
+	logbuf := setupWebServer(mm)
 
 	// Test invalid mailbox name
 	w, err := testRestGet(baseURL + "/mailbox/foo@bar/0001")

@@ -72,7 +72,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 	if err != nil {
 		return err
 	}
-	messages, err := ctx.MsgSvc.GetMetadata(name)
+	messages, err := ctx.Manager.GetMetadata(name)
 	if err != nil {
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
@@ -94,7 +94,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 	if err != nil {
 		return err
 	}
-	msg, err := ctx.MsgSvc.GetMessage(name, id)
+	msg, err := ctx.Manager.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -135,7 +135,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 	if err != nil {
 		return err
 	}
-	msg, err := ctx.MsgSvc.GetMessage(name, id)
+	msg, err := ctx.Manager.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -163,7 +163,7 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	if err != nil {
 		return err
 	}
-	r, err := ctx.MsgSvc.SourceReader(name, id)
+	r, err := ctx.Manager.SourceReader(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -198,7 +198,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Co
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	msg, err := ctx.MsgSvc.GetMessage(name, id)
+	msg, err := ctx.Manager.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -241,7 +241,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	msg, err := ctx.MsgSvc.GetMessage(name, id)
+	msg, err := ctx.Manager.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil

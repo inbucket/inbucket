@@ -125,7 +125,7 @@ func main() {
 
 	// Start HTTP server
 	mm := &message.StoreManager{Store: ds}
-	web.Initialize(config.GetWebConfig(), shutdownChan, mm, ds, msgHub)
+	web.Initialize(config.GetWebConfig(), shutdownChan, mm, msgHub)
 	webui.SetupRoutes(web.Router)
 	rest.SetupRoutes(web.Router)
 	go web.Start(rootCtx)

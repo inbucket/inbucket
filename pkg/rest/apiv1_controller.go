@@ -24,7 +24,7 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	if err != nil {
 		return err
 	}
-	messages, err := ctx.MsgSvc.GetMetadata(name)
+	messages, err := ctx.Manager.GetMetadata(name)
 	if err != nil {
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
@@ -54,7 +54,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	if err != nil {
 		return err
 	}
-	msg, err := ctx.MsgSvc.GetMessage(name, id)
+	msg, err := ctx.Manager.GetMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -105,7 +105,7 @@ func MailboxPurgeV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 		return err
 	}
 	// Delete all messages
-	err = ctx.MsgSvc.PurgeMessages(name)
+	err = ctx.Manager.PurgeMessages(name)
 	if err != nil {
 		return fmt.Errorf("Mailbox(%q) purge failed: %v", name, err)
 	}
@@ -123,7 +123,7 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 		return err
 	}
 
-	r, err := ctx.MsgSvc.SourceReader(name, id)
+	r, err := ctx.Manager.SourceReader(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
@@ -146,7 +146,7 @@ func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 	if err != nil {
 		return err
 	}
-	err = ctx.MsgSvc.RemoveMessage(name, id)
+	err = ctx.Manager.RemoveMessage(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil

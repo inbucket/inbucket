@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/mail"
 	"os"
 	"path/filepath"
@@ -99,26 +98,6 @@ func (m *Message) rawPath() string {
 	return filepath.Join(m.mailbox.path, m.Fid+".raw")
 }
 
-// ReadBody opens the .raw portion of a Message and returns a MIMEBody object
-func (m *Message) ReadBody() (body *enmime.Envelope, err error) {
-	file, err := os.Open(m.rawPath())
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", m.rawPath(), err)
-		}
-	}()
-
-	reader := bufio.NewReader(file)
-	mime, err := enmime.ReadEnvelope(reader)
-	if err != nil {
-		return nil, err
-	}
-	return mime, nil
-}
-
 // RawReader opens the .raw portion of a Message as an io.ReadCloser
 func (m *Message) RawReader() (reader io.ReadCloser, err error) {
 	file, err := os.Open(m.rawPath())
@@ -126,26 +105,6 @@ func (m *Message) RawReader() (reader io.ReadCloser, err error) {
 		return nil, err
 	}
 	return file, nil
-}
-
-// ReadRaw opens the .raw portion of a Message and returns it as a string
-func (m *Message) ReadRaw() (raw *string, err error) {
-	reader, err := m.RawReader()
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := reader.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", m.rawPath(), err)
-		}
-	}()
-
-	bodyBytes, err := ioutil.ReadAll(bufio.NewReader(reader))
-	if err != nil {
-		return nil, err
-	}
-	bodyString := string(bodyBytes)
-	return &bodyString, nil
 }
 
 // Append data to a newly opened Message, this will fail on a pre-existing Message and
@@ -195,26 +154,32 @@ func (m *Message) Close() error {
 		}
 	}
 
-	// Fetch headers
-	body, err := m.ReadBody()
+	// Fetch envelope.
+	// TODO should happen outside of datastore.
+	r, err := m.RawReader()
+	if err != nil {
+		return err
+	}
+	env, err := enmime.ReadEnvelope(r)
+	_ = r.Close()
 	if err != nil {
 		return err
 	}
 
 	// Only public fields are stored in gob, hence starting with capital F
 	// Parse From address
-	if address, err := mail.ParseAddress(body.GetHeader("From")); err == nil {
+	if address, err := mail.ParseAddress(env.GetHeader("From")); err == nil {
 		m.Ffrom = address
 	} else {
-		m.Ffrom = &mail.Address{Address: body.GetHeader("From")}
+		m.Ffrom = &mail.Address{Address: env.GetHeader("From")}
 	}
-	m.Fsubject = body.GetHeader("Subject")
+	m.Fsubject = env.GetHeader("Subject")
 
 	// Turn the To header into a slice
-	if addresses, err := body.AddressList("To"); err == nil {
+	if addresses, err := env.AddressList("To"); err == nil {
 		m.Fto = addresses
 	} else {
-		m.Fto = []*mail.Address{{Address: body.GetHeader("To")}}
+		m.Fto = []*mail.Address{{Address: env.GetHeader("To")}}
 	}
 
 	// Refresh the index before adding our message

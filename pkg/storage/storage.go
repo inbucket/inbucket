@@ -7,8 +7,6 @@ import (
 	"net/mail"
 	"sync"
 	"time"
-
-	"github.com/jhillyerd/enmime"
 )
 
 var (
@@ -41,8 +39,6 @@ type StoreMessage interface {
 	Date() time.Time
 	Subject() string
 	RawReader() (reader io.ReadCloser, err error)
-	ReadBody() (body *enmime.Envelope, err error)
-	ReadRaw() (raw *string, err error)
 	Append(data []byte) error
 	Close() error
 	String() string

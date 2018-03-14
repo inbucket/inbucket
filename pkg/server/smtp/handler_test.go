@@ -8,7 +8,6 @@ import (
 
 	"log"
 	"net"
-	"net/mail"
 	"net/textproto"
 	"os"
 	"testing"
@@ -141,18 +140,7 @@ func TestReadyState(t *testing.T) {
 
 // Test commands in MAIL state
 func TestMailState(t *testing.T) {
-	// Setup mock objects
-	mds := &storage.MockDataStore{}
-	msg1 := &storage.MockMessage{}
-	mds.On("NewMessage", "u1").Return(msg1, nil)
-	msg1.On("ID").Return("")
-	msg1.On("From").Return(&mail.Address{})
-	msg1.On("To").Return(make([]*mail.Address, 0))
-	msg1.On("Date").Return(time.Time{})
-	msg1.On("Subject").Return("")
-	msg1.On("Size").Return(0)
-	msg1.On("Close").Return(nil)
-
+	mds := test.NewStore()
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 
@@ -214,7 +202,7 @@ func TestMailState(t *testing.T) {
 		{"MAIL FROM:<john@gmail.com>", 250},
 		{"RCPT TO:<u1@gmail.com>", 250},
 		{"DATA", 354},
-		{".", 250},
+		{".", 451},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
@@ -253,18 +241,7 @@ func TestMailState(t *testing.T) {
 
 // Test commands in DATA state
 func TestDataState(t *testing.T) {
-	// Setup mock objects
-	mds := &storage.MockDataStore{}
-	msg1 := &storage.MockMessage{}
-	mds.On("NewMessage", "u1").Return(msg1, nil)
-	msg1.On("ID").Return("")
-	msg1.On("From").Return(&mail.Address{})
-	msg1.On("To").Return(make([]*mail.Address, 0))
-	msg1.On("Date").Return(time.Time{})
-	msg1.On("Subject").Return("")
-	msg1.On("Size").Return(0)
-	msg1.On("Close").Return(nil)
-
+	mds := test.NewStore()
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 

@@ -6,12 +6,15 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/mail"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -480,32 +483,25 @@ func setupDataStore(cfg config.DataStoreConfig) (*Store, *bytes.Buffer) {
 
 // deliverMessage creates and delivers a message to the specific mailbox, returning
 // the size of the generated message.
-func deliverMessage(ds *Store, mbName string, subject string,
-	date time.Time) (id string, size int64) {
-	// Build fake SMTP message for delivery
-	testMsg := make([]byte, 0, 300)
-	testMsg = append(testMsg, []byte("To: somebody@host\r\n")...)
-	testMsg = append(testMsg, []byte("From: somebodyelse@host\r\n")...)
-	testMsg = append(testMsg, []byte(fmt.Sprintf("Subject: %s\r\n", subject))...)
-	testMsg = append(testMsg, []byte("\r\n")...)
-	testMsg = append(testMsg, []byte("Test Body\r\n")...)
-
-	// Create message object
-	id = generateID(date)
-	msg, err := ds.NewMessage(mbName)
+func deliverMessage(ds *Store, mbName string, subject string, date time.Time) (string, int64) {
+	// Build message for delivery
+	meta := message.Metadata{
+		Mailbox: mbName,
+		To:      []*mail.Address{{Name: "", Address: "somebody@host"}},
+		From:    &mail.Address{Name: "", Address: "somebodyelse@host"},
+		Subject: subject,
+		Date:    date,
+	}
+	testMsg := fmt.Sprintf("To: %s\r\nFrom: %s\r\nSubject: %s\r\n\r\nTest Body\r\n",
+		meta.To[0].Address, meta.From.Address, subject)
+	delivery := &message.Delivery{
+		Meta:   meta,
+		Reader: ioutil.NopCloser(strings.NewReader(testMsg)),
+	}
+	id, err := ds.AddMessage(delivery)
 	if err != nil {
 		panic(err)
 	}
-	fmsg := msg.(*Message)
-	fmsg.Fdate = date
-	fmsg.Fid = id
-	if err = msg.Append(testMsg); err != nil {
-		panic(err)
-	}
-	if err = msg.Close(); err != nil {
-		panic(err)
-	}
-
 	return id, int64(len(testMsg))
 }
 

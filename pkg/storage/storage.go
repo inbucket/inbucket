@@ -19,6 +19,8 @@ var (
 
 // Store is the interface Inbucket uses to interact with storage implementations.
 type Store interface {
+	// AddMessage stores the message, message ID and Size will be ignored.
+	AddMessage(message StoreMessage) (id string, err error)
 	GetMessage(mailbox, id string) (StoreMessage, error)
 	GetMessages(mailbox string) ([]StoreMessage, error)
 	PurgeMessages(mailbox string) error
@@ -39,8 +41,5 @@ type StoreMessage interface {
 	Date() time.Time
 	Subject() string
 	RawReader() (reader io.ReadCloser, err error)
-	Append(data []byte) error
-	Close() error
-	String() string
 	Size() int64
 }

@@ -2,16 +2,13 @@ package file
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"net/mail"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/pkg/log"
-	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
 // Message implements Message and contains a little bit of data about a
@@ -33,7 +30,7 @@ type Message struct {
 
 // newMessage creates a new FileMessage object and sets the Date and ID fields.
 // It will also delete messages over messageCap if configured.
-func (mb *mbox) newMessage() (storage.StoreMessage, error) {
+func (mb *mbox) newMessage() (*Message, error) {
 	// Load index
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
@@ -84,11 +81,6 @@ func (m *Message) Subject() string {
 	return m.Fsubject
 }
 
-// String returns a string in the form: "Subject()" from From()
-func (m *Message) String() string {
-	return fmt.Sprintf("\"%v\" from %v", m.Fsubject, m.Ffrom)
-}
-
 // Size returns the size of the Message on disk in bytes
 func (m *Message) Size() int64 {
 	return m.Fsize
@@ -105,90 +97,4 @@ func (m *Message) RawReader() (reader io.ReadCloser, err error) {
 		return nil, err
 	}
 	return file, nil
-}
-
-// Append data to a newly opened Message, this will fail on a pre-existing Message and
-// after Close() is called.
-func (m *Message) Append(data []byte) error {
-	// Prevent Appending to a pre-existing Message
-	if !m.writable {
-		return storage.ErrNotWritable
-	}
-	// Open file for writing if we haven't yet
-	if m.writer == nil {
-		// Ensure mailbox directory exists
-		if err := m.mailbox.createDir(); err != nil {
-			return err
-		}
-		file, err := os.Create(m.rawPath())
-		if err != nil {
-			// Set writable false just in case something calls me a million times
-			m.writable = false
-			return err
-		}
-		m.writerFile = file
-		m.writer = bufio.NewWriter(file)
-	}
-	_, err := m.writer.Write(data)
-	m.Fsize += int64(len(data))
-	return err
-}
-
-// Close this Message for writing - no more data may be Appended.  Close() will also
-// trigger the creation of the .gob file.
-func (m *Message) Close() error {
-	// nil out the writer fields so they can't be used
-	writer := m.writer
-	writerFile := m.writerFile
-	m.writer = nil
-	m.writerFile = nil
-
-	if writer != nil {
-		if err := writer.Flush(); err != nil {
-			return err
-		}
-	}
-	if writerFile != nil {
-		if err := writerFile.Close(); err != nil {
-			return err
-		}
-	}
-
-	// Fetch envelope.
-	// TODO should happen outside of datastore.
-	r, err := m.RawReader()
-	if err != nil {
-		return err
-	}
-	env, err := enmime.ReadEnvelope(r)
-	_ = r.Close()
-	if err != nil {
-		return err
-	}
-
-	// Only public fields are stored in gob, hence starting with capital F
-	// Parse From address
-	if address, err := mail.ParseAddress(env.GetHeader("From")); err == nil {
-		m.Ffrom = address
-	} else {
-		m.Ffrom = &mail.Address{Address: env.GetHeader("From")}
-	}
-	m.Fsubject = env.GetHeader("Subject")
-
-	// Turn the To header into a slice
-	if addresses, err := env.AddressList("To"); err == nil {
-		m.Fto = addresses
-	} else {
-		m.Fto = []*mail.Address{{Address: env.GetHeader("To")}}
-	}
-
-	// Refresh the index before adding our message
-	err = m.mailbox.readIndex()
-	if err != nil {
-		return err
-	}
-
-	// Made it this far without errors, add it to the index
-	m.mailbox.messages = append(m.mailbox.messages, m)
-	return m.mailbox.writeIndex()
 }

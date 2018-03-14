@@ -15,6 +15,12 @@ type MockDataStore struct {
 	mock.Mock
 }
 
+// AddMessage mock function
+func (m *MockDataStore) AddMessage(message StoreMessage) (string, error) {
+	args := m.Called(message)
+	return args.String(0), args.Error(1)
+}
+
 // GetMessage mock function
 func (m *MockDataStore) GetMessage(name, id string) (StoreMessage, error) {
 	args := m.Called(name, id)

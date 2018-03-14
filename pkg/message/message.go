@@ -2,10 +2,13 @@
 package message
 
 import (
+	"io"
+	"io/ioutil"
 	"net/mail"
 	"time"
 
 	"github.com/jhillyerd/enmime"
+	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
 // Metadata holds information about a message, but not the content.
@@ -23,4 +26,52 @@ type Metadata struct {
 type Message struct {
 	Metadata
 	Envelope *enmime.Envelope
+}
+
+// Delivery is used to add a message to storage.
+type Delivery struct {
+	Meta   Metadata
+	Reader io.Reader
+}
+
+var _ storage.StoreMessage = &Delivery{}
+
+// Mailbox getter.
+func (d *Delivery) Mailbox() string {
+	return d.Meta.Mailbox
+}
+
+// ID getter.
+func (d *Delivery) ID() string {
+	return d.Meta.ID
+}
+
+// From getter.
+func (d *Delivery) From() *mail.Address {
+	return d.Meta.From
+}
+
+// To getter.
+func (d *Delivery) To() []*mail.Address {
+	return d.Meta.To
+}
+
+// Date getter.
+func (d *Delivery) Date() time.Time {
+	return d.Meta.Date
+}
+
+// Subject getter.
+func (d *Delivery) Subject() string {
+	return d.Meta.Subject
+}
+
+// Size getter.
+func (d *Delivery) Size() int64 {
+	return d.Meta.Size
+}
+
+// RawReader contains the raw content of the message.
+func (d *Delivery) RawReader() (io.ReadCloser, error) {
+	return ioutil.NopCloser(d.Reader), nil
 }

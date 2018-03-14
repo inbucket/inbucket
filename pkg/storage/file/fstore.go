@@ -74,6 +74,64 @@ func New(cfg config.DataStoreConfig) storage.Store {
 	return &Store{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}
 }
 
+// AddMessage adds a message to the specified mailbox.
+func (fs *Store) AddMessage(m storage.StoreMessage) (id string, err error) {
+	r, err := m.RawReader()
+	if err != nil {
+		return "", err
+	}
+	mb, err := fs.mbox(m.Mailbox())
+	if err != nil {
+		return "", err
+	}
+	// Create a new message.
+	fm, err := mb.newMessage()
+	if err != nil {
+		return "", err
+	}
+	// Ensure mailbox directory exists.
+	if err := mb.createDir(); err != nil {
+		return "", err
+	}
+	// Write the message content
+	file, err := os.Create(fm.rawPath())
+	if err != nil {
+		return "", err
+	}
+	w := bufio.NewWriter(file)
+	size, err := io.Copy(w, r)
+	if err != nil {
+		// Try to remove the file
+		_ = file.Close()
+		_ = os.Remove(fm.rawPath())
+		return "", err
+	}
+	_ = r.Close()
+	if err := w.Flush(); err != nil {
+		// Try to remove the file
+		_ = file.Close()
+		_ = os.Remove(fm.rawPath())
+		return "", err
+	}
+	if err := file.Close(); err != nil {
+		// Try to remove the file
+		_ = os.Remove(fm.rawPath())
+		return "", err
+	}
+	// Update the index.
+	fm.Fdate = m.Date()
+	fm.Ffrom = m.From()
+	fm.Fsize = size
+	fm.Fsubject = m.Subject()
+	mb.messages = append(mb.messages, fm)
+	if err := mb.writeIndex(); err != nil {
+		// Try to remove the file
+		_ = os.Remove(fm.rawPath())
+		return "", err
+	}
+	return fm.Fid, nil
+}
+
 // GetMessage returns the messages in the named mailbox, or an error.
 func (fs *Store) GetMessage(mailbox, id string) (storage.StoreMessage, error) {
 	mb, err := fs.mbox(mailbox)

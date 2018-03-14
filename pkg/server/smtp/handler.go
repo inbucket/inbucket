@@ -12,7 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
@@ -442,48 +444,61 @@ func (ss *Session) dataHandler() {
 
 // deliverMessage creates and populates a new Message for the specified recipient
 func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool) {
-	msg, err := ss.server.dataStore.NewMessage(r.localPart)
-	if err != nil {
-		ss.logError("Failed to create message for %q: %s", r.localPart, err)
-		return false
-	}
-
-	// Generate Received header
-	stamp := time.Now().Format(timeStampFormat)
-	recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
-		ss.remoteDomain, ss.remoteHost, ss.server.domain, r.address, stamp)
-	if err := msg.Append([]byte(recd)); err != nil {
-		ss.logError("Failed to write received header for %q: %s", r.localPart, err)
-		return false
-	}
-
-	// Append lines from msgBuf
-	for _, line := range msgBuf {
-		if err := msg.Append(line); err != nil {
-			ss.logError("Failed to append to mailbox %v: %v", r.localPart, err)
-			// Should really cleanup the crap on filesystem
-			return false
-		}
-	}
-	if err := msg.Close(); err != nil {
-		ss.logError("Error while closing message for %v: %v", r.localPart, err)
-		return false
-	}
 	name, err := stringutil.ParseMailboxName(r.localPart)
 	if err != nil {
 		// This parse already succeeded when MailboxFor was called, shouldn't fail here.
 		return false
 	}
-
+	buf := bytes.Buffer{}
+	// Generate Received header
+	stamp := time.Now().Format(timeStampFormat)
+	recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
+		ss.remoteDomain, ss.remoteHost, ss.server.domain, r.address, stamp)
+	buf.WriteString(recd)
+	// Append lines from msgBuf
+	for _, line := range msgBuf {
+		buf.Write(line)
+	}
+	// TODO replace with something that only reads header?
+	env, err := enmime.ReadEnvelope(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		ss.logError("Failed to parse message for %q: %v", r.localPart, err)
+		return false
+	}
+	from, err := env.AddressList("From")
+	if err != nil {
+		ss.logError("Failed to get From address: %v", err)
+		return false
+	}
+	to, err := env.AddressList("To")
+	if err != nil {
+		ss.logError("Failed to get To addresses: %v", err)
+		return false
+	}
+	delivery := &message.Delivery{
+		Meta: message.Metadata{
+			Mailbox: name,
+			From:    from[0],
+			To:      to,
+			Date:    time.Now(),
+			Subject: env.GetHeader("Subject"),
+		},
+		Reader: bytes.NewReader(buf.Bytes()),
+	}
+	id, err := ss.server.dataStore.AddMessage(delivery)
+	if err != nil {
+		ss.logError("Failed to store message for %q: %s", r.localPart, err)
+		return false
+	}
 	// Broadcast message information
 	broadcast := msghub.Message{
 		Mailbox: name,
-		ID:      msg.ID(),
-		From:    msg.From().String(),
-		To:      stringutil.StringAddressList(msg.To()),
-		Subject: msg.Subject(),
-		Date:    msg.Date(),
-		Size:    msg.Size(),
+		ID:      id,
+		From:    delivery.From().String(),
+		To:      stringutil.StringAddressList(delivery.To()),
+		Subject: delivery.Subject(),
+		Date:    delivery.Date(),
+		Size:    delivery.Size(),
 	}
 	ss.server.msgHub.Dispatch(broadcast)
 

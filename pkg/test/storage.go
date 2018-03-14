@@ -23,9 +23,11 @@ func NewStore() *StoreStub {
 }
 
 // AddMessage adds a message to the specified mailbox.
-func (s *StoreStub) AddMessage(mailbox string, m storage.StoreMessage) {
-	msgs := s.mailboxes[mailbox]
-	s.mailboxes[mailbox] = append(msgs, m)
+func (s *StoreStub) AddMessage(m storage.StoreMessage) (id string, err error) {
+	mb := m.Mailbox()
+	msgs := s.mailboxes[mb]
+	s.mailboxes[mb] = append(msgs, m)
+	return m.ID(), nil
 }
 
 // GetMessage gets a message by ID from the specified mailbox.
@@ -78,11 +80,6 @@ func (s *StoreStub) VisitMailboxes(f func([]storage.StoreMessage) (cont bool)) e
 		}
 	}
 	return nil
-}
-
-// NewMessage is temproary until #69 MessageData refactor
-func (s *StoreStub) NewMessage(mailbox string) (storage.StoreMessage, error) {
-	return nil, nil
 }
 
 // LockFor mock function returns a new RWMutex, never errors.

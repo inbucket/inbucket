@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/test"
 )
@@ -13,12 +14,12 @@ import (
 func TestDoRetentionScan(t *testing.T) {
 	ds := test.NewStore()
 	// Mockup some different aged messages (num is in hours)
-	new1 := mockMessage("mb1", 0)
-	new2 := mockMessage("mb2", 1)
-	new3 := mockMessage("mb3", 2)
-	old1 := mockMessage("mb1", 4)
-	old2 := mockMessage("mb1", 12)
-	old3 := mockMessage("mb2", 24)
+	new1 := stubMessage("mb1", 0)
+	new2 := stubMessage("mb2", 1)
+	new3 := stubMessage("mb3", 2)
+	old1 := stubMessage("mb1", 4)
+	old2 := stubMessage("mb1", 12)
+	old3 := stubMessage("mb2", 24)
 	ds.AddMessage(new1)
 	ds.AddMessage(old1)
 	ds.AddMessage(old2)
@@ -49,12 +50,13 @@ func TestDoRetentionScan(t *testing.T) {
 	}
 }
 
-// Make a MockMessage of a specific age
-func mockMessage(mailbox string, ageHours int) *storage.MockMessage {
-	msg := &storage.MockMessage{}
-	msg.On("Mailbox").Return(mailbox)
-	msg.On("ID").Return(fmt.Sprintf("MSG[age=%vh]", ageHours))
-	msg.On("Date").Return(time.Now().Add(time.Duration(ageHours*-1) * time.Hour))
-	msg.On("Delete").Return(nil)
-	return msg
+// stubMessage creates a message stub of a specific age
+func stubMessage(mailbox string, ageHours int) storage.StoreMessage {
+	return &message.Delivery{
+		Meta: message.Metadata{
+			Mailbox: mailbox,
+			ID:      fmt.Sprintf("MSG[age=%vh]", ageHours),
+			Date:    time.Now().Add(time.Duration(ageHours*-1) * time.Hour),
+		},
+	}
 }

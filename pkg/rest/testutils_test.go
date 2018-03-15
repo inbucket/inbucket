@@ -9,12 +9,10 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
-	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
 type InputMessageData struct {
@@ -24,31 +22,6 @@ type InputMessageData struct {
 	Size                       int
 	Header                     mail.Header
 	HTML, Text                 string
-}
-
-func (d *InputMessageData) MockMessage() *storage.MockMessage {
-	from, _ := mail.ParseAddress(d.From)
-	to := make([]*mail.Address, len(d.To))
-	for i, a := range d.To {
-		to[i], _ = mail.ParseAddress(a)
-	}
-	msg := &storage.MockMessage{}
-	msg.On("ID").Return(d.ID)
-	msg.On("From").Return(from)
-	msg.On("To").Return(to)
-	msg.On("Subject").Return(d.Subject)
-	msg.On("Date").Return(d.Date)
-	msg.On("Size").Return(d.Size)
-	gomsg := &mail.Message{
-		Header: d.Header,
-	}
-	msg.On("ReadHeader").Return(gomsg, nil)
-	body := &enmime.Envelope{
-		Text: d.Text,
-		HTML: d.HTML,
-	}
-	msg.On("ReadBody").Return(body, nil)
-	return msg
 }
 
 // isJSONStringEqual is a utility function to return a nicely formatted message when

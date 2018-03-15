@@ -28,8 +28,6 @@ type Store interface {
 	VisitMailboxes(f func([]StoreMessage) (cont bool)) error
 	// LockFor is a temporary hack to fix #77 until Datastore revamp
 	LockFor(emailAddress string) (*sync.RWMutex, error)
-	// NewMessage is temproary until #69 MessageData refactor
-	NewMessage(mailbox string) (StoreMessage, error)
 }
 
 // StoreMessage represents a message to be stored, or returned from a storage implementation.

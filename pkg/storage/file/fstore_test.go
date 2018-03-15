@@ -16,8 +16,22 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/jhillyerd/inbucket/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
+
+// TestSuite runs storage package test suite on file store.
+func TestSuite(t *testing.T) {
+	ds, logbuf := setupDataStore(config.DataStoreConfig{})
+	defer teardownDataStore(ds)
+	test.StoreSuite(t, ds)
+	if t.Failed() {
+		// Wait for handler to finish logging.
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure.
+		_, _ = io.Copy(os.Stderr, logbuf)
+	}
+}
 
 // Test directory structure created by filestore
 func TestFSDirStructure(t *testing.T) {

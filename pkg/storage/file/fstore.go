@@ -121,6 +121,7 @@ func (fs *Store) AddMessage(m storage.StoreMessage) (id string, err error) {
 	// Update the index.
 	fm.Fdate = m.Date()
 	fm.Ffrom = m.From()
+	fm.Fto = m.To()
 	fm.Fsize = size
 	fm.Fsubject = m.Subject()
 	mb.messages = append(mb.messages, fm)

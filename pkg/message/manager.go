@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/jhillyerd/enmime"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
@@ -14,6 +15,7 @@ type Manager interface {
 	PurgeMessages(mailbox string) error
 	RemoveMessage(mailbox, id string) error
 	SourceReader(mailbox, id string) (io.ReadCloser, error)
+	MailboxForAddress(address string) (string, error)
 }
 
 // StoreManager is a message Manager backed by the storage.Store.
@@ -70,6 +72,11 @@ func (s *StoreManager) SourceReader(mailbox, id string) (io.ReadCloser, error) {
 		return nil, err
 	}
 	return sm.RawReader()
+}
+
+// MailboxForAddress parses an email address to return the canonical mailbox name.
+func (s *StoreManager) MailboxForAddress(mailbox string) (string, error) {
+	return policy.ParseMailboxName(mailbox)
 }
 
 // makeMetadata populates Metadata from a StoreMessage.

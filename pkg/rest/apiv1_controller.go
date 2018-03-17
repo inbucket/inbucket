@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	"github.com/jhillyerd/inbucket/pkg/log"
-	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/rest/model"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 	"github.com/jhillyerd/inbucket/pkg/storage"
@@ -21,7 +20,7 @@ import (
 // MailboxListV1 renders a list of messages in a mailbox
 func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -51,7 +50,7 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -101,7 +100,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 // MailboxPurgeV1 deletes all messages from a mailbox
 func MailboxPurgeV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -119,7 +118,7 @@ func MailboxPurgeV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -143,7 +142,7 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}

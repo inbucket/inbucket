@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jhillyerd/inbucket/pkg/message"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
@@ -50,4 +51,9 @@ func (m *ManagerStub) GetMetadata(mailbox string) ([]*message.Metadata, error) {
 		metas[i] = &msg.Metadata
 	}
 	return metas, nil
+}
+
+// MailboxForAddress invokes policy.ParseMailboxName.
+func (m *ManagerStub) MailboxForAddress(address string) (string, error) {
+	return policy.ParseMailboxName(address)
 }

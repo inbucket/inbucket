@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 )
 
@@ -58,7 +57,7 @@ func RootMonitorMailbox(w http.ResponseWriter, req *http.Request, ctx *web.Conte
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)

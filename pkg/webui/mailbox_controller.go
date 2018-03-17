@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/jhillyerd/inbucket/pkg/log"
-	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/webui/sanitize"
@@ -25,7 +24,7 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *web.Context) (e
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	name, err = policy.ParseMailboxName(name)
+	name, err = ctx.Manager.MailboxForAddress(name)
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -52,7 +51,7 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *web.Context) (e
 func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -68,7 +67,7 @@ func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 // MailboxList renders a list of messages in a mailbox. Renders a partial
 func MailboxList(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -90,7 +89,7 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -131,7 +130,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -159,7 +158,7 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
@@ -183,7 +182,7 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -225,7 +224,7 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Co
 // MailboxViewAttach sends the attachment to the client for online viewing
 func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name, err := policy.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)

@@ -13,6 +13,7 @@ import (
 
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
@@ -218,7 +219,7 @@ func (fs *Store) VisitMailboxes(f func([]storage.StoreMessage) (cont bool)) erro
 
 // LockFor returns the RWMutex for this mailbox, or an error.
 func (fs *Store) LockFor(emailAddress string) (*sync.RWMutex, error) {
-	name, err := stringutil.ParseMailboxName(emailAddress)
+	name, err := policy.ParseMailboxName(emailAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +238,7 @@ func (fs *Store) NewMessage(mailbox string) (storage.StoreMessage, error) {
 
 // mbox returns the named mailbox.
 func (fs *Store) mbox(mailbox string) (*mbox, error) {
-	name, err := stringutil.ParseMailboxName(mailbox)
+	name, err := policy.ParseMailboxName(mailbox)
 	if err != nil {
 		return nil, err
 	}

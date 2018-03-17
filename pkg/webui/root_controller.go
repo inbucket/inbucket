@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
-	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
 
 // RootIndex serves the Inbucket landing page
@@ -58,7 +58,7 @@ func RootMonitorMailbox(w http.ResponseWriter, req *http.Request, ctx *web.Conte
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
+	name, err := policy.ParseMailboxName(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)

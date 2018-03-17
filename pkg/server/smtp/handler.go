@@ -16,6 +16,7 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
 
@@ -267,7 +268,7 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 			return
 		}
 		from := m[1]
-		if _, _, err := stringutil.ParseEmailAddress(from); err != nil {
+		if _, _, err := policy.ParseEmailAddress(from); err != nil {
 			ss.send("501 Bad sender address syntax")
 			ss.logWarn("Bad address as MAIL arg: %q, %s", from, err)
 			return
@@ -316,7 +317,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 		}
 		// This trim is probably too forgiving
 		recip := strings.Trim(arg[3:], "<> ")
-		if _, _, err := stringutil.ParseEmailAddress(recip); err != nil {
+		if _, _, err := policy.ParseEmailAddress(recip); err != nil {
 			ss.send("501 Bad recipient address syntax")
 			ss.logWarn("Bad address as RCPT arg: %q, %s", recip, err)
 			return
@@ -355,7 +356,7 @@ func (ss *Session) dataHandler() {
 	if ss.server.storeMessages {
 		for e := ss.recipients.Front(); e != nil; e = e.Next() {
 			recip := e.Value.(string)
-			local, domain, err := stringutil.ParseEmailAddress(recip)
+			local, domain, err := policy.ParseEmailAddress(recip)
 			if err != nil {
 				ss.logError("Failed to parse address for %q", recip)
 				ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
@@ -436,7 +437,7 @@ func (ss *Session) dataHandler() {
 
 // deliverMessage creates and populates a new Message for the specified recipient
 func (ss *Session) deliverMessage(r recipientDetails, content []byte) (ok bool) {
-	name, err := stringutil.ParseMailboxName(r.localPart)
+	name, err := policy.ParseMailboxName(r.localPart)
 	if err != nil {
 		// This parse already succeeded when MailboxFor was called, shouldn't fail here.
 		return false

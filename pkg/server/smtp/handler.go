@@ -6,18 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/mail"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/jhillyerd/enmime"
 	"github.com/jhillyerd/inbucket/pkg/log"
-	"github.com/jhillyerd/inbucket/pkg/message"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/policy"
-	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
 
 // State tracks the current mode of our SMTP state machine
@@ -370,9 +365,18 @@ func (ss *Session) dataHandler() {
 		}
 		if bytes.Equal(lineBuf, []byte(".\r\n")) || bytes.Equal(lineBuf, []byte(".\n")) {
 			// Mail data complete.
+			tstamp := time.Now().Format(timeStampFormat)
 			for _, recip := range ss.recipients {
 				if recip.ShouldStore() {
-					if ok := ss.deliverMessage(recip, msgBuf.Bytes()); !ok {
+					// Generate Received header.
+					prefix := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
+						ss.remoteDomain, ss.remoteHost, ss.server.domain, recip.Address.Address,
+						tstamp)
+					// Deliver message.
+					_, err := ss.server.manager.Deliver(
+						recip, ss.from, ss.recipients, prefix, msgBuf.Bytes())
+					if err != nil {
+						ss.logError("delivery for %v: %v", recip.LocalPart, err)
 						ss.send(fmt.Sprintf("451 Failed to store message for %v", recip.LocalPart))
 						ss.reset()
 						return
@@ -385,7 +389,7 @@ func (ss *Session) dataHandler() {
 			ss.reset()
 			return
 		}
-		// RFC says remove leading periods from input.
+		// RFC: remove leading periods from DATA.
 		if len(lineBuf) > 0 && lineBuf[0] == '.' {
 			lineBuf = lineBuf[1:]
 		}
@@ -397,59 +401,6 @@ func (ss *Session) dataHandler() {
 			return
 		}
 	}
-}
-
-// deliverMessage creates and populates a new Message for the specified recipient
-func (ss *Session) deliverMessage(recip *policy.Recipient, content []byte) (ok bool) {
-	// TODO replace with something that only reads header?
-	env, err := enmime.ReadEnvelope(bytes.NewReader(content))
-	if err != nil {
-		ss.logError("Failed to parse message for %q: %v", recip.LocalPart, err)
-		return false
-	}
-	from, err := env.AddressList("From")
-	if err != nil {
-		from = []*mail.Address{{Address: ss.from}}
-	}
-	to, err := env.AddressList("To")
-	if err != nil {
-		to = make([]*mail.Address, len(ss.recipients))
-		for i, torecip := range ss.recipients {
-			to[i] = &torecip.Address
-		}
-	}
-	// Generate Received header.
-	stamp := time.Now().Format(timeStampFormat)
-	recd := strings.NewReader(fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
-		ss.remoteDomain, ss.remoteHost, ss.server.domain, recip.Address, stamp))
-	delivery := &message.Delivery{
-		Meta: message.Metadata{
-			Mailbox: recip.Mailbox,
-			From:    from[0],
-			To:      to,
-			Date:    time.Now(),
-			Subject: env.GetHeader("Subject"),
-		},
-		Reader: io.MultiReader(recd, bytes.NewReader(content)),
-	}
-	id, err := ss.server.dataStore.AddMessage(delivery)
-	if err != nil {
-		ss.logError("Failed to store message for %q: %s", recip.LocalPart, err)
-		return false
-	}
-	// Broadcast message information.
-	// TODO this belongs in message pkg.
-	broadcast := msghub.Message{
-		Mailbox: recip.Mailbox,
-		ID:      id,
-		From:    delivery.From().String(),
-		To:      stringutil.StringAddressList(delivery.To()),
-		Subject: delivery.Subject(),
-		Date:    delivery.Date(),
-		Size:    delivery.Size(),
-	}
-	ss.server.msgHub.Dispatch(broadcast)
-	return true
 }
 
 func (ss *Session) enterState(state State) {

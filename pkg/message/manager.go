@@ -1,15 +1,28 @@
 package message
 
 import (
+	"bytes"
 	"io"
+	"net/mail"
+	"strings"
+	"time"
 
 	"github.com/jhillyerd/enmime"
+	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
 
 // Manager is the interface controllers use to interact with messages.
 type Manager interface {
+	Deliver(
+		to *policy.Recipient,
+		from string,
+		recipients []*policy.Recipient,
+		prefix string,
+		content []byte,
+	) (id string, err error)
 	GetMetadata(mailbox string) ([]*Metadata, error)
 	GetMessage(mailbox, id string) (*Message, error)
 	PurgeMessages(mailbox string) error
@@ -21,6 +34,61 @@ type Manager interface {
 // StoreManager is a message Manager backed by the storage.Store.
 type StoreManager struct {
 	Store storage.Store
+	Hub   *msghub.Hub
+}
+
+// Deliver submits a new message to the store.
+func (s *StoreManager) Deliver(
+	to *policy.Recipient,
+	from string,
+	recipients []*policy.Recipient,
+	prefix string,
+	content []byte,
+) (string, error) {
+	// TODO enmime is too heavy for this step, only need header
+	env, err := enmime.ReadEnvelope(bytes.NewReader(content))
+	if err != nil {
+		return "", err
+	}
+	fromaddr, err := env.AddressList("From")
+	if err != nil || len(fromaddr) == 0 {
+		fromaddr = []*mail.Address{{Address: from}}
+	}
+	toaddr, err := env.AddressList("To")
+	if err != nil {
+		toaddr = make([]*mail.Address, len(recipients))
+		for i, torecip := range recipients {
+			toaddr[i] = &torecip.Address
+		}
+	}
+	delivery := &Delivery{
+		Meta: Metadata{
+			Mailbox: to.Mailbox,
+			From:    fromaddr[0],
+			To:      toaddr,
+			Date:    time.Now(),
+			Subject: env.GetHeader("Subject"),
+		},
+		Reader: io.MultiReader(strings.NewReader(prefix), bytes.NewReader(content)),
+	}
+	id, err := s.Store.AddMessage(delivery)
+	if err != nil {
+		return "", err
+	}
+	if s.Hub != nil {
+		// Broadcast message information.
+		broadcast := msghub.Message{
+			Mailbox: to.Mailbox,
+			ID:      id,
+			From:    delivery.From().String(),
+			To:      stringutil.StringAddressList(delivery.To()),
+			Subject: delivery.Subject(),
+			Date:    delivery.Date(),
+			Size:    delivery.Size(),
+		}
+		s.Hub.Dispatch(broadcast)
+	}
+	return id, nil
 }
 
 // GetMetadata returns a slice of metadata for the specified mailbox.

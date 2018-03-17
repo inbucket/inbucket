@@ -115,32 +115,27 @@ func main() {
 		}
 	}
 
-	// Create message hub
+	// Configure internal services.
 	msgHub := msghub.New(rootCtx, config.GetWebConfig().MonitorHistory)
-
-	// Setup our datastore
 	dscfg := config.GetDataStoreConfig()
-	ds := file.New(dscfg)
-	retentionScanner := storage.NewRetentionScanner(dscfg, ds, shutdownChan)
+	store := file.New(dscfg)
+	apolicy := &policy.Addressing{Config: config.GetSMTPConfig()}
+	mmanager := &message.StoreManager{Store: store, Hub: msgHub}
+	// Start Retention scanner.
+	retentionScanner := storage.NewRetentionScanner(dscfg, store, shutdownChan)
 	retentionScanner.Start()
-
-	// Start HTTP server
-	mm := &message.StoreManager{Store: ds}
-	web.Initialize(config.GetWebConfig(), shutdownChan, mm, msgHub)
+	// Start HTTP server.
+	web.Initialize(config.GetWebConfig(), shutdownChan, mmanager, msgHub)
 	webui.SetupRoutes(web.Router)
 	rest.SetupRoutes(web.Router)
 	go web.Start(rootCtx)
-
-	// Start POP3 server
-	pop3Server = pop3.New(config.GetPOP3Config(), shutdownChan, ds)
+	// Start POP3 server.
+	pop3Server = pop3.New(config.GetPOP3Config(), shutdownChan, store)
 	go pop3Server.Start(rootCtx)
-
-	// Startup SMTP server
-	apolicy := &policy.Addressing{Config: config.GetSMTPConfig()}
-	smtpServer = smtp.NewServer(config.GetSMTPConfig(), shutdownChan, ds, apolicy, msgHub)
+	// Start SMTP server.
+	smtpServer = smtp.NewServer(config.GetSMTPConfig(), shutdownChan, mmanager, apolicy)
 	go smtpServer.Start(rootCtx)
-
-	// Loop forever waiting for signals or shutdown channel
+	// Loop forever waiting for signals or shutdown channel.
 signalLoop:
 	for {
 		select {

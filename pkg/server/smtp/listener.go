@@ -12,9 +12,8 @@ import (
 
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/log"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/policy"
-	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
 func init() {
@@ -49,10 +48,9 @@ type Server struct {
 	storeMessages   bool
 
 	// Dependencies
-	dataStore      storage.Store      // Mailbox/message store
-	apolicy        *policy.Addressing // Address policy
-	globalShutdown chan bool          // Shuts down Inbucket
-	msgHub         *msghub.Hub        // Pub/sub for message info
+	apolicy        *policy.Addressing // Address policy.
+	globalShutdown chan bool          // Shuts down Inbucket.
+	manager        message.Manager    // Used to deliver messages.
 
 	// State
 	listener  net.Listener    // Incoming network connections
@@ -84,9 +82,9 @@ var (
 func NewServer(
 	cfg config.SMTPConfig,
 	globalShutdown chan bool,
-	ds storage.Store,
+	manager message.Manager,
 	apolicy *policy.Addressing,
-	msgHub *msghub.Hub) *Server {
+) *Server {
 	return &Server{
 		host:            fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
 		domain:          cfg.Domain,
@@ -96,9 +94,8 @@ func NewServer(
 		maxMessageBytes: cfg.MaxMessageBytes,
 		storeMessages:   cfg.StoreMessages,
 		globalShutdown:  globalShutdown,
-		dataStore:       ds,
+		manager:         manager,
 		apolicy:         apolicy,
-		msgHub:          msgHub,
 		waitgroup:       new(sync.WaitGroup),
 	}
 }

@@ -2,7 +2,6 @@ package smtp
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 
@@ -14,7 +13,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/test"
@@ -379,13 +378,12 @@ func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown f
 
 	// Create a server, don't start it
 	shutdownChan := make(chan bool)
-	ctx, cancel := context.WithCancel(context.Background())
 	teardown = func() {
 		close(shutdownChan)
-		cancel()
 	}
 	apolicy := &policy.Addressing{Config: cfg}
-	s = NewServer(cfg, shutdownChan, ds, apolicy, msghub.New(ctx, 100))
+	manager := &message.StoreManager{Store: ds}
+	s = NewServer(cfg, shutdownChan, manager, apolicy)
 	return s, buf, teardown
 }
 

@@ -4,8 +4,61 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/policy"
 )
+
+func TestShouldStoreDomain(t *testing.T) {
+	// Test with storage enabled.
+	ap := &policy.Addressing{
+		Config: config.SMTPConfig{
+			DomainNoStore: "Foo.Com",
+			StoreMessages: true,
+		},
+	}
+	testCases := []struct {
+		domain string
+		want   bool
+	}{
+		{domain: "bar.com", want: true},
+		{domain: "foo.com", want: false},
+		{domain: "FOO.com", want: false},
+		{domain: "bar.foo.com", want: true},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.domain, func(t *testing.T) {
+			got := ap.ShouldStoreDomain(tc.domain)
+			if got != tc.want {
+				t.Errorf("Got %v for %q, want: %v", got, tc.domain, tc.want)
+			}
+
+		})
+	}
+	// Test with storage disabled.
+	ap = &policy.Addressing{
+		Config: config.SMTPConfig{
+			StoreMessages: false,
+		},
+	}
+	testCases = []struct {
+		domain string
+		want   bool
+	}{
+		{domain: "bar.com", want: false},
+		{domain: "foo.com", want: false},
+		{domain: "FOO.com", want: false},
+		{domain: "bar.foo.com", want: false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.domain, func(t *testing.T) {
+			got := ap.ShouldStoreDomain(tc.domain)
+			if got != tc.want {
+				t.Errorf("Got %v for %q, want: %v", got, tc.domain, tc.want)
+			}
+
+		})
+	}
+}
 
 func TestParseMailboxName(t *testing.T) {
 	var validTable = []struct {

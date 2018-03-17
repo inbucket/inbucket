@@ -36,4 +36,4 @@ lint:
 	@go vet $(PKGS)
 
 reflex:
-	reflex -r '\.go$$' -- sh -c 'echo; date; echo; go test ./...'
+	reflex -r '\.go$$' -- sh -c 'echo; date; echo; go test ./... && echo ALL PASS'

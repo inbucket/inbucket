@@ -3,8 +3,47 @@ package policy
 import (
 	"bytes"
 	"fmt"
+	"net/mail"
 	"strings"
+
+	"github.com/jhillyerd/inbucket/pkg/config"
 )
+
+// Addressing handles email address policy.
+type Addressing struct {
+	Config config.SMTPConfig
+}
+
+// NewRecipient parses an address into a Recipient.
+func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
+	local, domain, err := ParseEmailAddress(address)
+	if err != nil {
+		return nil, err
+	}
+	mailbox, err := ParseMailboxName(local)
+	if err != nil {
+		return nil, err
+	}
+	ar, err := mail.ParseAddress(address)
+	if err != nil {
+		return nil, err
+	}
+	return &Recipient{
+		Address:   *ar,
+		apolicy:   a,
+		LocalPart: local,
+		Domain:    domain,
+		Mailbox:   mailbox,
+	}, nil
+}
+
+// ShouldStoreDomain indicates if Inbucket stores email destined for the specified domain.
+func (a *Addressing) ShouldStoreDomain(domain string) bool {
+	if a.Config.StoreMessages {
+		return strings.ToLower(domain) != strings.ToLower(a.Config.DomainNoStore)
+	}
+	return false
+}
 
 // ParseMailboxName takes a localPart string (ex: "user+ext" without "@domain")
 // and returns just the mailbox name (ex: "user").  Returns an error if
@@ -33,54 +72,6 @@ func ParseMailboxName(localPart string) (result string, err error) {
 		result = result[0:idx]
 	}
 	return result, nil
-}
-
-// ValidateDomainPart returns true if the domain part complies to RFC3696, RFC1035
-func ValidateDomainPart(domain string) bool {
-	if len(domain) == 0 {
-		return false
-	}
-	if len(domain) > 255 {
-		return false
-	}
-	if domain[len(domain)-1] != '.' {
-		domain += "."
-	}
-	prev := '.'
-	labelLen := 0
-	hasAlphaNum := false
-	for _, c := range domain {
-		switch {
-		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
-			('0' <= c && c <= '9') || c == '_':
-			// Must contain some of these to be a valid label.
-			hasAlphaNum = true
-			labelLen++
-		case c == '-':
-			if prev == '.' {
-				// Cannot lead with hyphen.
-				return false
-			}
-		case c == '.':
-			if prev == '.' || prev == '-' {
-				// Cannot end with hyphen or double-dot.
-				return false
-			}
-			if labelLen > 63 {
-				return false
-			}
-			if !hasAlphaNum {
-				return false
-			}
-			labelLen = 0
-			hasAlphaNum = false
-		default:
-			// Unknown character.
-			return false
-		}
-		prev = c
-	}
-	return true
 }
 
 // ParseEmailAddress unescapes an email address, and splits the local part from the domain part.
@@ -201,4 +192,53 @@ LOOP:
 		return "", "", fmt.Errorf("Domain part validation failed")
 	}
 	return buf.String(), domain, nil
+}
+
+// ValidateDomainPart returns true if the domain part complies to RFC3696, RFC1035. Used by
+// ParseEmailAddress().
+func ValidateDomainPart(domain string) bool {
+	if len(domain) == 0 {
+		return false
+	}
+	if len(domain) > 255 {
+		return false
+	}
+	if domain[len(domain)-1] != '.' {
+		domain += "."
+	}
+	prev := '.'
+	labelLen := 0
+	hasAlphaNum := false
+	for _, c := range domain {
+		switch {
+		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
+			('0' <= c && c <= '9') || c == '_':
+			// Must contain some of these to be a valid label.
+			hasAlphaNum = true
+			labelLen++
+		case c == '-':
+			if prev == '.' {
+				// Cannot lead with hyphen.
+				return false
+			}
+		case c == '.':
+			if prev == '.' || prev == '-' {
+				// Cannot end with hyphen or double-dot.
+				return false
+			}
+			if labelLen > 63 {
+				return false
+			}
+			if !hasAlphaNum {
+				return false
+			}
+			labelLen = 0
+			hasAlphaNum = false
+		default:
+			// Unknown character.
+			return false
+		}
+		prev = c
+	}
+	return true
 }

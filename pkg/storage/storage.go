@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/mail"
-	"sync"
 	"time"
 )
 
@@ -26,8 +25,6 @@ type Store interface {
 	PurgeMessages(mailbox string) error
 	RemoveMessage(mailbox, id string) error
 	VisitMailboxes(f func([]StoreMessage) (cont bool)) error
-	// LockFor is a temporary hack to fix #77 until Datastore revamp
-	LockFor(emailAddress string) (*sync.RWMutex, error)
 }
 
 // StoreMessage represents a message to be stored, or returned from a storage implementation.

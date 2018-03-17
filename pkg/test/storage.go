@@ -2,7 +2,6 @@ package test
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/jhillyerd/inbucket/pkg/storage"
 )
@@ -80,12 +79,6 @@ func (s *StoreStub) VisitMailboxes(f func([]storage.StoreMessage) (cont bool)) e
 		}
 	}
 	return nil
-}
-
-// LockFor mock function returns a new RWMutex, never errors.
-// TODO(#69) remove
-func (s *StoreStub) LockFor(name string) (*sync.RWMutex, error) {
-	return &sync.RWMutex{}, nil
 }
 
 // MessageDeleted returns true if the specified message was deleted

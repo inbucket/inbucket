@@ -368,23 +368,10 @@ func (ss *Session) dataHandler() {
 			return
 		}
 		if bytes.Equal(lineBuf, []byte(".\r\n")) || bytes.Equal(lineBuf, []byte(".\n")) {
-			// Mail data complete
+			// Mail data complete.
 			for _, recip := range ss.recipients {
 				if recip.ShouldStore() {
-					// TODO temporary hack to fix #77 until datastore revamp
-					mu, err := ss.server.dataStore.LockFor(recip.LocalPart)
-					if err != nil {
-						ss.logError("Failed to get lock for %q: %s", recip.LocalPart, err)
-						// Delivery failure
-						ss.send(fmt.Sprintf("451 Failed to store message for %v", recip.LocalPart))
-						ss.reset()
-						return
-					}
-					mu.Lock()
-					ok := ss.deliverMessage(recip, msgBuf.Bytes())
-					mu.Unlock()
-					if !ok {
-						// Delivery failure
+					if ok := ss.deliverMessage(recip, msgBuf.Bytes()); !ok {
 						ss.send(fmt.Sprintf("451 Failed to store message for %v", recip.LocalPart))
 						ss.reset()
 						return
@@ -397,28 +384,22 @@ func (ss *Session) dataHandler() {
 			ss.reset()
 			return
 		}
-		// SMTP RFC says remove leading periods from input
+		// RFC says remove leading periods from input.
 		if len(lineBuf) > 0 && lineBuf[0] == '.' {
 			lineBuf = lineBuf[1:]
 		}
 		msgBuf.Write(lineBuf)
 		if msgBuf.Len() > ss.server.maxMessageBytes {
-			// Max message size exceeded
 			ss.send("552 Maximum message size exceeded")
 			ss.logWarn("Max message size exceeded while in DATA")
 			ss.reset()
 			return
 		}
-	} // end for
+	}
 }
 
 // deliverMessage creates and populates a new Message for the specified recipient
 func (ss *Session) deliverMessage(recip *policy.Recipient, content []byte) (ok bool) {
-	name, err := policy.ParseMailboxName(recip.LocalPart)
-	if err != nil {
-		// This parse already succeeded when MailboxFor was called, shouldn't fail here.
-		return false
-	}
 	// TODO replace with something that only reads header?
 	env, err := enmime.ReadEnvelope(bytes.NewReader(content))
 	if err != nil {
@@ -441,7 +422,7 @@ func (ss *Session) deliverMessage(recip *policy.Recipient, content []byte) (ok b
 		ss.remoteDomain, ss.remoteHost, ss.server.domain, recip.Address, stamp))
 	delivery := &message.Delivery{
 		Meta: message.Metadata{
-			Mailbox: name,
+			Mailbox: recip.Mailbox,
 			From:    from[0],
 			To:      to,
 			Date:    time.Now(),
@@ -455,8 +436,9 @@ func (ss *Session) deliverMessage(recip *policy.Recipient, content []byte) (ok b
 		return false
 	}
 	// Broadcast message information.
+	// TODO this belongs in message pkg.
 	broadcast := msghub.Message{
-		Mailbox: name,
+		Mailbox: recip.Mailbox,
 		ID:      id,
 		From:    delivery.From().String(),
 		To:      stringutil.StringAddressList(delivery.To()),

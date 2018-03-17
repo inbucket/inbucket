@@ -200,7 +200,7 @@ func TestMailState(t *testing.T) {
 		{"MAIL FROM:<john@gmail.com>", 250},
 		{"RCPT TO:<u1@gmail.com>", 250},
 		{"DATA", 354},
-		{".", 451},
+		{".", 250},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
@@ -247,7 +247,6 @@ func TestDataState(t *testing.T) {
 	pipe := setupSMTPSession(server)
 	c := textproto.NewConn(pipe)
 
-	// Get us into DATA state
 	if code, _, err := c.ReadCodeLine(220); err != nil {
 		t.Errorf("Expected a 220 greeting, got %v", code)
 	}
@@ -268,6 +267,33 @@ Subject: test
 Hi!
 `
 	dw := c.DotWriter()
+	_, _ = io.WriteString(dw, body)
+	_ = dw.Close()
+	if code, _, err := c.ReadCodeLine(250); err != nil {
+		t.Errorf("Expected a 250 greeting, got %v", code)
+	}
+
+	// Test with no useful headers.
+	pipe = setupSMTPSession(server)
+	c = textproto.NewConn(pipe)
+	if code, _, err := c.ReadCodeLine(220); err != nil {
+		t.Errorf("Expected a 220 greeting, got %v", code)
+	}
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<u1@gmail.com>", 250},
+		{"DATA", 354},
+	}
+	if err := playScriptAgainst(t, c, script); err != nil {
+		t.Error(err)
+	}
+	// Send a message
+	body = `X-Useless-Header: true
+
+Hi! Can you still deliver this?
+`
+	dw = c.DotWriter()
 	_, _ = io.WriteString(dw, body)
 	_ = dw.Close()
 	if code, _, err := c.ReadCodeLine(250); err != nil {

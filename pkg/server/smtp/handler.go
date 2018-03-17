@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/mail"
 	"regexp"
 	"strconv"
 	"strings"
@@ -408,13 +409,14 @@ func (ss *Session) deliverMessage(recip *policy.Recipient, content []byte) (ok b
 	}
 	from, err := env.AddressList("From")
 	if err != nil {
-		ss.logError("Failed to get From address: %v", err)
-		return false
+		from = []*mail.Address{{Address: ss.from}}
 	}
 	to, err := env.AddressList("To")
 	if err != nil {
-		ss.logError("Failed to get To addresses: %v", err)
-		return false
+		to = make([]*mail.Address, len(ss.recipients))
+		for i, torecip := range ss.recipients {
+			to[i] = &torecip.Address
+		}
 	}
 	// Generate Received header.
 	stamp := time.Now().Format(timeStampFormat)

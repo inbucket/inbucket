@@ -15,6 +15,7 @@ import (
 
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/test"
 )
@@ -172,10 +173,7 @@ func TestMailState(t *testing.T) {
 		{"RCPT TO: u4@gmail.com", 250},
 		{"RSET", 250},
 		{"MAIL FROM:<john@gmail.com>", 250},
-		{"RCPT TO:<user\\@internal@external.com", 250},
-		{"RCPT TO:<\"first last\"@host.com", 250},
-		{"RCPT TO:<user\\>name@host.com>", 250},
-		{"RCPT TO:<\"user>name\"@host.com>", 250},
+		{`RCPT TO:<"first/last"@host.com`, 250},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
@@ -360,7 +358,8 @@ func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown f
 		close(shutdownChan)
 		cancel()
 	}
-	s = NewServer(cfg, shutdownChan, ds, msghub.New(ctx, 100))
+	apolicy := &policy.Addressing{Config: cfg}
+	s = NewServer(cfg, shutdownChan, ds, apolicy, msghub.New(ctx, 100))
 	return s, buf, teardown
 }
 

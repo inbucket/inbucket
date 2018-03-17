@@ -16,6 +16,7 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/rest"
 	"github.com/jhillyerd/inbucket/pkg/server/pop3"
 	"github.com/jhillyerd/inbucket/pkg/server/smtp"
@@ -135,7 +136,8 @@ func main() {
 	go pop3Server.Start(rootCtx)
 
 	// Startup SMTP server
-	smtpServer = smtp.NewServer(config.GetSMTPConfig(), shutdownChan, ds, msgHub)
+	apolicy := &policy.Addressing{Config: config.GetSMTPConfig()}
+	smtpServer = smtp.NewServer(config.GetSMTPConfig(), shutdownChan, ds, apolicy, msgHub)
 	go smtpServer.Start(rootCtx)
 
 	// Loop forever waiting for signals or shutdown channel

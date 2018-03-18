@@ -1,4 +1,4 @@
-package filestore
+package file
 
 import (
 	"bytes"
@@ -6,14 +6,30 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/mail"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/message"
+	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/jhillyerd/inbucket/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
+
+// TestSuite runs storage package test suite on file store.
+func TestSuite(t *testing.T) {
+	test.StoreSuite(t, func() (storage.Store, func(), error) {
+		ds, _ := setupDataStore(config.DataStoreConfig{})
+		destroy := func() {
+			teardownDataStore(ds)
+		}
+		return ds, destroy, nil
+	})
+}
 
 // Test directory structure created by filestore
 func TestFSDirStructure(t *testing.T) {
@@ -62,11 +78,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
 
 	// Delete message
-	mb, err := ds.MailboxFor(mbName)
-	assert.Nil(t, err)
-	msg, err := mb.GetMessage(id1)
-	assert.Nil(t, err)
-	err = msg.Delete()
+	err := ds.RemoveMessage(mbName, id1)
 	assert.Nil(t, err)
 
 	// Message should be removed
@@ -76,9 +88,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
 
 	// Delete message
-	msg, err = mb.GetMessage(id2)
-	assert.Nil(t, err)
-	err = msg.Delete()
+	err = ds.RemoveMessage(mbName, id2)
 	assert.Nil(t, err)
 
 	// Message should be removed
@@ -90,243 +100,6 @@ func TestFSDirStructure(t *testing.T) {
 	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
 	expect = mbPath
 	assert.False(t, isPresent(expect), "Did not expect %q to exist", expect)
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
-}
-
-// Test FileDataStore.AllMailboxes()
-func TestFSAllMailboxes(t *testing.T) {
-	ds, logbuf := setupDataStore(config.DataStoreConfig{})
-	defer teardownDataStore(ds)
-
-	for _, name := range []string{"abby", "bill", "christa", "donald", "evelyn"} {
-		// Create day old message
-		date := time.Now().Add(-24 * time.Hour)
-		deliverMessage(ds, name, "Old Message", date)
-
-		// Create current message
-		date = time.Now()
-		deliverMessage(ds, name, "New Message", date)
-	}
-
-	mboxes, err := ds.AllMailboxes()
-	assert.Nil(t, err)
-	assert.Equal(t, len(mboxes), 5)
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
-}
-
-// Test delivering several messages to the same mailbox, meanwhile querying its
-// contents with a new mailbox object each time
-func TestFSDeliverMany(t *testing.T) {
-	ds, logbuf := setupDataStore(config.DataStoreConfig{})
-	defer teardownDataStore(ds)
-
-	mbName := "fred"
-	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
-
-	for i, subj := range subjects {
-		// Check number of messages
-		mb, err := ds.MailboxFor(mbName)
-		if err != nil {
-			t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-		}
-		msgs, err := mb.GetMessages()
-		if err != nil {
-			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
-		}
-		assert.Equal(t, i, len(msgs), "Expected %v message(s), but got %v", i, len(msgs))
-
-		// Add a message
-		deliverMessage(ds, mbName, subj, time.Now())
-	}
-
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err := mb.GetMessages()
-	if err != nil {
-		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
-	}
-	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
-		len(subjects), len(msgs))
-
-	// Confirm delivery order
-	for i, expect := range subjects {
-		subj := msgs[i].Subject()
-		assert.Equal(t, expect, subj, "Expected subject %q, got %q", expect, subj)
-	}
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
-}
-
-// Test deleting messages
-func TestFSDelete(t *testing.T) {
-	ds, logbuf := setupDataStore(config.DataStoreConfig{})
-	defer teardownDataStore(ds)
-
-	mbName := "fred"
-	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
-
-	for _, subj := range subjects {
-		// Add a message
-		deliverMessage(ds, mbName, subj, time.Now())
-	}
-
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err := mb.GetMessages()
-	if err != nil {
-		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
-	}
-	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
-		len(subjects), len(msgs))
-
-	// Delete a couple messages
-	_ = msgs[1].Delete()
-	_ = msgs[3].Delete()
-
-	// Confirm deletion
-	mb, err = ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err = mb.GetMessages()
-	if err != nil {
-		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
-	}
-
-	subjects = []string{"alpha", "charlie", "echo"}
-	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
-		len(subjects), len(msgs))
-	for i, expect := range subjects {
-		subj := msgs[i].Subject()
-		assert.Equal(t, expect, subj, "Expected subject %q, got %q", expect, subj)
-	}
-
-	// Try appending one more
-	deliverMessage(ds, mbName, "foxtrot", time.Now())
-
-	mb, err = ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err = mb.GetMessages()
-	if err != nil {
-		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
-	}
-
-	subjects = []string{"alpha", "charlie", "echo", "foxtrot"}
-	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
-		len(subjects), len(msgs))
-	for i, expect := range subjects {
-		subj := msgs[i].Subject()
-		assert.Equal(t, expect, subj, "Expected subject %q, got %q", expect, subj)
-	}
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
-}
-
-// Test purging a mailbox
-func TestFSPurge(t *testing.T) {
-	ds, logbuf := setupDataStore(config.DataStoreConfig{})
-	defer teardownDataStore(ds)
-
-	mbName := "fred"
-	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
-
-	for _, subj := range subjects {
-		// Add a message
-		deliverMessage(ds, mbName, subj, time.Now())
-	}
-
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err := mb.GetMessages()
-	if err != nil {
-		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
-	}
-	assert.Equal(t, len(subjects), len(msgs), "Expected %v message(s), but got %v",
-		len(subjects), len(msgs))
-
-	// Purge mailbox
-	err = mb.Purge()
-	assert.Nil(t, err)
-
-	// Confirm deletion
-	mb, err = ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	msgs, err = mb.GetMessages()
-	if err != nil {
-		t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
-	}
-
-	assert.Equal(t, len(msgs), 0, "Expected mailbox to have zero messages, got %v", len(msgs))
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
-}
-
-// Test message size calculation
-func TestFSSize(t *testing.T) {
-	ds, logbuf := setupDataStore(config.DataStoreConfig{})
-	defer teardownDataStore(ds)
-
-	mbName := "fred"
-	subjects := []string{"a", "br", "much longer than the others"}
-	sentIds := make([]string, len(subjects))
-	sentSizes := make([]int64, len(subjects))
-
-	for i, subj := range subjects {
-		// Add a message
-		id, size := deliverMessage(ds, mbName, subj, time.Now())
-		sentIds[i] = id
-		sentSizes[i] = size
-	}
-
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-	for i, id := range sentIds {
-		msg, err := mb.GetMessage(id)
-		assert.Nil(t, err)
-
-		expect := sentSizes[i]
-		size := msg.Size()
-		assert.Equal(t, expect, size, "Expected size of %v, got %v", expect, size)
-	}
 
 	if t.Failed() {
 		// Wait for handler to finish logging
@@ -351,23 +124,16 @@ func TestFSMissing(t *testing.T) {
 		sentIds[i] = id
 	}
 
-	mb, err := ds.MailboxFor(mbName)
-	if err != nil {
-		t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-	}
-
 	// Delete a message file without removing it from index
-	msg, err := mb.GetMessage(sentIds[1])
+	msg, err := ds.GetMessage(mbName, sentIds[1])
 	assert.Nil(t, err)
-	fmsg := msg.(*FileMessage)
+	fmsg := msg.(*Message)
 	_ = os.Remove(fmsg.rawPath())
-	msg, err = mb.GetMessage(sentIds[1])
+	msg, err = ds.GetMessage(mbName, sentIds[1])
 	assert.Nil(t, err)
 
 	// Try to read parts of message
-	_, err = msg.ReadHeader()
-	assert.Error(t, err)
-	_, err = msg.ReadBody()
+	_, err = msg.Source()
 	assert.Error(t, err)
 
 	if t.Failed() {
@@ -392,11 +158,7 @@ func TestFSMessageCap(t *testing.T) {
 		t.Logf("Delivered %q", subj)
 
 		// Check number of messages
-		mb, err := ds.MailboxFor(mbName)
-		if err != nil {
-			t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-		}
-		msgs, err := mb.GetMessages()
+		msgs, err := ds.GetMessages(mbName)
 		if err != nil {
 			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 		}
@@ -437,11 +199,7 @@ func TestFSNoMessageCap(t *testing.T) {
 		t.Logf("Delivered %q", subj)
 
 		// Check number of messages
-		mb, err := ds.MailboxFor(mbName)
-		if err != nil {
-			t.Fatalf("Failed to MailboxFor(%q): %v", mbName, err)
-		}
-		msgs, err := mb.GetMessages()
+		msgs, err := ds.GetMessages(mbName)
 		if err != nil {
 			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
 		}
@@ -467,9 +225,7 @@ func TestGetLatestMessage(t *testing.T) {
 	mbName := "james"
 
 	// Test empty mailbox
-	mb, err := ds.MailboxFor(mbName)
-	assert.Nil(t, err)
-	msg, err := mb.GetMessage("latest")
+	msg, err := ds.GetMessage(mbName, "latest")
 	assert.Nil(t, msg)
 	assert.Error(t, err)
 
@@ -480,23 +236,19 @@ func TestGetLatestMessage(t *testing.T) {
 	id2, _ := deliverMessage(ds, mbName, "test 2", time.Now())
 
 	// Test get the latest message
-	mb, err = ds.MailboxFor(mbName)
-	assert.Nil(t, err)
-	msg, err = mb.GetMessage("latest")
+	msg, err = ds.GetMessage(mbName, "latest")
 	assert.Nil(t, err)
 	assert.True(t, msg.ID() == id2, "Expected %q to be equal to %q", msg.ID(), id2)
 
 	// Deliver test message 3
 	id3, _ := deliverMessage(ds, mbName, "test 3", time.Now())
 
-	mb, err = ds.MailboxFor(mbName)
-	assert.Nil(t, err)
-	msg, err = mb.GetMessage("latest")
+	msg, err = ds.GetMessage(mbName, "latest")
 	assert.Nil(t, err)
 	assert.True(t, msg.ID() == id3, "Expected %q to be equal to %q", msg.ID(), id3)
 
 	// Test wrong id
-	_, err = mb.GetMessage("wrongid")
+	_, err = ds.GetMessage(mbName, "wrongid")
 	assert.Error(t, err)
 
 	if t.Failed() {
@@ -508,7 +260,7 @@ func TestGetLatestMessage(t *testing.T) {
 }
 
 // setupDataStore creates a new FileDataStore in a temporary directory
-func setupDataStore(cfg config.DataStoreConfig) (*FileDataStore, *bytes.Buffer) {
+func setupDataStore(cfg config.DataStoreConfig) (*Store, *bytes.Buffer) {
 	path, err := ioutil.TempDir("", "inbucket")
 	if err != nil {
 		panic(err)
@@ -519,45 +271,34 @@ func setupDataStore(cfg config.DataStoreConfig) (*FileDataStore, *bytes.Buffer) 
 	log.SetOutput(buf)
 
 	cfg.Path = path
-	return NewFileDataStore(cfg).(*FileDataStore), buf
+	return New(cfg).(*Store), buf
 }
 
 // deliverMessage creates and delivers a message to the specific mailbox, returning
 // the size of the generated message.
-func deliverMessage(ds *FileDataStore, mbName string, subject string,
-	date time.Time) (id string, size int64) {
-	// Build fake SMTP message for delivery
-	testMsg := make([]byte, 0, 300)
-	testMsg = append(testMsg, []byte("To: somebody@host\r\n")...)
-	testMsg = append(testMsg, []byte("From: somebodyelse@host\r\n")...)
-	testMsg = append(testMsg, []byte(fmt.Sprintf("Subject: %s\r\n", subject))...)
-	testMsg = append(testMsg, []byte("\r\n")...)
-	testMsg = append(testMsg, []byte("Test Body\r\n")...)
-
-	mb, err := ds.MailboxFor(mbName)
+func deliverMessage(ds *Store, mbName string, subject string, date time.Time) (string, int64) {
+	// Build message for delivery
+	meta := message.Metadata{
+		Mailbox: mbName,
+		To:      []*mail.Address{{Name: "", Address: "somebody@host"}},
+		From:    &mail.Address{Name: "", Address: "somebodyelse@host"},
+		Subject: subject,
+		Date:    date,
+	}
+	testMsg := fmt.Sprintf("To: %s\r\nFrom: %s\r\nSubject: %s\r\n\r\nTest Body\r\n",
+		meta.To[0].Address, meta.From.Address, subject)
+	delivery := &message.Delivery{
+		Meta:   meta,
+		Reader: ioutil.NopCloser(strings.NewReader(testMsg)),
+	}
+	id, err := ds.AddMessage(delivery)
 	if err != nil {
 		panic(err)
 	}
-	// Create message object
-	id = generateID(date)
-	msg, err := mb.NewMessage()
-	if err != nil {
-		panic(err)
-	}
-	fmsg := msg.(*FileMessage)
-	fmsg.Fdate = date
-	fmsg.Fid = id
-	if err = msg.Append(testMsg); err != nil {
-		panic(err)
-	}
-	if err = msg.Close(); err != nil {
-		panic(err)
-	}
-
 	return id, int64(len(testMsg))
 }
 
-func teardownDataStore(ds *FileDataStore) {
+func teardownDataStore(ds *Store) {
 	if err := os.RemoveAll(ds.path); err != nil {
 		panic(err)
 	}

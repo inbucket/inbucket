@@ -9,7 +9,6 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/rest/model"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
-	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
 
 const (
@@ -173,7 +172,7 @@ func MonitorAllMessagesV1(
 // notifies the client of messages received by a particular mailbox.
 func MonitorMailboxMessagesV1(
 	w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
-	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}

@@ -17,14 +17,14 @@ type Server struct {
 	host           string
 	domain         string
 	maxIdleSeconds int
-	dataStore      datastore.DataStore
+	dataStore      storage.Store
 	listener       net.Listener
 	globalShutdown chan bool
 	waitgroup      *sync.WaitGroup
 }
 
 // New creates a new Server struct
-func New(cfg config.POP3Config, shutdownChan chan bool, ds datastore.DataStore) *Server {
+func New(cfg config.POP3Config, shutdownChan chan bool, ds storage.Store) *Server {
 	return &Server{
 		host:           fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
 		domain:         cfg.Domain,

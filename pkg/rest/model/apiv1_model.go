@@ -1,7 +1,6 @@
 package model
 
 import (
-	"net/mail"
 	"time"
 )
 
@@ -26,7 +25,7 @@ type JSONMessageV1 struct {
 	Date        time.Time                  `json:"date"`
 	Size        int64                      `json:"size"`
 	Body        *JSONMessageBodyV1         `json:"body"`
-	Header      mail.Header                `json:"header"`
+	Header      map[string][]string        `json:"header"`
 	Attachments []*JSONMessageAttachmentV1 `json:"attachments"`
 }
 

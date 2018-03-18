@@ -1,67 +1,62 @@
-package datastore
+package storage_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/message"
+	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/jhillyerd/inbucket/pkg/test"
 )
 
 func TestDoRetentionScan(t *testing.T) {
-	// Create mock objects
-	mds := &MockDataStore{}
-
-	mb1 := &MockMailbox{}
-	mb2 := &MockMailbox{}
-	mb3 := &MockMailbox{}
-
+	ds := test.NewStore()
 	// Mockup some different aged messages (num is in hours)
-	new1 := mockMessage(0)
-	new2 := mockMessage(1)
-	new3 := mockMessage(2)
-	old1 := mockMessage(4)
-	old2 := mockMessage(12)
-	old3 := mockMessage(24)
-
-	// First it should ask for all mailboxes
-	mds.On("AllMailboxes").Return([]Mailbox{mb1, mb2, mb3}, nil)
-
-	// Then for all messages on each box
-	mb1.On("GetMessages").Return([]Message{new1, old1, old2}, nil)
-	mb2.On("GetMessages").Return([]Message{old3, new2}, nil)
-	mb3.On("GetMessages").Return([]Message{new3}, nil)
-
+	new1 := stubMessage("mb1", 0)
+	new2 := stubMessage("mb2", 1)
+	new3 := stubMessage("mb3", 2)
+	old1 := stubMessage("mb1", 4)
+	old2 := stubMessage("mb1", 12)
+	old3 := stubMessage("mb2", 24)
+	ds.AddMessage(new1)
+	ds.AddMessage(old1)
+	ds.AddMessage(old2)
+	ds.AddMessage(old3)
+	ds.AddMessage(new2)
+	ds.AddMessage(new3)
 	// Test 4 hour retention
-	rs := &RetentionScanner{
-		ds:              mds,
-		retentionPeriod: 4*time.Hour - time.Minute,
-		retentionSleep:  0,
+	cfg := config.DataStoreConfig{
+		RetentionMinutes: 239,
+		RetentionSleep:   0,
 	}
-	if err := rs.doScan(); err != nil {
+	shutdownChan := make(chan bool)
+	rs := storage.NewRetentionScanner(cfg, ds, shutdownChan)
+	if err := rs.DoScan(); err != nil {
 		t.Error(err)
 	}
-
-	// Check our assertions
-	mds.AssertExpectations(t)
-	mb1.AssertExpectations(t)
-	mb2.AssertExpectations(t)
-	mb3.AssertExpectations(t)
-
 	// Delete should not have been called on new messages
-	new1.AssertNotCalled(t, "Delete")
-	new2.AssertNotCalled(t, "Delete")
-	new3.AssertNotCalled(t, "Delete")
-
+	for _, m := range []storage.Message{new1, new2, new3} {
+		if ds.MessageDeleted(m) {
+			t.Errorf("Expected %v to be present, was deleted", m.ID())
+		}
+	}
 	// Delete should have been called once on old messages
-	old1.AssertNumberOfCalls(t, "Delete", 1)
-	old2.AssertNumberOfCalls(t, "Delete", 1)
-	old3.AssertNumberOfCalls(t, "Delete", 1)
+	for _, m := range []storage.Message{old1, old2, old3} {
+		if !ds.MessageDeleted(m) {
+			t.Errorf("Expected %v to be deleted, was present", m.ID())
+		}
+	}
 }
 
-// Make a MockMessage of a specific age
-func mockMessage(ageHours int) *MockMessage {
-	msg := &MockMessage{}
-	msg.On("ID").Return(fmt.Sprintf("MSG[age=%vh]", ageHours))
-	msg.On("Date").Return(time.Now().Add(time.Duration(ageHours*-1) * time.Hour))
-	msg.On("Delete").Return(nil)
-	return msg
+// stubMessage creates a message stub of a specific age
+func stubMessage(mailbox string, ageHours int) storage.Message {
+	return &message.Delivery{
+		Meta: message.Metadata{
+			Mailbox: mailbox,
+			ID:      fmt.Sprintf("MSG[age=%vh]", ageHours),
+			Date:    time.Now().Add(time.Duration(ageHours*-1) * time.Hour),
+		},
+	}
 }

@@ -7,16 +7,16 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
 // Context is passed into every request handler function
 type Context struct {
 	Vars      map[string]string
 	Session   *sessions.Session
-	DataStore datastore.DataStore
 	MsgHub    *msghub.Hub
+	Manager   message.Manager
 	WebConfig config.WebConfig
 	IsJSON    bool
 }
@@ -59,8 +59,8 @@ func NewContext(req *http.Request) (*Context, error) {
 	ctx := &Context{
 		Vars:      vars,
 		Session:   sess,
-		DataStore: DataStore,
 		MsgHub:    msgHub,
+		Manager:   manager,
 		WebConfig: webConfig,
 		IsJSON:    headerMatch(req, "Accept", "application/json"),
 	}

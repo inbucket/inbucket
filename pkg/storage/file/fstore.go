@@ -1,18 +1,17 @@
-package filestore
+package file
 
 import (
 	"bufio"
-	"encoding/gob"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
@@ -21,15 +20,6 @@ import (
 const indexFileName = "index.gob"
 
 var (
-	// indexMx is locked while reading/writing an index file
-	//
-	// NOTE: This is a bottleneck because it's a single lock even if we have a
-	// million index files
-	indexMx = new(sync.RWMutex)
-
-	// dirMx is locked while creating/removing directories
-	dirMx = new(sync.Mutex)
-
 	// countChannel is filled with a sequential numbers (0000..9999), which are
 	// used by generateID() to generate unique message IDs.  It's global
 	// because we only want one regardless of the number of DataStore objects
@@ -48,17 +38,17 @@ func countGenerator(c chan int) {
 	}
 }
 
-// FileDataStore implements DataStore aand is the root of the mail storage
+// Store implements DataStore aand is the root of the mail storage
 // hiearchy.  It provides access to Mailbox objects
-type FileDataStore struct {
-	hashLock   datastore.HashLock
+type Store struct {
+	hashLock   storage.HashLock
 	path       string
 	mailPath   string
 	messageCap int
 }
 
-// NewFileDataStore creates a new DataStore object using the specified path
-func NewFileDataStore(cfg config.DataStoreConfig) datastore.DataStore {
+// New creates a new DataStore object using the specified path
+func New(cfg config.DataStoreConfig) storage.Store {
 	path := cfg.Path
 	if path == "" {
 		log.Errorf("No value configured for datastore path")
@@ -71,287 +61,193 @@ func NewFileDataStore(cfg config.DataStoreConfig) datastore.DataStore {
 			log.Errorf("Error creating dir %q: %v", mailPath, err)
 		}
 	}
-	return &FileDataStore{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}
+	return &Store{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}
 }
 
-// DefaultFileDataStore creates a new DataStore object.  It uses the inbucket.Config object to
-// construct it's path.
-func DefaultFileDataStore() datastore.DataStore {
-	cfg := config.GetDataStoreConfig()
-	return NewFileDataStore(cfg)
+// AddMessage adds a message to the specified mailbox.
+func (fs *Store) AddMessage(m storage.Message) (id string, err error) {
+	mb, err := fs.mbox(m.Mailbox())
+	if err != nil {
+		return "", err
+	}
+	mb.Lock()
+	defer mb.Unlock()
+	r, err := m.Source()
+	if err != nil {
+		return "", err
+	}
+	// Create a new message.
+	fm, err := mb.newMessage()
+	if err != nil {
+		return "", err
+	}
+	// Ensure mailbox directory exists.
+	if err := mb.createDir(); err != nil {
+		return "", err
+	}
+	// Write the message content
+	file, err := os.Create(fm.rawPath())
+	if err != nil {
+		return "", err
+	}
+	w := bufio.NewWriter(file)
+	size, err := io.Copy(w, r)
+	if err != nil {
+		// Try to remove the file
+		_ = file.Close()
+		_ = os.Remove(fm.rawPath())
+		return "", err
+	}
+	_ = r.Close()
+	if err := w.Flush(); err != nil {
+		// Try to remove the file
+		_ = file.Close()
+		_ = os.Remove(fm.rawPath())
+		return "", err
+	}
+	if err := file.Close(); err != nil {
+		// Try to remove the file
+		_ = os.Remove(fm.rawPath())
+		return "", err
+	}
+	// Update the index.
+	fm.Fdate = m.Date()
+	fm.Ffrom = m.From()
+	fm.Fto = m.To()
+	fm.Fsize = size
+	fm.Fsubject = m.Subject()
+	mb.messages = append(mb.messages, fm)
+	if err := mb.writeIndex(); err != nil {
+		// Try to remove the file
+		_ = os.Remove(fm.rawPath())
+		return "", err
+	}
+	return fm.Fid, nil
 }
 
-// MailboxFor retrieves the Mailbox object for a specified email address, if the mailbox
-// does not exist, it will attempt to create it.
-func (ds *FileDataStore) MailboxFor(emailAddress string) (datastore.Mailbox, error) {
-	name, err := stringutil.ParseMailboxName(emailAddress)
+// GetMessage returns the messages in the named mailbox, or an error.
+func (fs *Store) GetMessage(mailbox, id string) (storage.Message, error) {
+	mb, err := fs.mbox(mailbox)
 	if err != nil {
 		return nil, err
 	}
-	dir := stringutil.HashMailboxName(name)
-	s1 := dir[0:3]
-	s2 := dir[0:6]
-	path := filepath.Join(ds.mailPath, s1, s2, dir)
-	indexPath := filepath.Join(path, indexFileName)
-
-	return &FileMailbox{store: ds, name: name, dirName: dir, path: path,
-		indexPath: indexPath}, nil
+	mb.RLock()
+	defer mb.RUnlock()
+	return mb.getMessage(id)
 }
 
-// AllMailboxes returns a slice with all Mailboxes
-func (ds *FileDataStore) AllMailboxes() ([]datastore.Mailbox, error) {
-	mailboxes := make([]datastore.Mailbox, 0, 100)
-	infos1, err := ioutil.ReadDir(ds.mailPath)
+// GetMessages returns the messages in the named mailbox, or an error.
+func (fs *Store) GetMessages(mailbox string) ([]storage.Message, error) {
+	mb, err := fs.mbox(mailbox)
 	if err != nil {
 		return nil, err
+	}
+	mb.RLock()
+	defer mb.RUnlock()
+	return mb.getMessages()
+}
+
+// RemoveMessage deletes a message by ID from the specified mailbox.
+func (fs *Store) RemoveMessage(mailbox, id string) error {
+	mb, err := fs.mbox(mailbox)
+	if err != nil {
+		return err
+	}
+	mb.Lock()
+	defer mb.Unlock()
+	return mb.removeMessage(id)
+}
+
+// PurgeMessages deletes all messages in the named mailbox, or returns an error.
+func (fs *Store) PurgeMessages(mailbox string) error {
+	mb, err := fs.mbox(mailbox)
+	if err != nil {
+		return err
+	}
+	mb.Lock()
+	defer mb.Unlock()
+	return mb.purge()
+}
+
+// VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
+// continues to return true.
+func (fs *Store) VisitMailboxes(f func([]storage.Message) (cont bool)) error {
+	infos1, err := ioutil.ReadDir(fs.mailPath)
+	if err != nil {
+		return err
 	}
 	// Loop over level 1 directories
 	for _, inf1 := range infos1 {
 		if inf1.IsDir() {
 			l1 := inf1.Name()
-			infos2, err := ioutil.ReadDir(filepath.Join(ds.mailPath, l1))
+			infos2, err := ioutil.ReadDir(filepath.Join(fs.mailPath, l1))
 			if err != nil {
-				return nil, err
+				return err
 			}
 			// Loop over level 2 directories
 			for _, inf2 := range infos2 {
 				if inf2.IsDir() {
 					l2 := inf2.Name()
-					infos3, err := ioutil.ReadDir(filepath.Join(ds.mailPath, l1, l2))
+					infos3, err := ioutil.ReadDir(filepath.Join(fs.mailPath, l1, l2))
 					if err != nil {
-						return nil, err
+						return err
 					}
 					// Loop over mailboxes
 					for _, inf3 := range infos3 {
 						if inf3.IsDir() {
-							mbdir := inf3.Name()
-							mbpath := filepath.Join(ds.mailPath, l1, l2, mbdir)
-							idx := filepath.Join(mbpath, indexFileName)
-							mb := &FileMailbox{store: ds, dirName: mbdir, path: mbpath,
-								indexPath: idx}
-							mailboxes = append(mailboxes, mb)
+							mb := fs.mboxFromHash(inf3.Name())
+							mb.RLock()
+							msgs, err := mb.getMessages()
+							mb.RUnlock()
+							if err != nil {
+								return err
+							}
+							if !f(msgs) {
+								return nil
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-
-	return mailboxes, nil
+	return nil
 }
 
-// LockFor returns the RWMutex for this mailbox, or an error.
-func (ds *FileDataStore) LockFor(emailAddress string) (*sync.RWMutex, error) {
-	name, err := stringutil.ParseMailboxName(emailAddress)
+// mbox returns the named mailbox.
+func (fs *Store) mbox(mailbox string) (*mbox, error) {
+	name, err := policy.ParseMailboxName(mailbox)
 	if err != nil {
 		return nil, err
 	}
 	hash := stringutil.HashMailboxName(name)
-	return ds.hashLock.Get(hash), nil
+	s1 := hash[0:3]
+	s2 := hash[0:6]
+	path := filepath.Join(fs.mailPath, s1, s2, hash)
+	indexPath := filepath.Join(path, indexFileName)
+	return &mbox{
+		RWMutex:   fs.hashLock.Get(hash),
+		store:     fs,
+		name:      name,
+		dirName:   hash,
+		path:      path,
+		indexPath: indexPath,
+	}, nil
 }
 
-// FileMailbox implements Mailbox, manages the mail for a specific user and
-// correlates to a particular directory on disk.
-type FileMailbox struct {
-	store       *FileDataStore
-	name        string
-	dirName     string
-	path        string
-	indexLoaded bool
-	indexPath   string
-	messages    []*FileMessage
-}
-
-// Name of the mailbox
-func (mb *FileMailbox) Name() string {
-	return mb.name
-}
-
-// String renders the name and directory path of the mailbox
-func (mb *FileMailbox) String() string {
-	return mb.name + "[" + mb.dirName + "]"
-}
-
-// GetMessages scans the mailbox directory for .gob files and decodes them into
-// a slice of Message objects.
-func (mb *FileMailbox) GetMessages() ([]datastore.Message, error) {
-	if !mb.indexLoaded {
-		if err := mb.readIndex(); err != nil {
-			return nil, err
-		}
+// mboxFromPath constructs a mailbox based on name hash.
+func (fs *Store) mboxFromHash(hash string) *mbox {
+	s1 := hash[0:3]
+	s2 := hash[0:6]
+	path := filepath.Join(fs.mailPath, s1, s2, hash)
+	indexPath := filepath.Join(path, indexFileName)
+	return &mbox{
+		RWMutex:   fs.hashLock.Get(hash),
+		store:     fs,
+		dirName:   hash,
+		path:      path,
+		indexPath: indexPath,
 	}
-
-	messages := make([]datastore.Message, len(mb.messages))
-	for i, m := range mb.messages {
-		messages[i] = m
-	}
-	return messages, nil
-}
-
-// GetMessage decodes a single message by Id and returns a Message object
-func (mb *FileMailbox) GetMessage(id string) (datastore.Message, error) {
-	if !mb.indexLoaded {
-		if err := mb.readIndex(); err != nil {
-			return nil, err
-		}
-	}
-
-	if id == "latest" && len(mb.messages) != 0 {
-		return mb.messages[len(mb.messages)-1], nil
-	}
-
-	for _, m := range mb.messages {
-		if m.Fid == id {
-			return m, nil
-		}
-	}
-
-	return nil, datastore.ErrNotExist
-}
-
-// Purge deletes all messages in this mailbox
-func (mb *FileMailbox) Purge() error {
-	mb.messages = mb.messages[:0]
-	return mb.writeIndex()
-}
-
-// readIndex loads the mailbox index data from disk
-func (mb *FileMailbox) readIndex() error {
-	// Clear message slice, open index
-	mb.messages = mb.messages[:0]
-	// Lock for reading
-	indexMx.RLock()
-	defer indexMx.RUnlock()
-	// Check if index exists
-	if _, err := os.Stat(mb.indexPath); err != nil {
-		// Does not exist, but that's not an error in our world
-		log.Tracef("Index %v does not exist (yet)", mb.indexPath)
-		mb.indexLoaded = true
-		return nil
-	}
-	file, err := os.Open(mb.indexPath)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", mb.indexPath, err)
-		}
-	}()
-
-	// Decode gob data
-	dec := gob.NewDecoder(bufio.NewReader(file))
-	for {
-		msg := new(FileMessage)
-		if err = dec.Decode(msg); err != nil {
-			if err == io.EOF {
-				// It's OK to get an EOF here
-				break
-			}
-			return fmt.Errorf("Corrupt mailbox %q: %v", mb.indexPath, err)
-		}
-		msg.mailbox = mb
-		mb.messages = append(mb.messages, msg)
-	}
-
-	mb.indexLoaded = true
-	return nil
-}
-
-// writeIndex overwrites the index on disk with the current mailbox data
-func (mb *FileMailbox) writeIndex() error {
-	// Lock for writing
-	indexMx.Lock()
-	defer indexMx.Unlock()
-	if len(mb.messages) > 0 {
-		// Ensure mailbox directory exists
-		if err := mb.createDir(); err != nil {
-			return err
-		}
-		// Open index for writing
-		file, err := os.Create(mb.indexPath)
-		if err != nil {
-			return err
-		}
-		writer := bufio.NewWriter(file)
-		// Write each message and then flush
-		enc := gob.NewEncoder(writer)
-		for _, m := range mb.messages {
-			err = enc.Encode(m)
-			if err != nil {
-				_ = file.Close()
-				return err
-			}
-		}
-		if err := writer.Flush(); err != nil {
-			_ = file.Close()
-			return err
-		}
-		if err := file.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", mb.indexPath, err)
-			return err
-		}
-	} else {
-		// No messages, delete index+maildir
-		log.Tracef("Removing mailbox %v", mb.path)
-		return mb.removeDir()
-	}
-
-	return nil
-}
-
-// createDir checks for the presence of the path for this mailbox, creates it if needed
-func (mb *FileMailbox) createDir() error {
-	dirMx.Lock()
-	defer dirMx.Unlock()
-	if _, err := os.Stat(mb.path); err != nil {
-		if err := os.MkdirAll(mb.path, 0770); err != nil {
-			log.Errorf("Failed to create directory %v, %v", mb.path, err)
-			return err
-		}
-	}
-	return nil
-}
-
-// removeDir removes the mailbox, plus empty higher level directories
-func (mb *FileMailbox) removeDir() error {
-	dirMx.Lock()
-	defer dirMx.Unlock()
-	// remove mailbox dir, including index file
-	if err := os.RemoveAll(mb.path); err != nil {
-		return err
-	}
-	// remove parents if empty
-	dir := filepath.Dir(mb.path)
-	if removeDirIfEmpty(dir) {
-		removeDirIfEmpty(filepath.Dir(dir))
-	}
-	return nil
-}
-
-// removeDirIfEmpty will remove the specified directory if it contains no files or directories.
-// Caller should hold dirMx.  Returns true if dir was removed.
-func removeDirIfEmpty(path string) (removed bool) {
-	f, err := os.Open(path)
-	if err != nil {
-		return false
-	}
-	files, err := f.Readdirnames(0)
-	_ = f.Close()
-	if err != nil {
-		return false
-	}
-	if len(files) > 0 {
-		// Dir not empty
-		return false
-	}
-	log.Tracef("Removing dir %v", path)
-	err = os.Remove(path)
-	if err != nil {
-		log.Errorf("Failed to remove %q: %v", path, err)
-		return false
-	}
-	return true
 }
 
 // generatePrefix converts a Time object into the ISO style format we use

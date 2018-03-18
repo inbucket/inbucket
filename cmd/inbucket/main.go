@@ -14,11 +14,14 @@ import (
 
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/rest"
 	"github.com/jhillyerd/inbucket/pkg/server/pop3"
 	"github.com/jhillyerd/inbucket/pkg/server/smtp"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
+	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/storage/file"
 	"github.com/jhillyerd/inbucket/pkg/webui"
 )
@@ -112,27 +115,27 @@ func main() {
 		}
 	}
 
-	// Create message hub
+	// Configure internal services.
 	msgHub := msghub.New(rootCtx, config.GetWebConfig().MonitorHistory)
-
-	// Grab our datastore
-	ds := filestore.DefaultFileDataStore()
-
-	// Start HTTP server
-	web.Initialize(config.GetWebConfig(), shutdownChan, ds, msgHub)
+	dscfg := config.GetDataStoreConfig()
+	store := file.New(dscfg)
+	apolicy := &policy.Addressing{Config: config.GetSMTPConfig()}
+	mmanager := &message.StoreManager{Store: store, Hub: msgHub}
+	// Start Retention scanner.
+	retentionScanner := storage.NewRetentionScanner(dscfg, store, shutdownChan)
+	retentionScanner.Start()
+	// Start HTTP server.
+	web.Initialize(config.GetWebConfig(), shutdownChan, mmanager, msgHub)
 	webui.SetupRoutes(web.Router)
 	rest.SetupRoutes(web.Router)
 	go web.Start(rootCtx)
-
-	// Start POP3 server
-	pop3Server = pop3.New(config.GetPOP3Config(), shutdownChan, ds)
+	// Start POP3 server.
+	pop3Server = pop3.New(config.GetPOP3Config(), shutdownChan, store)
 	go pop3Server.Start(rootCtx)
-
-	// Startup SMTP server
-	smtpServer = smtp.NewServer(config.GetSMTPConfig(), shutdownChan, ds, msgHub)
+	// Start SMTP server.
+	smtpServer = smtp.NewServer(config.GetSMTPConfig(), shutdownChan, mmanager, apolicy)
 	go smtpServer.Start(rootCtx)
-
-	// Loop forever waiting for signals or shutdown channel
+	// Loop forever waiting for signals or shutdown channel.
 signalLoop:
 	for {
 		select {
@@ -160,6 +163,7 @@ signalLoop:
 	go timedExit()
 	smtpServer.Drain()
 	pop3Server.Drain()
+	retentionScanner.Join()
 
 	removePIDFile()
 }

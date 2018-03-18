@@ -2,7 +2,6 @@ package smtp
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 
@@ -14,8 +13,10 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/jhillyerd/inbucket/pkg/message"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/jhillyerd/inbucket/pkg/test"
 )
 
 type scriptStep struct {
@@ -25,10 +26,8 @@ type scriptStep struct {
 
 // Test commands in GREET state
 func TestGreetState(t *testing.T) {
-	// Setup mock objects
-	mds := &datastore.MockDataStore{}
-
-	server, logbuf, teardown := setupSMTPServer(mds)
+	ds := test.NewStore()
+	server, logbuf, teardown := setupSMTPServer(ds)
 	defer teardown()
 
 	// Test out some mangled HELOs
@@ -82,10 +81,8 @@ func TestGreetState(t *testing.T) {
 
 // Test commands in READY state
 func TestReadyState(t *testing.T) {
-	// Setup mock objects
-	mds := &datastore.MockDataStore{}
-
-	server, logbuf, teardown := setupSMTPServer(mds)
+	ds := test.NewStore()
+	server, logbuf, teardown := setupSMTPServer(ds)
 	defer teardown()
 
 	// Test out some mangled READY commands
@@ -143,21 +140,7 @@ func TestReadyState(t *testing.T) {
 
 // Test commands in MAIL state
 func TestMailState(t *testing.T) {
-	// Setup mock objects
-	mds := &datastore.MockDataStore{}
-	mb1 := &datastore.MockMailbox{}
-	msg1 := &datastore.MockMessage{}
-	mds.On("MailboxFor", "u1").Return(mb1, nil)
-	mb1.On("NewMessage").Return(msg1, nil)
-	mb1.On("Name").Return("u1")
-	msg1.On("ID").Return("")
-	msg1.On("From").Return("")
-	msg1.On("To").Return(make([]string, 0))
-	msg1.On("Date").Return(time.Time{})
-	msg1.On("Subject").Return("")
-	msg1.On("Size").Return(0)
-	msg1.On("Close").Return(nil)
-
+	mds := test.NewStore()
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 
@@ -189,10 +172,7 @@ func TestMailState(t *testing.T) {
 		{"RCPT TO: u4@gmail.com", 250},
 		{"RSET", 250},
 		{"MAIL FROM:<john@gmail.com>", 250},
-		{"RCPT TO:<user\\@internal@external.com", 250},
-		{"RCPT TO:<\"first last\"@host.com", 250},
-		{"RCPT TO:<user\\>name@host.com>", 250},
-		{"RCPT TO:<\"user>name\"@host.com>", 250},
+		{`RCPT TO:<"first/last"@host.com`, 250},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
@@ -258,21 +238,7 @@ func TestMailState(t *testing.T) {
 
 // Test commands in DATA state
 func TestDataState(t *testing.T) {
-	// Setup mock objects
-	mds := &datastore.MockDataStore{}
-	mb1 := &datastore.MockMailbox{}
-	msg1 := &datastore.MockMessage{}
-	mds.On("MailboxFor", "u1").Return(mb1, nil)
-	mb1.On("NewMessage").Return(msg1, nil)
-	mb1.On("Name").Return("u1")
-	msg1.On("ID").Return("")
-	msg1.On("From").Return("")
-	msg1.On("To").Return(make([]string, 0))
-	msg1.On("Date").Return(time.Time{})
-	msg1.On("Subject").Return("")
-	msg1.On("Size").Return(0)
-	msg1.On("Close").Return(nil)
-
+	mds := test.NewStore()
 	server, logbuf, teardown := setupSMTPServer(mds)
 	defer teardown()
 
@@ -280,7 +246,6 @@ func TestDataState(t *testing.T) {
 	pipe := setupSMTPSession(server)
 	c := textproto.NewConn(pipe)
 
-	// Get us into DATA state
 	if code, _, err := c.ReadCodeLine(220); err != nil {
 		t.Errorf("Expected a 220 greeting, got %v", code)
 	}
@@ -301,6 +266,33 @@ Subject: test
 Hi!
 `
 	dw := c.DotWriter()
+	_, _ = io.WriteString(dw, body)
+	_ = dw.Close()
+	if code, _, err := c.ReadCodeLine(250); err != nil {
+		t.Errorf("Expected a 250 greeting, got %v", code)
+	}
+
+	// Test with no useful headers.
+	pipe = setupSMTPSession(server)
+	c = textproto.NewConn(pipe)
+	if code, _, err := c.ReadCodeLine(220); err != nil {
+		t.Errorf("Expected a 220 greeting, got %v", code)
+	}
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<u1@gmail.com>", 250},
+		{"DATA", 354},
+	}
+	if err := playScriptAgainst(t, c, script); err != nil {
+		t.Error(err)
+	}
+	// Send a message
+	body = `X-Useless-Header: true
+
+Hi! Can you still deliver this?
+`
+	dw = c.DotWriter()
 	_, _ = io.WriteString(dw, body)
 	_ = dw.Close()
 	if code, _, err := c.ReadCodeLine(250); err != nil {
@@ -367,7 +359,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupSMTPServer(ds datastore.DataStore) (s *Server, buf *bytes.Buffer, teardown func()) {
+func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown func()) {
 	// Test Server Config
 	cfg := config.SMTPConfig{
 		IP4address:      net.IPv4(127, 0, 0, 1),
@@ -386,12 +378,12 @@ func setupSMTPServer(ds datastore.DataStore) (s *Server, buf *bytes.Buffer, tear
 
 	// Create a server, don't start it
 	shutdownChan := make(chan bool)
-	ctx, cancel := context.WithCancel(context.Background())
 	teardown = func() {
 		close(shutdownChan)
-		cancel()
 	}
-	s = NewServer(cfg, shutdownChan, ds, msghub.New(ctx, 100))
+	apolicy := &policy.Addressing{Config: cfg}
+	manager := &message.StoreManager{Store: ds}
+	s = NewServer(cfg, shutdownChan, manager, apolicy)
 	return s, buf, teardown
 }
 

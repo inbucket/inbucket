@@ -3,7 +3,6 @@ package smtp
 import (
 	"bufio"
 	"bytes"
-	"container/list"
 	"fmt"
 	"io"
 	"net"
@@ -13,9 +12,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/log"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/storage"
-	"github.com/jhillyerd/inbucket/pkg/stringutil"
+	"github.com/jhillyerd/inbucket/pkg/policy"
 )
 
 // State tracks the current mode of our SMTP state machine
@@ -70,12 +67,6 @@ var commands = map[string]bool{
 	"TURN": true,
 }
 
-// recipientDetails for message delivery
-type recipientDetails struct {
-	address, localPart, domainPart string
-	mailbox                        datastore.Mailbox
-}
-
 // Session holds the state of an SMTP session
 type Session struct {
 	server       *Server
@@ -87,14 +78,22 @@ type Session struct {
 	state        State
 	reader       *bufio.Reader
 	from         string
-	recipients   *list.List
+	recipients   []*policy.Recipient
 }
 
 // NewSession creates a new Session for the given connection
 func NewSession(server *Server, id int, conn net.Conn) *Session {
 	reader := bufio.NewReader(conn)
 	host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-	return &Session{server: server, id: id, conn: conn, state: GREET, reader: reader, remoteHost: host}
+	return &Session{
+		server:     server,
+		id:         id,
+		conn:       conn,
+		state:      GREET,
+		reader:     reader,
+		remoteHost: host,
+		recipients: make([]*policy.Recipient, 0),
+	}
 }
 
 func (ss *Session) String() string {
@@ -267,7 +266,7 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 			return
 		}
 		from := m[1]
-		if _, _, err := stringutil.ParseEmailAddress(from); err != nil {
+		if _, _, err := policy.ParseEmailAddress(from); err != nil {
 			ss.send("501 Bad sender address syntax")
 			ss.logWarn("Bad address as MAIL arg: %q, %s", from, err)
 			return
@@ -296,7 +295,6 @@ func (ss *Session) readyHandler(cmd string, arg string) {
 			}
 		}
 		ss.from = from
-		ss.recipients = list.New()
 		ss.logInfo("Mail from: %v", from)
 		ss.send(fmt.Sprintf("250 Roger, accepting mail from <%v>", from))
 		ss.enterState(MAIL)
@@ -315,20 +313,21 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 			return
 		}
 		// This trim is probably too forgiving
-		recip := strings.Trim(arg[3:], "<> ")
-		if _, _, err := stringutil.ParseEmailAddress(recip); err != nil {
+		addr := strings.Trim(arg[3:], "<> ")
+		recip, err := ss.server.apolicy.NewRecipient(addr)
+		if err != nil {
 			ss.send("501 Bad recipient address syntax")
-			ss.logWarn("Bad address as RCPT arg: %q, %s", recip, err)
+			ss.logWarn("Bad address as RCPT arg: %q, %s", addr, err)
 			return
 		}
-		if ss.recipients.Len() >= ss.server.maxRecips {
+		if len(ss.recipients) >= ss.server.maxRecips {
 			ss.logWarn("Maximum limit of %v recipients reached", ss.server.maxRecips)
 			ss.send(fmt.Sprintf("552 Maximum limit of %v recipients reached", ss.server.maxRecips))
 			return
 		}
-		ss.recipients.PushBack(recip)
-		ss.logInfo("Recipient: %v", recip)
-		ss.send(fmt.Sprintf("250 I'll make sure <%v> gets this", recip))
+		ss.recipients = append(ss.recipients, recip)
+		ss.logInfo("Recipient: %v", addr)
+		ss.send(fmt.Sprintf("250 I'll make sure <%v> gets this", addr))
 		return
 	case "DATA":
 		if arg != "" {
@@ -336,7 +335,7 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 			ss.logWarn("Got unexpected args on DATA: %q", arg)
 			return
 		}
-		if ss.recipients.Len() > 0 {
+		if len(ss.recipients) > 0 {
 			// We have recipients, go to accept data
 			ss.enterState(DATA)
 			return
@@ -350,41 +349,10 @@ func (ss *Session) mailHandler(cmd string, arg string) {
 
 // DATA
 func (ss *Session) dataHandler() {
-	recipients := make([]recipientDetails, 0, ss.recipients.Len())
-	// Get a Mailbox and a new Message for each recipient
-	msgSize := 0
-	if ss.server.storeMessages {
-		for e := ss.recipients.Front(); e != nil; e = e.Next() {
-			recip := e.Value.(string)
-			local, domain, err := stringutil.ParseEmailAddress(recip)
-			if err != nil {
-				ss.logError("Failed to parse address for %q", recip)
-				ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", recip))
-				ss.reset()
-				return
-			}
-			if strings.ToLower(domain) != ss.server.domainNoStore {
-				// Not our "no store" domain, so store the message
-				mb, err := ss.server.dataStore.MailboxFor(local)
-				if err != nil {
-					ss.logError("Failed to open mailbox for %q: %s", local, err)
-					ss.send(fmt.Sprintf("451 Failed to open mailbox for %v", local))
-					ss.reset()
-					return
-				}
-				recipients = append(recipients, recipientDetails{recip, local, domain, mb})
-			} else {
-				log.Tracef("Not storing message for %q", recip)
-			}
-		}
-	}
-
 	ss.send("354 Start mail input; end with <CRLF>.<CRLF>")
-	var lineBuf bytes.Buffer
-	msgBuf := make([][]byte, 0, 1024)
+	msgBuf := &bytes.Buffer{}
 	for {
-		lineBuf.Reset()
-		err := ss.readByteLine(&lineBuf)
+		lineBuf, err := ss.readByteLine()
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
@@ -395,103 +363,44 @@ func (ss *Session) dataHandler() {
 			ss.enterState(QUIT)
 			return
 		}
-		line := lineBuf.Bytes()
-		// ss.logTrace("DATA: %q", line)
-		if string(line) == ".\r\n" || string(line) == ".\n" {
-			// Mail data complete
-			if ss.server.storeMessages {
-				// Create a message for each valid recipient
-				for _, r := range recipients {
-					// TODO temporary hack to fix #77 until datastore revamp
-					mu, err := ss.server.dataStore.LockFor(r.localPart)
+		if bytes.Equal(lineBuf, []byte(".\r\n")) || bytes.Equal(lineBuf, []byte(".\n")) {
+			// Mail data complete.
+			tstamp := time.Now().Format(timeStampFormat)
+			for _, recip := range ss.recipients {
+				if recip.ShouldStore() {
+					// Generate Received header.
+					prefix := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
+						ss.remoteDomain, ss.remoteHost, ss.server.domain, recip.Address.Address,
+						tstamp)
+					// Deliver message.
+					_, err := ss.server.manager.Deliver(
+						recip, ss.from, ss.recipients, prefix, msgBuf.Bytes())
 					if err != nil {
-						ss.logError("Failed to get lock for %q: %s", r.localPart, err)
-						// Delivery failure
-						ss.send(fmt.Sprintf("451 Failed to store message for %v", r.localPart))
-						ss.reset()
-						return
-					}
-					mu.Lock()
-					ok := ss.deliverMessage(r, msgBuf)
-					mu.Unlock()
-					if ok {
-						expReceivedTotal.Add(1)
-					} else {
-						// Delivery failure
-						ss.send(fmt.Sprintf("451 Failed to store message for %v", r.localPart))
+						ss.logError("delivery for %v: %v", recip.LocalPart, err)
+						ss.send(fmt.Sprintf("451 Failed to store message for %v", recip.LocalPart))
 						ss.reset()
 						return
 					}
 				}
-			} else {
 				expReceivedTotal.Add(1)
 			}
 			ss.send("250 Mail accepted for delivery")
-			ss.logInfo("Message size %v bytes", msgSize)
+			ss.logInfo("Message size %v bytes", msgBuf.Len())
 			ss.reset()
 			return
 		}
-		// SMTP RFC says remove leading periods from input
-		if len(line) > 0 && line[0] == '.' {
-			line = line[1:]
+		// RFC: remove leading periods from DATA.
+		if len(lineBuf) > 0 && lineBuf[0] == '.' {
+			lineBuf = lineBuf[1:]
 		}
-		// Second append copies line/lineBuf so we can reuse it
-		msgBuf = append(msgBuf, append([]byte{}, line...))
-		msgSize += len(line)
-		if msgSize > ss.server.maxMessageBytes {
-			// Max message size exceeded
+		msgBuf.Write(lineBuf)
+		if msgBuf.Len() > ss.server.maxMessageBytes {
 			ss.send("552 Maximum message size exceeded")
 			ss.logWarn("Max message size exceeded while in DATA")
 			ss.reset()
-			// Should really cleanup the crap on filesystem (after issue #23)
 			return
 		}
-	} // end for
-}
-
-// deliverMessage creates and populates a new Message for the specified recipient
-func (ss *Session) deliverMessage(r recipientDetails, msgBuf [][]byte) (ok bool) {
-	msg, err := r.mailbox.NewMessage()
-	if err != nil {
-		ss.logError("Failed to create message for %q: %s", r.localPart, err)
-		return false
 	}
-
-	// Generate Received header
-	stamp := time.Now().Format(timeStampFormat)
-	recd := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
-		ss.remoteDomain, ss.remoteHost, ss.server.domain, r.address, stamp)
-	if err := msg.Append([]byte(recd)); err != nil {
-		ss.logError("Failed to write received header for %q: %s", r.localPart, err)
-		return false
-	}
-
-	// Append lines from msgBuf
-	for _, line := range msgBuf {
-		if err := msg.Append(line); err != nil {
-			ss.logError("Failed to append to mailbox %v: %v", r.mailbox, err)
-			// Should really cleanup the crap on filesystem
-			return false
-		}
-	}
-	if err := msg.Close(); err != nil {
-		ss.logError("Error while closing message for %v: %v", r.mailbox, err)
-		return false
-	}
-
-	// Broadcast message information
-	broadcast := msghub.Message{
-		Mailbox: r.mailbox.Name(),
-		ID:      msg.ID(),
-		From:    msg.From(),
-		To:      msg.To(),
-		Subject: msg.Subject(),
-		Date:    msg.Date(),
-		Size:    msg.Size(),
-	}
-	ss.server.msgHub.Dispatch(broadcast)
-
-	return true
 }
 
 func (ss *Session) enterState(state State) {
@@ -522,18 +431,12 @@ func (ss *Session) send(msg string) {
 	ss.logTrace(">> %v >>", msg)
 }
 
-// readByteLine reads a line of input into the provided buffer. Does
-// not reset the Buffer - please do so prior to calling.
-func (ss *Session) readByteLine(buf io.Writer) error {
+// readByteLine reads a line of input, returns byte slice.
+func (ss *Session) readByteLine() ([]byte, error) {
 	if err := ss.conn.SetReadDeadline(ss.nextDeadline()); err != nil {
-		return err
+		return nil, err
 	}
-	line, err := ss.reader.ReadBytes('\n')
-	if err != nil {
-		return err
-	}
-	_, err = buf.Write(line)
-	return err
+	return ss.reader.ReadBytes('\n')
 }
 
 // Reads a line of input

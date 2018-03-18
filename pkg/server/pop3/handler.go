@@ -57,18 +57,17 @@ var commands = map[string]bool{
 
 // Session defines an active POP3 session
 type Session struct {
-	server     *Server             // Reference to the server we belong to
-	id         int                 // Session ID number
-	conn       net.Conn            // Our network connection
-	remoteHost string              // IP address of client
-	sendError  error               // Used to bail out of read loop on send error
-	state      State               // Current session state
-	reader     *bufio.Reader       // Buffered reader for our net conn
-	user       string              // Mailbox name
-	mailbox    datastore.Mailbox   // Mailbox instance
-	messages   []datastore.Message // Slice of messages in mailbox
-	retain     []bool              // Messages to retain upon UPDATE (true=retain)
-	msgCount   int                 // Number of undeleted messages
+	server     *Server           // Reference to the server we belong to
+	id         int               // Session ID number
+	conn       net.Conn          // Our network connection
+	remoteHost string            // IP address of client
+	sendError  error             // Used to bail out of read loop on send error
+	state      State             // Current session state
+	reader     *bufio.Reader     // Buffered reader for our net conn
+	user       string            // Mailbox name
+	messages   []storage.Message // Slice of messages in mailbox
+	retain     []bool            // Messages to retain upon UPDATE (true=retain)
+	msgCount   int               // Number of undeleted messages
 }
 
 // NewSession creates a new POP3 session
@@ -195,14 +194,6 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 		if ses.user == "" {
 			ses.ooSeq(cmd)
 		} else {
-			var err error
-			ses.mailbox, err = ses.server.dataStore.MailboxFor(ses.user)
-			if err != nil {
-				ses.logError("Failed to open mailbox for %v", ses.user)
-				ses.send(fmt.Sprintf("-ERR Failed to open mailbox for %v", ses.user))
-				ses.enterState(QUIT)
-				return
-			}
 			ses.loadMailbox()
 			ses.send(fmt.Sprintf("+OK Found %v messages for %v", ses.msgCount, ses.user))
 			ses.enterState(TRANSACTION)
@@ -214,14 +205,6 @@ func (ses *Session) authorizationHandler(cmd string, args []string) {
 			return
 		}
 		ses.user = args[0]
-		var err error
-		ses.mailbox, err = ses.server.dataStore.MailboxFor(ses.user)
-		if err != nil {
-			ses.logError("Failed to open mailbox for %v", ses.user)
-			ses.send(fmt.Sprintf("-ERR Failed to open mailbox for %v", ses.user))
-			ses.enterState(QUIT)
-			return
-		}
 		ses.loadMailbox()
 		ses.send(fmt.Sprintf("+OK Found %v messages for %v", ses.msgCount, ses.user))
 		ses.enterState(TRANSACTION)
@@ -432,8 +415,8 @@ func (ses *Session) transactionHandler(cmd string, args []string) {
 }
 
 // Send the contents of the message to the client
-func (ses *Session) sendMessage(msg datastore.Message) {
-	reader, err := msg.RawReader()
+func (ses *Session) sendMessage(msg storage.Message) {
+	reader, err := msg.Source()
 	if err != nil {
 		ses.logError("Failed to read message for RETR command")
 		ses.send("-ERR Failed to RETR that message, internal error")
@@ -465,8 +448,8 @@ func (ses *Session) sendMessage(msg datastore.Message) {
 }
 
 // Send the headers plus the top N lines to the client
-func (ses *Session) sendMessageTop(msg datastore.Message, lineCount int) {
-	reader, err := msg.RawReader()
+func (ses *Session) sendMessageTop(msg storage.Message, lineCount int) {
+	reader, err := msg.Source()
 	if err != nil {
 		ses.logError("Failed to read message for RETR command")
 		ses.send("-ERR Failed to RETR that message, internal error")
@@ -513,12 +496,11 @@ func (ses *Session) sendMessageTop(msg datastore.Message, lineCount int) {
 
 // Load the users mailbox
 func (ses *Session) loadMailbox() {
-	var err error
-	ses.messages, err = ses.mailbox.GetMessages()
+	m, err := ses.server.dataStore.GetMessages(ses.user)
 	if err != nil {
-		ses.logError("Failed to load messages for %v", ses.user)
+		ses.logError("Failed to load messages for %v: %v", ses.user, err)
 	}
-
+	ses.messages = m
 	ses.retainAll()
 }
 
@@ -540,7 +522,7 @@ func (ses *Session) processDeletes() {
 	for i, msg := range ses.messages {
 		if !ses.retain[i] {
 			ses.logTrace("Deleting %v", msg)
-			if err := msg.Delete(); err != nil {
+			if err := ses.server.dataStore.RemoveMessage(ses.user, msg.ID()); err != nil {
 				ses.logWarn("Error deleting %v: %v", msg, err)
 			}
 		}

@@ -5,6 +5,7 @@ import (
 	golog "log"
 	"os"
 	"strings"
+	"sync"
 )
 
 // Level is used to indicate the severity of a log entry
@@ -30,12 +31,16 @@ var (
 
 	// logf is the file we send log output to, will be nil for stderr or stdout
 	logf *os.File
+
+	mu sync.RWMutex
 )
 
 // Initialize logging.  If logfile is equal to "stderr" or "stdout", then
 // we will log to that output stream.  Otherwise the specificed file will
 // opened for writing, and all log data will be placed in it.
 func Initialize(logfile string) error {
+	mu.Lock()
+	defer mu.Unlock()
 	if logfile != "stderr" {
 		// stderr is the go logging default
 		if logfile == "stdout" {
@@ -55,6 +60,8 @@ func Initialize(logfile string) error {
 
 // SetLogLevel sets MaxLevel based on the provided string
 func SetLogLevel(level string) (ok bool) {
+	mu.Lock()
+	defer mu.Unlock()
 	switch strings.ToUpper(level) {
 	case "ERROR":
 		MaxLevel = ERROR
@@ -73,12 +80,16 @@ func SetLogLevel(level string) (ok bool) {
 
 // Errorf logs a message to the 'standard' Logger (always), accepts format strings
 func Errorf(msg string, args ...interface{}) {
+	mu.RLock()
+	defer mu.RUnlock()
 	msg = "[ERROR] " + msg
 	golog.Printf(msg, args...)
 }
 
 // Warnf logs a message to the 'standard' Logger if MaxLevel is >= WARN, accepts format strings
 func Warnf(msg string, args ...interface{}) {
+	mu.RLock()
+	defer mu.RUnlock()
 	if MaxLevel >= WARN {
 		msg = "[WARN ] " + msg
 		golog.Printf(msg, args...)
@@ -87,6 +98,8 @@ func Warnf(msg string, args ...interface{}) {
 
 // Infof logs a message to the 'standard' Logger if MaxLevel is >= INFO, accepts format strings
 func Infof(msg string, args ...interface{}) {
+	mu.RLock()
+	defer mu.RUnlock()
 	if MaxLevel >= INFO {
 		msg = "[INFO ] " + msg
 		golog.Printf(msg, args...)
@@ -95,6 +108,8 @@ func Infof(msg string, args ...interface{}) {
 
 // Tracef logs a message to the 'standard' Logger if MaxLevel is >= TRACE, accepts format strings
 func Tracef(msg string, args ...interface{}) {
+	mu.RLock()
+	defer mu.RUnlock()
 	if MaxLevel >= TRACE {
 		msg = "[TRACE] " + msg
 		golog.Printf(msg, args...)
@@ -105,6 +120,8 @@ func Tracef(msg string, args ...interface{}) {
 // log rotation system the opportunity to move the existing log file out of the
 // way and have Inbucket create a new one.
 func Rotate() {
+	mu.Lock()
+	defer mu.Unlock()
 	// Rotate logs if configured
 	if logf != nil {
 		closeLogFile()
@@ -117,6 +134,8 @@ func Rotate() {
 
 // Close the log file if we have one open
 func Close() {
+	mu.Lock()
+	defer mu.Unlock()
 	if logf != nil {
 		closeLogFile()
 	}

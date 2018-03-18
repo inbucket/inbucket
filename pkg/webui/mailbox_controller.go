@@ -10,7 +10,6 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 	"github.com/jhillyerd/inbucket/pkg/storage"
-	"github.com/jhillyerd/inbucket/pkg/stringutil"
 	"github.com/jhillyerd/inbucket/pkg/webui/sanitize"
 )
 
@@ -25,7 +24,7 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *web.Context) (e
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	name, err = stringutil.ParseMailboxName(name)
+	name, err = ctx.Manager.MailboxForAddress(name)
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -52,7 +51,7 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *web.Context) (e
 func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -68,16 +67,11 @@ func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 // MailboxList renders a list of messages in a mailbox. Renders a partial
 func MailboxList(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	messages, err := mb.GetMessages()
+	messages, err := ctx.Manager.GetMetadata(name)
 	if err != nil {
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
@@ -95,17 +89,12 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	msg, err := mb.GetMessage(id)
-	if err == datastore.ErrNotExist {
+	msg, err := ctx.Manager.GetMessage(name, id)
+	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
@@ -113,10 +102,7 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	mime, err := msg.ReadBody()
-	if err != nil {
-		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
-	}
+	mime := msg.Envelope
 	body := template.HTML(web.TextToHTML(mime.Text))
 	htmlAvailable := mime.HTML != ""
 	var htmlBody template.HTML
@@ -144,36 +130,27 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
-	if err == datastore.ErrNotExist {
+	msg, err := ctx.Manager.GetMessage(name, id)
+	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
-		// This doesn't indicate missing, likely an IO error
+		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	mime, err := message.ReadBody()
-	if err != nil {
-		return fmt.Errorf("ReadBody(%q) failed: %v", id, err)
-	}
+	mime := msg.Envelope
 	// Render partial template
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	return web.RenderPartial("mailbox/_html.html", w, map[string]interface{}{
 		"ctx":     ctx,
 		"name":    name,
-		"message": message,
-		// TODO It is not really safe to render, need to sanitize, issue #5
-		"body": template.HTML(mime.HTML),
+		"message": msg,
+		"body":    template.HTML(mime.HTML),
 	})
 }
 
@@ -181,34 +158,23 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
-	if err == datastore.ErrNotExist {
+	r, err := ctx.Manager.SourceReader(name, id)
+	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
 		// This doesn't indicate missing, likely an IO error
-		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
-	}
-	raw, err := message.ReadRaw()
-	if err != nil {
-		return fmt.Errorf("ReadRaw(%q) failed: %v", id, err)
+		return fmt.Errorf("SourceReader(%q) failed: %v", id, err)
 	}
 	// Output message source
 	w.Header().Set("Content-Type", "text/plain")
-	if _, err := io.WriteString(w, *raw); err != nil {
-		return err
-	}
-	return nil
+	_, err = io.Copy(w, r)
+	return err
 }
 
 // MailboxDownloadAttach sends the attachment to the client; disposition:
@@ -216,7 +182,7 @@ func MailboxSource(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	id := ctx.Vars["id"]
-	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -231,24 +197,16 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Co
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
-	if err == datastore.ErrNotExist {
+	msg, err := ctx.Manager.GetMessage(name, id)
+	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
-		// This doesn't indicate missing, likely an IO error
+		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	body, err := message.ReadBody()
-	if err != nil {
-		return err
-	}
+	body := msg.Envelope
 	if int(num) >= len(body.Attachments) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
 		_ = ctx.Session.Save(req, w)
@@ -259,16 +217,14 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Co
 	// Output attachment
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment")
-	if _, err := io.Copy(w, part); err != nil {
-		return err
-	}
-	return nil
+	_, err = io.Copy(w, part)
+	return err
 }
 
 // MailboxViewAttach sends the attachment to the client for online viewing
 func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404
-	name, err := stringutil.ParseMailboxName(ctx.Vars["name"])
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		ctx.Session.AddFlash(err.Error(), "errors")
 		_ = ctx.Session.Save(req, w)
@@ -284,24 +240,16 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	mb, err := ctx.DataStore.MailboxFor(name)
-	if err != nil {
-		// This doesn't indicate not found, likely an IO error
-		return fmt.Errorf("Failed to get mailbox for %q: %v", name, err)
-	}
-	message, err := mb.GetMessage(id)
-	if err == datastore.ErrNotExist {
+	msg, err := ctx.Manager.GetMessage(name, id)
+	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
 		return nil
 	}
 	if err != nil {
-		// This doesn't indicate missing, likely an IO error
+		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	body, err := message.ReadBody()
-	if err != nil {
-		return err
-	}
+	body := msg.Envelope
 	if int(num) >= len(body.Attachments) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
 		_ = ctx.Session.Save(req, w)
@@ -311,8 +259,6 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 	part := body.Attachments[num]
 	// Output attachment
 	w.Header().Set("Content-Type", part.ContentType)
-	if _, err := io.Copy(w, part); err != nil {
-		return err
-	}
-	return nil
+	_, err = io.Copy(w, part)
+	return err
 }

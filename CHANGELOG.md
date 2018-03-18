@@ -4,6 +4,12 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- Massive refactor of back-end code.  Inbucket should now be both easier and
+  more enjoyable to work on.
+
 ## [v1.3.1] - 2018-03-10
 
 ### Fixed

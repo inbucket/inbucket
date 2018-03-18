@@ -45,7 +45,8 @@ func (s *StoreManager) Deliver(
 	prefix string,
 	source []byte,
 ) (string, error) {
-	// TODO enmime is too heavy for this step, only need header
+	// TODO enmime is too heavy for this step, only need header.
+	// Go's header parsing isn't good enough, so this is blocked on enmime issue #64.
 	env, err := enmime.ReadEnvelope(bytes.NewReader(source))
 	if err != nil {
 		return "", err

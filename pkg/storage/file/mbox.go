@@ -101,9 +101,6 @@ func (mb *mbox) purge() error {
 func (mb *mbox) readIndex() error {
 	// Clear message slice, open index
 	mb.messages = mb.messages[:0]
-	// Lock for reading
-	indexMx.RLock()
-	defer indexMx.RUnlock()
 	// Check if index exists
 	if _, err := os.Stat(mb.indexPath); err != nil {
 		// Does not exist, but that's not an error in our world
@@ -146,8 +143,6 @@ func (mb *mbox) readIndex() error {
 // writeIndex overwrites the index on disk with the current mailbox data
 func (mb *mbox) writeIndex() error {
 	// Lock for writing
-	indexMx.Lock()
-	defer indexMx.Unlock()
 	if len(mb.messages) > 0 {
 		// Ensure mailbox directory exists
 		if err := mb.createDir(); err != nil {
@@ -189,8 +184,6 @@ func (mb *mbox) writeIndex() error {
 
 // createDir checks for the presence of the path for this mailbox, creates it if needed
 func (mb *mbox) createDir() error {
-	dirMx.Lock()
-	defer dirMx.Unlock()
 	if _, err := os.Stat(mb.path); err != nil {
 		if err := os.MkdirAll(mb.path, 0770); err != nil {
 			log.Errorf("Failed to create directory %v, %v", mb.path, err)
@@ -202,8 +195,6 @@ func (mb *mbox) createDir() error {
 
 // removeDir removes the mailbox, plus empty higher level directories
 func (mb *mbox) removeDir() error {
-	dirMx.Lock()
-	defer dirMx.Unlock()
 	// remove mailbox dir, including index file
 	if err := os.RemoveAll(mb.path); err != nil {
 		return err
@@ -217,7 +208,7 @@ func (mb *mbox) removeDir() error {
 }
 
 // removeDirIfEmpty will remove the specified directory if it contains no files or directories.
-// Caller should hold dirMx.  Returns true if dir was removed.
+// Returns true if dir was removed.
 func removeDirIfEmpty(path string) (removed bool) {
 	f, err := os.Open(path)
 	if err != nil {

@@ -1,7 +1,6 @@
 package file
 
 import (
-	"bufio"
 	"io"
 	"net/mail"
 	"os"
@@ -22,10 +21,6 @@ type Message struct {
 	Fto      []*mail.Address
 	Fsubject string
 	Fsize    int64
-	// These are for creating new messages only
-	writable   bool
-	writerFile *os.File
-	writer     *bufio.Writer
 }
 
 // newMessage creates a new FileMessage object and sets the Date and ID fields.
@@ -48,7 +43,7 @@ func (mb *mbox) newMessage() (*Message, error) {
 	}
 	date := time.Now()
 	id := generateID(date)
-	return &Message{mailbox: mb, Fid: id, Fdate: date, writable: true}, nil
+	return &Message{mailbox: mb, Fid: id, Fdate: date}, nil
 }
 
 // Mailbox returns the name of the mailbox this message resides in.

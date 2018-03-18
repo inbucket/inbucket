@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
@@ -21,15 +20,6 @@ import (
 const indexFileName = "index.gob"
 
 var (
-	// indexMx is locked while reading/writing an index file
-	//
-	// NOTE: This is a bottleneck because it's a single lock even if we have a
-	// million index files
-	indexMx = new(sync.RWMutex)
-
-	// dirMx is locked while creating/removing directories
-	dirMx = new(sync.Mutex)
-
 	// countChannel is filled with a sequential numbers (0000..9999), which are
 	// used by generateID() to generate unique message IDs.  It's global
 	// because we only want one regardless of the number of DataStore objects

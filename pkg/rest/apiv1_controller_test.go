@@ -6,7 +6,6 @@ import (
 	"net/mail"
 	"net/textproto"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -68,22 +67,6 @@ func TestRestMailboxList(t *testing.T) {
 	}
 
 	// Test JSON message headers
-	data1 := &InputMessageData{
-		Mailbox: "good",
-		ID:      "0001",
-		From:    "<from1@host>",
-		To:      []string{"<to1@host>"},
-		Subject: "subject 1",
-		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
-	}
-	data2 := &InputMessageData{
-		Mailbox: "good",
-		ID:      "0002",
-		From:    "<from2@host>",
-		To:      []string{"<to1@host>"},
-		Subject: "subject 2",
-		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, time.FixedZone("PDT", -700)),
-	}
 	meta1 := message.Metadata{
 		Mailbox: "good",
 		ID:      "0001",
@@ -114,25 +97,6 @@ func TestRestMailboxList(t *testing.T) {
 	}
 
 	// Check JSON
-	got := w.Body.String()
-	testStrings := []string{
-		`{"mailbox":"good","id":"0001","from":"\u003cfrom1@host\u003e",` +
-			`"to":["\u003cto1@host\u003e"],"subject":"subject 1",` +
-			`"date":"2012-02-01T10:11:12.000000253-00:13","size":0}`,
-		`{"mailbox":"good","id":"0002","from":"\u003cfrom2@host\u003e",` +
-			`"to":["\u003cto1@host\u003e"],"subject":"subject 2",` +
-			`"date":"2012-07-01T10:11:12.000000253-00:11","size":0}`,
-	}
-	for _, ts := range testStrings {
-		t.Run(ts, func(t *testing.T) {
-			if !strings.Contains(got, ts) {
-				t.Errorf("got:\n%s\nwant to contain:\n%s", got, ts)
-			}
-		})
-	}
-
-	// Check JSON
-	// TODO transitional while refactoring
 	dec := json.NewDecoder(w.Body)
 	var result []interface{}
 	if err := dec.Decode(&result); err != nil {
@@ -141,18 +105,21 @@ func TestRestMailboxList(t *testing.T) {
 	if len(result) != 2 {
 		t.Fatalf("Expected 2 results, got %v", len(result))
 	}
-	if errors := data1.CompareToJSONHeaderMap(result[0]); len(errors) > 0 {
-		t.Logf("%v", result[0])
-		for _, e := range errors {
-			t.Error(e)
-		}
-	}
-	if errors := data2.CompareToJSONHeaderMap(result[1]); len(errors) > 0 {
-		t.Logf("%v", result[1])
-		for _, e := range errors {
-			t.Error(e)
-		}
-	}
+
+	decodedStringEquals(t, result, "[0]/mailbox", "good")
+	decodedStringEquals(t, result, "[0]/id", "0001")
+	decodedStringEquals(t, result, "[0]/from", "<from1@host>")
+	decodedStringEquals(t, result, "[0]/to/[0]", "<to1@host>")
+	decodedStringEquals(t, result, "[0]/subject", "subject 1")
+	decodedStringEquals(t, result, "[0]/date", "2012-02-01T10:11:12.000000253-00:13")
+	decodedNumberEquals(t, result, "[0]/size", 0)
+	decodedStringEquals(t, result, "[1]/mailbox", "good")
+	decodedStringEquals(t, result, "[1]/id", "0002")
+	decodedStringEquals(t, result, "[1]/from", "<from2@host>")
+	decodedStringEquals(t, result, "[1]/to/[0]", "<to1@host>")
+	decodedStringEquals(t, result, "[1]/subject", "subject 2")
+	decodedStringEquals(t, result, "[1]/date", "2012-07-01T10:11:12.000000253-00:11")
+	decodedNumberEquals(t, result, "[1]/size", 0)
 
 	if t.Failed() {
 		// Wait for handler to finish logging
@@ -225,19 +192,6 @@ func TestRestMessage(t *testing.T) {
 			},
 		},
 	}
-	data1 := &InputMessageData{
-		Mailbox: "good",
-		ID:      "0001",
-		From:    "<from1@host>",
-		Subject: "subject 1",
-		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
-		Header: mail.Header{
-			"To":   []string{"fred@fish.com", "keyword@nsa.gov"},
-			"From": []string{"noreply@inbucket.org"},
-		},
-		Text: "This is some text",
-		HTML: "This is some HTML",
-	}
 	mm.AddMessage("good", msg1)
 
 	// Check return code
@@ -251,19 +205,24 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Check JSON
-	// TODO transitional while refactoring
 	dec := json.NewDecoder(w.Body)
 	var result map[string]interface{}
 	if err := dec.Decode(&result); err != nil {
 		t.Errorf("Failed to decode JSON: %v", err)
 	}
 
-	if errors := data1.CompareToJSONMessageMap(result); len(errors) > 0 {
-		t.Logf("%v", result)
-		for _, e := range errors {
-			t.Error(e)
-		}
-	}
+	decodedStringEquals(t, result, "mailbox", "good")
+	decodedStringEquals(t, result, "id", "0001")
+	decodedStringEquals(t, result, "from", "<from1@host>")
+	decodedStringEquals(t, result, "to/[0]", "<to1@host>")
+	decodedStringEquals(t, result, "subject", "subject 1")
+	decodedStringEquals(t, result, "date", "2012-02-01T10:11:12.000000253-00:13")
+	decodedNumberEquals(t, result, "size", 0)
+	decodedStringEquals(t, result, "body/text", "This is some text")
+	decodedStringEquals(t, result, "body/html", "This is some HTML")
+	decodedStringEquals(t, result, "header/To/[0]", "fred@fish.com")
+	decodedStringEquals(t, result, "header/To/[1]", "keyword@nsa.gov")
+	decodedStringEquals(t, result, "header/From/[0]", "noreply@inbucket.org")
 
 	if t.Failed() {
 		// Wait for handler to finish logging

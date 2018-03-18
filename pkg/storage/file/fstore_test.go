@@ -133,7 +133,7 @@ func TestFSMissing(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Try to read parts of message
-	_, err = msg.RawReader()
+	_, err = msg.Source()
 	assert.Error(t, err)
 
 	if t.Failed() {

@@ -28,13 +28,13 @@ type mbox struct {
 
 // getMessages scans the mailbox directory for .gob files and decodes them into
 // a slice of Message objects.
-func (mb *mbox) getMessages() ([]storage.StoreMessage, error) {
+func (mb *mbox) getMessages() ([]storage.Message, error) {
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
 			return nil, err
 		}
 	}
-	messages := make([]storage.StoreMessage, len(mb.messages))
+	messages := make([]storage.Message, len(mb.messages))
 	for i, m := range mb.messages {
 		messages[i] = m
 	}
@@ -42,7 +42,7 @@ func (mb *mbox) getMessages() ([]storage.StoreMessage, error) {
 }
 
 // getMessage decodes a single message by ID and returns a Message object.
-func (mb *mbox) getMessage(id string) (storage.StoreMessage, error) {
+func (mb *mbox) getMessage(id string) (storage.Message, error) {
 	if !mb.indexLoaded {
 		if err := mb.readIndex(); err != nil {
 			return nil, err

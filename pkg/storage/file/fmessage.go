@@ -90,8 +90,8 @@ func (m *Message) rawPath() string {
 	return filepath.Join(m.mailbox.path, m.Fid+".raw")
 }
 
-// RawReader opens the .raw portion of a Message as an io.ReadCloser
-func (m *Message) RawReader() (reader io.ReadCloser, err error) {
+// Source opens the .raw portion of a Message as an io.ReadCloser
+func (m *Message) Source() (reader io.ReadCloser, err error) {
 	file, err := os.Open(m.rawPath())
 	if err != nil {
 		return nil, err

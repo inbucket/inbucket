@@ -119,7 +119,7 @@ func (rs *RetentionScanner) DoScan() error {
 	cutoff := time.Now().Add(-1 * rs.retentionPeriod)
 	retained := 0
 	// Loop over all mailboxes.
-	err := rs.ds.VisitMailboxes(func(messages []StoreMessage) bool {
+	err := rs.ds.VisitMailboxes(func(messages []Message) bool {
 		for _, msg := range messages {
 			if msg.Date().Before(cutoff) {
 				log.Tracef("Purging expired message %v/%v", msg.Mailbox(), msg.ID())

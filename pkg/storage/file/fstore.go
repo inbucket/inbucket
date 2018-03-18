@@ -75,14 +75,14 @@ func New(cfg config.DataStoreConfig) storage.Store {
 }
 
 // AddMessage adds a message to the specified mailbox.
-func (fs *Store) AddMessage(m storage.StoreMessage) (id string, err error) {
+func (fs *Store) AddMessage(m storage.Message) (id string, err error) {
 	mb, err := fs.mbox(m.Mailbox())
 	if err != nil {
 		return "", err
 	}
 	mb.Lock()
 	defer mb.Unlock()
-	r, err := m.RawReader()
+	r, err := m.Source()
 	if err != nil {
 		return "", err
 	}
@@ -136,7 +136,7 @@ func (fs *Store) AddMessage(m storage.StoreMessage) (id string, err error) {
 }
 
 // GetMessage returns the messages in the named mailbox, or an error.
-func (fs *Store) GetMessage(mailbox, id string) (storage.StoreMessage, error) {
+func (fs *Store) GetMessage(mailbox, id string) (storage.Message, error) {
 	mb, err := fs.mbox(mailbox)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ func (fs *Store) GetMessage(mailbox, id string) (storage.StoreMessage, error) {
 }
 
 // GetMessages returns the messages in the named mailbox, or an error.
-func (fs *Store) GetMessages(mailbox string) ([]storage.StoreMessage, error) {
+func (fs *Store) GetMessages(mailbox string) ([]storage.Message, error) {
 	mb, err := fs.mbox(mailbox)
 	if err != nil {
 		return nil, err
@@ -181,7 +181,7 @@ func (fs *Store) PurgeMessages(mailbox string) error {
 
 // VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
 // continues to return true.
-func (fs *Store) VisitMailboxes(f func([]storage.StoreMessage) (cont bool)) error {
+func (fs *Store) VisitMailboxes(f func([]storage.Message) (cont bool)) error {
 	infos1, err := ioutil.ReadDir(fs.mailPath)
 	if err != nil {
 		return err

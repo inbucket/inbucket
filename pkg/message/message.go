@@ -34,7 +34,7 @@ type Delivery struct {
 	Reader io.Reader
 }
 
-var _ storage.StoreMessage = &Delivery{}
+var _ storage.Message = &Delivery{}
 
 // Mailbox getter.
 func (d *Delivery) Mailbox() string {
@@ -71,7 +71,7 @@ func (d *Delivery) Size() int64 {
 	return d.Meta.Size
 }
 
-// RawReader contains the raw content of the message.
-func (d *Delivery) RawReader() (io.ReadCloser, error) {
+// Source contains the raw content of the message.
+func (d *Delivery) Source() (io.ReadCloser, error) {
 	return ioutil.NopCloser(d.Reader), nil
 }

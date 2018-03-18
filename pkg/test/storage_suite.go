@@ -138,7 +138,7 @@ func testContent(t *testing.T, store storage.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := m.RawReader()
+	r, err := m.Source()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func testVisitMailboxes(t *testing.T, ds storage.Store) {
 		deliverMessage(t, ds, name, "New Message", time.Now())
 	}
 	seen := 0
-	err := ds.VisitMailboxes(func(messages []storage.StoreMessage) bool {
+	err := ds.VisitMailboxes(func(messages []storage.Message) bool {
 		seen++
 		count := len(messages)
 		if count != 2 {
@@ -317,7 +317,7 @@ func deliverMessage(
 
 // getAndCountMessages is a test helper that expects to receive count messages or fails the test, it
 // also checks return error.
-func getAndCountMessages(t *testing.T, s storage.Store, mailbox string, count int) []storage.StoreMessage {
+func getAndCountMessages(t *testing.T, s storage.Store, mailbox string, count int) []storage.Message {
 	t.Helper()
 	msgs, err := s.GetMessages(mailbox)
 	if err != nil {

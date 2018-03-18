@@ -37,13 +37,13 @@ func TestDoRetentionScan(t *testing.T) {
 		t.Error(err)
 	}
 	// Delete should not have been called on new messages
-	for _, m := range []storage.StoreMessage{new1, new2, new3} {
+	for _, m := range []storage.Message{new1, new2, new3} {
 		if ds.MessageDeleted(m) {
 			t.Errorf("Expected %v to be present, was deleted", m.ID())
 		}
 	}
 	// Delete should have been called once on old messages
-	for _, m := range []storage.StoreMessage{old1, old2, old3} {
+	for _, m := range []storage.Message{old1, old2, old3} {
 		if !ds.MessageDeleted(m) {
 			t.Errorf("Expected %v to be deleted, was present", m.ID())
 		}
@@ -51,7 +51,7 @@ func TestDoRetentionScan(t *testing.T) {
 }
 
 // stubMessage creates a message stub of a specific age
-func stubMessage(mailbox string, ageHours int) storage.StoreMessage {
+func stubMessage(mailbox string, ageHours int) storage.Message {
 	return &message.Delivery{
 		Meta: message.Metadata{
 			Mailbox: mailbox,

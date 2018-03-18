@@ -9,20 +9,20 @@ import (
 // StoreStub stubs storage.Store for testing.
 type StoreStub struct {
 	storage.Store
-	mailboxes map[string][]storage.StoreMessage
-	deleted   map[storage.StoreMessage]struct{}
+	mailboxes map[string][]storage.Message
+	deleted   map[storage.Message]struct{}
 }
 
 // NewStore creates a new StoreStub.
 func NewStore() *StoreStub {
 	return &StoreStub{
-		mailboxes: make(map[string][]storage.StoreMessage),
-		deleted:   make(map[storage.StoreMessage]struct{}),
+		mailboxes: make(map[string][]storage.Message),
+		deleted:   make(map[storage.Message]struct{}),
 	}
 }
 
 // AddMessage adds a message to the specified mailbox.
-func (s *StoreStub) AddMessage(m storage.StoreMessage) (id string, err error) {
+func (s *StoreStub) AddMessage(m storage.Message) (id string, err error) {
 	mb := m.Mailbox()
 	msgs := s.mailboxes[mb]
 	s.mailboxes[mb] = append(msgs, m)
@@ -30,7 +30,7 @@ func (s *StoreStub) AddMessage(m storage.StoreMessage) (id string, err error) {
 }
 
 // GetMessage gets a message by ID from the specified mailbox.
-func (s *StoreStub) GetMessage(mailbox, id string) (storage.StoreMessage, error) {
+func (s *StoreStub) GetMessage(mailbox, id string) (storage.Message, error) {
 	if mailbox == "messageerr" {
 		return nil, errors.New("internal error")
 	}
@@ -43,7 +43,7 @@ func (s *StoreStub) GetMessage(mailbox, id string) (storage.StoreMessage, error)
 }
 
 // GetMessages gets all the messages for the specified mailbox.
-func (s *StoreStub) GetMessages(mailbox string) ([]storage.StoreMessage, error) {
+func (s *StoreStub) GetMessages(mailbox string) ([]storage.Message, error) {
 	if mailbox == "messageserr" {
 		return nil, errors.New("internal error")
 	}
@@ -54,7 +54,7 @@ func (s *StoreStub) GetMessages(mailbox string) ([]storage.StoreMessage, error) 
 func (s *StoreStub) RemoveMessage(mailbox, id string) error {
 	mb, ok := s.mailboxes[mailbox]
 	if ok {
-		var msg storage.StoreMessage
+		var msg storage.Message
 		for i, m := range mb {
 			if m.ID() == id {
 				msg = m
@@ -72,7 +72,7 @@ func (s *StoreStub) RemoveMessage(mailbox, id string) error {
 
 // VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
 // continues to return true.
-func (s *StoreStub) VisitMailboxes(f func([]storage.StoreMessage) (cont bool)) error {
+func (s *StoreStub) VisitMailboxes(f func([]storage.Message) (cont bool)) error {
 	for _, v := range s.mailboxes {
 		if !f(v) {
 			return nil
@@ -82,7 +82,7 @@ func (s *StoreStub) VisitMailboxes(f func([]storage.StoreMessage) (cont bool)) e
 }
 
 // MessageDeleted returns true if the specified message was deleted
-func (s *StoreStub) MessageDeleted(m storage.StoreMessage) bool {
+func (s *StoreStub) MessageDeleted(m storage.Message) bool {
 	_, ok := s.deleted[m]
 	return ok
 }

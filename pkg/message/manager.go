@@ -43,10 +43,10 @@ func (s *StoreManager) Deliver(
 	from string,
 	recipients []*policy.Recipient,
 	prefix string,
-	content []byte,
+	source []byte,
 ) (string, error) {
 	// TODO enmime is too heavy for this step, only need header
-	env, err := enmime.ReadEnvelope(bytes.NewReader(content))
+	env, err := enmime.ReadEnvelope(bytes.NewReader(source))
 	if err != nil {
 		return "", err
 	}
@@ -69,7 +69,7 @@ func (s *StoreManager) Deliver(
 			Date:    time.Now(),
 			Subject: env.GetHeader("Subject"),
 		},
-		Reader: io.MultiReader(strings.NewReader(prefix), bytes.NewReader(content)),
+		Reader: io.MultiReader(strings.NewReader(prefix), bytes.NewReader(source)),
 	}
 	id, err := s.Store.AddMessage(delivery)
 	if err != nil {
@@ -110,7 +110,7 @@ func (s *StoreManager) GetMessage(mailbox, id string) (*Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	r, err := sm.RawReader()
+	r, err := sm.Source()
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (s *StoreManager) SourceReader(mailbox, id string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return sm.RawReader()
+	return sm.Source()
 }
 
 // MailboxForAddress parses an email address to return the canonical mailbox name.
@@ -147,8 +147,8 @@ func (s *StoreManager) MailboxForAddress(mailbox string) (string, error) {
 	return policy.ParseMailboxName(mailbox)
 }
 
-// makeMetadata populates Metadata from a StoreMessage.
-func makeMetadata(m storage.StoreMessage) *Metadata {
+// makeMetadata populates Metadata from a storage.Message.
+func makeMetadata(m storage.Message) *Metadata {
 	return &Metadata{
 		Mailbox: m.Mailbox(),
 		ID:      m.ID(),

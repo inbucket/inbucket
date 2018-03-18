@@ -19,22 +19,22 @@ var (
 // Store is the interface Inbucket uses to interact with storage implementations.
 type Store interface {
 	// AddMessage stores the message, message ID and Size will be ignored.
-	AddMessage(message StoreMessage) (id string, err error)
-	GetMessage(mailbox, id string) (StoreMessage, error)
-	GetMessages(mailbox string) ([]StoreMessage, error)
+	AddMessage(message Message) (id string, err error)
+	GetMessage(mailbox, id string) (Message, error)
+	GetMessages(mailbox string) ([]Message, error)
 	PurgeMessages(mailbox string) error
 	RemoveMessage(mailbox, id string) error
-	VisitMailboxes(f func([]StoreMessage) (cont bool)) error
+	VisitMailboxes(f func([]Message) (cont bool)) error
 }
 
-// StoreMessage represents a message to be stored, or returned from a storage implementation.
-type StoreMessage interface {
+// Message represents a message to be stored, or returned from a storage implementation.
+type Message interface {
 	Mailbox() string
 	ID() string
 	From() *mail.Address
 	To() []*mail.Address
 	Date() time.Time
 	Subject() string
-	RawReader() (reader io.ReadCloser, err error)
+	Source() (io.ReadCloser, error)
 	Size() int64
 }

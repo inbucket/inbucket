@@ -121,7 +121,7 @@ func (s *StoreManager) GetMessage(mailbox, id string) (*Message, error) {
 	}
 	_ = r.Close()
 	header := makeMetadata(sm)
-	return &Message{Metadata: *header, Envelope: env}, nil
+	return &Message{Metadata: *header, env: env}, nil
 }
 
 // PurgeMessages removes all messages from the specified mailbox.

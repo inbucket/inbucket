@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/mail"
+	"net/textproto"
 	"time"
 
 	"github.com/jhillyerd/enmime"
@@ -25,7 +26,40 @@ type Metadata struct {
 // Message holds both the metadata and content of a message.
 type Message struct {
 	Metadata
-	Envelope *enmime.Envelope
+	env *enmime.Envelope
+}
+
+// New constructs a new Message
+func New(m Metadata, e *enmime.Envelope) *Message {
+	return &Message{
+		Metadata: m,
+		env:      e,
+	}
+}
+
+// Attachments returns the MIME attachments for the message.
+func (m *Message) Attachments() []*enmime.Part {
+	return m.env.Attachments
+}
+
+// Header returns the header map for this message.
+func (m *Message) Header() textproto.MIMEHeader {
+	return m.env.Root.Header
+}
+
+// HTML returns the HTML body of the message.
+func (m *Message) HTML() string {
+	return m.env.HTML
+}
+
+// MIMEErrors returns MIME parsing errors and warnings.
+func (m *Message) MIMEErrors() []*enmime.Error {
+	return m.env.Errors
+}
+
+// Text returns the plain text body of the message.
+func (m *Message) Text() string {
+	return m.env.Text
 }
 
 // Delivery is used to add a message to storage.

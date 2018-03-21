@@ -102,12 +102,11 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	mime := msg.Envelope
-	body := template.HTML(web.TextToHTML(mime.Text))
-	htmlAvailable := mime.HTML != ""
+	body := template.HTML(web.TextToHTML(msg.Text()))
+	htmlAvailable := msg.HTML() != ""
 	var htmlBody template.HTML
 	if htmlAvailable {
-		if str, err := sanitize.HTML(mime.HTML); err == nil {
+		if str, err := sanitize.HTML(msg.HTML()); err == nil {
 			htmlBody = template.HTML(str)
 		} else {
 			log.Warnf("HTML sanitizer failed: %s", err)
@@ -121,8 +120,8 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 		"body":          body,
 		"htmlAvailable": htmlAvailable,
 		"htmlBody":      htmlBody,
-		"mimeErrors":    mime.Errors,
-		"attachments":   mime.Attachments,
+		"mimeErrors":    msg.MIMEErrors(),
+		"attachments":   msg.Attachments(),
 	})
 }
 
@@ -143,14 +142,13 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	mime := msg.Envelope
 	// Render partial template
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	return web.RenderPartial("mailbox/_html.html", w, map[string]interface{}{
 		"ctx":     ctx,
 		"name":    name,
 		"message": msg,
-		"body":    template.HTML(mime.HTML),
+		"body":    template.HTML(msg.HTML()),
 	})
 }
 
@@ -206,18 +204,16 @@ func MailboxDownloadAttach(w http.ResponseWriter, req *http.Request, ctx *web.Co
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	body := msg.Envelope
-	if int(num) >= len(body.Attachments) {
+	if int(num) >= len(msg.Attachments()) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
 		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	part := body.Attachments[num]
 	// Output attachment
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment")
-	_, err = io.Copy(w, part)
+	_, err = w.Write(msg.Attachments()[num].Content)
 	return err
 }
 
@@ -249,16 +245,15 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	body := msg.Envelope
-	if int(num) >= len(body.Attachments) {
+	if int(num) >= len(msg.Attachments()) {
 		ctx.Session.AddFlash("Attachment number too high", "errors")
 		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
 		return nil
 	}
-	part := body.Attachments[num]
 	// Output attachment
+	part := msg.Attachments()[num]
 	w.Header().Set("Content-Type", part.ContentType)
-	_, err = io.Copy(w, part)
+	_, err = w.Write(part.Content)
 	return err
 }

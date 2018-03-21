@@ -7,7 +7,6 @@ import (
 
 	"crypto/md5"
 	"encoding/hex"
-	"io/ioutil"
 	"strconv"
 
 	"github.com/jhillyerd/inbucket/pkg/log"
@@ -63,19 +62,20 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	mime := msg.Envelope
 
-	attachments := make([]*model.JSONMessageAttachmentV1, len(mime.Attachments))
-	for i, att := range mime.Attachments {
-		var content []byte
-		content, err = ioutil.ReadAll(att)
+	attachParts := msg.Attachments()
+	attachments := make([]*model.JSONMessageAttachmentV1, len(attachParts))
+	for i, part := range attachParts {
+		content := part.Content
 		var checksum = md5.Sum(content)
 		attachments[i] = &model.JSONMessageAttachmentV1{
-			ContentType:  att.ContentType,
-			FileName:     att.FileName,
-			DownloadLink: "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
-			ViewLink:     "http://" + req.Host + "/mailbox/vattach/" + name + "/" + id + "/" + strconv.Itoa(i) + "/" + att.FileName,
-			MD5:          hex.EncodeToString(checksum[:]),
+			ContentType: part.ContentType,
+			FileName:    part.FileName,
+			DownloadLink: "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" +
+				strconv.Itoa(i) + "/" + part.FileName,
+			ViewLink: "http://" + req.Host + "/mailbox/vattach/" + name + "/" + id + "/" +
+				strconv.Itoa(i) + "/" + part.FileName,
+			MD5: hex.EncodeToString(checksum[:]),
 		}
 	}
 
@@ -88,10 +88,10 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 			Subject: msg.Subject,
 			Date:    msg.Date,
 			Size:    msg.Size,
-			Header:  mime.Root.Header,
+			Header:  msg.Header(),
 			Body: &model.JSONMessageBodyV1{
-				Text: mime.Text,
-				HTML: mime.HTML,
+				Text: msg.Text(),
+				HTML: msg.HTML(),
 			},
 			Attachments: attachments,
 		})

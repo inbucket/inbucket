@@ -172,8 +172,8 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Test JSON message headers
-	msg1 := &message.Message{
-		Metadata: message.Metadata{
+	msg1 := message.New(
+		message.Metadata{
 			Mailbox: "good",
 			ID:      "0001",
 			From:    &mail.Address{Name: "", Address: "from1@host"},
@@ -181,7 +181,7 @@ func TestRestMessage(t *testing.T) {
 			Subject: "subject 1",
 			Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
 		},
-		Envelope: &enmime.Envelope{
+		&enmime.Envelope{
 			Text: "This is some text",
 			HTML: "This is some HTML",
 			Root: &enmime.Part{
@@ -191,7 +191,7 @@ func TestRestMessage(t *testing.T) {
 				},
 			},
 		},
-	}
+	)
 	mm.AddMessage("good", msg1)
 
 	// Check return code

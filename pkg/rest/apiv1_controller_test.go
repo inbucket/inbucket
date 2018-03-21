@@ -67,13 +67,15 @@ func TestRestMailboxList(t *testing.T) {
 	}
 
 	// Test JSON message headers
+	tzPDT := time.FixedZone("PDT", -7*3600)
+	tzPST := time.FixedZone("PST", -8*3600)
 	meta1 := message.Metadata{
 		Mailbox: "good",
 		ID:      "0001",
 		From:    &mail.Address{Name: "", Address: "from1@host"},
 		To:      []*mail.Address{{Name: "", Address: "to1@host"}},
 		Subject: "subject 1",
-		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
+		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, tzPST),
 	}
 	meta2 := message.Metadata{
 		Mailbox: "good",
@@ -81,7 +83,7 @@ func TestRestMailboxList(t *testing.T) {
 		From:    &mail.Address{Name: "", Address: "from2@host"},
 		To:      []*mail.Address{{Name: "", Address: "to1@host"}},
 		Subject: "subject 2",
-		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, time.FixedZone("PDT", -700)),
+		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, tzPDT),
 	}
 	mm.AddMessage("good", &message.Message{Metadata: meta1})
 	mm.AddMessage("good", &message.Message{Metadata: meta2})
@@ -111,14 +113,14 @@ func TestRestMailboxList(t *testing.T) {
 	decodedStringEquals(t, result, "[0]/from", "<from1@host>")
 	decodedStringEquals(t, result, "[0]/to/[0]", "<to1@host>")
 	decodedStringEquals(t, result, "[0]/subject", "subject 1")
-	decodedStringEquals(t, result, "[0]/date", "2012-02-01T10:11:12.000000253-00:13")
+	decodedStringEquals(t, result, "[0]/date", "2012-02-01T10:11:12.000000253-08:00")
 	decodedNumberEquals(t, result, "[0]/size", 0)
 	decodedStringEquals(t, result, "[1]/mailbox", "good")
 	decodedStringEquals(t, result, "[1]/id", "0002")
 	decodedStringEquals(t, result, "[1]/from", "<from2@host>")
 	decodedStringEquals(t, result, "[1]/to/[0]", "<to1@host>")
 	decodedStringEquals(t, result, "[1]/subject", "subject 2")
-	decodedStringEquals(t, result, "[1]/date", "2012-07-01T10:11:12.000000253-00:11")
+	decodedStringEquals(t, result, "[1]/date", "2012-07-01T10:11:12.000000253-07:00")
 	decodedNumberEquals(t, result, "[1]/size", 0)
 
 	if t.Failed() {
@@ -172,6 +174,7 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Test JSON message headers
+	tzPST := time.FixedZone("PST", -8*3600)
 	msg1 := message.New(
 		message.Metadata{
 			Mailbox: "good",
@@ -179,7 +182,7 @@ func TestRestMessage(t *testing.T) {
 			From:    &mail.Address{Name: "", Address: "from1@host"},
 			To:      []*mail.Address{{Name: "", Address: "to1@host"}},
 			Subject: "subject 1",
-			Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, time.FixedZone("PST", -800)),
+			Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, tzPST),
 		},
 		&enmime.Envelope{
 			Text: "This is some text",
@@ -216,7 +219,7 @@ func TestRestMessage(t *testing.T) {
 	decodedStringEquals(t, result, "from", "<from1@host>")
 	decodedStringEquals(t, result, "to/[0]", "<to1@host>")
 	decodedStringEquals(t, result, "subject", "subject 1")
-	decodedStringEquals(t, result, "date", "2012-02-01T10:11:12.000000253-00:13")
+	decodedStringEquals(t, result, "date", "2012-02-01T10:11:12.000000253-08:00")
 	decodedNumberEquals(t, result, "size", 0)
 	decodedStringEquals(t, result, "body/text", "This is some text")
 	decodedStringEquals(t, result, "body/html", "This is some HTML")

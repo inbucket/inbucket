@@ -27,9 +27,9 @@ func TestDoRetentionScan(t *testing.T) {
 	ds.AddMessage(new2)
 	ds.AddMessage(new3)
 	// Test 4 hour retention
-	cfg := config.DataStoreConfig{
-		RetentionMinutes: 239,
-		RetentionSleep:   0,
+	cfg := config.Storage{
+		RetentionPeriod: 239 * time.Minute,
+		RetentionSleep:  0,
 	}
 	shutdownChan := make(chan bool)
 	rs := storage.NewRetentionScanner(cfg, ds, shutdownChan)

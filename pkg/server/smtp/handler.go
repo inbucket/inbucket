@@ -412,9 +412,9 @@ func (ss *Session) greet() {
 	ss.send(fmt.Sprintf("220 %v Inbucket SMTP ready", ss.server.domain))
 }
 
-// Calculate the next read or write deadline based on maxIdleSeconds
+// Calculate the next read or write deadline based on maxIdle
 func (ss *Session) nextDeadline() time.Time {
-	return time.Now().Add(time.Duration(ss.server.maxIdleSeconds) * time.Second)
+	return time.Now().Add(ss.server.maxIdle)
 }
 
 // Send requested message, store errors in Session.sendError

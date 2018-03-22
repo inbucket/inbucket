@@ -11,7 +11,7 @@ import (
 
 // Addressing handles email address policy.
 type Addressing struct {
-	Config config.SMTPConfig
+	Config config.SMTP
 }
 
 // NewRecipient parses an address into a Recipient.

@@ -23,7 +23,7 @@ import (
 // TestSuite runs storage package test suite on file store.
 func TestSuite(t *testing.T) {
 	test.StoreSuite(t, func() (storage.Store, func(), error) {
-		ds, _ := setupDataStore(config.DataStoreConfig{})
+		ds, _ := setupDataStore(config.Storage{})
 		destroy := func() {
 			teardownDataStore(ds)
 		}
@@ -33,7 +33,7 @@ func TestSuite(t *testing.T) {
 
 // Test directory structure created by filestore
 func TestFSDirStructure(t *testing.T) {
-	ds, logbuf := setupDataStore(config.DataStoreConfig{})
+	ds, logbuf := setupDataStore(config.Storage{})
 	defer teardownDataStore(ds)
 	root := ds.path
 
@@ -111,7 +111,7 @@ func TestFSDirStructure(t *testing.T) {
 
 // Test missing files
 func TestFSMissing(t *testing.T) {
-	ds, logbuf := setupDataStore(config.DataStoreConfig{})
+	ds, logbuf := setupDataStore(config.Storage{})
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -147,7 +147,7 @@ func TestFSMissing(t *testing.T) {
 // Test delivering several messages to the same mailbox, see if message cap works
 func TestFSMessageCap(t *testing.T) {
 	mbCap := 10
-	ds, logbuf := setupDataStore(config.DataStoreConfig{MailboxMsgCap: mbCap})
+	ds, logbuf := setupDataStore(config.Storage{MailboxMsgCap: mbCap})
 	defer teardownDataStore(ds)
 
 	mbName := "captain"
@@ -188,7 +188,7 @@ func TestFSMessageCap(t *testing.T) {
 // Test delivering several messages to the same mailbox, see if no message cap works
 func TestFSNoMessageCap(t *testing.T) {
 	mbCap := 0
-	ds, logbuf := setupDataStore(config.DataStoreConfig{MailboxMsgCap: mbCap})
+	ds, logbuf := setupDataStore(config.Storage{MailboxMsgCap: mbCap})
 	defer teardownDataStore(ds)
 
 	mbName := "captain"
@@ -218,7 +218,7 @@ func TestFSNoMessageCap(t *testing.T) {
 
 // Test Get the latest message
 func TestGetLatestMessage(t *testing.T) {
-	ds, logbuf := setupDataStore(config.DataStoreConfig{})
+	ds, logbuf := setupDataStore(config.Storage{})
 	defer teardownDataStore(ds)
 
 	// james hashes to 474ba67bdb289c6263b36dfd8a7bed6c85b04943
@@ -260,7 +260,7 @@ func TestGetLatestMessage(t *testing.T) {
 }
 
 // setupDataStore creates a new FileDataStore in a temporary directory
-func setupDataStore(cfg config.DataStoreConfig) (*Store, *bytes.Buffer) {
+func setupDataStore(cfg config.Storage) (*Store, *bytes.Buffer) {
 	path, err := ioutil.TempDir("", "inbucket")
 	if err != nil {
 		panic(err)

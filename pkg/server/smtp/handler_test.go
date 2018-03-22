@@ -361,13 +361,12 @@ func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
 func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown func()) {
 	// Test Server Config
-	cfg := config.SMTPConfig{
-		IP4address:      net.IPv4(127, 0, 0, 1),
-		IP4port:         2500,
+	cfg := config.SMTP{
+		Addr:            "127.0.0.1:2500",
 		Domain:          "inbucket.local",
 		DomainNoStore:   "bitbucket.local",
 		MaxRecipients:   5,
-		MaxIdleSeconds:  5,
+		MaxIdle:         5,
 		MaxMessageBytes: 5000,
 		StoreMessages:   true,
 	}

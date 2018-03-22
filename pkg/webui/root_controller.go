@@ -12,7 +12,7 @@ import (
 
 // RootIndex serves the Inbucket landing page
 func RootIndex(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
-	greeting, err := ioutil.ReadFile(config.GetWebConfig().GreetingFile)
+	greeting, err := ioutil.ReadFile(ctx.RootConfig.Web.GreetingFile)
 	if err != nil {
 		return fmt.Errorf("Failed to load greeting: %v", err)
 	}
@@ -31,7 +31,7 @@ func RootIndex(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err 
 
 // RootMonitor serves the Inbucket monitor page
 func RootMonitor(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
-	if !config.GetWebConfig().MonitorVisible {
+	if !ctx.RootConfig.Web.MonitorVisible {
 		ctx.Session.AddFlash("Monitor is disabled in configuration", "errors")
 		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
@@ -51,7 +51,7 @@ func RootMonitor(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 
 // RootMonitorMailbox serves the Inbucket monitor page for a particular mailbox
 func RootMonitorMailbox(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
-	if !config.GetWebConfig().MonitorVisible {
+	if !ctx.RootConfig.Web.MonitorVisible {
 		ctx.Session.AddFlash("Monitor is disabled in configuration", "errors")
 		_ = ctx.Session.Save(req, w)
 		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
@@ -79,12 +79,6 @@ func RootMonitorMailbox(w http.ResponseWriter, req *http.Request, ctx *web.Conte
 
 // RootStatus serves the Inbucket status page
 func RootStatus(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
-	smtpListener := fmt.Sprintf("%s:%d", config.GetSMTPConfig().IP4address.String(),
-		config.GetSMTPConfig().IP4port)
-	pop3Listener := fmt.Sprintf("%s:%d", config.GetPOP3Config().IP4address.String(),
-		config.GetPOP3Config().IP4port)
-	webListener := fmt.Sprintf("%s:%d", config.GetWebConfig().IP4address.String(),
-		config.GetWebConfig().IP4port)
 	// Get flash messages, save session
 	errorFlash := ctx.Session.Flashes("errors")
 	if err = ctx.Session.Save(req, w); err != nil {
@@ -92,14 +86,14 @@ func RootStatus(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err
 	}
 	// Render template
 	return web.RenderTemplate("root/status.html", w, map[string]interface{}{
-		"ctx":             ctx,
-		"errorFlash":      errorFlash,
-		"version":         config.Version,
-		"buildDate":       config.BuildDate,
-		"smtpListener":    smtpListener,
-		"pop3Listener":    pop3Listener,
-		"webListener":     webListener,
-		"smtpConfig":      config.GetSMTPConfig(),
-		"dataStoreConfig": config.GetDataStoreConfig(),
+		"ctx":           ctx,
+		"errorFlash":    errorFlash,
+		"version":       config.Version,
+		"buildDate":     config.BuildDate,
+		"smtpListener":  ctx.RootConfig.SMTP.Addr,
+		"pop3Listener":  ctx.RootConfig.POP3.Addr,
+		"webListener":   ctx.RootConfig.Web.Addr,
+		"smtpConfig":    ctx.RootConfig.SMTP,
+		"storageConfig": ctx.RootConfig.Storage,
 	})
 }

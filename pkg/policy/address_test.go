@@ -11,7 +11,7 @@ import (
 func TestShouldStoreDomain(t *testing.T) {
 	// Test with storage enabled.
 	ap := &policy.Addressing{
-		Config: config.SMTPConfig{
+		Config: config.SMTP{
 			DomainNoStore: "Foo.Com",
 			StoreMessages: true,
 		},
@@ -36,7 +36,7 @@ func TestShouldStoreDomain(t *testing.T) {
 	}
 	// Test with storage disabled.
 	ap = &policy.Addressing{
-		Config: config.SMTPConfig{
+		Config: config.SMTP{
 			StoreMessages: false,
 		},
 	}

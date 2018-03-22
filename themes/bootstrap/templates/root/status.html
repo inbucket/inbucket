@@ -62,7 +62,7 @@ $(document).ready(
       <div class="row">
         <div class="col-sm-3 col-xs-7"><b>Message Cap:</b></div>
         <div class="col-sm-8 col-xs-5">
-          {{with .dataStoreConfig}}
+          {{with .storageConfig}}
           <span>{{.MailboxMsgCap}} messages per mailbox</span>
           {{end}}
         </div>
@@ -167,14 +167,14 @@ $(document).ready(
   <div class="panel-heading">
     <h3 class="panel-title">
       <span class="glyphicon glyphicon-hdd" aria-hidden="true"></span>
-      Data Store Metrics</h3>
+      Storage Metrics</h3>
   </div>
   <div class="panel-body">
     <table class="metrics">
       <div class="row">
         <div class="col-sm-3 col-xs-7"><b>Retention Period:</b></div>
         <div class="col-sm-8 col-xs-5">
-          {{if .dataStoreConfig.RetentionMinutes}}
+          {{if .storageConfig.RetentionPeriod}}
           <span id="m-retentionPeriod">.</span>
           {{else}}
           Disabled
@@ -184,7 +184,7 @@ $(document).ready(
       <div class="row">
         <div class="col-sm-3 col-xs-7"><b>Retention Scan:</b></div>
         <div class="col-sm-8 col-xs-5">
-          {{if .dataStoreConfig.RetentionMinutes}}
+          {{if .storageConfig.RetentionPeriod}}
           Completed <span id="m-retentionScanCompleted">.</span> ago
           {{else}}
           Disabled

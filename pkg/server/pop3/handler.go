@@ -536,7 +536,7 @@ func (ses *Session) enterState(state State) {
 
 // Calculate the next read or write deadline based on maxIdleSeconds
 func (ses *Session) nextDeadline() time.Time {
-	return time.Now().Add(time.Duration(ses.server.maxIdleSeconds) * time.Second)
+	return time.Now().Add(ses.server.maxIdle)
 }
 
 // Send requested message, store errors in Session.sendError

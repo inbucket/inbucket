@@ -48,7 +48,7 @@ type Store struct {
 }
 
 // New creates a new DataStore object using the specified path
-func New(cfg config.DataStoreConfig) storage.Store {
+func New(cfg config.Storage) storage.Store {
 	path := cfg.Path
 	if path == "" {
 		log.Errorf("No value configured for datastore path")

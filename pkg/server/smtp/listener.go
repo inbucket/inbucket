@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"context"
 	"expvar"
-	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -43,7 +42,7 @@ type Server struct {
 	domain          string
 	domainNoStore   string
 	maxRecips       int
-	maxIdleSeconds  int
+	maxIdle         time.Duration
 	maxMessageBytes int
 	storeMessages   bool
 
@@ -80,17 +79,17 @@ var (
 
 // NewServer creates a new Server instance with the specificed config
 func NewServer(
-	cfg config.SMTPConfig,
+	cfg config.SMTP,
 	globalShutdown chan bool,
 	manager message.Manager,
 	apolicy *policy.Addressing,
 ) *Server {
 	return &Server{
-		host:            fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
+		host:            cfg.Addr,
 		domain:          cfg.Domain,
 		domainNoStore:   strings.ToLower(cfg.DomainNoStore),
 		maxRecips:       cfg.MaxRecipients,
-		maxIdleSeconds:  cfg.MaxIdleSeconds,
+		maxIdle:         cfg.MaxIdle,
 		maxMessageBytes: cfg.MaxMessageBytes,
 		storeMessages:   cfg.StoreMessages,
 		globalShutdown:  globalShutdown,

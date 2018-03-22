@@ -50,7 +50,7 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 	}
 
 	tempPath := strings.Replace(name, "/", string(filepath.Separator), -1)
-	tempFile := filepath.Join(webConfig.TemplateDir, tempPath)
+	tempFile := filepath.Join(rootConfig.Web.TemplateDir, tempPath)
 	log.Tracef("Parsing template %v", tempFile)
 
 	var err error
@@ -62,14 +62,14 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 		t, err = t.ParseFiles(tempFile)
 	} else {
 		t = template.New("_base.html").Funcs(TemplateFuncs)
-		t, err = t.ParseFiles(filepath.Join(webConfig.TemplateDir, "_base.html"), tempFile)
+		t, err = t.ParseFiles(filepath.Join(rootConfig.Web.TemplateDir, "_base.html"), tempFile)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	// Allows us to disable caching for theme development
-	if webConfig.TemplateCache {
+	if rootConfig.Web.TemplateCache {
 		if partial {
 			log.Tracef("Caching partial %v", name)
 			cachedTemplates[name] = t

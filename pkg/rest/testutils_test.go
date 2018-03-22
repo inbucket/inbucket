@@ -34,9 +34,11 @@ func setupWebServer(mm message.Manager) *bytes.Buffer {
 
 	// Have to reset default mux to prevent duplicate routes
 	http.DefaultServeMux = http.NewServeMux()
-	cfg := config.WebConfig{
-		TemplateDir: "../themes/bootstrap/templates",
-		PublicDir:   "../themes/bootstrap/public",
+	cfg := &config.Root{
+		Web: config.Web{
+			TemplateDir: "../themes/bootstrap/templates",
+			PublicDir:   "../themes/bootstrap/public",
+		},
 	}
 	shutdownChan := make(chan bool)
 	web.Initialize(cfg, shutdownChan, mm, &msghub.Hub{})

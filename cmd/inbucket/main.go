@@ -27,83 +27,63 @@ import (
 )
 
 var (
-	// version contains the build version number, populated during linking
+	// version contains the build version number, populated during linking.
 	version = "undefined"
 
-	// date contains the build date, populated during linking
+	// date contains the build date, populated during linking.
 	date = "undefined"
-
-	// Command line flags
-	help    = flag.Bool("help", false, "Displays this help")
-	pidfile = flag.String("pidfile", "none", "Write our PID into the specified file")
-	logfile = flag.String("logfile", "stderr", "Write out log into the specified file")
-
-	// shutdownChan - close it to tell Inbucket to shut down cleanly
-	shutdownChan = make(chan bool)
-
-	// Server instances
-	smtpServer *smtp.Server
-	pop3Server *pop3.Server
 )
 
 func init() {
-	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage of inbucket [options] <conf file>:")
-		flag.PrintDefaults()
-	}
-
-	// Server uptime for status page
+	// Server uptime for status page.
 	startTime := time.Now()
 	expvar.Publish("uptime", expvar.Func(func() interface{} {
 		return time.Since(startTime) / time.Second
 	}))
 
-	// Goroutine count for status page
+	// Goroutine count for status page.
 	expvar.Publish("goroutines", expvar.Func(func() interface{} {
 		return runtime.NumGoroutine()
 	}))
 }
 
 func main() {
-	config.Version = version
-	config.BuildDate = date
-
+	// Command line flags.
+	help := flag.Bool("help", false, "Displays this help")
+	pidfile := flag.String("pidfile", "", "Write our PID into the specified file")
+	logfile := flag.String("logfile", "stderr", "Write out log into the specified file")
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: inbucket [options]")
+		flag.PrintDefaults()
+		fmt.Fprintln(os.Stderr, "")
+		config.Usage()
+	}
 	flag.Parse()
 	if *help {
 		flag.Usage()
 		return
 	}
-
-	// Root context
-	rootCtx, rootCancel := context.WithCancel(context.Background())
-
-	// Load & Parse config
-	if flag.NArg() != 1 {
-		flag.Usage()
-		os.Exit(1)
-	}
-	err := config.LoadConfig(flag.Arg(0))
+	// Process configuration.
+	config.Version = version
+	config.BuildDate = date
+	conf, err := config.Process()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to parse config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Configuration error: %v\n", err)
 		os.Exit(1)
 	}
-
-	// Setup signal handler
+	// Setup signal handler.
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
-
-	// Initialize logging
-	log.SetLogLevel(config.GetLogLevel())
+	// Initialize logging.
+	log.SetLogLevel(conf.LogLevel)
 	if err := log.Initialize(*logfile); err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
 	defer log.Close()
-
 	log.Infof("Inbucket %v (%v) starting...", config.Version, config.BuildDate)
-
-	// Write pidfile if requested
-	if *pidfile != "none" {
+	// Write pidfile if requested.
+	if *pidfile != "" {
 		pidf, err := os.Create(*pidfile)
 		if err != nil {
 			log.Errorf("Failed to create %q: %v", *pidfile, err)
@@ -114,26 +94,26 @@ func main() {
 			log.Errorf("Failed to close PID file %q: %v", *pidfile, err)
 		}
 	}
-
 	// Configure internal services.
-	msgHub := msghub.New(rootCtx, config.GetWebConfig().MonitorHistory)
-	dscfg := config.GetDataStoreConfig()
-	store := file.New(dscfg)
-	apolicy := &policy.Addressing{Config: config.GetSMTPConfig()}
+	rootCtx, rootCancel := context.WithCancel(context.Background())
+	shutdownChan := make(chan bool)
+	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
+	store := file.New(conf.Storage)
+	addrPolicy := &policy.Addressing{Config: conf.SMTP}
 	mmanager := &message.StoreManager{Store: store, Hub: msgHub}
 	// Start Retention scanner.
-	retentionScanner := storage.NewRetentionScanner(dscfg, store, shutdownChan)
+	retentionScanner := storage.NewRetentionScanner(conf.Storage, store, shutdownChan)
 	retentionScanner.Start()
 	// Start HTTP server.
-	web.Initialize(config.GetWebConfig(), shutdownChan, mmanager, msgHub)
+	web.Initialize(conf, shutdownChan, mmanager, msgHub)
 	webui.SetupRoutes(web.Router)
 	rest.SetupRoutes(web.Router)
 	go web.Start(rootCtx)
 	// Start POP3 server.
-	pop3Server = pop3.New(config.GetPOP3Config(), shutdownChan, store)
+	pop3Server := pop3.New(conf.POP3, shutdownChan, store)
 	go pop3Server.Start(rootCtx)
 	// Start SMTP server.
-	smtpServer = smtp.NewServer(config.GetSMTPConfig(), shutdownChan, mmanager, apolicy)
+	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)
 	go smtpServer.Start(rootCtx)
 	// Loop forever waiting for signals or shutdown channel.
 signalLoop:
@@ -158,30 +138,27 @@ signalLoop:
 			break signalLoop
 		}
 	}
-
-	// Wait for active connections to finish
-	go timedExit()
+	// Wait for active connections to finish.
+	go timedExit(*pidfile)
 	smtpServer.Drain()
 	pop3Server.Drain()
 	retentionScanner.Join()
-
-	removePIDFile()
+	removePIDFile(*pidfile)
 }
 
-// removePIDFile removes the PID file if created
-func removePIDFile() {
-	if *pidfile != "none" {
-		if err := os.Remove(*pidfile); err != nil {
-			log.Errorf("Failed to remove %q: %v", *pidfile, err)
+// removePIDFile removes the PID file if created.
+func removePIDFile(pidfile string) {
+	if pidfile != "" {
+		if err := os.Remove(pidfile); err != nil {
+			log.Errorf("Failed to remove %q: %v", pidfile, err)
 		}
 	}
 }
 
-// timedExit is called as a goroutine during shutdown, it will force an exit
-// after 15 seconds
-func timedExit() {
+// timedExit is called as a goroutine during shutdown, it will force an exit after 15 seconds.
+func timedExit(pidfile string) {
 	time.Sleep(15 * time.Second)
 	log.Errorf("Clean shutdown took too long, forcing exit")
-	removePIDFile()
+	removePIDFile(pidfile)
 	os.Exit(0)
 }

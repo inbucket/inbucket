@@ -72,7 +72,7 @@ func SetLogLevel(level string) (ok bool) {
 	case "TRACE":
 		MaxLevel = TRACE
 	default:
-		Errorf("Unknown log level requested: " + level)
+		golog.Print("Error, unknown log level requested: " + level)
 		return false
 	}
 	return true
@@ -150,7 +150,6 @@ func openLogFile() error {
 		return fmt.Errorf("failed to create %v: %v", logfname, err)
 	}
 	golog.SetOutput(logf)
-	Tracef("Opened new logfile")
 	// Platform specific
 	reassignStdout()
 	return nil
@@ -158,7 +157,6 @@ func openLogFile() error {
 
 // closeLogFile closes the current logfile
 func closeLogFile() {
-	Tracef("Closing logfile")
 	// We are never in a situation where we can do anything about failing to close
 	_ = logf.Close()
 }

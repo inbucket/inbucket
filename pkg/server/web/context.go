@@ -12,13 +12,15 @@ import (
 )
 
 // Context is passed into every request handler function
+// TODO remove redundant web config
 type Context struct {
-	Vars      map[string]string
-	Session   *sessions.Session
-	MsgHub    *msghub.Hub
-	Manager   message.Manager
-	WebConfig config.WebConfig
-	IsJSON    bool
+	Vars       map[string]string
+	Session    *sessions.Session
+	MsgHub     *msghub.Hub
+	Manager    message.Manager
+	RootConfig *config.Root
+	WebConfig  config.Web
+	IsJSON     bool
 }
 
 // Close the Context (currently does nothing)
@@ -57,12 +59,13 @@ func NewContext(req *http.Request) (*Context, error) {
 		err = nil
 	}
 	ctx := &Context{
-		Vars:      vars,
-		Session:   sess,
-		MsgHub:    msgHub,
-		Manager:   manager,
-		WebConfig: webConfig,
-		IsJSON:    headerMatch(req, "Accept", "application/json"),
+		Vars:       vars,
+		Session:    sess,
+		MsgHub:     msgHub,
+		Manager:    manager,
+		RootConfig: rootConfig,
+		WebConfig:  rootConfig.Web,
+		IsJSON:     headerMatch(req, "Accept", "application/json"),
 	}
 	return ctx, err
 }

@@ -4,7 +4,6 @@ package web
 import (
 	"context"
 	"expvar"
-	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -30,7 +29,7 @@ var (
 	// incoming requests to the correct handler function
 	Router = mux.NewRouter()
 
-	webConfig      config.WebConfig
+	rootConfig     *config.Root
 	server         *http.Server
 	listener       net.Listener
 	sessionStore   sessions.Store
@@ -47,12 +46,12 @@ func init() {
 
 // Initialize sets up things for unit tests or the Start() method
 func Initialize(
-	cfg config.WebConfig,
+	conf *config.Root,
 	shutdownChan chan bool,
 	mm message.Manager,
 	mh *msghub.Hub) {
 
-	webConfig = cfg
+	rootConfig = conf
 	globalShutdown = shutdownChan
 
 	// NewContext() will use this DataStore for the web handlers
@@ -60,36 +59,35 @@ func Initialize(
 	manager = mm
 
 	// Content Paths
-	log.Infof("HTTP templates mapped to %q", cfg.TemplateDir)
-	log.Infof("HTTP static content mapped to %q", cfg.PublicDir)
+	log.Infof("HTTP templates mapped to %q", conf.Web.TemplateDir)
+	log.Infof("HTTP static content mapped to %q", conf.Web.PublicDir)
 	Router.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
-		http.FileServer(http.Dir(cfg.PublicDir))))
+		http.FileServer(http.Dir(conf.Web.PublicDir))))
 	http.Handle("/", Router)
 
 	// Session cookie setup
-	if cfg.CookieAuthKey == "" {
+	if conf.Web.CookieAuthKey == "" {
 		log.Infof("HTTP generating random cookie.auth.key")
 		sessionStore = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
 	} else {
 		log.Tracef("HTTP using configured cookie.auth.key")
-		sessionStore = sessions.NewCookieStore([]byte(cfg.CookieAuthKey))
+		sessionStore = sessions.NewCookieStore([]byte(conf.Web.CookieAuthKey))
 	}
 }
 
 // Start begins listening for HTTP requests
 func Start(ctx context.Context) {
-	addr := fmt.Sprintf("%v:%v", webConfig.IP4address, webConfig.IP4port)
 	server = &http.Server{
-		Addr:         addr,
+		Addr:         rootConfig.Web.Addr,
 		Handler:      nil,
 		ReadTimeout:  60 * time.Second,
 		WriteTimeout: 60 * time.Second,
 	}
 
 	// We don't use ListenAndServe because it lacks a way to close the listener
-	log.Infof("HTTP listening on TCP4 %v", addr)
+	log.Infof("HTTP listening on TCP4 %v", server.Addr)
 	var err error
-	listener, err = net.Listen("tcp", addr)
+	listener, err = net.Listen("tcp", server.Addr)
 	if err != nil {
 		log.Errorf("HTTP failed to start TCP4 listener: %v", err)
 		emergencyShutdown()

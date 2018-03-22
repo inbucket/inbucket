@@ -54,7 +54,7 @@ type RetentionScanner struct {
 
 // NewRetentionScanner configures a new RententionScanner.
 func NewRetentionScanner(
-	cfg config.DataStoreConfig,
+	cfg config.Storage,
 	ds Store,
 	shutdownChannel chan bool,
 ) *RetentionScanner {
@@ -62,11 +62,11 @@ func NewRetentionScanner(
 		globalShutdown:    shutdownChannel,
 		retentionShutdown: make(chan bool),
 		ds:                ds,
-		retentionPeriod:   time.Duration(cfg.RetentionMinutes) * time.Minute,
-		retentionSleep:    time.Duration(cfg.RetentionSleep) * time.Millisecond,
+		retentionPeriod:   cfg.RetentionPeriod,
+		retentionSleep:    cfg.RetentionSleep,
 	}
 	// expRetentionPeriod is displayed on the status page
-	expRetentionPeriod.Set(int64(cfg.RetentionMinutes * 60))
+	expRetentionPeriod.Set(int64(cfg.RetentionPeriod / time.Second))
 	return rs
 }
 

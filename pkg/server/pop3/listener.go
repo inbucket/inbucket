@@ -2,7 +2,6 @@ package pop3
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -16,7 +15,7 @@ import (
 type Server struct {
 	host           string
 	domain         string
-	maxIdleSeconds int
+	maxIdle        time.Duration
 	dataStore      storage.Store
 	listener       net.Listener
 	globalShutdown chan bool
@@ -24,12 +23,12 @@ type Server struct {
 }
 
 // New creates a new Server struct
-func New(cfg config.POP3Config, shutdownChan chan bool, ds storage.Store) *Server {
+func New(cfg config.POP3, shutdownChan chan bool, ds storage.Store) *Server {
 	return &Server{
-		host:           fmt.Sprintf("%v:%v", cfg.IP4address, cfg.IP4port),
+		host:           cfg.Addr,
 		domain:         cfg.Domain,
 		dataStore:      ds,
-		maxIdleSeconds: cfg.MaxIdleSeconds,
+		maxIdle:        cfg.MaxIdle,
 		globalShutdown: shutdownChan,
 		waitgroup:      new(sync.WaitGroup),
 	}

@@ -18,14 +18,17 @@ var (
 	expRetentionDeletesTotal = new(expvar.Int)
 	expRetentionPeriod       = new(expvar.Int)
 	expRetainedCurrent       = new(expvar.Int)
+	expRetainedSize          = new(expvar.Int)
 
 	// History of certain stats
 	retentionDeletesHist = list.New()
 	retainedHist         = list.New()
+	sizeHist             = list.New()
 
 	// History rendered as comma delimited string
 	expRetentionDeletesHist = new(expvar.String)
 	expRetainedHist         = new(expvar.String)
+	expSizeHist             = new(expvar.String)
 )
 
 func init() {
@@ -36,10 +39,13 @@ func init() {
 	rm.Set("Period", expRetentionPeriod)
 	rm.Set("RetainedHist", expRetainedHist)
 	rm.Set("RetainedCurrent", expRetainedCurrent)
+	rm.Set("RetainedSize", expRetainedSize)
+	rm.Set("SizeHist", expSizeHist)
 
 	log.AddTickerFunc(func() {
 		expRetentionDeletesHist.Set(log.PushMetric(retentionDeletesHist, expRetentionDeletesTotal))
 		expRetainedHist.Set(log.PushMetric(retainedHist, expRetainedCurrent))
+		expSizeHist.Set(log.PushMetric(sizeHist, expRetainedSize))
 	})
 }
 
@@ -118,6 +124,7 @@ func (rs *RetentionScanner) DoScan() error {
 	log.Tracef("Starting retention scan")
 	cutoff := time.Now().Add(-1 * rs.retentionPeriod)
 	retained := 0
+	storeSize := int64(0)
 	// Loop over all mailboxes.
 	err := rs.ds.VisitMailboxes(func(messages []Message) bool {
 		for _, msg := range messages {
@@ -130,6 +137,7 @@ func (rs *RetentionScanner) DoScan() error {
 				}
 			} else {
 				retained++
+				storeSize += msg.Size()
 			}
 		}
 		select {
@@ -147,6 +155,7 @@ func (rs *RetentionScanner) DoScan() error {
 	// Update metrics
 	setRetentionScanCompleted(time.Now())
 	expRetainedCurrent.Set(int64(retained))
+	expRetainedSize.Set(storeSize)
 	return nil
 }
 

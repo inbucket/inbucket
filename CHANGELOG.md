@@ -6,14 +6,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Store size is now calculated during retention scan and displayed on the Status
+  page.
+
 ### Changed
 - Massive refactor of back-end code.  Inbucket should now be both easier and
   more enjoyable to work on.
 
+
 ## [v1.3.1] - 2018-03-10
 
 ### Fixed
-
 - Adding additional locking during message delivery to prevent race condition
   that could lose messages.
 

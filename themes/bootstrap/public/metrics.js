@@ -120,6 +120,8 @@ function displayMetrics(data, textStatus, jqXHR) {
   setHistoryOfActivity('retentionDeletesTotal', data.retention.DeletesHist);
   metric('retainedCurrent', data.retention.RetainedCurrent, numberFilter, false);
   setHistoryOfCount('retainedCurrent', data.retention.RetainedHist);
+  metric('retainedSize', data.retention.RetainedSize, sizeFilter, false);
+  setHistoryOfCount('retainedSize', data.retention.SizeHist);
 }
 
 function loadMetrics() {

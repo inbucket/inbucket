@@ -71,7 +71,7 @@ type Web struct {
 type Storage struct {
 	Path            string        `required:"true" default:"/tmp/inbucket" desc:"Mail store path"`
 	RetentionPeriod time.Duration `required:"true" default:"24h" desc:"Duration to retain messages"`
-	RetentionSleep  time.Duration `required:"true" default:"100ms" desc:"Duration to sleep between deletes"`
+	RetentionSleep  time.Duration `required:"true" default:"50ms" desc:"Duration to sleep between mailboxes"`
 	MailboxMsgCap   int           `required:"true" default:"500" desc:"Maximum messages per mailbox"`
 }
 

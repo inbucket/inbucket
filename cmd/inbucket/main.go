@@ -49,18 +49,18 @@ func init() {
 
 func main() {
 	// Command line flags.
-	help := flag.Bool("help", false, "Displays this help")
-	pidfile := flag.String("pidfile", "", "Write our PID into the specified file")
-	logfile := flag.String("logfile", "stderr", "Write out log into the specified file")
+	help := flag.Bool("help", false, "Displays help on flags and env variables.")
+	pidfile := flag.String("pidfile", "", "Write our PID into the specified file.")
+	logfile := flag.String("logfile", "stderr", "Write out log into the specified file.")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: inbucket [options]")
 		flag.PrintDefaults()
-		fmt.Fprintln(os.Stderr, "")
-		config.Usage()
 	}
 	flag.Parse()
 	if *help {
 		flag.Usage()
+		fmt.Fprintln(os.Stderr, "")
+		config.Usage()
 		return
 	}
 	// Process configuration.

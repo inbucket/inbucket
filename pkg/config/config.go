@@ -11,11 +11,11 @@ import (
 
 const (
 	prefix      = "inbucket"
-	tableFormat = `Inbucket is configured via the environment. The following environment
-variables can be used:
+	tableFormat = `Inbucket is configured via the environment. The following environment variables
+can be used:
 
-KEY	DEFAULT	REQUIRED	DESCRIPTION
-{{range .}}{{usage_key .}}	{{usage_default .}}	{{usage_required .}}	{{usage_description .}}
+KEY	DEFAULT	DESCRIPTION
+{{range .}}{{usage_key .}}	{{usage_default .}}	{{usage_description .}}
 {{end}}`
 )
 
@@ -42,16 +42,16 @@ type SMTP struct {
 	Domain          string        `required:"true" default:"inbucket" desc:"HELO domain"`
 	DomainNoStore   string        `desc:"Load testing domain"`
 	MaxRecipients   int           `required:"true" default:"200" desc:"Maximum RCPT TO per message"`
-	MaxIdle         time.Duration `required:"true" default:"300s" desc:"Idle network timeout"`
 	MaxMessageBytes int           `required:"true" default:"2048000" desc:"Maximum message size"`
 	StoreMessages   bool          `required:"true" default:"true" desc:"Store incoming mail?"`
+	Timeout         time.Duration `required:"true" default:"300s" desc:"Idle network timeout"`
 }
 
 // POP3 contains the POP3 server configuration.
 type POP3 struct {
 	Addr    string        `required:"true" default:"0.0.0.0:1100" desc:"POP3 server IP4 host:port"`
 	Domain  string        `required:"true" default:"inbucket" desc:"HELLO domain"`
-	MaxIdle time.Duration `required:"true" default:"600s" desc:"Idle network timeout"`
+	Timeout time.Duration `required:"true" default:"600s" desc:"Idle network timeout"`
 }
 
 // Web contains the HTTP server configuration.

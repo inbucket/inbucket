@@ -42,9 +42,9 @@ type Server struct {
 	domain          string
 	domainNoStore   string
 	maxRecips       int
-	maxIdle         time.Duration
 	maxMessageBytes int
 	storeMessages   bool
+	timeout         time.Duration
 
 	// Dependencies
 	apolicy        *policy.Addressing // Address policy.
@@ -89,7 +89,7 @@ func NewServer(
 		domain:          cfg.Domain,
 		domainNoStore:   strings.ToLower(cfg.DomainNoStore),
 		maxRecips:       cfg.MaxRecipients,
-		maxIdle:         cfg.MaxIdle,
+		timeout:         cfg.Timeout,
 		maxMessageBytes: cfg.MaxMessageBytes,
 		storeMessages:   cfg.StoreMessages,
 		globalShutdown:  globalShutdown,

@@ -414,7 +414,7 @@ func (ss *Session) greet() {
 
 // Calculate the next read or write deadline based on maxIdle
 func (ss *Session) nextDeadline() time.Time {
-	return time.Now().Add(ss.server.maxIdle)
+	return time.Now().Add(ss.server.timeout)
 }
 
 // Send requested message, store errors in Session.sendError

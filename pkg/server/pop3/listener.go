@@ -15,20 +15,20 @@ import (
 type Server struct {
 	host           string
 	domain         string
-	maxIdle        time.Duration
-	dataStore      storage.Store
+	timeout        time.Duration
+	store          storage.Store
 	listener       net.Listener
 	globalShutdown chan bool
 	waitgroup      *sync.WaitGroup
 }
 
 // New creates a new Server struct
-func New(cfg config.POP3, shutdownChan chan bool, ds storage.Store) *Server {
+func New(cfg config.POP3, shutdownChan chan bool, store storage.Store) *Server {
 	return &Server{
 		host:           cfg.Addr,
 		domain:         cfg.Domain,
-		dataStore:      ds,
-		maxIdle:        cfg.MaxIdle,
+		store:          store,
+		timeout:        cfg.Timeout,
 		globalShutdown: shutdownChan,
 		waitgroup:      new(sync.WaitGroup),
 	}

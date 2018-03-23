@@ -366,7 +366,7 @@ func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown f
 		Domain:          "inbucket.local",
 		DomainNoStore:   "bitbucket.local",
 		MaxRecipients:   5,
-		MaxIdle:         5,
+		Timeout:         5,
 		MaxMessageBytes: 5000,
 		StoreMessages:   true,
 	}

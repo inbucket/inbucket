@@ -496,7 +496,7 @@ func (ses *Session) sendMessageTop(msg storage.Message, lineCount int) {
 
 // Load the users mailbox
 func (ses *Session) loadMailbox() {
-	m, err := ses.server.dataStore.GetMessages(ses.user)
+	m, err := ses.server.store.GetMessages(ses.user)
 	if err != nil {
 		ses.logError("Failed to load messages for %v: %v", ses.user, err)
 	}
@@ -522,7 +522,7 @@ func (ses *Session) processDeletes() {
 	for i, msg := range ses.messages {
 		if !ses.retain[i] {
 			ses.logTrace("Deleting %v", msg)
-			if err := ses.server.dataStore.RemoveMessage(ses.user, msg.ID()); err != nil {
+			if err := ses.server.store.RemoveMessage(ses.user, msg.ID()); err != nil {
 				ses.logWarn("Error deleting %v: %v", msg, err)
 			}
 		}
@@ -536,7 +536,7 @@ func (ses *Session) enterState(state State) {
 
 // Calculate the next read or write deadline based on maxIdleSeconds
 func (ses *Session) nextDeadline() time.Time {
-	return time.Now().Add(ses.server.maxIdle)
+	return time.Now().Add(ses.server.timeout)
 }
 
 // Send requested message, store errors in Session.sendError

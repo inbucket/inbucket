@@ -10,8 +10,8 @@ import (
 
 // TestSuite runs storage package test suite on file store.
 func TestSuite(t *testing.T) {
-	test.StoreSuite(t, func() (storage.Store, func(), error) {
-		s, _ := New(config.Storage{})
+	test.StoreSuite(t, func(conf config.Storage) (storage.Store, func(), error) {
+		s, _ := New(conf)
 		destroy := func() {}
 		return s, destroy, nil
 	})

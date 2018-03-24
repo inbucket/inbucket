@@ -9,30 +9,34 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
 // StoreFactory returns a new store for the test suite.
-type StoreFactory func() (store storage.Store, destroy func(), err error)
+type StoreFactory func(config.Storage) (store storage.Store, destroy func(), err error)
 
 // StoreSuite runs a set of general tests on the provided Store.
 func StoreSuite(t *testing.T, factory StoreFactory) {
 	testCases := []struct {
 		name string
 		test func(*testing.T, storage.Store)
+		conf config.Storage
 	}{
-		{"metadata", testMetadata},
-		{"content", testContent},
-		{"delivery order", testDeliveryOrder},
-		{"size", testSize},
-		{"delete", testDelete},
-		{"purge", testPurge},
-		{"visit mailboxes", testVisitMailboxes},
+		{"metadata", testMetadata, config.Storage{}},
+		{"content", testContent, config.Storage{}},
+		{"delivery order", testDeliveryOrder, config.Storage{}},
+		{"size", testSize, config.Storage{}},
+		{"delete", testDelete, config.Storage{}},
+		{"purge", testPurge, config.Storage{}},
+		{"cap=10", testMsgCap, config.Storage{MailboxMsgCap: 10}},
+		{"cap=0", testNoMsgCap, config.Storage{MailboxMsgCap: 0}},
+		{"visit mailboxes", testVisitMailboxes, config.Storage{}},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			store, destroy, err := factory()
+			store, destroy, err := factory(tc.conf)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -258,6 +262,43 @@ func testPurge(t *testing.T, store storage.Store) {
 		t.Fatal(err)
 	}
 	getAndCountMessages(t, store, mailbox, 0)
+}
+
+// testMsgCap verifies the message cap is enforced.
+func testMsgCap(t *testing.T, store storage.Store) {
+	mbCap := 10
+	mailbox := "captain"
+	for i := 0; i < 20; i++ {
+		subj := fmt.Sprintf("subject %v", i)
+		deliverMessage(t, store, mailbox, subj, time.Now())
+		msgs, err := store.GetMessages(mailbox)
+		if err != nil {
+			t.Fatalf("Failed to GetMessages for %q: %v", mailbox, err)
+		}
+		if len(msgs) > mbCap {
+			t.Errorf("Mailbox has %v messages, should be capped at %v", len(msgs), mbCap)
+			break
+		}
+		// Check that the first message is correct.
+		first := i - mbCap + 1
+		if first < 0 {
+			first = 0
+		}
+		firstSubj := fmt.Sprintf("subject %v", first)
+		if firstSubj != msgs[0].Subject() {
+			t.Errorf("Got subject %q, wanted first subject: %q", msgs[0].Subject(), firstSubj)
+		}
+	}
+}
+
+// testNoMsgCap verfies a cap of 0 is not enforced.
+func testNoMsgCap(t *testing.T, store storage.Store) {
+	mailbox := "captain"
+	for i := 0; i < 20; i++ {
+		subj := fmt.Sprintf("subject %v", i)
+		deliverMessage(t, store, mailbox, subj, time.Now())
+		getAndCountMessages(t, store, mailbox, i+1)
+	}
 }
 
 // testVisitMailboxes creates some mailboxes and confirms the VisitMailboxes method visits all of

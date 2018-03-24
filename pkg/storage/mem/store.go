@@ -14,12 +14,14 @@ import (
 type Store struct {
 	sync.Mutex
 	boxes map[string]*mbox
+	cap   int
 }
 
 type mbox struct {
 	sync.RWMutex
 	name     string
-	counter  int
+	last     int
+	first    int
 	messages map[string]*Message
 }
 
@@ -29,6 +31,7 @@ var _ storage.Store = &Store{}
 func New(cfg config.Storage) (storage.Store, error) {
 	return &Store{
 		boxes: make(map[string]*mbox),
+		cap:   cfg.MailboxMsgCap,
 	}, nil
 }
 
@@ -46,10 +49,10 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 			return
 		}
 		// Generate message ID.
-		mb.counter++
-		id = strconv.Itoa(mb.counter)
+		mb.last++
+		id = strconv.Itoa(mb.last)
 		m := &Message{
-			index:   mb.counter,
+			index:   mb.last,
 			mailbox: message.Mailbox(),
 			id:      id,
 			from:    message.From(),
@@ -59,6 +62,13 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 			source:  source,
 		}
 		mb.messages[id] = m
+		if s.cap > 0 {
+			// Enforce cap.
+			for len(mb.messages) > s.cap {
+				delete(mb.messages, strconv.Itoa(mb.first))
+				mb.first++
+			}
+		}
 	})
 	return id, err
 }
@@ -121,7 +131,7 @@ func (s *Store) VisitMailboxes(f func([]storage.Message) (cont bool)) error {
 }
 
 // withMailbox gets or creates a mailbox, locks it, then calls f.
-func (s *Store) withMailbox(mailbox string, rw bool, f func(mb *mbox)) {
+func (s *Store) withMailbox(mailbox string, writeLock bool, f func(mb *mbox)) {
 	s.Lock()
 	mb, ok := s.boxes[mailbox]
 	if !ok {
@@ -133,13 +143,13 @@ func (s *Store) withMailbox(mailbox string, rw bool, f func(mb *mbox)) {
 		s.boxes[mailbox] = mb
 	}
 	s.Unlock()
-	if rw {
+	if writeLock {
 		mb.Lock()
 	} else {
 		mb.RLock()
 	}
 	defer func() {
-		if rw {
+		if writeLock {
 			mb.Unlock()
 		} else {
 			mb.RUnlock()

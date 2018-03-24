@@ -265,13 +265,18 @@ func setupDataStore(cfg config.Storage) (*Store, *bytes.Buffer) {
 	if err != nil {
 		panic(err)
 	}
-
-	// Capture log output
+	// Capture log output.
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
-
-	cfg.Path = path
-	return New(cfg).(*Store), buf
+	if cfg.Params == nil {
+		cfg.Params = make(map[string]string)
+	}
+	cfg.Params["path"] = path
+	s, err := New(cfg)
+	if err != nil {
+		panic(err)
+	}
+	return s.(*Store), buf
 }
 
 // deliverMessage creates and delivers a message to the specific mailbox, returning

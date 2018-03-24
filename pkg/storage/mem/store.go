@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
@@ -25,10 +26,10 @@ type mbox struct {
 var _ storage.Store = &Store{}
 
 // New returns an emtpy memory store.
-func New() *Store {
+func New(cfg config.Storage) (storage.Store, error) {
 	return &Store{
 		boxes: make(map[string]*mbox),
-	}
+	}, nil
 }
 
 // AddMessage stores the message, message ID and Size will be ignored.

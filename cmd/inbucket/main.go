@@ -23,6 +23,7 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/storage/file"
+	"github.com/jhillyerd/inbucket/pkg/storage/mem"
 	"github.com/jhillyerd/inbucket/pkg/webui"
 )
 
@@ -45,6 +46,10 @@ func init() {
 	expvar.Publish("goroutines", expvar.Func(func() interface{} {
 		return runtime.NumGoroutine()
 	}))
+
+	// Register storage implementations.
+	storage.Constructors["file"] = file.New
+	storage.Constructors["memory"] = mem.New
 }
 
 func main() {
@@ -97,8 +102,13 @@ func main() {
 	// Configure internal services.
 	rootCtx, rootCancel := context.WithCancel(context.Background())
 	shutdownChan := make(chan bool)
+	store, err := storage.FromConfig(conf.Storage)
+	if err != nil {
+		log.Errorf("Fatal storage error: %v", err)
+		removePIDFile(*pidfile)
+		os.Exit(1)
+	}
 	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
-	store := file.New(conf.Storage)
 	addrPolicy := &policy.Addressing{Config: conf.SMTP}
 	mmanager := &message.StoreManager{Store: store, Hub: msgHub}
 	// Start Retention scanner.

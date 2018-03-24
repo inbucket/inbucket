@@ -3,9 +3,12 @@ package storage
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/mail"
 	"time"
+
+	"github.com/jhillyerd/inbucket/pkg/config"
 )
 
 var (
@@ -14,6 +17,9 @@ var (
 
 	// ErrNotWritable indicates the message is closed; no longer writable
 	ErrNotWritable = errors.New("Message not writable")
+
+	// Constructors tracks registered storage constructors
+	Constructors = make(map[string]func(config.Storage) (Store, error))
 )
 
 // Store is the interface Inbucket uses to interact with storage implementations.
@@ -37,4 +43,12 @@ type Message interface {
 	Subject() string
 	Source() (io.ReadCloser, error)
 	Size() int64
+}
+
+// FromConfig creates an instance of the Store based on the provided configuration.
+func FromConfig(c config.Storage) (store Store, err error) {
+	if cf := Constructors[c.Type]; cf != nil {
+		return cf(c)
+	}
+	return nil, fmt.Errorf("unknown storage type configured: %q", c.Type)
 }

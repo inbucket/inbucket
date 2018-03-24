@@ -3,6 +3,7 @@ package mem
 import (
 	"testing"
 
+	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/test"
 )
@@ -10,7 +11,7 @@ import (
 // TestSuite runs storage package test suite on file store.
 func TestSuite(t *testing.T) {
 	test.StoreSuite(t, func() (storage.Store, func(), error) {
-		s := New()
+		s, _ := New(config.Storage{})
 		destroy := func() {}
 		return s, destroy, nil
 	})

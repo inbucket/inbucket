@@ -42,7 +42,7 @@ type SMTP struct {
 	Domain          string        `required:"true" default:"inbucket" desc:"HELO domain"`
 	DomainNoStore   string        `desc:"Load testing domain"`
 	MaxRecipients   int           `required:"true" default:"200" desc:"Maximum RCPT TO per message"`
-	MaxMessageBytes int           `required:"true" default:"2048000" desc:"Maximum message size"`
+	MaxMessageBytes int           `required:"true" default:"10240000" desc:"Maximum message size"`
 	StoreMessages   bool          `required:"true" default:"true" desc:"Store incoming mail?"`
 	Timeout         time.Duration `required:"true" default:"300s" desc:"Idle network timeout"`
 }

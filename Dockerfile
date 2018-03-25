@@ -2,23 +2,30 @@
 # Inbucket website: http://www.inbucket.org/
 
 FROM golang:1.10-alpine
-MAINTAINER James Hillyerd, @jameshillyerd
 
-# Configuration (WORKDIR doesn't support env vars)
+# Configuration
 ENV INBUCKET_SRC $GOPATH/src/github.com/jhillyerd/inbucket
 ENV INBUCKET_HOME /opt/inbucket
-WORKDIR $INBUCKET_HOME
-ENTRYPOINT ["/con/context/start-inbucket.sh"]
-CMD ["/con/configuration/inbucket.conf"]
+ENV INBUCKET_SMTP_DOMAINNOSTORE bitbucket.local
+ENV INBUCKET_SMTP_TIMEOUT 30s
+ENV INBUCKET_POP3_TIMEOUT 30s
+ENV INBUCKET_WEB_UIDIR $INBUCKET_HOME/ui
+ENV INBUCKET_WEB_GREETINGFILE /config/greeting.html
+ENV INBUCKET_WEB_COOKIEAUTHKEY secret-inbucket-session-cookie-key
+ENV INBUCKET_STORAGE_TYPE file
+ENV INBUCKET_STORAGE_PARAMS path:/storage
+ENV INBUCKET_STORAGE_RETENTIONPERIOD 72h
+ENV INBUCKET_STORAGE_MAILBOXMSGCAP 300
 
 # Ports: SMTP, HTTP, POP3
-EXPOSE 10025 10080 10110
+EXPOSE 2500 9000 1100
 
-# Persistent Volumes, following convention at:
-#   https://github.com/docker/docker/issues/9277
-# NOTE /con/context is also used, not exposed by default
-VOLUME /con/configuration
-VOLUME /con/data
+# Persistent Volumes
+VOLUME /config
+VOLUME /storage
+
+WORKDIR $INBUCKET_HOME
+ENTRYPOINT "/start-inbucket.sh"
 
 # Build Inbucket
 COPY . $INBUCKET_SRC/

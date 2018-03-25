@@ -172,6 +172,10 @@ $(document).ready(
   <div class="panel-body">
     <table class="metrics">
       <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Store Type:</b></div>
+        <div class="col-sm-8 col-xs-5">{{ .storageConfig.Type }}</div>
+      </div>
+      <div class="row">
         <div class="col-sm-3 col-xs-7"><b>Retention Period:</b></div>
         <div class="col-sm-8 col-xs-5">
           {{if .storageConfig.RetentionPeriod}}

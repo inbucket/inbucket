@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Inbucket is now configured using environment variables instead of a config
+  file.
+- In-memory storage option, best for small installations and desktops.  Will be
+  used by default.
+- Storage type is now displayed on Status page.
 - Store size is now calculated during retention scan and displayed on the Status
   page.
 

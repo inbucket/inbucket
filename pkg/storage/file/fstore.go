@@ -48,11 +48,10 @@ type Store struct {
 }
 
 // New creates a new DataStore object using the specified path
-func New(cfg config.Storage) storage.Store {
-	path := cfg.Path
+func New(cfg config.Storage) (storage.Store, error) {
+	path := cfg.Params["path"]
 	if path == "" {
-		log.Errorf("No value configured for datastore path")
-		return nil
+		return nil, fmt.Errorf("'path' parameter not specified")
 	}
 	mailPath := filepath.Join(path, "mail")
 	if _, err := os.Stat(mailPath); err != nil {
@@ -61,7 +60,7 @@ func New(cfg config.Storage) storage.Store {
 			log.Errorf("Error creating dir %q: %v", mailPath, err)
 		}
 	}
-	return &Store{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}
+	return &Store{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}, nil
 }
 
 // AddMessage adds a message to the specified mailbox.

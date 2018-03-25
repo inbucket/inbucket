@@ -22,8 +22,8 @@ import (
 
 // TestSuite runs storage package test suite on file store.
 func TestSuite(t *testing.T) {
-	test.StoreSuite(t, func() (storage.Store, func(), error) {
-		ds, _ := setupDataStore(config.Storage{})
+	test.StoreSuite(t, func(conf config.Storage) (storage.Store, func(), error) {
+		ds, _ := setupDataStore(conf)
 		destroy := func() {
 			teardownDataStore(ds)
 		}
@@ -144,78 +144,6 @@ func TestFSMissing(t *testing.T) {
 	}
 }
 
-// Test delivering several messages to the same mailbox, see if message cap works
-func TestFSMessageCap(t *testing.T) {
-	mbCap := 10
-	ds, logbuf := setupDataStore(config.Storage{MailboxMsgCap: mbCap})
-	defer teardownDataStore(ds)
-
-	mbName := "captain"
-	for i := 0; i < 20; i++ {
-		// Add a message
-		subj := fmt.Sprintf("subject %v", i)
-		deliverMessage(ds, mbName, subj, time.Now())
-		t.Logf("Delivered %q", subj)
-
-		// Check number of messages
-		msgs, err := ds.GetMessages(mbName)
-		if err != nil {
-			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
-		}
-		if len(msgs) > mbCap {
-			t.Errorf("Mailbox should be capped at %v messages, but has %v", mbCap, len(msgs))
-		}
-
-		// Check that the first message is correct
-		first := i - mbCap + 1
-		if first < 0 {
-			first = 0
-		}
-		firstSubj := fmt.Sprintf("subject %v", first)
-		if firstSubj != msgs[0].Subject() {
-			t.Errorf("Expected first subject to be %q, got %q", firstSubj, msgs[0].Subject())
-		}
-	}
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
-}
-
-// Test delivering several messages to the same mailbox, see if no message cap works
-func TestFSNoMessageCap(t *testing.T) {
-	mbCap := 0
-	ds, logbuf := setupDataStore(config.Storage{MailboxMsgCap: mbCap})
-	defer teardownDataStore(ds)
-
-	mbName := "captain"
-	for i := 0; i < 20; i++ {
-		// Add a message
-		subj := fmt.Sprintf("subject %v", i)
-		deliverMessage(ds, mbName, subj, time.Now())
-		t.Logf("Delivered %q", subj)
-
-		// Check number of messages
-		msgs, err := ds.GetMessages(mbName)
-		if err != nil {
-			t.Fatalf("Failed to GetMessages for %q: %v", mbName, err)
-		}
-		if len(msgs) != i+1 {
-			t.Errorf("Expected %v messages, got %v", i+1, len(msgs))
-		}
-	}
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
-}
-
 // Test Get the latest message
 func TestGetLatestMessage(t *testing.T) {
 	ds, logbuf := setupDataStore(config.Storage{})
@@ -265,13 +193,18 @@ func setupDataStore(cfg config.Storage) (*Store, *bytes.Buffer) {
 	if err != nil {
 		panic(err)
 	}
-
-	// Capture log output
+	// Capture log output.
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
-
-	cfg.Path = path
-	return New(cfg).(*Store), buf
+	if cfg.Params == nil {
+		cfg.Params = make(map[string]string)
+	}
+	cfg.Params["path"] = path
+	s, err := New(cfg)
+	if err != nil {
+		panic(err)
+	}
+	return s.(*Store), buf
 }
 
 // deliverMessage creates and delivers a message to the specific mailbox, returning

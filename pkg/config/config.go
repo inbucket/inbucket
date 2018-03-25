@@ -69,10 +69,11 @@ type Web struct {
 
 // Storage contains the mail store configuration.
 type Storage struct {
-	Path            string        `required:"true" default:"/tmp/inbucket" desc:"Mail store path"`
-	RetentionPeriod time.Duration `required:"true" default:"24h" desc:"Duration to retain messages"`
-	RetentionSleep  time.Duration `required:"true" default:"100ms" desc:"Duration to sleep between deletes"`
-	MailboxMsgCap   int           `required:"true" default:"500" desc:"Maximum messages per mailbox"`
+	Type            string            `required:"true" default:"memory" desc:"Storage impl: file or memory"`
+	Params          map[string]string `desc:"Storage impl parameters, see docs."`
+	RetentionPeriod time.Duration     `required:"true" default:"24h" desc:"Duration to retain messages"`
+	RetentionSleep  time.Duration     `required:"true" default:"50ms" desc:"Duration to sleep between mailboxes"`
+	MailboxMsgCap   int               `required:"true" default:"500" desc:"Maximum messages per mailbox"`
 }
 
 // Process loads and parses configuration from the environment.

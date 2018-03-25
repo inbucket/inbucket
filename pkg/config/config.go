@@ -57,10 +57,10 @@ type POP3 struct {
 // Web contains the HTTP server configuration.
 type Web struct {
 	Addr           string `required:"true" default:"0.0.0.0:9000" desc:"Web server IP4 host:port"`
-	TemplateDir    string `required:"true" default:"themes/bootstrap/templates" desc:"Theme template dir"`
+	TemplateDir    string `required:"true" default:"ui/templates" desc:"Theme template dir"`
 	TemplateCache  bool   `required:"true" default:"true" desc:"Cache templates after first use?"`
-	PublicDir      string `required:"true" default:"themes/bootstrap/public" desc:"Theme public dir"`
-	GreetingFile   string `required:"true" default:"themes/greeting.html" desc:"Home page greeting HTML"`
+	PublicDir      string `required:"true" default:"ui/static" desc:"Theme public dir"`
+	GreetingFile   string `required:"true" default:"ui/greeting.html" desc:"Home page greeting HTML"`
 	MailboxPrompt  string `required:"true" default:"@inbucket" desc:"Prompt next to mailbox input"`
 	CookieAuthKey  string `desc:"Session cipher key (text)"`
 	MonitorVisible bool   `required:"true" default:"true" desc:"Show monitor tab in UI?"`

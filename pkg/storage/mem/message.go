@@ -2,6 +2,7 @@ package mem
 
 import (
 	"bytes"
+	"container/list"
 	"io"
 	"io/ioutil"
 	"net/mail"
@@ -20,6 +21,7 @@ type Message struct {
 	date    time.Time
 	subject string
 	source  []byte
+	el      *list.Element // This message in Store.messages
 }
 
 var _ storage.Message = &Message{}

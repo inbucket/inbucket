@@ -173,11 +173,11 @@ func testDeliveryOrder(t *testing.T, store storage.Store) {
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for i, subj := range subjects {
 		// Check mailbox count.
-		getAndCountMessages(t, store, mailbox, i)
-		deliverMessage(t, store, mailbox, subj, time.Now())
+		GetAndCountMessages(t, store, mailbox, i)
+		DeliverToStore(t, store, mailbox, subj, time.Now())
 	}
 	// Confirm delivery order.
-	msgs := getAndCountMessages(t, store, mailbox, 5)
+	msgs := GetAndCountMessages(t, store, mailbox, 5)
 	for i, want := range subjects {
 		got := msgs[i].Subject()
 		if got != want {
@@ -193,7 +193,7 @@ func testSize(t *testing.T, store storage.Store) {
 	sentIds := make([]string, len(subjects))
 	sentSizes := make([]int64, len(subjects))
 	for i, subj := range subjects {
-		id, size := deliverMessage(t, store, mailbox, subj, time.Now())
+		id, size := DeliverToStore(t, store, mailbox, subj, time.Now())
 		sentIds[i] = id
 		sentSizes[i] = size
 	}
@@ -215,9 +215,9 @@ func testDelete(t *testing.T, store storage.Store) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for _, subj := range subjects {
-		deliverMessage(t, store, mailbox, subj, time.Now())
+		DeliverToStore(t, store, mailbox, subj, time.Now())
 	}
-	msgs := getAndCountMessages(t, store, mailbox, len(subjects))
+	msgs := GetAndCountMessages(t, store, mailbox, len(subjects))
 	// Delete a couple messages.
 	err := store.RemoveMessage(mailbox, msgs[1].ID())
 	if err != nil {
@@ -229,7 +229,7 @@ func testDelete(t *testing.T, store storage.Store) {
 	}
 	// Confirm deletion.
 	subjects = []string{"alpha", "charlie", "echo"}
-	msgs = getAndCountMessages(t, store, mailbox, len(subjects))
+	msgs = GetAndCountMessages(t, store, mailbox, len(subjects))
 	for i, want := range subjects {
 		got := msgs[i].Subject()
 		if got != want {
@@ -237,9 +237,9 @@ func testDelete(t *testing.T, store storage.Store) {
 		}
 	}
 	// Try appending one more.
-	deliverMessage(t, store, mailbox, "foxtrot", time.Now())
+	DeliverToStore(t, store, mailbox, "foxtrot", time.Now())
 	subjects = []string{"alpha", "charlie", "echo", "foxtrot"}
-	msgs = getAndCountMessages(t, store, mailbox, len(subjects))
+	msgs = GetAndCountMessages(t, store, mailbox, len(subjects))
 	for i, want := range subjects {
 		got := msgs[i].Subject()
 		if got != want {
@@ -253,15 +253,15 @@ func testPurge(t *testing.T, store storage.Store) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for _, subj := range subjects {
-		deliverMessage(t, store, mailbox, subj, time.Now())
+		DeliverToStore(t, store, mailbox, subj, time.Now())
 	}
-	getAndCountMessages(t, store, mailbox, len(subjects))
+	GetAndCountMessages(t, store, mailbox, len(subjects))
 	// Purge and verify.
 	err := store.PurgeMessages(mailbox)
 	if err != nil {
 		t.Fatal(err)
 	}
-	getAndCountMessages(t, store, mailbox, 0)
+	GetAndCountMessages(t, store, mailbox, 0)
 }
 
 // testMsgCap verifies the message cap is enforced.
@@ -270,7 +270,7 @@ func testMsgCap(t *testing.T, store storage.Store) {
 	mailbox := "captain"
 	for i := 0; i < 20; i++ {
 		subj := fmt.Sprintf("subject %v", i)
-		deliverMessage(t, store, mailbox, subj, time.Now())
+		DeliverToStore(t, store, mailbox, subj, time.Now())
 		msgs, err := store.GetMessages(mailbox)
 		if err != nil {
 			t.Fatalf("Failed to GetMessages for %q: %v", mailbox, err)
@@ -296,8 +296,8 @@ func testNoMsgCap(t *testing.T, store storage.Store) {
 	mailbox := "captain"
 	for i := 0; i < 20; i++ {
 		subj := fmt.Sprintf("subject %v", i)
-		deliverMessage(t, store, mailbox, subj, time.Now())
-		getAndCountMessages(t, store, mailbox, i+1)
+		DeliverToStore(t, store, mailbox, subj, time.Now())
+		GetAndCountMessages(t, store, mailbox, i+1)
 	}
 }
 
@@ -306,8 +306,8 @@ func testNoMsgCap(t *testing.T, store storage.Store) {
 func testVisitMailboxes(t *testing.T, ds storage.Store) {
 	boxes := []string{"abby", "bill", "christa", "donald", "evelyn"}
 	for _, name := range boxes {
-		deliverMessage(t, ds, name, "Old Message", time.Now().Add(-24*time.Hour))
-		deliverMessage(t, ds, name, "New Message", time.Now())
+		DeliverToStore(t, ds, name, "Old Message", time.Now().Add(-24*time.Hour))
+		DeliverToStore(t, ds, name, "New Message", time.Now())
 	}
 	seen := 0
 	err := ds.VisitMailboxes(func(messages []storage.Message) bool {
@@ -326,9 +326,9 @@ func testVisitMailboxes(t *testing.T, ds storage.Store) {
 	}
 }
 
-// deliverMessage creates and delivers a message to the specific mailbox, returning the size of the
+// DeliverToStore creates and delivers a message to the specific mailbox, returning the size of the
 // generated message.
-func deliverMessage(
+func DeliverToStore(
 	t *testing.T,
 	store storage.Store,
 	mailbox string,
@@ -356,9 +356,9 @@ func deliverMessage(
 	return id, int64(len(testMsg))
 }
 
-// getAndCountMessages is a test helper that expects to receive count messages or fails the test, it
+// GetAndCountMessages is a test helper that expects to receive count messages or fails the test, it
 // also checks return error.
-func getAndCountMessages(t *testing.T, s storage.Store, mailbox string, count int) []storage.Message {
+func GetAndCountMessages(t *testing.T, s storage.Store, mailbox string, count int) []storage.Message {
 	t.Helper()
 	msgs, err := s.GetMessages(mailbox)
 	if err != nil {

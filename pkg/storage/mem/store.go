@@ -1,6 +1,7 @@
 package mem
 
 import (
+	"fmt"
 	"io/ioutil"
 	"sort"
 	"strconv"
@@ -13,8 +14,10 @@ import (
 // Store implements an in-memory message store.
 type Store struct {
 	sync.Mutex
-	boxes map[string]*mbox
-	cap   int
+	boxes    map[string]*mbox
+	cap      int           // Per-mailbox message cap.
+	incoming chan *msgDone // New messages for size enforcer.
+	remove   chan *msgDone // Remove deleted messages from size enforcer.
 }
 
 type mbox struct {
@@ -29,38 +32,51 @@ var _ storage.Store = &Store{}
 
 // New returns an emtpy memory store.
 func New(cfg config.Storage) (storage.Store, error) {
-	return &Store{
+	s := &Store{
 		boxes: make(map[string]*mbox),
 		cap:   cfg.MailboxMsgCap,
-	}, nil
+	}
+	if str, ok := cfg.Params["maxkb"]; ok {
+		maxKB, err := strconv.ParseInt(str, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse maxkb: %v", err)
+		}
+		if maxKB > 0 {
+			// Setup enforcer.
+			s.incoming = make(chan *msgDone)
+			s.remove = make(chan *msgDone)
+			go s.maxSizeEnforcer(maxKB * 1024)
+		}
+	}
+	return s, nil
 }
 
 // AddMessage stores the message, message ID and Size will be ignored.
 func (s *Store) AddMessage(message storage.Message) (id string, err error) {
+	r, ierr := message.Source()
+	if ierr != nil {
+		err = ierr
+		return
+	}
+	source, ierr := ioutil.ReadAll(r)
+	if ierr != nil {
+		err = ierr
+		return
+	}
+	m := &Message{
+		mailbox: message.Mailbox(),
+		from:    message.From(),
+		to:      message.To(),
+		date:    message.Date(),
+		subject: message.Subject(),
+	}
 	s.withMailbox(message.Mailbox(), true, func(mb *mbox) {
-		r, ierr := message.Source()
-		if ierr != nil {
-			err = ierr
-			return
-		}
-		source, ierr := ioutil.ReadAll(r)
-		if ierr != nil {
-			err = ierr
-			return
-		}
 		// Generate message ID.
 		mb.last++
+		m.index = mb.last
 		id = strconv.Itoa(mb.last)
-		m := &Message{
-			index:   mb.last,
-			mailbox: message.Mailbox(),
-			id:      id,
-			from:    message.From(),
-			to:      message.To(),
-			date:    message.Date(),
-			subject: message.Subject(),
-			source:  source,
-		}
+		m.id = id
+		m.source = source
 		mb.messages[id] = m
 		if s.cap > 0 {
 			// Enforce cap.
@@ -70,6 +86,7 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 			}
 		}
 	})
+	s.enforcerDeliver(m)
 	return id, err
 }
 
@@ -97,17 +114,38 @@ func (s *Store) GetMessages(mailbox string) (ms []storage.Message, err error) {
 
 // PurgeMessages deletes the contents of a mailbox.
 func (s *Store) PurgeMessages(mailbox string) error {
+	var messages map[string]*Message
 	s.withMailbox(mailbox, true, func(mb *mbox) {
+		messages = mb.messages
 		mb.messages = make(map[string]*Message)
 	})
+	if len(messages) > 0 && s.remove != nil {
+		for _, m := range messages {
+			s.enforcerRemove(m)
+		}
+	}
 	return nil
+}
+
+// removeMessage deletes a single message without notifying the size enforcer.  Returns the message
+// that was removed.
+func (s *Store) removeMessage(mailbox, id string) *Message {
+	var m *Message
+	s.withMailbox(mailbox, true, func(mb *mbox) {
+		m = mb.messages[id]
+		if m != nil {
+			delete(mb.messages, id)
+		}
+	})
+	return m
 }
 
 // RemoveMessage deletes a single message.
 func (s *Store) RemoveMessage(mailbox, id string) error {
-	s.withMailbox(mailbox, true, func(mb *mbox) {
-		delete(mb.messages, id)
-	})
+	m := s.removeMessage(mailbox, id)
+	if m != nil {
+		s.enforcerRemove(m)
+	}
 	return nil
 }
 

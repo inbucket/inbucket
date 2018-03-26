@@ -3,6 +3,7 @@
 package log
 
 import (
+	"log"
 	"os"
 )
 
@@ -16,7 +17,6 @@ func closeStdin() {
 // reassignStdout points stdout/stderr to our logfile on systems that do not
 // support the Dup2 syscall
 func reassignStdout() {
-	Tracef("Windows reassignStdout()")
 	if !stdOutsClosed {
 		// Close std* streams to prevent accidental output, they will be redirected to
 		// our logfile below
@@ -24,11 +24,11 @@ func reassignStdout() {
 		// Warning: this will hide panic() output, sorry Windows users
 		if err := os.Stderr.Close(); err != nil {
 			// Not considered fatal
-			Errorf("Failed to close os.Stderr during log setup")
+			log.Printf("Failed to close os.Stderr during log setup")
 		}
 		if err := os.Stdin.Close(); err != nil {
 			// Not considered fatal
-			Errorf("Failed to close os.Stdin during log setup")
+			log.Printf("Failed to close os.Stdin during log setup")
 		}
 		os.Stdout = logf
 		os.Stderr = logf

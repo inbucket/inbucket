@@ -35,10 +35,9 @@ set -x
 mkdir -p "$bindir"
 install inbucket "$bindir"
 mkdir -p "$contextdir"
-install etc/docker/defaults/start-inbucket.sh "$contextdir"
-cp -r themes "$installdir/"
+install etc/docker/defaults/start-inbucket.sh /
+cp -r ui "$installdir/"
 mkdir -p "$defaultsdir"
-cp etc/docker/defaults/inbucket.conf "$defaultsdir"
 cp etc/docker/defaults/greeting.html "$defaultsdir"
 set +x
 

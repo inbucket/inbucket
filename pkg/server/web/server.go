@@ -6,6 +6,7 @@ import (
 	"expvar"
 	"net"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -19,6 +20,11 @@ import (
 
 // Handler is a function type that handles an HTTP request in Inbucket
 type Handler func(http.ResponseWriter, *http.Request, *Context) error
+
+const (
+	staticDir   = "static"
+	templateDir = "templates"
+)
 
 var (
 	// msgHub holds a reference to the message pub/sub system
@@ -59,10 +65,10 @@ func Initialize(
 	manager = mm
 
 	// Content Paths
-	log.Infof("HTTP templates mapped to %q", conf.Web.TemplateDir)
-	log.Infof("HTTP static content mapped to %q", conf.Web.PublicDir)
+	staticPath := filepath.Join(conf.Web.UIDir, staticDir)
+	log.Infof("Web UI content mapped to path: %s", conf.Web.UIDir)
 	Router.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
-		http.FileServer(http.Dir(conf.Web.PublicDir))))
+		http.FileServer(http.Dir(staticPath))))
 	http.Handle("/", Router)
 
 	// Session cookie setup

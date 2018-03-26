@@ -18,6 +18,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Massive refactor of back-end code.  Inbucket should now be both easier and
   more enjoyable to work on.
+- Renamed `themes` directory to `ui` and eliminated the intermediate `bootstrap`
+  directory.
+- Docker build:
+  - Uses the same default ports as other builds; smtp:2500 http:9000 pop3:1100
+  - Uses volume `/config` for `greeting.html`
+  - Uses volume `/storage` for mail storage
 
 
 ## [v1.3.1] - 2018-03-10

@@ -7,8 +7,8 @@ type msgDone struct {
 	done chan struct{}
 }
 
-// enforceMaxSize will delete the oldest message until the entire mail store is equal to or less
-// than Store.maxSize bytes.
+// maxSizeEnforcer will delete the oldest message until the entire mail store is equal to or less
+// than maxSize bytes.
 func (s *Store) maxSizeEnforcer(maxSize int64) {
 	all := &list.List{}
 	curSize := int64(0)

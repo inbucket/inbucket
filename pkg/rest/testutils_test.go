@@ -36,8 +36,7 @@ func setupWebServer(mm message.Manager) *bytes.Buffer {
 	http.DefaultServeMux = http.NewServeMux()
 	cfg := &config.Root{
 		Web: config.Web{
-			TemplateDir: "../themes/bootstrap/templates",
-			PublicDir:   "../themes/bootstrap/public",
+			UIDir: "../ui",
 		},
 	}
 	shutdownChan := make(chan bool)

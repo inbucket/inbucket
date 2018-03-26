@@ -20,7 +20,7 @@ builds:
       - amd64
     goarm:
       - "6"
-    main: .
+    main: ./cmd/inbucket
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   - binary: client
     goos:
@@ -46,9 +46,8 @@ archive:
     - LICENSE*
     - README*
     - CHANGELOG*
-    - inbucket.bat
     - etc/**/*
-    - themes/**/*
+    - ui/**/*
 fpm:
   bindir: /usr/local/bin
 snapshot:

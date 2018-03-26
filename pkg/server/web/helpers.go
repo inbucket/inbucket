@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/rs/zerolog/log"
 )
 
 // TemplateFuncs declares functions made available to all templates (including partials)
@@ -42,7 +42,8 @@ func Reverse(name string, things ...interface{}) string {
 	// Grab the route
 	u, err := Router.Get(name).URL(strs...)
 	if err != nil {
-		log.Errorf("Failed to reverse route: %v", err)
+		log.Error().Str("module", "web").Str("name", name).Err(err).
+			Msg("Failed to reverse route")
 		return "/ROUTE-ERROR"
 	}
 	return u.Path

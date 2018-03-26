@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/rs/zerolog/log"
 )
 
 // mbox manages the mail for a specific user and correlates to a particular directory on disk.
@@ -87,7 +87,7 @@ func (mb *mbox) removeMessage(id string) error {
 		return nil
 	}
 	// There are still messages in the index
-	log.Tracef("Deleting %v", msg.rawPath())
+	log.Debug().Str("module", "storage").Str("path", msg.rawPath()).Msg("Deleting file")
 	return os.Remove(msg.rawPath())
 }
 
@@ -104,7 +104,8 @@ func (mb *mbox) readIndex() error {
 	// Check if index exists
 	if _, err := os.Stat(mb.indexPath); err != nil {
 		// Does not exist, but that's not an error in our world
-		log.Tracef("Index %v does not exist (yet)", mb.indexPath)
+		log.Debug().Str("module", "storage").Str("path", mb.indexPath).
+			Msg("Index does not yet exist")
 		mb.indexLoaded = true
 		return nil
 	}
@@ -114,7 +115,8 @@ func (mb *mbox) readIndex() error {
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", mb.indexPath, err)
+			log.Error().Str("module", "storage").Str("path", mb.indexPath).Err(err).
+				Msg("Failed to close")
 		}
 	}()
 	// Decode gob data
@@ -171,12 +173,13 @@ func (mb *mbox) writeIndex() error {
 			return err
 		}
 		if err := file.Close(); err != nil {
-			log.Errorf("Failed to close %q: %v", mb.indexPath, err)
+			log.Error().Str("module", "storage").Str("path", mb.indexPath).Err(err).
+				Msg("Failed to close")
 			return err
 		}
 	} else {
 		// No messages, delete index+maildir
-		log.Tracef("Removing mailbox %v", mb.path)
+		log.Debug().Str("module", "storage").Str("path", mb.path).Msg("Removing mailbox")
 		return mb.removeDir()
 	}
 	return nil
@@ -186,7 +189,8 @@ func (mb *mbox) writeIndex() error {
 func (mb *mbox) createDir() error {
 	if _, err := os.Stat(mb.path); err != nil {
 		if err := os.MkdirAll(mb.path, 0770); err != nil {
-			log.Errorf("Failed to create directory %v, %v", mb.path, err)
+			log.Error().Str("module", "storage").Str("path", mb.path).Err(err).
+				Msg("Failed to create directory")
 			return err
 		}
 	}
@@ -223,10 +227,10 @@ func removeDirIfEmpty(path string) (removed bool) {
 		// Dir not empty
 		return false
 	}
-	log.Tracef("Removing dir %v", path)
+	log.Debug().Str("module", "storage").Str("path", path).Msg("Removing dir")
 	err = os.Remove(path)
 	if err != nil {
-		log.Errorf("Failed to remove %q: %v", path, err)
+		log.Error().Str("module", "storage").Str("path", path).Err(err).Msg("Failed to remove")
 		return false
 	}
 	return true

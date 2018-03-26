@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/rs/zerolog/log"
 )
 
 // Message implements Message and contains a little bit of data about a
@@ -35,9 +35,12 @@ func (mb *mbox) newMessage() (*Message, error) {
 	// Delete old messages over messageCap
 	if mb.store.messageCap > 0 {
 		for len(mb.messages) >= mb.store.messageCap {
-			log.Infof("Mailbox %q over configured message cap", mb.name)
-			if err := mb.removeMessage(mb.messages[0].ID()); err != nil {
-				log.Errorf("Error deleting message: %s", err)
+			log.Info().Str("module", "storage").Str("mailbox", mb.name).
+				Msg("Mailbox over message cap")
+			id := mb.messages[0].ID()
+			if err := mb.removeMessage(id); err != nil {
+				log.Error().Str("module", "storage").Str("mailbox", mb.name).Str("id", id).
+					Err(err).Msg("Unable to delete message")
 			}
 		}
 	}

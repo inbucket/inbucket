@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/policy"
@@ -25,6 +24,8 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/storage/file"
 	"github.com/jhillyerd/inbucket/pkg/storage/mem"
 	"github.com/jhillyerd/inbucket/pkg/webui"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -57,6 +58,7 @@ func main() {
 	help := flag.Bool("help", false, "Displays help on flags and env variables.")
 	pidfile := flag.String("pidfile", "", "Write our PID into the specified file.")
 	logfile := flag.String("logfile", "stderr", "Write out log into the specified file.")
+	logjson := flag.Bool("logjson", false, "Logs are written in JSON format.")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: inbucket [options]")
 		flag.PrintDefaults()
@@ -68,6 +70,17 @@ func main() {
 		config.Usage()
 		return
 	}
+	// Logger setup.
+	if !*logjson {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
+	_ = logfile
+	// } else if *logfile != "stderr" {
+	// 	// TODO #90 file output
+	// 	// defer close
+	// }
+	slog := log.With().Str("phase", "startup").Logger()
 	// Process configuration.
 	config.Version = version
 	config.BuildDate = date
@@ -80,23 +93,16 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 	// Initialize logging.
-	log.SetLogLevel(conf.LogLevel)
-	if err := log.Initialize(*logfile); err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(1)
-	}
-	defer log.Close()
-	log.Infof("Inbucket %v (%v) starting...", config.Version, config.BuildDate)
+	slog.Info().Str("version", config.Version).Str("buildDate", config.BuildDate).Msg("Inbucket")
 	// Write pidfile if requested.
 	if *pidfile != "" {
 		pidf, err := os.Create(*pidfile)
 		if err != nil {
-			log.Errorf("Failed to create %q: %v", *pidfile, err)
-			os.Exit(1)
+			slog.Fatal().Err(err).Str("path", *pidfile).Msg("Failed to create pidfile")
 		}
 		fmt.Fprintf(pidf, "%v\n", os.Getpid())
 		if err := pidf.Close(); err != nil {
-			log.Errorf("Failed to close PID file %q: %v", *pidfile, err)
+			slog.Fatal().Err(err).Str("path", *pidfile).Msg("Failed to close pidfile")
 		}
 	}
 	// Configure internal services.
@@ -104,9 +110,8 @@ func main() {
 	shutdownChan := make(chan bool)
 	store, err := storage.FromConfig(conf.Storage)
 	if err != nil {
-		log.Errorf("Fatal storage error: %v", err)
 		removePIDFile(*pidfile)
-		os.Exit(1)
+		slog.Fatal().Err(err).Str("module", "storage").Msg("Fatal storage error")
 	}
 	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf.SMTP}
@@ -132,15 +137,17 @@ signalLoop:
 		case sig := <-sigChan:
 			switch sig {
 			case syscall.SIGHUP:
-				log.Infof("Recieved SIGHUP, cycling logfile")
-				log.Rotate()
+				log.Info().Str("signal", "SIGHUP").Msg("Recieved SIGHUP, cycling logfile")
+				// TODO #90 log.Rotate()
 			case syscall.SIGINT:
 				// Shutdown requested
-				log.Infof("Received SIGINT, shutting down")
+				log.Info().Str("phase", "shutdown").Str("signal", "SIGINT").
+					Msg("Received SIGINT, shutting down")
 				close(shutdownChan)
 			case syscall.SIGTERM:
 				// Shutdown requested
-				log.Infof("Received SIGTERM, shutting down")
+				log.Info().Str("phase", "shutdown").Str("signal", "SIGTERM").
+					Msg("Received SIGTERM, shutting down")
 				close(shutdownChan)
 			}
 		case <-shutdownChan:
@@ -160,7 +167,8 @@ signalLoop:
 func removePIDFile(pidfile string) {
 	if pidfile != "" {
 		if err := os.Remove(pidfile); err != nil {
-			log.Errorf("Failed to remove %q: %v", pidfile, err)
+			log.Error().Str("phase", "shutdown").Err(err).Str("path", pidfile).
+				Msg("Failed to remove pidfile")
 		}
 	}
 }
@@ -168,7 +176,7 @@ func removePIDFile(pidfile string) {
 // timedExit is called as a goroutine during shutdown, it will force an exit after 15 seconds.
 func timedExit(pidfile string) {
 	time.Sleep(15 * time.Second)
-	log.Errorf("Clean shutdown took too long, forcing exit")
 	removePIDFile(pidfile)
+	log.Error().Str("phase", "shutdown").Msg("Clean shutdown took too long, forcing exit")
 	os.Exit(0)
 }

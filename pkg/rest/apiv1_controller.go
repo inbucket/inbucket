@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"strconv"
 
-	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/rest/model"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 	"github.com/jhillyerd/inbucket/pkg/storage"
@@ -28,8 +27,6 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
 	}
-	log.Tracef("Got %v messsages", len(messages))
-
 	jmessages := make([]*model.JSONMessageHeaderV1, len(messages))
 	for i, msg := range messages {
 		jmessages[i] = &model.JSONMessageHeaderV1{
@@ -62,7 +59,6 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-
 	attachParts := msg.Attachments()
 	attachments := make([]*model.JSONMessageAttachmentV1, len(attachParts))
 	for i, part := range attachParts {
@@ -78,7 +74,6 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 			MD5: hex.EncodeToString(checksum[:]),
 		}
 	}
-
 	return web.RenderJSON(w,
 		&model.JSONMessageV1{
 			Mailbox: name,
@@ -109,8 +104,6 @@ func MailboxPurgeV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 	if err != nil {
 		return fmt.Errorf("Mailbox(%q) purge failed: %v", name, err)
 	}
-	log.Tracef("HTTP purged mailbox for %q", name)
-
 	return web.RenderJSON(w, "OK")
 }
 
@@ -122,7 +115,6 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 	if err != nil {
 		return err
 	}
-
 	r, err := ctx.Manager.SourceReader(name, id)
 	if err == storage.ErrNotExist {
 		http.NotFound(w, req)
@@ -155,6 +147,5 @@ func MailboxDeleteV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 		// This doesn't indicate missing, likely an IO error
 		return fmt.Errorf("RemoveMessage(%q) failed: %v", id, err)
 	}
-
 	return web.RenderJSON(w, "OK")
 }

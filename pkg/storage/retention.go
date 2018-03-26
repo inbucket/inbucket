@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -42,11 +42,12 @@ func init() {
 	rm.Set("RetainedSize", expRetainedSize)
 	rm.Set("SizeHist", expSizeHist)
 
-	log.AddTickerFunc(func() {
-		expRetentionDeletesHist.Set(log.PushMetric(retentionDeletesHist, expRetentionDeletesTotal))
-		expRetainedHist.Set(log.PushMetric(retainedHist, expRetainedCurrent))
-		expSizeHist.Set(log.PushMetric(sizeHist, expRetainedSize))
-	})
+	// TODO #90 move
+	// log.AddTickerFunc(func() {
+	// 	expRetentionDeletesHist.Set(log.PushMetric(retentionDeletesHist, expRetentionDeletesTotal))
+	// 	expRetainedHist.Set(log.PushMetric(retainedHist, expRetainedCurrent))
+	// 	expSizeHist.Set(log.PushMetric(sizeHist, expRetainedSize))
+	// })
 }
 
 // RetentionScanner looks for messages older than the configured retention period and deletes them.
@@ -79,16 +80,18 @@ func NewRetentionScanner(
 // Start up the retention scanner if retention period > 0
 func (rs *RetentionScanner) Start() {
 	if rs.retentionPeriod <= 0 {
-		log.Infof("Retention scanner disabled")
+		log.Info().Str("phase", "startup").Str("module", "storage").Msg("Retention scanner disabled")
 		close(rs.retentionShutdown)
 		return
 	}
-	log.Infof("Retention configured for %v", rs.retentionPeriod)
+	log.Info().Str("phase", "startup").Str("module", "storage").
+		Msgf("Retention configured for %v", rs.retentionPeriod)
 	go rs.run()
 }
 
 // run loops to kick off the scanner on the correct schedule
 func (rs *RetentionScanner) run() {
+	slog := log.With().Str("module", "storage").Logger()
 	start := time.Now()
 retentionLoop:
 	for {
@@ -96,7 +99,7 @@ retentionLoop:
 		since := time.Since(start)
 		if since < time.Minute {
 			dur := time.Minute - since
-			log.Tracef("Retention scanner sleeping for %v", dur)
+			slog.Debug().Msgf("Retention scanner sleeping for %v", dur)
 			select {
 			case <-rs.globalShutdown:
 				break retentionLoop
@@ -106,7 +109,7 @@ retentionLoop:
 		// Kickoff scan
 		start = time.Now()
 		if err := rs.DoScan(); err != nil {
-			log.Errorf("Error during retention scan: %v", err)
+			slog.Error().Err(err).Msg("Error during retention scan")
 		}
 		// Check for global shutdown
 		select {
@@ -115,13 +118,14 @@ retentionLoop:
 		default:
 		}
 	}
-	log.Tracef("Retention scanner shut down")
+	slog.Debug().Str("phase", "shutdown").Msg("Retention scanner shut down")
 	close(rs.retentionShutdown)
 }
 
 // DoScan does a single pass of all mailboxes looking for messages that can be purged.
 func (rs *RetentionScanner) DoScan() error {
-	log.Tracef("Starting retention scan")
+	slog := log.With().Str("module", "storage").Logger()
+	slog.Debug().Msg("Starting retention scan")
 	cutoff := time.Now().Add(-1 * rs.retentionPeriod)
 	retained := 0
 	storeSize := int64(0)
@@ -129,9 +133,11 @@ func (rs *RetentionScanner) DoScan() error {
 	err := rs.ds.VisitMailboxes(func(messages []Message) bool {
 		for _, msg := range messages {
 			if msg.Date().Before(cutoff) {
-				log.Tracef("Purging expired message %v/%v", msg.Mailbox(), msg.ID())
+				slog.Debug().Str("mailbox", msg.Mailbox()).
+					Msgf("Purging expired message %v", msg.ID())
 				if err := rs.ds.RemoveMessage(msg.Mailbox(), msg.ID()); err != nil {
-					log.Errorf("Failed to purge message %v: %v", msg.ID(), err)
+					slog.Error().Str("mailbox", msg.Mailbox()).Err(err).
+						Msgf("Failed to purge message %v", msg.ID())
 				} else {
 					expRetentionDeletesTotal.Add(1)
 				}
@@ -142,7 +148,7 @@ func (rs *RetentionScanner) DoScan() error {
 		}
 		select {
 		case <-rs.globalShutdown:
-			log.Tracef("Retention scan aborted due to shutdown")
+			slog.Debug().Str("phase", "shutdown").Msg("Retention scan aborted due to shutdown")
 			return false
 		case <-time.After(rs.retentionSleep):
 			// Reduce disk thrashing

@@ -13,9 +13,9 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/rs/zerolog/log"
 )
 
 // Handler is a function type that handles an HTTP request in Inbucket
@@ -66,17 +66,20 @@ func Initialize(
 
 	// Content Paths
 	staticPath := filepath.Join(conf.Web.UIDir, staticDir)
-	log.Infof("Web UI content mapped to path: %s", conf.Web.UIDir)
+	log.Info().Str("module", "web").Str("phase", "startup").Str("path", conf.Web.UIDir).
+		Msg("Web UI content mapped")
 	Router.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
 		http.FileServer(http.Dir(staticPath))))
 	http.Handle("/", Router)
 
 	// Session cookie setup
 	if conf.Web.CookieAuthKey == "" {
-		log.Infof("HTTP generating random cookie.auth.key")
+		log.Info().Str("module", "web").Str("phase", "startup").
+			Msg("Generating random cookie.auth.key")
 		sessionStore = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
 	} else {
-		log.Tracef("HTTP using configured cookie.auth.key")
+		log.Info().Str("module", "web").Str("phase", "startup").
+			Msg("Using configured cookie.auth.key")
 		sessionStore = sessions.NewCookieStore([]byte(conf.Web.CookieAuthKey))
 	}
 }
@@ -91,11 +94,13 @@ func Start(ctx context.Context) {
 	}
 
 	// We don't use ListenAndServe because it lacks a way to close the listener
-	log.Infof("HTTP listening on TCP4 %v", server.Addr)
+	log.Info().Str("module", "web").Str("phase", "startup").Str("addr", server.Addr).
+		Msg("HTTP listening on tcp4")
 	var err error
 	listener, err = net.Listen("tcp", server.Addr)
 	if err != nil {
-		log.Errorf("HTTP failed to start TCP4 listener: %v", err)
+		log.Error().Str("module", "web").Str("phase", "startup").Err(err).
+			Msg("HTTP failed to start TCP4 listener")
 		emergencyShutdown()
 		return
 	}
@@ -106,12 +111,14 @@ func Start(ctx context.Context) {
 	// Wait for shutdown
 	select {
 	case _ = <-ctx.Done():
-		log.Tracef("HTTP server shutting down on request")
+		log.Debug().Str("module", "web").Str("phase", "shutdown").
+			Msg("HTTP server shutting down on request")
 	}
 
 	// Closing the listener will cause the serve() go routine to exit
 	if err := listener.Close(); err != nil {
-		log.Errorf("Failed to close HTTP listener: %v", err)
+		log.Debug().Str("module", "web").Str("phase", "shutdown").Err(err).
+			Msg("Failed to close HTTP listener")
 	}
 }
 
@@ -124,7 +131,8 @@ func serve(ctx context.Context) {
 	case _ = <-ctx.Done():
 		// Nop
 	default:
-		log.Errorf("HTTP server failed: %v", err)
+		log.Error().Str("module", "web").Str("phase", "startup").Err(err).
+			Msg("HTTP server failed")
 		emergencyShutdown()
 		return
 	}
@@ -135,17 +143,19 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Create the context
 	ctx, err := NewContext(req)
 	if err != nil {
-		log.Errorf("HTTP failed to create context: %v", err)
+		log.Error().Str("module", "web").Err(err).Msg("HTTP failed to create context")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer ctx.Close()
 
 	// Run the handler, grab the error, and report it
-	log.Tracef("HTTP[%v] %v %v %q", req.RemoteAddr, req.Proto, req.Method, req.RequestURI)
+	log.Debug().Str("module", "web").Str("remote", req.RemoteAddr).Str("proto", req.Proto).
+		Str("method", req.Method).Str("path", req.RequestURI).Msg("Request")
 	err = h(w, req, ctx)
 	if err != nil {
-		log.Errorf("HTTP error handling %q: %v", req.RequestURI, err)
+		log.Error().Str("module", "web").Str("path", req.RequestURI).Err(err).
+			Msg("Error handling request")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

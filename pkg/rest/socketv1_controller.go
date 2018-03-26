@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/rest/model"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -62,11 +62,13 @@ func (ml *msgListener) Receive(msg msghub.Message) error {
 
 // WSReader makes sure the websocket client is still connected, discards any messages from client
 func (ml *msgListener) WSReader(conn *websocket.Conn) {
+	slog := log.With().Str("module", "rest").Str("proto", "WebSocket").
+		Str("remote", conn.RemoteAddr().String()).Logger()
 	defer ml.Close()
 	conn.SetReadLimit(maxMessageSize)
 	conn.SetReadDeadline(time.Now().Add(pongWait))
 	conn.SetPongHandler(func(string) error {
-		log.Tracef("HTTP[%v] Got WebSocket pong", conn.RemoteAddr())
+		slog.Debug().Msg("Got pong")
 		conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
@@ -80,9 +82,9 @@ func (ml *msgListener) WSReader(conn *websocket.Conn) {
 				websocket.CloseNoStatusReceived,
 			) {
 				// Unexpected close code
-				log.Warnf("HTTP[%v] WebSocket error: %v", conn.RemoteAddr(), err)
+				slog.Warn().Err(err).Msg("Socket error")
 			} else {
-				log.Tracef("HTTP[%v] Closing WebSocket", conn.RemoteAddr())
+				slog.Debug().Msg("Closing socket")
 			}
 			break
 		}
@@ -127,7 +129,8 @@ func (ml *msgListener) WSWriter(conn *websocket.Conn) {
 				// Write error
 				return
 			}
-			log.Tracef("HTTP[%v] Sent WebSocket ping", conn.RemoteAddr())
+			log.Debug().Str("module", "rest").Str("proto", "WebSocket").
+				Str("remote", conn.RemoteAddr().String()).Msg("Sent ping")
 		}
 	}
 }
@@ -147,7 +150,7 @@ func (ml *msgListener) Close() {
 // the client of all messages received.
 func MonitorAllMessagesV1(
 	w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
-	// Upgrade to Websocket
+	// Upgrade to Websocket.
 	conn, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
 		return err
@@ -157,14 +160,12 @@ func MonitorAllMessagesV1(
 		_ = conn.Close()
 		web.ExpWebSocketConnectsCurrent.Add(-1)
 	}()
-
-	log.Tracef("HTTP[%v] Upgraded to websocket", req.RemoteAddr)
-
-	// Create, register listener; then interact with conn
+	log.Debug().Str("module", "rest").Str("proto", "WebSocket").
+		Str("remote", conn.RemoteAddr().String()).Msg("Upgraded to WebSocket")
+	// Create, register listener; then interact with conn.
 	ml := newMsgListener(ctx.MsgHub, "")
 	go ml.WSWriter(conn)
 	ml.WSReader(conn)
-
 	return nil
 }
 
@@ -176,7 +177,7 @@ func MonitorMailboxMessagesV1(
 	if err != nil {
 		return err
 	}
-	// Upgrade to Websocket
+	// Upgrade to Websocket.
 	conn, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
 		return err
@@ -186,13 +187,11 @@ func MonitorMailboxMessagesV1(
 		_ = conn.Close()
 		web.ExpWebSocketConnectsCurrent.Add(-1)
 	}()
-
-	log.Tracef("HTTP[%v] Upgraded to websocket", req.RemoteAddr)
-
-	// Create, register listener; then interact with conn
+	log.Debug().Str("module", "rest").Str("proto", "WebSocket").
+		Str("remote", conn.RemoteAddr().String()).Msg("Upgraded to WebSocket")
+	// Create, register listener; then interact with conn.
 	ml := newMsgListener(ctx.MsgHub, name)
 	go ml.WSWriter(conn)
 	ml.WSReader(conn)
-
 	return nil
 }

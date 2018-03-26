@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/policy"
+	"github.com/rs/zerolog/log"
 )
 
 func init() {
@@ -27,12 +27,13 @@ func init() {
 	m.Set("WarnsTotal", expWarnsTotal)
 	m.Set("WarnsHist", expWarnsHist)
 
-	log.AddTickerFunc(func() {
-		expReceivedHist.Set(log.PushMetric(deliveredHist, expReceivedTotal))
-		expConnectsHist.Set(log.PushMetric(connectsHist, expConnectsTotal))
-		expErrorsHist.Set(log.PushMetric(errorsHist, expErrorsTotal))
-		expWarnsHist.Set(log.PushMetric(warnsHist, expWarnsTotal))
-	})
+	// TODO #90 move elsewhere
+	// log.AddTickerFunc(func() {
+	// 	expReceivedHist.Set(log.PushMetric(deliveredHist, expReceivedTotal))
+	// 	expConnectsHist.Set(log.PushMetric(connectsHist, expConnectsTotal))
+	// 	expErrorsHist.Set(log.PushMetric(errorsHist, expErrorsTotal))
+	// 	expWarnsHist.Set(log.PushMetric(warnsHist, expWarnsTotal))
+	// })
 }
 
 // Server holds the configuration and state of our SMTP server
@@ -99,51 +100,48 @@ func NewServer(
 	}
 }
 
-// Start the listener and handle incoming connections
+// Start the listener and handle incoming connections.
 func (s *Server) Start(ctx context.Context) {
+	slog := log.With().Str("module", "smtp").Str("phase", "startup").Logger()
 	addr, err := net.ResolveTCPAddr("tcp4", s.host)
 	if err != nil {
-		log.Errorf("Failed to build tcp4 address: %v", err)
+		slog.Error().Err(err).Msg("Failed to build tcp4 address")
 		s.emergencyShutdown()
 		return
 	}
-
-	log.Infof("SMTP listening on TCP4 %v", addr)
+	slog.Info().Str("addr", addr.String()).Msg("SMTP listening on tcp4")
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
-		log.Errorf("SMTP failed to start tcp4 listener: %v", err)
+		slog.Error().Err(err).Msg("Failed to start tcp4 listener")
 		s.emergencyShutdown()
 		return
 	}
-
 	if !s.storeMessages {
-		log.Infof("Load test mode active, messages will not be stored")
+		slog.Info().Msg("Load test mode active, messages will not be stored")
 	} else if s.domainNoStore != "" {
-		log.Infof("Messages sent to domain '%v' will be discarded", s.domainNoStore)
+		slog.Info().Msgf("Messages sent to domain '%v' will be discarded", s.domainNoStore)
 	}
-
-	// Listener go routine
+	// Listener go routine.
 	go s.serve(ctx)
-
-	// Wait for shutdown
+	// Wait for shutdown.
 	<-ctx.Done()
-	log.Tracef("SMTP shutdown requested, connections will be drained")
-
-	// Closing the listener will cause the serve() go routine to exit
+	slog = log.With().Str("module", "smtp").Str("phase", "shutdown").Logger()
+	slog.Debug().Msg("SMTP shutdown requested, connections will be drained")
+	// Closing the listener will cause the serve() go routine to exit.
 	if err := s.listener.Close(); err != nil {
-		log.Errorf("Failed to close SMTP listener: %v", err)
+		slog.Error().Err(err).Msg("Failed to close SMTP listener")
 	}
 }
 
-// serve is the listen/accept loop
+// serve is the listen/accept loop.
 func (s *Server) serve(ctx context.Context) {
-	// Handle incoming connections
+	// Handle incoming connections.
 	var tempDelay time.Duration
 	for sessionID := 1; ; sessionID++ {
 		if conn, err := s.listener.Accept(); err != nil {
-			// There was an error accepting the connection
+			// There was an error accepting the connection.
 			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
-				// Temporary error, sleep for a bit and try again
+				// Temporary error, sleep for a bit and try again.
 				if tempDelay == 0 {
 					tempDelay = 5 * time.Millisecond
 				} else {
@@ -152,17 +150,18 @@ func (s *Server) serve(ctx context.Context) {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.Errorf("SMTP accept error: %v; retrying in %v", err, tempDelay)
+				log.Error().Str("module", "smtp").Err(err).
+					Msgf("SMTP accept error; retrying in %v", tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			} else {
-				// Permanent error
+				// Permanent error.
 				select {
 				case <-ctx.Done():
-					// SMTP is shutting down
+					// SMTP is shutting down.
 					return
 				default:
-					// Something went wrong
+					// Something went wrong.
 					s.emergencyShutdown()
 					return
 				}
@@ -177,7 +176,7 @@ func (s *Server) serve(ctx context.Context) {
 }
 
 func (s *Server) emergencyShutdown() {
-	// Shutdown Inbucket
+	// Shutdown Inbucket.
 	select {
 	case <-s.globalShutdown:
 	default:
@@ -187,7 +186,7 @@ func (s *Server) emergencyShutdown() {
 
 // Drain causes the caller to block until all active SMTP sessions have finished
 func (s *Server) Drain() {
-	// Wait for sessions to close
+	// Wait for sessions to close.
 	s.waitgroup.Wait()
-	log.Tracef("SMTP connections have drained")
+	log.Debug().Str("module", "smtp").Str("phase", "shutdown").Msg("SMTP connections have drained")
 }

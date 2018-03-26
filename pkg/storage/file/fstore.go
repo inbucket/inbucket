@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/stringutil"
+	"github.com/rs/zerolog/log"
 )
 
 // Name of index file in each mailbox
@@ -57,7 +57,8 @@ func New(cfg config.Storage) (storage.Store, error) {
 	if _, err := os.Stat(mailPath); err != nil {
 		// Mail datastore does not yet exist
 		if err = os.MkdirAll(mailPath, 0770); err != nil {
-			log.Errorf("Error creating dir %q: %v", mailPath, err)
+			log.Error().Str("module", "storage").Str("path", mailPath).Err(err).
+				Msg("Error creating dir")
 		}
 	}
 	return &Store{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}, nil

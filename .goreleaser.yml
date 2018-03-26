@@ -1,14 +1,17 @@
 project_name: inbucket
+
 release:
   github:
     owner: jhillyerd
     name: inbucket
   name_template: '{{.Tag}}'
+
 brew:
   commit_author:
     name: goreleaserbot
     email: goreleaser@carlosbecker.com
   install: bin.install ""
+
 builds:
   - binary: inbucket
     goos:
@@ -22,7 +25,7 @@ builds:
       - "6"
     main: ./cmd/inbucket
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
-  - binary: client
+  - binary: inbucket-client
     goos:
       - darwin
       - freebsd
@@ -34,6 +37,7 @@ builds:
       - "6"
     main: ./cmd/client
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
 archive:
   format: tar.gz
   wrap_in_directory: true
@@ -48,12 +52,28 @@ archive:
     - CHANGELOG*
     - etc/**/*
     - ui/**/*
-fpm:
-  bindir: /usr/local/bin
+
+nfpm:
+  vendor: inbucket.org
+  homepage: https://www.inbucket.org/
+  maintainer: github@hillyerd.com
+  description: All-in-one disposable webmail service.
+  license: MIT
+  formats:
+    - deb
+  files:
+    "ui/**/*": "/usr/local/share/inbucket/ui"
+  config_files:
+    "etc/linux/inbucket.service": "/lib/systemd/system/inbucket.service"
+    "ui/greeting.html": "/etc/inbucket/greeting.html"
+
 snapshot:
   name_template: SNAPSHOT-{{ .Commit }}
+
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+
 dist: dist
+
 sign:
   artifacts: none

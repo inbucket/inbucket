@@ -61,6 +61,7 @@ nfpm:
   license: MIT
   formats:
     - deb
+    - rpm
   files:
     "ui/**/*": "/usr/local/share/inbucket/ui"
   config_files:

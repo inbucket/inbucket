@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Store size is now calculated during retention scan and displayed on the Status
   page.
 - Debian `.deb` package generation to release process.
+- RedHat `.rpm` package generation to release process.
 
 ### Changed
 - Massive refactor of back-end code.  Inbucket should now be both easier and

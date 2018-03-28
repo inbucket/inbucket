@@ -78,8 +78,8 @@ func NewSession(server *Server, id int, conn net.Conn) *Session {
 		reader: reader, remoteHost: host}
 }
 
-func (ses *Session) String() string {
-	return fmt.Sprintf("Session{id: %v, state: %v}", ses.id, ses.state)
+func (s *Session) String() string {
+	return fmt.Sprintf("Session{id: %v, state: %v}", s.id, s.state)
 }
 
 /* Session flow:
@@ -100,23 +100,23 @@ func (s *Server) startSession(id int, conn net.Conn) {
 		//expConnectsCurrent.Add(-1)
 	}()
 
-	ses := NewSession(s, id, conn)
-	ses.send(fmt.Sprintf("+OK Inbucket POP3 server ready <%v.%v@%v>", os.Getpid(),
+	ssn := NewSession(s, id, conn)
+	ssn.send(fmt.Sprintf("+OK Inbucket POP3 server ready <%v.%v@%v>", os.Getpid(),
 		time.Now().Unix(), s.domain))
 
 	// This is our command reading loop
-	for ses.state != QUIT && ses.sendError == nil {
-		line, err := ses.readLine()
+	for ssn.state != QUIT && ssn.sendError == nil {
+		line, err := ssn.readLine()
 		if err == nil {
-			if cmd, arg, ok := ses.parseCmd(line); ok {
+			if cmd, arg, ok := ssn.parseCmd(line); ok {
 				// Check against valid SMTP commands
 				if cmd == "" {
-					ses.send("-ERR Speak up")
+					ssn.send("-ERR Speak up")
 					continue
 				}
 				if !commands[cmd] {
-					ses.send(fmt.Sprintf("-ERR Syntax error, %v command unrecognized", cmd))
-					ses.logWarn("Unrecognized command: %v", cmd)
+					ssn.send(fmt.Sprintf("-ERR Syntax error, %v command unrecognized", cmd))
+					ssn.logWarn("Unrecognized command: %v", cmd)
 					continue
 				}
 
@@ -124,307 +124,307 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				switch cmd {
 				case "CAPA":
 					// List our capabilities per RFC2449
-					ses.send("+OK Capability list follows")
-					ses.send("TOP")
-					ses.send("USER")
-					ses.send("UIDL")
-					ses.send("IMPLEMENTATION Inbucket")
-					ses.send(".")
+					ssn.send("+OK Capability list follows")
+					ssn.send("TOP")
+					ssn.send("USER")
+					ssn.send("UIDL")
+					ssn.send("IMPLEMENTATION Inbucket")
+					ssn.send(".")
 					continue
 				}
 
 				// Send command to handler for current state
-				switch ses.state {
+				switch ssn.state {
 				case AUTHORIZATION:
-					ses.authorizationHandler(cmd, arg)
+					ssn.authorizationHandler(cmd, arg)
 					continue
 				case TRANSACTION:
-					ses.transactionHandler(cmd, arg)
+					ssn.transactionHandler(cmd, arg)
 					continue
 				}
-				ses.logError("Session entered unexpected state %v", ses.state)
+				ssn.logError("Session entered unexpected state %v", ssn.state)
 				break
 			} else {
-				ses.send("-ERR Syntax error, command garbled")
+				ssn.send("-ERR Syntax error, command garbled")
 			}
 		} else {
 			// readLine() returned an error
 			if err == io.EOF {
-				switch ses.state {
+				switch ssn.state {
 				case AUTHORIZATION:
 					// EOF is common here
-					ses.logInfo("Client closed connection (state %v)", ses.state)
+					ssn.logInfo("Client closed connection (state %v)", ssn.state)
 				default:
-					ses.logWarn("Got EOF while in state %v", ses.state)
+					ssn.logWarn("Got EOF while in state %v", ssn.state)
 				}
 				break
 			}
 			// not an EOF
-			ses.logWarn("Connection error: %v", err)
+			ssn.logWarn("Connection error: %v", err)
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
-					ses.send("-ERR Idle timeout, bye bye")
+					ssn.send("-ERR Idle timeout, bye bye")
 					break
 				}
 			}
-			ses.send("-ERR Connection error, sorry")
+			ssn.send("-ERR Connection error, sorry")
 			break
 		}
 	}
-	if ses.sendError != nil {
-		ses.logWarn("Network send error: %v", ses.sendError)
+	if ssn.sendError != nil {
+		ssn.logWarn("Network send error: %v", ssn.sendError)
 	}
-	ses.logInfo("Closing connection")
+	ssn.logInfo("Closing connection")
 }
 
 // AUTHORIZATION state
-func (ses *Session) authorizationHandler(cmd string, args []string) {
+func (s *Session) authorizationHandler(cmd string, args []string) {
 	switch cmd {
 	case "QUIT":
-		ses.send("+OK Goodnight and good luck")
-		ses.enterState(QUIT)
+		s.send("+OK Goodnight and good luck")
+		s.enterState(QUIT)
 	case "USER":
 		if len(args) > 0 {
-			ses.user = args[0]
-			ses.send(fmt.Sprintf("+OK Hello %v, welcome to Inbucket", ses.user))
+			s.user = args[0]
+			s.send(fmt.Sprintf("+OK Hello %v, welcome to Inbucket", s.user))
 		} else {
-			ses.send("-ERR Missing username argument")
+			s.send("-ERR Missing username argument")
 		}
 	case "PASS":
-		if ses.user == "" {
-			ses.ooSeq(cmd)
+		if s.user == "" {
+			s.ooSeq(cmd)
 		} else {
-			ses.loadMailbox()
-			ses.send(fmt.Sprintf("+OK Found %v messages for %v", ses.msgCount, ses.user))
-			ses.enterState(TRANSACTION)
+			s.loadMailbox()
+			s.send(fmt.Sprintf("+OK Found %v messages for %v", s.msgCount, s.user))
+			s.enterState(TRANSACTION)
 		}
 	case "APOP":
 		if len(args) != 2 {
-			ses.logWarn("Expected two arguments for APOP")
-			ses.send("-ERR APOP requires two arguments")
+			s.logWarn("Expected two arguments for APOP")
+			s.send("-ERR APOP requires two arguments")
 			return
 		}
-		ses.user = args[0]
-		ses.loadMailbox()
-		ses.send(fmt.Sprintf("+OK Found %v messages for %v", ses.msgCount, ses.user))
-		ses.enterState(TRANSACTION)
+		s.user = args[0]
+		s.loadMailbox()
+		s.send(fmt.Sprintf("+OK Found %v messages for %v", s.msgCount, s.user))
+		s.enterState(TRANSACTION)
 	default:
-		ses.ooSeq(cmd)
+		s.ooSeq(cmd)
 	}
 }
 
 // TRANSACTION state
-func (ses *Session) transactionHandler(cmd string, args []string) {
+func (s *Session) transactionHandler(cmd string, args []string) {
 	switch cmd {
 	case "STAT":
 		if len(args) != 0 {
-			ses.logWarn("STAT got an unexpected argument")
-			ses.send("-ERR STAT command must have no arguments")
+			s.logWarn("STAT got an unexpected argument")
+			s.send("-ERR STAT command must have no arguments")
 			return
 		}
 		var count int
 		var size int64
-		for i, msg := range ses.messages {
-			if ses.retain[i] {
+		for i, msg := range s.messages {
+			if s.retain[i] {
 				count++
 				size += msg.Size()
 			}
 		}
-		ses.send(fmt.Sprintf("+OK %v %v", count, size))
+		s.send(fmt.Sprintf("+OK %v %v", count, size))
 	case "LIST":
 		if len(args) > 1 {
-			ses.logWarn("LIST command had more than 1 argument")
-			ses.send("-ERR LIST command must have zero or one argument")
+			s.logWarn("LIST command had more than 1 argument")
+			s.send("-ERR LIST command must have zero or one argument")
 			return
 		}
 		if len(args) == 1 {
 			msgNum, err := strconv.ParseInt(args[0], 10, 32)
 			if err != nil {
-				ses.logWarn("LIST command argument was not an integer")
-				ses.send("-ERR LIST command requires an integer argument")
+				s.logWarn("LIST command argument was not an integer")
+				s.send("-ERR LIST command requires an integer argument")
 				return
 			}
 			if msgNum < 1 {
-				ses.logWarn("LIST command argument was less than 1")
-				ses.send("-ERR LIST argument must be greater than 0")
+				s.logWarn("LIST command argument was less than 1")
+				s.send("-ERR LIST argument must be greater than 0")
 				return
 			}
-			if int(msgNum) > len(ses.messages) {
-				ses.logWarn("LIST command argument was greater than number of messages")
-				ses.send("-ERR LIST argument must not exceed the number of messages")
+			if int(msgNum) > len(s.messages) {
+				s.logWarn("LIST command argument was greater than number of messages")
+				s.send("-ERR LIST argument must not exceed the number of messages")
 				return
 			}
-			if !ses.retain[msgNum-1] {
-				ses.logWarn("Client tried to LIST a message it had deleted")
-				ses.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
+			if !s.retain[msgNum-1] {
+				s.logWarn("Client tried to LIST a message it had deleted")
+				s.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
 				return
 			}
-			ses.send(fmt.Sprintf("+OK %v %v", msgNum, ses.messages[msgNum-1].Size()))
+			s.send(fmt.Sprintf("+OK %v %v", msgNum, s.messages[msgNum-1].Size()))
 		} else {
-			ses.send(fmt.Sprintf("+OK Listing %v messages", ses.msgCount))
-			for i, msg := range ses.messages {
-				if ses.retain[i] {
-					ses.send(fmt.Sprintf("%v %v", i+1, msg.Size()))
+			s.send(fmt.Sprintf("+OK Listing %v messages", s.msgCount))
+			for i, msg := range s.messages {
+				if s.retain[i] {
+					s.send(fmt.Sprintf("%v %v", i+1, msg.Size()))
 				}
 			}
-			ses.send(".")
+			s.send(".")
 		}
 	case "UIDL":
 		if len(args) > 1 {
-			ses.logWarn("UIDL command had more than 1 argument")
-			ses.send("-ERR UIDL command must have zero or one argument")
+			s.logWarn("UIDL command had more than 1 argument")
+			s.send("-ERR UIDL command must have zero or one argument")
 			return
 		}
 		if len(args) == 1 {
 			msgNum, err := strconv.ParseInt(args[0], 10, 32)
 			if err != nil {
-				ses.logWarn("UIDL command argument was not an integer")
-				ses.send("-ERR UIDL command requires an integer argument")
+				s.logWarn("UIDL command argument was not an integer")
+				s.send("-ERR UIDL command requires an integer argument")
 				return
 			}
 			if msgNum < 1 {
-				ses.logWarn("UIDL command argument was less than 1")
-				ses.send("-ERR UIDL argument must be greater than 0")
+				s.logWarn("UIDL command argument was less than 1")
+				s.send("-ERR UIDL argument must be greater than 0")
 				return
 			}
-			if int(msgNum) > len(ses.messages) {
-				ses.logWarn("UIDL command argument was greater than number of messages")
-				ses.send("-ERR UIDL argument must not exceed the number of messages")
+			if int(msgNum) > len(s.messages) {
+				s.logWarn("UIDL command argument was greater than number of messages")
+				s.send("-ERR UIDL argument must not exceed the number of messages")
 				return
 			}
-			if !ses.retain[msgNum-1] {
-				ses.logWarn("Client tried to UIDL a message it had deleted")
-				ses.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
+			if !s.retain[msgNum-1] {
+				s.logWarn("Client tried to UIDL a message it had deleted")
+				s.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
 				return
 			}
-			ses.send(fmt.Sprintf("+OK %v %v", msgNum, ses.messages[msgNum-1].ID()))
+			s.send(fmt.Sprintf("+OK %v %v", msgNum, s.messages[msgNum-1].ID()))
 		} else {
-			ses.send(fmt.Sprintf("+OK Listing %v messages", ses.msgCount))
-			for i, msg := range ses.messages {
-				if ses.retain[i] {
-					ses.send(fmt.Sprintf("%v %v", i+1, msg.ID()))
+			s.send(fmt.Sprintf("+OK Listing %v messages", s.msgCount))
+			for i, msg := range s.messages {
+				if s.retain[i] {
+					s.send(fmt.Sprintf("%v %v", i+1, msg.ID()))
 				}
 			}
-			ses.send(".")
+			s.send(".")
 		}
 	case "DELE":
 		if len(args) != 1 {
-			ses.logWarn("DELE command had invalid number of arguments")
-			ses.send("-ERR DELE command requires a single argument")
+			s.logWarn("DELE command had invalid number of arguments")
+			s.send("-ERR DELE command requires a single argument")
 			return
 		}
 		msgNum, err := strconv.ParseInt(args[0], 10, 32)
 		if err != nil {
-			ses.logWarn("DELE command argument was not an integer")
-			ses.send("-ERR DELE command requires an integer argument")
+			s.logWarn("DELE command argument was not an integer")
+			s.send("-ERR DELE command requires an integer argument")
 			return
 		}
 		if msgNum < 1 {
-			ses.logWarn("DELE command argument was less than 1")
-			ses.send("-ERR DELE argument must be greater than 0")
+			s.logWarn("DELE command argument was less than 1")
+			s.send("-ERR DELE argument must be greater than 0")
 			return
 		}
-		if int(msgNum) > len(ses.messages) {
-			ses.logWarn("DELE command argument was greater than number of messages")
-			ses.send("-ERR DELE argument must not exceed the number of messages")
+		if int(msgNum) > len(s.messages) {
+			s.logWarn("DELE command argument was greater than number of messages")
+			s.send("-ERR DELE argument must not exceed the number of messages")
 			return
 		}
-		if ses.retain[msgNum-1] {
-			ses.retain[msgNum-1] = false
-			ses.msgCount--
-			ses.send(fmt.Sprintf("+OK Deleted message %v", msgNum))
+		if s.retain[msgNum-1] {
+			s.retain[msgNum-1] = false
+			s.msgCount--
+			s.send(fmt.Sprintf("+OK Deleted message %v", msgNum))
 		} else {
-			ses.logWarn("Client tried to DELE an already deleted message")
-			ses.send(fmt.Sprintf("-ERR Message %v has already been deleted", msgNum))
+			s.logWarn("Client tried to DELE an already deleted message")
+			s.send(fmt.Sprintf("-ERR Message %v has already been deleted", msgNum))
 		}
 	case "RETR":
 		if len(args) != 1 {
-			ses.logWarn("RETR command had invalid number of arguments")
-			ses.send("-ERR RETR command requires a single argument")
+			s.logWarn("RETR command had invalid number of arguments")
+			s.send("-ERR RETR command requires a single argument")
 			return
 		}
 		msgNum, err := strconv.ParseInt(args[0], 10, 32)
 		if err != nil {
-			ses.logWarn("RETR command argument was not an integer")
-			ses.send("-ERR RETR command requires an integer argument")
+			s.logWarn("RETR command argument was not an integer")
+			s.send("-ERR RETR command requires an integer argument")
 			return
 		}
 		if msgNum < 1 {
-			ses.logWarn("RETR command argument was less than 1")
-			ses.send("-ERR RETR argument must be greater than 0")
+			s.logWarn("RETR command argument was less than 1")
+			s.send("-ERR RETR argument must be greater than 0")
 			return
 		}
-		if int(msgNum) > len(ses.messages) {
-			ses.logWarn("RETR command argument was greater than number of messages")
-			ses.send("-ERR RETR argument must not exceed the number of messages")
+		if int(msgNum) > len(s.messages) {
+			s.logWarn("RETR command argument was greater than number of messages")
+			s.send("-ERR RETR argument must not exceed the number of messages")
 			return
 		}
-		ses.send(fmt.Sprintf("+OK %v bytes follows", ses.messages[msgNum-1].Size()))
-		ses.sendMessage(ses.messages[msgNum-1])
+		s.send(fmt.Sprintf("+OK %v bytes follows", s.messages[msgNum-1].Size()))
+		s.sendMessage(s.messages[msgNum-1])
 	case "TOP":
 		if len(args) != 2 {
-			ses.logWarn("TOP command had invalid number of arguments")
-			ses.send("-ERR TOP command requires two arguments")
+			s.logWarn("TOP command had invalid number of arguments")
+			s.send("-ERR TOP command requires two arguments")
 			return
 		}
 		msgNum, err := strconv.ParseInt(args[0], 10, 32)
 		if err != nil {
-			ses.logWarn("TOP command first argument was not an integer")
-			ses.send("-ERR TOP command requires an integer argument")
+			s.logWarn("TOP command first argument was not an integer")
+			s.send("-ERR TOP command requires an integer argument")
 			return
 		}
 		if msgNum < 1 {
-			ses.logWarn("TOP command first argument was less than 1")
-			ses.send("-ERR TOP first argument must be greater than 0")
+			s.logWarn("TOP command first argument was less than 1")
+			s.send("-ERR TOP first argument must be greater than 0")
 			return
 		}
-		if int(msgNum) > len(ses.messages) {
-			ses.logWarn("TOP command first argument was greater than number of messages")
-			ses.send("-ERR TOP first argument must not exceed the number of messages")
+		if int(msgNum) > len(s.messages) {
+			s.logWarn("TOP command first argument was greater than number of messages")
+			s.send("-ERR TOP first argument must not exceed the number of messages")
 			return
 		}
 
 		var lines int64
 		lines, err = strconv.ParseInt(args[1], 10, 32)
 		if err != nil {
-			ses.logWarn("TOP command second argument was not an integer")
-			ses.send("-ERR TOP command requires an integer argument")
+			s.logWarn("TOP command second argument was not an integer")
+			s.send("-ERR TOP command requires an integer argument")
 			return
 		}
 		if lines < 0 {
-			ses.logWarn("TOP command second argument was negative")
-			ses.send("-ERR TOP second argument must be non-negative")
+			s.logWarn("TOP command second argument was negative")
+			s.send("-ERR TOP second argument must be non-negative")
 			return
 		}
-		ses.send("+OK Top of message follows")
-		ses.sendMessageTop(ses.messages[msgNum-1], int(lines))
+		s.send("+OK Top of message follows")
+		s.sendMessageTop(s.messages[msgNum-1], int(lines))
 	case "QUIT":
-		ses.send("+OK We will process your deletes")
-		ses.processDeletes()
-		ses.enterState(QUIT)
+		s.send("+OK We will process your deletes")
+		s.processDeletes()
+		s.enterState(QUIT)
 	case "NOOP":
-		ses.send("+OK I have sucessfully done nothing")
+		s.send("+OK I have sucessfully done nothing")
 	case "RSET":
 		// Reset session, don't actually delete anything I told you to
-		ses.logTrace("Resetting session state on RSET request")
-		ses.reset()
-		ses.send("+OK Session reset")
+		s.logTrace("Resetting session state on RSET request")
+		s.reset()
+		s.send("+OK Session reset")
 	default:
-		ses.ooSeq(cmd)
+		s.ooSeq(cmd)
 	}
 }
 
 // Send the contents of the message to the client
-func (ses *Session) sendMessage(msg storage.Message) {
+func (s *Session) sendMessage(msg storage.Message) {
 	reader, err := msg.Source()
 	if err != nil {
-		ses.logError("Failed to read message for RETR command")
-		ses.send("-ERR Failed to RETR that message, internal error")
+		s.logError("Failed to read message for RETR command")
+		s.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
 	defer func() {
 		if err := reader.Close(); err != nil {
-			ses.logError("Failed to close message: %v", err)
+			s.logError("Failed to close message: %v", err)
 		}
 	}()
 
@@ -435,29 +435,29 @@ func (ses *Session) sendMessage(msg storage.Message) {
 		if strings.HasPrefix(line, ".") {
 			line = "." + line
 		}
-		ses.send(line)
+		s.send(line)
 	}
 
 	if err = scanner.Err(); err != nil {
-		ses.logError("Failed to read message for RETR command")
-		ses.send(".")
-		ses.send("-ERR Failed to RETR that message, internal error")
+		s.logError("Failed to read message for RETR command")
+		s.send(".")
+		s.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
-	ses.send(".")
+	s.send(".")
 }
 
 // Send the headers plus the top N lines to the client
-func (ses *Session) sendMessageTop(msg storage.Message, lineCount int) {
+func (s *Session) sendMessageTop(msg storage.Message, lineCount int) {
 	reader, err := msg.Source()
 	if err != nil {
-		ses.logError("Failed to read message for RETR command")
-		ses.send("-ERR Failed to RETR that message, internal error")
+		s.logError("Failed to read message for RETR command")
+		s.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
 	defer func() {
 		if err := reader.Close(); err != nil {
-			ses.logError("Failed to close message: %v", err)
+			s.logError("Failed to close message: %v", err)
 		}
 	}()
 
@@ -482,85 +482,85 @@ func (ses *Session) sendMessageTop(msg storage.Message, lineCount int) {
 				inBody = true
 			}
 		}
-		ses.send(line)
+		s.send(line)
 	}
 
 	if err = scanner.Err(); err != nil {
-		ses.logError("Failed to read message for RETR command")
-		ses.send(".")
-		ses.send("-ERR Failed to RETR that message, internal error")
+		s.logError("Failed to read message for RETR command")
+		s.send(".")
+		s.send("-ERR Failed to RETR that message, internal error")
 		return
 	}
-	ses.send(".")
+	s.send(".")
 }
 
 // Load the users mailbox
-func (ses *Session) loadMailbox() {
-	m, err := ses.server.store.GetMessages(ses.user)
+func (s *Session) loadMailbox() {
+	m, err := s.server.store.GetMessages(s.user)
 	if err != nil {
-		ses.logError("Failed to load messages for %v: %v", ses.user, err)
+		s.logError("Failed to load messages for %v: %v", s.user, err)
 	}
-	ses.messages = m
-	ses.retainAll()
+	s.messages = m
+	s.retainAll()
 }
 
 // Reset retain flag to true for all messages
-func (ses *Session) retainAll() {
-	ses.retain = make([]bool, len(ses.messages))
-	for i := range ses.retain {
-		ses.retain[i] = true
+func (s *Session) retainAll() {
+	s.retain = make([]bool, len(s.messages))
+	for i := range s.retain {
+		s.retain[i] = true
 	}
-	ses.msgCount = len(ses.messages)
+	s.msgCount = len(s.messages)
 }
 
 // This would be considered the "UPDATE" state in the RFC, but it does not fit
 // with our state-machine design here, since no commands are accepted - it just
 // indicates that the session was closed cleanly and that deletes should be
 // processed.
-func (ses *Session) processDeletes() {
-	ses.logInfo("Processing deletes")
-	for i, msg := range ses.messages {
-		if !ses.retain[i] {
-			ses.logTrace("Deleting %v", msg)
-			if err := ses.server.store.RemoveMessage(ses.user, msg.ID()); err != nil {
-				ses.logWarn("Error deleting %v: %v", msg, err)
+func (s *Session) processDeletes() {
+	s.logInfo("Processing deletes")
+	for i, msg := range s.messages {
+		if !s.retain[i] {
+			s.logTrace("Deleting %v", msg)
+			if err := s.server.store.RemoveMessage(s.user, msg.ID()); err != nil {
+				s.logWarn("Error deleting %v: %v", msg, err)
 			}
 		}
 	}
 }
 
-func (ses *Session) enterState(state State) {
-	ses.state = state
-	ses.logTrace("Entering state %v", state)
+func (s *Session) enterState(state State) {
+	s.state = state
+	s.logTrace("Entering state %v", state)
 }
 
 // Calculate the next read or write deadline based on maxIdleSeconds
-func (ses *Session) nextDeadline() time.Time {
-	return time.Now().Add(ses.server.timeout)
+func (s *Session) nextDeadline() time.Time {
+	return time.Now().Add(s.server.timeout)
 }
 
 // Send requested message, store errors in Session.sendError
-func (ses *Session) send(msg string) {
-	if err := ses.conn.SetWriteDeadline(ses.nextDeadline()); err != nil {
-		ses.sendError = err
+func (s *Session) send(msg string) {
+	if err := s.conn.SetWriteDeadline(s.nextDeadline()); err != nil {
+		s.sendError = err
 		return
 	}
-	if _, err := fmt.Fprint(ses.conn, msg+"\r\n"); err != nil {
-		ses.sendError = err
-		ses.logWarn("Failed to send: '%v'", msg)
+	if _, err := fmt.Fprint(s.conn, msg+"\r\n"); err != nil {
+		s.sendError = err
+		s.logWarn("Failed to send: '%v'", msg)
 		return
 	}
-	ses.logTrace(">> %v >>", msg)
+	s.logTrace(">> %v >>", msg)
 }
 
 // readByteLine reads a line of input into the provided buffer. Does
 // not reset the Buffer - please do so prior to calling.
-func (ses *Session) readByteLine(buf *bytes.Buffer) error {
-	if err := ses.conn.SetReadDeadline(ses.nextDeadline()); err != nil {
+func (s *Session) readByteLine(buf *bytes.Buffer) error {
+	if err := s.conn.SetReadDeadline(s.nextDeadline()); err != nil {
 		return err
 	}
 	for {
-		line, err := ses.reader.ReadBytes('\r')
+		line, err := s.reader.ReadBytes('\r')
 		if err != nil {
 			return err
 		}
@@ -568,7 +568,7 @@ func (ses *Session) readByteLine(buf *bytes.Buffer) error {
 			return err
 		}
 		// Read the next byte looking for '\n'
-		c, err := ses.reader.ReadByte()
+		c, err := s.reader.ReadByte()
 		if err != nil {
 			return err
 		}
@@ -585,19 +585,19 @@ func (ses *Session) readByteLine(buf *bytes.Buffer) error {
 }
 
 // Reads a line of input
-func (ses *Session) readLine() (line string, err error) {
-	if err = ses.conn.SetReadDeadline(ses.nextDeadline()); err != nil {
+func (s *Session) readLine() (line string, err error) {
+	if err = s.conn.SetReadDeadline(s.nextDeadline()); err != nil {
 		return "", err
 	}
-	line, err = ses.reader.ReadString('\n')
+	line, err = s.reader.ReadString('\n')
 	if err != nil {
 		return "", err
 	}
-	ses.logTrace("<< %v <<", strings.TrimRight(line, "\r\n"))
+	s.logTrace("<< %v <<", strings.TrimRight(line, "\r\n"))
 	return line, nil
 }
 
-func (ses *Session) parseCmd(line string) (cmd string, args []string, ok bool) {
+func (s *Session) parseCmd(line string) (cmd string, args []string, ok bool) {
 	line = strings.TrimRight(line, "\r\n")
 	if line == "" {
 		return "", nil, true
@@ -607,32 +607,32 @@ func (ses *Session) parseCmd(line string) (cmd string, args []string, ok bool) {
 	return strings.ToUpper(words[0]), words[1:], true
 }
 
-func (ses *Session) reset() {
-	ses.retainAll()
+func (s *Session) reset() {
+	s.retainAll()
 }
 
-func (ses *Session) ooSeq(cmd string) {
-	ses.send(fmt.Sprintf("-ERR Command %v is out of sequence", cmd))
-	ses.logWarn("Wasn't expecting %v here", cmd)
+func (s *Session) ooSeq(cmd string) {
+	s.send(fmt.Sprintf("-ERR Command %v is out of sequence", cmd))
+	s.logWarn("Wasn't expecting %v here", cmd)
 }
 
 // Session specific logging methods
-func (ses *Session) logTrace(msg string, args ...interface{}) {
-	log.Tracef("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+func (s *Session) logTrace(msg string, args ...interface{}) {
+	log.Tracef("POP3[%v]<%v> %v", s.remoteHost, s.id, fmt.Sprintf(msg, args...))
 }
 
-func (ses *Session) logInfo(msg string, args ...interface{}) {
-	log.Infof("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+func (s *Session) logInfo(msg string, args ...interface{}) {
+	log.Infof("POP3[%v]<%v> %v", s.remoteHost, s.id, fmt.Sprintf(msg, args...))
 }
 
-func (ses *Session) logWarn(msg string, args ...interface{}) {
+func (s *Session) logWarn(msg string, args ...interface{}) {
 	// Update metrics
 	//expWarnsTotal.Add(1)
-	log.Warnf("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Warnf("POP3[%v]<%v> %v", s.remoteHost, s.id, fmt.Sprintf(msg, args...))
 }
 
-func (ses *Session) logError(msg string, args ...interface{}) {
+func (s *Session) logError(msg string, args ...interface{}) {
 	// Update metrics
 	//expErrorsTotal.Add(1)
-	log.Errorf("POP3[%v]<%v> %v", ses.remoteHost, ses.id, fmt.Sprintf(msg, args...))
+	log.Errorf("POP3[%v]<%v> %v", s.remoteHost, s.id, fmt.Sprintf(msg, args...))
 }

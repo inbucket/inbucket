@@ -392,7 +392,7 @@ func setupSMTPSession(server *Server) net.Conn {
 	// Pair of pipes to communicate
 	serverConn, clientConn := net.Pipe()
 	// Start the session
-	server.waitgroup.Add(1)
+	server.wg.Add(1)
 	sessionNum++
 	go server.startSession(sessionNum, &mockConn{serverConn})
 

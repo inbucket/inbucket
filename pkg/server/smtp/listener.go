@@ -5,7 +5,6 @@ import (
 	"context"
 	"expvar"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -15,26 +14,6 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/rs/zerolog/log"
 )
-
-func init() {
-	m := expvar.NewMap("smtp")
-	m.Set("ConnectsTotal", expConnectsTotal)
-	m.Set("ConnectsHist", expConnectsHist)
-	m.Set("ConnectsCurrent", expConnectsCurrent)
-	m.Set("ReceivedTotal", expReceivedTotal)
-	m.Set("ReceivedHist", expReceivedHist)
-	m.Set("ErrorsTotal", expErrorsTotal)
-	m.Set("ErrorsHist", expErrorsHist)
-	m.Set("WarnsTotal", expWarnsTotal)
-	m.Set("WarnsHist", expWarnsHist)
-
-	metric.AddTickerFunc(func() {
-		expReceivedHist.Set(metric.Push(deliveredHist, expReceivedTotal))
-		expConnectsHist.Set(metric.Push(connectsHist, expConnectsTotal))
-		expErrorsHist.Set(metric.Push(errorsHist, expErrorsTotal))
-		expWarnsHist.Set(metric.Push(warnsHist, expWarnsTotal))
-	})
-}
 
 var (
 	// Raw stat collectors
@@ -57,56 +36,55 @@ var (
 	expWarnsHist    = new(expvar.String)
 )
 
-// Server holds the configuration and state of our SMTP server
-type Server struct {
-	// TODO(#91) Refactor config items out of this struct
-	config config.SMTP
-	// Configuration
-	host            string
-	domain          string
-	domainNoStore   string
-	maxRecips       int
-	maxMessageBytes int
-	storeMessages   bool
-	timeout         time.Duration
-
-	// Dependencies
-	apolicy        *policy.Addressing // Address policy.
-	globalShutdown chan bool          // Shuts down Inbucket.
-	manager        message.Manager    // Used to deliver messages.
-
-	// State
-	listener  net.Listener    // Incoming network connections
-	waitgroup *sync.WaitGroup // Waitgroup tracks individual sessions
+func init() {
+	m := expvar.NewMap("smtp")
+	m.Set("ConnectsTotal", expConnectsTotal)
+	m.Set("ConnectsHist", expConnectsHist)
+	m.Set("ConnectsCurrent", expConnectsCurrent)
+	m.Set("ReceivedTotal", expReceivedTotal)
+	m.Set("ReceivedHist", expReceivedHist)
+	m.Set("ErrorsTotal", expErrorsTotal)
+	m.Set("ErrorsHist", expErrorsHist)
+	m.Set("WarnsTotal", expWarnsTotal)
+	m.Set("WarnsHist", expWarnsHist)
+	metric.AddTickerFunc(func() {
+		expReceivedHist.Set(metric.Push(deliveredHist, expReceivedTotal))
+		expConnectsHist.Set(metric.Push(connectsHist, expConnectsTotal))
+		expErrorsHist.Set(metric.Push(errorsHist, expErrorsTotal))
+		expWarnsHist.Set(metric.Push(warnsHist, expWarnsTotal))
+	})
 }
 
-// NewServer creates a new Server instance with the specificed config
+// Server holds the configuration and state of our SMTP server.
+type Server struct {
+	config         config.SMTP        // SMTP configuration.
+	addrPolicy     *policy.Addressing // Address policy.
+	globalShutdown chan bool          // Shuts down Inbucket.
+	manager        message.Manager    // Used to deliver messages.
+	listener       net.Listener       // Incoming network connections.
+	wg             *sync.WaitGroup    // Waitgroup tracks individual sessions.
+}
+
+// NewServer creates a new Server instance with the specificed config.
 func NewServer(
-	cfg config.SMTP,
+	smtpConfig config.SMTP,
 	globalShutdown chan bool,
 	manager message.Manager,
 	apolicy *policy.Addressing,
 ) *Server {
 	return &Server{
-		config:          cfg,
-		host:            cfg.Addr,
-		domain:          cfg.Domain,
-		domainNoStore:   strings.ToLower(cfg.DomainNoStore),
-		maxRecips:       cfg.MaxRecipients,
-		timeout:         cfg.Timeout,
-		maxMessageBytes: cfg.MaxMessageBytes,
-		storeMessages:   cfg.StoreMessages,
-		globalShutdown:  globalShutdown,
-		manager:         manager,
-		apolicy:         apolicy,
-		waitgroup:       new(sync.WaitGroup),
+		config:         smtpConfig,
+		globalShutdown: globalShutdown,
+		manager:        manager,
+		addrPolicy:     apolicy,
+		wg:             new(sync.WaitGroup),
 	}
 }
 
 // Start the listener and handle incoming connections.
 func (s *Server) Start(ctx context.Context) {
 	slog := log.With().Str("module", "smtp").Str("phase", "startup").Logger()
-	addr, err := net.ResolveTCPAddr("tcp4", s.host)
+	addr, err := net.ResolveTCPAddr("tcp4", s.config.Addr)
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to build tcp4 address")
 		s.emergencyShutdown()
@@ -119,10 +97,10 @@ func (s *Server) Start(ctx context.Context) {
 		s.emergencyShutdown()
 		return
 	}
-	if !s.storeMessages {
+	if !s.config.StoreMessages {
 		slog.Info().Msg("Load test mode active, messages will not be stored")
-	} else if s.domainNoStore != "" {
-		slog.Info().Msgf("Messages sent to domain '%v' will be discarded", s.domainNoStore)
+	} else if s.config.DomainNoStore != "" {
+		slog.Info().Msgf("Messages sent to domain '%v' will be discarded", s.config.DomainNoStore)
 	}
 	// Listener go routine.
 	go s.serve(ctx)
@@ -172,7 +150,7 @@ func (s *Server) serve(ctx context.Context) {
 		} else {
 			tempDelay = 0
 			expConnectsTotal.Add(1)
-			s.waitgroup.Add(1)
+			s.wg.Add(1)
 			go s.startSession(sessionID, conn)
 		}
 	}
@@ -190,6 +168,6 @@ func (s *Server) emergencyShutdown() {
 // Drain causes the caller to block until all active SMTP sessions have finished
 func (s *Server) Drain() {
 	// Wait for sessions to close.
-	s.waitgroup.Wait()
+	s.wg.Wait()
 	log.Debug().Str("module", "smtp").Str("phase", "shutdown").Msg("SMTP connections have drained")
 }

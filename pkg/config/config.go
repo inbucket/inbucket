@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -81,6 +82,7 @@ type Storage struct {
 func Process() (*Root, error) {
 	c := &Root{}
 	err := envconfig.Process(prefix, c)
+	c.SMTP.DomainNoStore = strings.ToLower(c.SMTP.DomainNoStore)
 	return c, err
 }
 

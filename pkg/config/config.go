@@ -29,7 +29,7 @@ var (
 
 // Root wraps all other configurations.
 type Root struct {
-	LogLevel string `required:"true" default:"INFO" desc:"TRACE, INFO, WARN, or ERROR"`
+	LogLevel string `required:"true" default:"INFO" desc:"DEBUG, INFO, WARN, or ERROR"`
 	SMTP     SMTP
 	POP3     POP3
 	Web      Web

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -73,13 +74,6 @@ func main() {
 		config.Usage()
 		return
 	}
-	// Logger setup.
-	closeLog, err := openLog(*logfile, *logjson)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Log error: %v\n", err)
-		os.Exit(1)
-	}
-	startupLog := log.With().Str("phase", "startup").Logger()
 	// Process configuration.
 	config.Version = version
 	config.BuildDate = date
@@ -92,6 +86,13 @@ func main() {
 		conf.POP3.Debug = true
 		conf.SMTP.Debug = true
 	}
+	// Logger setup.
+	closeLog, err := openLog(conf.LogLevel, *logfile, *logjson)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Log error: %v\n", err)
+		os.Exit(1)
+	}
+	startupLog := log.With().Str("phase", "startup").Logger()
 	// Setup signal handler.
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
@@ -166,9 +167,20 @@ signalLoop:
 }
 
 // openLog configures zerolog output, returns func to close logfile.
-func openLog(logfile string, json bool) (close func(), err error) {
+func openLog(level string, logfile string, json bool) (close func(), err error) {
+	switch strings.ToUpper(level) {
+	case "DEBUG":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "INFO":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "WARN":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "ERROR":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	default:
+		return nil, fmt.Errorf("Log level %q not one of: DEBUG, INFO, WARN, ERROR", level)
+	}
 	close = func() {}
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	var w io.Writer
 	color := true
 	switch logfile {

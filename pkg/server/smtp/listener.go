@@ -36,6 +36,27 @@ func init() {
 	})
 }
 
+var (
+	// Raw stat collectors
+	expConnectsTotal   = new(expvar.Int)
+	expConnectsCurrent = new(expvar.Int)
+	expReceivedTotal   = new(expvar.Int)
+	expErrorsTotal     = new(expvar.Int)
+	expWarnsTotal      = new(expvar.Int)
+
+	// History of certain stats
+	deliveredHist = list.New()
+	connectsHist  = list.New()
+	errorsHist    = list.New()
+	warnsHist     = list.New()
+
+	// History rendered as comma delim string
+	expReceivedHist = new(expvar.String)
+	expConnectsHist = new(expvar.String)
+	expErrorsHist   = new(expvar.String)
+	expWarnsHist    = new(expvar.String)
+)
+
 // Server holds the configuration and state of our SMTP server
 type Server struct {
 	// TODO(#91) Refactor config items out of this struct
@@ -58,27 +79,6 @@ type Server struct {
 	listener  net.Listener    // Incoming network connections
 	waitgroup *sync.WaitGroup // Waitgroup tracks individual sessions
 }
-
-var (
-	// Raw stat collectors
-	expConnectsTotal   = new(expvar.Int)
-	expConnectsCurrent = new(expvar.Int)
-	expReceivedTotal   = new(expvar.Int)
-	expErrorsTotal     = new(expvar.Int)
-	expWarnsTotal      = new(expvar.Int)
-
-	// History of certain stats
-	deliveredHist = list.New()
-	connectsHist  = list.New()
-	errorsHist    = list.New()
-	warnsHist     = list.New()
-
-	// History rendered as comma delim string
-	expReceivedHist = new(expvar.String)
-	expConnectsHist = new(expvar.String)
-	expErrorsHist   = new(expvar.String)
-	expWarnsHist    = new(expvar.String)
-)
 
 // NewServer creates a new Server instance with the specificed config
 func NewServer(

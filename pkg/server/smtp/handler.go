@@ -113,7 +113,9 @@ func (s *Session) String() string {
  *  5. Goto 2
  */
 func (s *Server) startSession(id int, conn net.Conn) {
-	logger := log.With().Str("module", "smtp").Str("remote", conn.RemoteAddr().String()).
+	logger := log.Hook(logHook{}).With().
+		Str("module", "smtp").
+		Str("remote", conn.RemoteAddr().String()).
 		Int("session", id).Logger()
 	logger.Info().Msg("Starting SMTP session")
 	expConnectsCurrent.Add(1)

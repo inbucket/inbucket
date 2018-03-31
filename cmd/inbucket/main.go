@@ -2,10 +2,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"expvar"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"runtime"
@@ -72,16 +74,12 @@ func main() {
 		return
 	}
 	// Logger setup.
-	if !*logjson {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	closeLog, err := openLog(*logfile, *logjson)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Log error: %v\n", err)
+		os.Exit(1)
 	}
-	_ = logfile
-	// } else if *logfile != "stderr" {
-	// 	// TODO #90 file output
-	// 	// defer close
-	// }
-	slog := log.With().Str("phase", "startup").Logger()
+	startupLog := log.With().Str("phase", "startup").Logger()
 	// Process configuration.
 	config.Version = version
 	config.BuildDate = date
@@ -96,18 +94,19 @@ func main() {
 	}
 	// Setup signal handler.
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 	// Initialize logging.
-	slog.Info().Str("version", config.Version).Str("buildDate", config.BuildDate).Msg("Inbucket")
+	startupLog.Info().Str("version", config.Version).Str("buildDate", config.BuildDate).
+		Msg("Inbucket starting")
 	// Write pidfile if requested.
 	if *pidfile != "" {
 		pidf, err := os.Create(*pidfile)
 		if err != nil {
-			slog.Fatal().Err(err).Str("path", *pidfile).Msg("Failed to create pidfile")
+			startupLog.Fatal().Err(err).Str("path", *pidfile).Msg("Failed to create pidfile")
 		}
 		fmt.Fprintf(pidf, "%v\n", os.Getpid())
 		if err := pidf.Close(); err != nil {
-			slog.Fatal().Err(err).Str("path", *pidfile).Msg("Failed to close pidfile")
+			startupLog.Fatal().Err(err).Str("path", *pidfile).Msg("Failed to close pidfile")
 		}
 	}
 	// Configure internal services.
@@ -116,7 +115,7 @@ func main() {
 	store, err := storage.FromConfig(conf.Storage)
 	if err != nil {
 		removePIDFile(*pidfile)
-		slog.Fatal().Err(err).Str("module", "storage").Msg("Fatal storage error")
+		startupLog.Fatal().Err(err).Str("module", "storage").Msg("Fatal storage error")
 	}
 	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf.SMTP}
@@ -141,9 +140,6 @@ signalLoop:
 		select {
 		case sig := <-sigChan:
 			switch sig {
-			case syscall.SIGHUP:
-				log.Info().Str("signal", "SIGHUP").Msg("Recieved SIGHUP, cycling logfile")
-				// TODO #90 log.Rotate()
 			case syscall.SIGINT:
 				// Shutdown requested
 				log.Info().Str("phase", "shutdown").Str("signal", "SIGINT").
@@ -166,6 +162,43 @@ signalLoop:
 	pop3Server.Drain()
 	retentionScanner.Join()
 	removePIDFile(*pidfile)
+	closeLog()
+}
+
+// openLog configures zerolog output, returns func to close logfile.
+func openLog(logfile string, json bool) (close func(), err error) {
+	close = func() {}
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	var w io.Writer
+	color := true
+	switch logfile {
+	case "stderr":
+		w = os.Stderr
+	case "stdout":
+		w = os.Stdout
+	default:
+		logf, err := os.OpenFile(logfile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+		if err != nil {
+			return nil, err
+		}
+		bw := bufio.NewWriter(logf)
+		w = bw
+		color = false
+		close = func() {
+			_ = bw.Flush()
+			_ = logf.Close()
+		}
+	}
+	w = zerolog.SyncWriter(w)
+	if json {
+		log.Logger = log.Output(w)
+		return close, nil
+	}
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out:     w,
+		NoColor: !color,
+	})
+	return close, nil
 }
 
 // removePIDFile removes the PID file if created.

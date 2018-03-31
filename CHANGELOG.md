@@ -26,6 +26,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   - Uses the same default ports as other builds; smtp:2500 http:9000 pop3:1100
   - Uses volume `/config` for `greeting.html`
   - Uses volume `/storage` for mail storage
+- Log output is now structured, and will be output as JSON with the `-logjson`
+  flag; which is enabled by default for the Docker container.
+- SMTP and POP3 network tracing is no longer logged regardless of level, but can
+  be sent to stdout via `-netdebug` flag.
+
+### Removed
+- Support for SIGHUP and log file rotation.
 
 
 ## [v1.3.1] - 2018-03-10

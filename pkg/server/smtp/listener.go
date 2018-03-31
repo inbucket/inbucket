@@ -11,6 +11,7 @@ import (
 
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/message"
+	"github.com/jhillyerd/inbucket/pkg/metric"
 	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/rs/zerolog/log"
 )
@@ -27,13 +28,12 @@ func init() {
 	m.Set("WarnsTotal", expWarnsTotal)
 	m.Set("WarnsHist", expWarnsHist)
 
-	// TODO #90 move elsewhere
-	// log.AddTickerFunc(func() {
-	// 	expReceivedHist.Set(log.PushMetric(deliveredHist, expReceivedTotal))
-	// 	expConnectsHist.Set(log.PushMetric(connectsHist, expConnectsTotal))
-	// 	expErrorsHist.Set(log.PushMetric(errorsHist, expErrorsTotal))
-	// 	expWarnsHist.Set(log.PushMetric(warnsHist, expWarnsTotal))
-	// })
+	metric.AddTickerFunc(func() {
+		expReceivedHist.Set(metric.Push(deliveredHist, expReceivedTotal))
+		expConnectsHist.Set(metric.Push(connectsHist, expConnectsTotal))
+		expErrorsHist.Set(metric.Push(errorsHist, expErrorsTotal))
+		expWarnsHist.Set(metric.Push(warnsHist, expWarnsTotal))
+	})
 }
 
 // Server holds the configuration and state of our SMTP server

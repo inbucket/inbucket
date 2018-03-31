@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/metric"
 	"github.com/rs/zerolog/log"
 )
 
@@ -42,12 +43,11 @@ func init() {
 	rm.Set("RetainedSize", expRetainedSize)
 	rm.Set("SizeHist", expSizeHist)
 
-	// TODO #90 move
-	// log.AddTickerFunc(func() {
-	// 	expRetentionDeletesHist.Set(log.PushMetric(retentionDeletesHist, expRetentionDeletesTotal))
-	// 	expRetainedHist.Set(log.PushMetric(retainedHist, expRetainedCurrent))
-	// 	expSizeHist.Set(log.PushMetric(sizeHist, expRetainedSize))
-	// })
+	metric.AddTickerFunc(func() {
+		expRetentionDeletesHist.Set(metric.Push(retentionDeletesHist, expRetentionDeletesTotal))
+		expRetainedHist.Set(metric.Push(retainedHist, expRetainedCurrent))
+		expSizeHist.Set(metric.Push(sizeHist, expRetainedSize))
+	})
 }
 
 // RetentionScanner looks for messages older than the configured retention period and deletes them.

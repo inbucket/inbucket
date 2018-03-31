@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/webui/sanitize"
+	"github.com/rs/zerolog/log"
 )
 
 // MailboxIndex renders the index page for a particular mailbox
@@ -76,7 +76,6 @@ func MailboxList(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
 	}
-	log.Tracef("Got %v messsages", len(messages))
 	// Render partial template
 	return web.RenderPartial("mailbox/_list.html", w, map[string]interface{}{
 		"ctx":      ctx,
@@ -109,7 +108,9 @@ func MailboxShow(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 		if str, err := sanitize.HTML(msg.HTML()); err == nil {
 			htmlBody = template.HTML(str)
 		} else {
-			log.Warnf("HTML sanitizer failed: %s", err)
+			// Soft failure, render empty tab.
+			log.Warn().Str("module", "webui").Str("mailbox", name).Str("id", id).Err(err).
+				Msg("HTML sanitizer failed")
 		}
 	}
 	// Render partial template

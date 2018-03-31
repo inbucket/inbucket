@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/jhillyerd/inbucket/pkg/log"
+	"github.com/rs/zerolog/log"
 )
 
 var cachedMutex sync.Mutex
@@ -19,7 +19,8 @@ var cachedPartials = map[string]*template.Template{}
 func RenderTemplate(name string, w http.ResponseWriter, data interface{}) error {
 	t, err := ParseTemplate(name, false)
 	if err != nil {
-		log.Errorf("Error in template '%v': %v", name, err)
+		log.Error().Str("module", "web").Str("path", name).Err(err).
+			Msg("Error in template")
 		return err
 	}
 	w.Header().Set("Expires", "-1")
@@ -31,7 +32,8 @@ func RenderTemplate(name string, w http.ResponseWriter, data interface{}) error 
 func RenderPartial(name string, w http.ResponseWriter, data interface{}) error {
 	t, err := ParseTemplate(name, true)
 	if err != nil {
-		log.Errorf("Error in template '%v': %v", name, err)
+		log.Error().Str("module", "web").Str("path", name).Err(err).
+			Msg("Error in template")
 		return err
 	}
 	w.Header().Set("Expires", "-1")
@@ -49,7 +51,7 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 	}
 
 	tempFile := filepath.Join(rootConfig.Web.UIDir, templateDir, filepath.FromSlash(name))
-	log.Tracef("Parsing template %v", tempFile)
+	log.Debug().Str("module", "web").Str("path", name).Msg("Parsing template")
 
 	var err error
 	var t *template.Template
@@ -70,10 +72,10 @@ func ParseTemplate(name string, partial bool) (*template.Template, error) {
 	// Allows us to disable caching for theme development
 	if rootConfig.Web.TemplateCache {
 		if partial {
-			log.Tracef("Caching partial %v", name)
+			log.Debug().Str("module", "web").Str("path", name).Msg("Caching partial")
 			cachedTemplates[name] = t
 		} else {
-			log.Tracef("Caching template %v", name)
+			log.Debug().Str("module", "web").Str("path", name).Msg("Caching template")
 			cachedTemplates[name] = t
 		}
 	}

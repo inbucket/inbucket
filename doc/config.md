@@ -8,7 +8,7 @@ Running `inbucket -help` will yield a condensed summary of the environment
 variables it supports:
 
     KEY                                 DEFAULT             DESCRIPTION
-    INBUCKET_LOGLEVEL                   INFO                TRACE, INFO, WARN, or ERROR
+    INBUCKET_LOGLEVEL                   INFO                DEBUG, INFO, WARN, or ERROR
     INBUCKET_SMTP_ADDR                  0.0.0.0:2500        SMTP server IP4 host:port
     INBUCKET_SMTP_DOMAIN                inbucket            HELO domain
     INBUCKET_SMTP_DOMAINNOSTORE                             Load testing domain
@@ -47,7 +47,7 @@ should probably select INFO, but a busy shared installation would be better off
 with WARN or ERROR.
 
 - Default: `INFO`
-- Values: one of `TRACE`, `INFO`, `WARN`, or `ERROR`
+- Values: one of `DEBUG`, `INFO`, `WARN`, or `ERROR`
 
 
 ## SMTP

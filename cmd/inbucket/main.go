@@ -2,18 +2,20 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"expvar"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/log"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/jhillyerd/inbucket/pkg/policy"
@@ -25,6 +27,8 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/storage/file"
 	"github.com/jhillyerd/inbucket/pkg/storage/mem"
 	"github.com/jhillyerd/inbucket/pkg/webui"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -57,6 +61,8 @@ func main() {
 	help := flag.Bool("help", false, "Displays help on flags and env variables.")
 	pidfile := flag.String("pidfile", "", "Write our PID into the specified file.")
 	logfile := flag.String("logfile", "stderr", "Write out log into the specified file.")
+	logjson := flag.Bool("logjson", false, "Logs are written in JSON format.")
+	netdebug := flag.Bool("netdebug", false, "Dump SMTP & POP3 network traffic to stdout.")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: inbucket [options]")
 		flag.PrintDefaults()
@@ -76,27 +82,32 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Configuration error: %v\n", err)
 		os.Exit(1)
 	}
-	// Setup signal handler.
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
-	// Initialize logging.
-	log.SetLogLevel(conf.LogLevel)
-	if err := log.Initialize(*logfile); err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
+	if *netdebug {
+		conf.POP3.Debug = true
+		conf.SMTP.Debug = true
+	}
+	// Logger setup.
+	closeLog, err := openLog(conf.LogLevel, *logfile, *logjson)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Log error: %v\n", err)
 		os.Exit(1)
 	}
-	defer log.Close()
-	log.Infof("Inbucket %v (%v) starting...", config.Version, config.BuildDate)
+	startupLog := log.With().Str("phase", "startup").Logger()
+	// Setup signal handler.
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+	// Initialize logging.
+	startupLog.Info().Str("version", config.Version).Str("buildDate", config.BuildDate).
+		Msg("Inbucket starting")
 	// Write pidfile if requested.
 	if *pidfile != "" {
 		pidf, err := os.Create(*pidfile)
 		if err != nil {
-			log.Errorf("Failed to create %q: %v", *pidfile, err)
-			os.Exit(1)
+			startupLog.Fatal().Err(err).Str("path", *pidfile).Msg("Failed to create pidfile")
 		}
 		fmt.Fprintf(pidf, "%v\n", os.Getpid())
 		if err := pidf.Close(); err != nil {
-			log.Errorf("Failed to close PID file %q: %v", *pidfile, err)
+			startupLog.Fatal().Err(err).Str("path", *pidfile).Msg("Failed to close pidfile")
 		}
 	}
 	// Configure internal services.
@@ -104,9 +115,8 @@ func main() {
 	shutdownChan := make(chan bool)
 	store, err := storage.FromConfig(conf.Storage)
 	if err != nil {
-		log.Errorf("Fatal storage error: %v", err)
 		removePIDFile(*pidfile)
-		os.Exit(1)
+		startupLog.Fatal().Err(err).Str("module", "storage").Msg("Fatal storage error")
 	}
 	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf.SMTP}
@@ -131,16 +141,15 @@ signalLoop:
 		select {
 		case sig := <-sigChan:
 			switch sig {
-			case syscall.SIGHUP:
-				log.Infof("Recieved SIGHUP, cycling logfile")
-				log.Rotate()
 			case syscall.SIGINT:
 				// Shutdown requested
-				log.Infof("Received SIGINT, shutting down")
+				log.Info().Str("phase", "shutdown").Str("signal", "SIGINT").
+					Msg("Received SIGINT, shutting down")
 				close(shutdownChan)
 			case syscall.SIGTERM:
 				// Shutdown requested
-				log.Infof("Received SIGTERM, shutting down")
+				log.Info().Str("phase", "shutdown").Str("signal", "SIGTERM").
+					Msg("Received SIGTERM, shutting down")
 				close(shutdownChan)
 			}
 		case <-shutdownChan:
@@ -154,13 +163,62 @@ signalLoop:
 	pop3Server.Drain()
 	retentionScanner.Join()
 	removePIDFile(*pidfile)
+	closeLog()
+}
+
+// openLog configures zerolog output, returns func to close logfile.
+func openLog(level string, logfile string, json bool) (close func(), err error) {
+	switch strings.ToUpper(level) {
+	case "DEBUG":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "INFO":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "WARN":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "ERROR":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	default:
+		return nil, fmt.Errorf("Log level %q not one of: DEBUG, INFO, WARN, ERROR", level)
+	}
+	close = func() {}
+	var w io.Writer
+	color := true
+	switch logfile {
+	case "stderr":
+		w = os.Stderr
+	case "stdout":
+		w = os.Stdout
+	default:
+		logf, err := os.OpenFile(logfile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+		if err != nil {
+			return nil, err
+		}
+		bw := bufio.NewWriter(logf)
+		w = bw
+		color = false
+		close = func() {
+			_ = bw.Flush()
+			_ = logf.Close()
+		}
+	}
+	w = zerolog.SyncWriter(w)
+	if json {
+		log.Logger = log.Output(w)
+		return close, nil
+	}
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out:     w,
+		NoColor: !color,
+	})
+	return close, nil
 }
 
 // removePIDFile removes the PID file if created.
 func removePIDFile(pidfile string) {
 	if pidfile != "" {
 		if err := os.Remove(pidfile); err != nil {
-			log.Errorf("Failed to remove %q: %v", pidfile, err)
+			log.Error().Str("phase", "shutdown").Err(err).Str("path", pidfile).
+				Msg("Failed to remove pidfile")
 		}
 	}
 }
@@ -168,7 +226,7 @@ func removePIDFile(pidfile string) {
 // timedExit is called as a goroutine during shutdown, it will force an exit after 15 seconds.
 func timedExit(pidfile string) {
 	time.Sleep(15 * time.Second)
-	log.Errorf("Clean shutdown took too long, forcing exit")
 	removePIDFile(pidfile)
+	log.Error().Str("phase", "shutdown").Msg("Clean shutdown took too long, forcing exit")
 	os.Exit(0)
 }

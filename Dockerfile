@@ -25,7 +25,8 @@ VOLUME /config
 VOLUME /storage
 
 WORKDIR $INBUCKET_HOME
-ENTRYPOINT "/start-inbucket.sh"
+ENTRYPOINT ["/start-inbucket.sh"]
+CMD ["-logjson"]
 
 # Build Inbucket
 COPY . $INBUCKET_SRC/

@@ -29,7 +29,7 @@ var (
 
 // Root wraps all other configurations.
 type Root struct {
-	LogLevel string `required:"true" default:"INFO" desc:"TRACE, INFO, WARN, or ERROR"`
+	LogLevel string `required:"true" default:"INFO" desc:"DEBUG, INFO, WARN, or ERROR"`
 	SMTP     SMTP
 	POP3     POP3
 	Web      Web
@@ -45,6 +45,7 @@ type SMTP struct {
 	MaxMessageBytes int           `required:"true" default:"10240000" desc:"Maximum message size"`
 	StoreMessages   bool          `required:"true" default:"true" desc:"Store incoming mail?"`
 	Timeout         time.Duration `required:"true" default:"300s" desc:"Idle network timeout"`
+	Debug           bool          `ignored:"true"`
 }
 
 // POP3 contains the POP3 server configuration.
@@ -52,6 +53,7 @@ type POP3 struct {
 	Addr    string        `required:"true" default:"0.0.0.0:1100" desc:"POP3 server IP4 host:port"`
 	Domain  string        `required:"true" default:"inbucket" desc:"HELLO domain"`
 	Timeout time.Duration `required:"true" default:"600s" desc:"Idle network timeout"`
+	Debug   bool          `ignored:"true"`
 }
 
 // Web contains the HTTP server configuration.

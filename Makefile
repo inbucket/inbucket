@@ -15,6 +15,7 @@ $(commands): %: cmd/%
 clean:
 	go clean $(PKGS)
 	rm -f $(commands)
+	rm -rf dist
 
 deps:
 	go get -t ./...

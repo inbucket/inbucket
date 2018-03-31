@@ -2,7 +2,6 @@ package pop3
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -58,26 +57,35 @@ var commands = map[string]bool{
 
 // Session defines an active POP3 session
 type Session struct {
-	server     *Server           // Reference to the server we belong to
-	id         int               // Session ID number
-	conn       net.Conn          // Our network connection
-	remoteHost string            // IP address of client
-	sendError  error             // Used to bail out of read loop on send error
-	state      State             // Current session state
-	reader     *bufio.Reader     // Buffered reader for our net conn
-	user       string            // Mailbox name
-	messages   []storage.Message // Slice of messages in mailbox
-	retain     []bool            // Messages to retain upon UPDATE (true=retain)
-	msgCount   int               // Number of undeleted messages
-	logger     zerolog.Logger
+	server     *Server           // Reference to the server we belong to.
+	id         int               // Session ID number.
+	conn       net.Conn          // Our network connection.
+	remoteHost string            // IP address of client.
+	sendError  error             // Used to bail out of read loop on send error.
+	state      State             // Current session state.
+	reader     *bufio.Reader     // Buffered reader for our net conn.
+	user       string            // Mailbox name.
+	messages   []storage.Message // Slice of messages in mailbox.
+	retain     []bool            // Messages to retain upon UPDATE (true=retain).
+	msgCount   int               // Number of undeleted messages.
+	logger     zerolog.Logger    // Session specific logger.
+	debug      bool              // Print network traffic to stdout.
 }
 
 // NewSession creates a new POP3 session
 func NewSession(server *Server, id int, conn net.Conn, logger zerolog.Logger) *Session {
 	reader := bufio.NewReader(conn)
 	host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-	return &Session{server: server, id: id, conn: conn, state: AUTHORIZATION,
-		reader: reader, remoteHost: host, logger: logger}
+	return &Session{
+		server:     server,
+		id:         id,
+		conn:       conn,
+		state:      AUTHORIZATION,
+		reader:     reader,
+		remoteHost: host,
+		logger:     logger,
+		debug:      server.config.Debug,
+	}
 }
 
 func (s *Session) String() string {
@@ -550,41 +558,12 @@ func (s *Session) send(msg string) {
 	}
 	if _, err := fmt.Fprint(s.conn, msg+"\r\n"); err != nil {
 		s.sendError = err
-		s.logger.Warn().Msgf("Failed to send: '%v'", msg)
+		s.logger.Warn().Msgf("Failed to send: %q", msg)
 		return
 	}
-	s.logger.Debug().Msgf(">> %v >>", msg)
-}
-
-// readByteLine reads a line of input into the provided buffer. Does
-// not reset the Buffer - please do so prior to calling.
-func (s *Session) readByteLine(buf *bytes.Buffer) error {
-	if err := s.conn.SetReadDeadline(s.nextDeadline()); err != nil {
-		return err
+	if s.debug {
+		fmt.Printf("%04d > %v\n", s.id, msg)
 	}
-	for {
-		line, err := s.reader.ReadBytes('\r')
-		if err != nil {
-			return err
-		}
-		if _, err = buf.Write(line); err != nil {
-			return err
-		}
-		// Read the next byte looking for '\n'
-		c, err := s.reader.ReadByte()
-		if err != nil {
-			return err
-		}
-		if err := buf.WriteByte(c); err != nil {
-			return err
-		}
-		if c == '\n' {
-			// We've reached the end of the line, return
-			return nil
-		}
-		// Else, keep looking
-	}
-	// Should be unreachable
 }
 
 // Reads a line of input
@@ -596,7 +575,9 @@ func (s *Session) readLine() (line string, err error) {
 	if err != nil {
 		return "", err
 	}
-	s.logger.Debug().Msgf("<< %v <<", strings.TrimRight(line, "\r\n"))
+	if s.debug {
+		fmt.Printf("%04d   %v\n", s.id, strings.TrimRight(line, "\r\n"))
+	}
 	return line, nil
 }
 

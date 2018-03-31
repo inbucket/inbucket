@@ -80,7 +80,8 @@ type Session struct {
 	reader       *bufio.Reader
 	from         string
 	recipients   []*policy.Recipient
-	logger       zerolog.Logger
+	logger       zerolog.Logger // Session specific logger.
+	debug        bool           // Print network traffic to stdout.
 }
 
 // NewSession creates a new Session for the given connection
@@ -96,6 +97,7 @@ func NewSession(server *Server, id int, conn net.Conn, logger zerolog.Logger) *S
 		remoteHost: host,
 		recipients: make([]*policy.Recipient, 0),
 		logger:     logger,
+		debug:      server.config.Debug,
 	}
 }
 
@@ -433,7 +435,9 @@ func (s *Session) send(msg string) {
 		s.logger.Warn().Msgf("Failed to send: %q", msg)
 		return
 	}
-	s.logger.Debug().Msgf(">> %v >>", msg)
+	if s.debug {
+		fmt.Printf("%04d > %v\n", s.id, msg)
+	}
 }
 
 // readByteLine reads a line of input, returns byte slice.
@@ -441,7 +445,11 @@ func (s *Session) readByteLine() ([]byte, error) {
 	if err := s.conn.SetReadDeadline(s.nextDeadline()); err != nil {
 		return nil, err
 	}
-	return s.reader.ReadBytes('\n')
+	b, err := s.reader.ReadBytes('\n')
+	if err == nil && s.debug {
+		fmt.Printf("%04d   %s\n", s.id, bytes.TrimRight(b, "\r\n"))
+	}
+	return b, err
 }
 
 // Reads a line of input
@@ -453,7 +461,9 @@ func (s *Session) readLine() (line string, err error) {
 	if err != nil {
 		return "", err
 	}
-	s.logger.Debug().Msgf("<< %v <<", strings.TrimRight(line, "\r\n"))
+	if s.debug {
+		fmt.Printf("%04d   %v\n", s.id, strings.TrimRight(line, "\r\n"))
+	}
 	return line, nil
 }
 

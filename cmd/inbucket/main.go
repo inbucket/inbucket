@@ -59,6 +59,7 @@ func main() {
 	pidfile := flag.String("pidfile", "", "Write our PID into the specified file.")
 	logfile := flag.String("logfile", "stderr", "Write out log into the specified file.")
 	logjson := flag.Bool("logjson", false, "Logs are written in JSON format.")
+	netdebug := flag.Bool("netdebug", false, "Dump SMTP & POP3 network traffic to stdout.")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: inbucket [options]")
 		flag.PrintDefaults()
@@ -88,6 +89,10 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Configuration error: %v\n", err)
 		os.Exit(1)
+	}
+	if *netdebug {
+		conf.POP3.Debug = true
+		conf.SMTP.Debug = true
 	}
 	// Setup signal handler.
 	sigChan := make(chan os.Signal, 1)

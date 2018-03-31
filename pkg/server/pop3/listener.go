@@ -13,6 +13,8 @@ import (
 
 // Server defines an instance of our POP3 server
 type Server struct {
+	// TODO(#91) Refactor config items out of this struct
+	config         config.POP3
 	host           string
 	domain         string
 	timeout        time.Duration
@@ -25,6 +27,7 @@ type Server struct {
 // New creates a new Server struct
 func New(cfg config.POP3, shutdownChan chan bool, store storage.Store) *Server {
 	return &Server{
+		config:         cfg,
 		host:           cfg.Addr,
 		domain:         cfg.Domain,
 		store:          store,

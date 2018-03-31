@@ -38,6 +38,8 @@ func init() {
 
 // Server holds the configuration and state of our SMTP server
 type Server struct {
+	// TODO(#91) Refactor config items out of this struct
+	config config.SMTP
 	// Configuration
 	host            string
 	domain          string
@@ -86,6 +88,7 @@ func NewServer(
 	apolicy *policy.Addressing,
 ) *Server {
 	return &Server{
+		config:          cfg,
 		host:            cfg.Addr,
 		domain:          cfg.Domain,
 		domainNoStore:   strings.ToLower(cfg.DomainNoStore),

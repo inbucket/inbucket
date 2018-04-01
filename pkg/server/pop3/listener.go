@@ -11,36 +11,29 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Server defines an instance of our POP3 server
+// Server defines an instance of the POP3 server.
 type Server struct {
-	// TODO(#91) Refactor config items out of this struct
-	config         config.POP3
-	host           string
-	domain         string
-	timeout        time.Duration
-	store          storage.Store
-	listener       net.Listener
-	globalShutdown chan bool
-	waitgroup      *sync.WaitGroup
+	config         config.POP3     // POP3 configuration.
+	store          storage.Store   // Mail store.
+	listener       net.Listener    // TCP listener.
+	globalShutdown chan bool       // Inbucket shutdown signal.
+	wg             *sync.WaitGroup // Waitgroup tracking sessions.
 }
 
-// New creates a new Server struct
-func New(cfg config.POP3, shutdownChan chan bool, store storage.Store) *Server {
+// New creates a new Server struct.
+func New(pop3Config config.POP3, shutdownChan chan bool, store storage.Store) *Server {
 	return &Server{
-		config:         cfg,
-		host:           cfg.Addr,
-		domain:         cfg.Domain,
+		config:         pop3Config,
 		store:          store,
-		timeout:        cfg.Timeout,
 		globalShutdown: shutdownChan,
-		waitgroup:      new(sync.WaitGroup),
+		wg:             new(sync.WaitGroup),
 	}
 }
 
 // Start the server and listen for connections
 func (s *Server) Start(ctx context.Context) {
 	slog := log.With().Str("module", "pop3").Str("phase", "startup").Logger()
-	addr, err := net.ResolveTCPAddr("tcp4", s.host)
+	addr, err := net.ResolveTCPAddr("tcp4", s.config.Addr)
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to build tcp4 address")
 		s.emergencyShutdown()
@@ -101,7 +94,7 @@ func (s *Server) serve(ctx context.Context) {
 			}
 		} else {
 			tempDelay = 0
-			s.waitgroup.Add(1)
+			s.wg.Add(1)
 			go s.startSession(sid, conn)
 		}
 	}
@@ -119,6 +112,6 @@ func (s *Server) emergencyShutdown() {
 // Drain causes the caller to block until all active POP3 sessions have finished
 func (s *Server) Drain() {
 	// Wait for sessions to close
-	s.waitgroup.Wait()
+	s.wg.Wait()
 	log.Debug().Str("module", "pop3").Str("phase", "shutdown").Msg("POP3 connections have drained")
 }

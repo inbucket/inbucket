@@ -107,12 +107,12 @@ func (s *Server) startSession(id int, conn net.Conn) {
 		if err := conn.Close(); err != nil {
 			logger.Warn().Err(err).Msg("Closing connection")
 		}
-		s.waitgroup.Done()
+		s.wg.Done()
 	}()
 
 	ssn := NewSession(s, id, conn, logger)
 	ssn.send(fmt.Sprintf("+OK Inbucket POP3 server ready <%v.%v@%v>", os.Getpid(),
-		time.Now().Unix(), s.domain))
+		time.Now().Unix(), s.config.Domain))
 
 	// This is our command reading loop
 	for ssn.state != QUIT && ssn.sendError == nil {
@@ -545,9 +545,9 @@ func (s *Session) enterState(state State) {
 	s.logger.Debug().Msgf("Entering state %v", state)
 }
 
-// Calculate the next read or write deadline based on maxIdleSeconds
+// nextDeadline calculates the next read or write deadline based on configured timeout.
 func (s *Session) nextDeadline() time.Time {
-	return time.Now().Add(s.server.timeout)
+	return time.Now().Add(s.server.config.Timeout)
 }
 
 // Send requested message, store errors in Session.sendError

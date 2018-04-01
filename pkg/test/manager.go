@@ -57,3 +57,17 @@ func (m *ManagerStub) GetMetadata(mailbox string) ([]*message.Metadata, error) {
 func (m *ManagerStub) MailboxForAddress(address string) (string, error) {
 	return policy.ParseMailboxName(address)
 }
+
+// MarkSeen marks a message as having been read.
+func (m *ManagerStub) MarkSeen(mailbox, id string) error {
+	if mailbox == "messageerr" {
+		return errors.New("internal error")
+	}
+	for _, msg := range m.mailboxes[mailbox] {
+		if msg.ID == id {
+			msg.Metadata.Seen = true
+			return nil
+		}
+	}
+	return storage.ErrNotExist
+}

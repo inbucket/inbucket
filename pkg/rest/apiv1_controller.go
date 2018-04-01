@@ -7,6 +7,7 @@ import (
 
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"strconv"
 
 	"github.com/jhillyerd/inbucket/pkg/rest/model"
@@ -37,6 +38,7 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 			Subject: msg.Subject,
 			Date:    msg.Date,
 			Size:    msg.Size,
+			Seen:    msg.Seen,
 		}
 	}
 	return web.RenderJSON(w, jmessages)
@@ -83,6 +85,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 			Subject: msg.Subject,
 			Date:    msg.Date,
 			Size:    msg.Size,
+			Seen:    msg.Seen,
 			Header:  msg.Header(),
 			Body: &model.JSONMessageBodyV1{
 				Text: msg.Text(),
@@ -90,6 +93,33 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 			},
 			Attachments: attachments,
 		})
+}
+
+// MailboxMarkSeenV1 marks a message as read.
+func MailboxMarkSeenV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
+	// Don't have to validate these aren't empty, Gorilla returns 404
+	id := ctx.Vars["id"]
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
+	if err != nil {
+		return err
+	}
+	dec := json.NewDecoder(req.Body)
+	dm := model.JSONMessageHeaderV1{}
+	if err := dec.Decode(&dm); err != nil {
+		return fmt.Errorf("Failed to decode JSON: %v", err)
+	}
+	if dm.Seen {
+		err = ctx.Manager.MarkSeen(name, id)
+		if err == storage.ErrNotExist {
+			http.NotFound(w, req)
+			return nil
+		}
+		if err != nil {
+			// This doesn't indicate empty, likely an IO error
+			return fmt.Errorf("MarkSeen(%q) failed: %v", id, err)
+		}
+	}
+	return web.RenderJSON(w, "OK")
 }
 
 // MailboxPurgeV1 deletes all messages from a mailbox

@@ -25,6 +25,7 @@ type Manager interface {
 	) (id string, err error)
 	GetMetadata(mailbox string) ([]*Metadata, error)
 	GetMessage(mailbox, id string) (*Message, error)
+	MarkSeen(mailbox, id string) error
 	PurgeMessages(mailbox string) error
 	RemoveMessage(mailbox, id string) error
 	SourceReader(mailbox, id string) (io.ReadCloser, error)
@@ -122,6 +123,11 @@ func (s *StoreManager) GetMessage(mailbox, id string) (*Message, error) {
 	_ = r.Close()
 	header := makeMetadata(sm)
 	return &Message{Metadata: *header, env: env}, nil
+}
+
+// MarkSeen marks the message as having been read.
+func (s *StoreManager) MarkSeen(mailbox, id string) error {
+	return s.Store.MarkSeen(mailbox, id)
 }
 
 // PurgeMessages removes all messages from the specified mailbox.

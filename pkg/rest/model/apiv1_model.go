@@ -13,6 +13,7 @@ type JSONMessageHeaderV1 struct {
 	Subject string    `json:"subject"`
 	Date    time.Time `json:"date"`
 	Size    int64     `json:"size"`
+	Seen    bool      `json:"seen"`
 }
 
 // JSONMessageV1 contains the same data as the header plus a JSONMessageBody
@@ -24,6 +25,7 @@ type JSONMessageV1 struct {
 	Subject     string                     `json:"subject"`
 	Date        time.Time                  `json:"date"`
 	Size        int64                      `json:"size"`
+	Seen        bool                       `json:"seen"`
 	Body        *JSONMessageBodyV1         `json:"body"`
 	Header      map[string][]string        `json:"header"`
 	Attachments []*JSONMessageAttachmentV1 `json:"attachments"`

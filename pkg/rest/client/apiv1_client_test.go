@@ -54,6 +54,32 @@ func TestClientV1GetMessage(t *testing.T) {
 	}
 }
 
+func TestClientV1MarkSeen(t *testing.T) {
+	var want, got string
+
+	c, err := New(baseURLStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mth := &mockHTTPClient{}
+	c.client = mth
+
+	// Method under test
+	_ = c.MarkSeen("testbox", "20170107T224128-0000")
+
+	want = "PATCH"
+	got = mth.req.Method
+	if got != want {
+		t.Errorf("req.Method == %q, want %q", got, want)
+	}
+
+	want = baseURLStr + "/api/v1/mailbox/testbox/20170107T224128-0000"
+	got = mth.req.URL.String()
+	if got != want {
+		t.Errorf("req.URL == %q, want %q", got, want)
+	}
+}
+
 func TestClientV1GetMessageSource(t *testing.T) {
 	var want, got string
 
@@ -158,7 +184,8 @@ func TestClientV1MessageHeader(t *testing.T) {
 			"from":"from1",
 			"subject":"subject1",
 			"date":"2017-01-01T00:00:00.000-07:00",
-			"size":100
+			"size":100,
+			"seen":true
 		}
 	]`
 
@@ -214,6 +241,12 @@ func TestClientV1MessageHeader(t *testing.T) {
 	got = header.Subject
 	if got != want {
 		t.Errorf("Subject == %q, want %q", got, want)
+	}
+
+	wantb := true
+	gotb := header.Seen
+	if gotb != wantb {
+		t.Errorf("Seen == %v, want %v", gotb, wantb)
 	}
 
 	// Test MessageHeader.Delete()

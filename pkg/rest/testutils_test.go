@@ -21,7 +21,17 @@ func testRestGet(url string) (*httptest.ResponseRecorder, error) {
 	if err != nil {
 		return nil, err
 	}
+	w := httptest.NewRecorder()
+	web.Router.ServeHTTP(w, req)
+	return w, nil
+}
 
+func testRestPatch(url string, body string) (*httptest.ResponseRecorder, error) {
+	req, err := http.NewRequest("PATCH", url, strings.NewReader(body))
+	req.Header.Add("Accept", "application/json")
+	if err != nil {
+		return nil, err
+	}
 	w := httptest.NewRecorder()
 	web.Router.ServeHTTP(w, req)
 	return w, nil
@@ -44,6 +54,22 @@ func setupWebServer(mm message.Manager) *bytes.Buffer {
 	SetupRoutes(web.Router)
 
 	return buf
+}
+
+func decodedBoolEquals(t *testing.T, json interface{}, path string, want bool) {
+	t.Helper()
+	els := strings.Split(path, "/")
+	val, msg := getDecodedPath(json, els...)
+	if msg != "" {
+		t.Errorf("JSON result%s", msg)
+		return
+	}
+	if got, ok := val.(bool); ok {
+		if got == want {
+			return
+		}
+	}
+	t.Errorf("JSON result/%s == %v (%T), want: %v", path, val, val, want)
 }
 
 func decodedNumberEquals(t *testing.T, json interface{}, path string, want float64) {

@@ -35,17 +35,29 @@ func (m *mockHTTPClient) Do(req *http.Request) (resp *http.Response, err error) 
 		StatusCode: m.statusCode,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(m.body)),
 	}
-
 	return
+}
+
+func (m *mockHTTPClient) ReqBody() []byte {
+	r, err := m.req.GetBody()
+	if err != nil {
+		return nil
+	}
+	body, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil
+	}
+	_ = r.Close()
+	return body
 }
 
 func TestDo(t *testing.T) {
 	var want, got string
-
 	mth := &mockHTTPClient{}
 	c := &restClient{mth, baseURL}
+	body := []byte("Test body")
 
-	_, err := c.do("POST", "/dopost")
+	_, err := c.do("POST", "/dopost", body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,6 +72,11 @@ func TestDo(t *testing.T) {
 	got = mth.req.URL.String()
 	if got != want {
 		t.Errorf("req.URL == %q, want %q", got, want)
+	}
+
+	b := mth.ReqBody()
+	if !bytes.Equal(b, body) {
+		t.Errorf("req.Body == %q, want %q", b, body)
 	}
 }
 

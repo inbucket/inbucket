@@ -5,6 +5,7 @@ var messageListMargin = 275;
 var clipboard = null;
 var messageListScroll = false;
 var messageListData = null;
+var seenDelay = null;
 
 // clearMessageSearch resets the message list search
 function clearMessageSearch() {
@@ -55,8 +56,11 @@ function loadList() {
     url: '/api/v1/mailbox/' + mailbox,
     success: function(data) {
       messageListData = data.reverse();
+      for (i=0; i<messageListData.length; i++) {
+        messageListData[i].seenClass = messageListData[i].seen ? '' : 'unseen'
+      }
       // Render list
-      $('#message-list').loadTemplate($('#list-entry-template'), data);
+      $('#message-list').loadTemplate($('#list-entry-template'), messageListData);
       $('.message-list-entry').click(onMessageListClick);
       // Reveal and select current message
       $("#message-list").slideDown();
@@ -115,6 +119,7 @@ function onDocumentChange() {
 
 // onDocumentReady is called by mailbox/index.html to initialize
 function onDocumentReady() {
+  seenDelay = makeDelay(1500);
   // Prevent search and resize handlers being called too often
   var searchDelay = makeDelay(200);
   var resizeDelay = makeDelay(100);
@@ -142,10 +147,12 @@ function onDocumentReady() {
 
 // onMessageListClick is triggered by clicks on the message list
 function onMessageListClick() {
+  var id = this.id;
   $('.message-list-entry').removeClass("disabled");
   $(this).addClass("disabled");
-  $('#message-content').load('/mailbox/' + mailbox + '/' + this.id, onMessageLoaded);
-  selected = this.id;
+  $('#message-content').load('/mailbox/' + mailbox + '/' + id, onMessageLoaded);
+  selected = id;
+  seenDelay(function() { markSeen(id); });
 }
 
 // onMessageLoaded is called each time a new message is shown
@@ -199,3 +206,26 @@ function updateMessageSearch() {
   }
 }
 
+// markSeen notifies the server that this message has been seen by the user.
+function markSeen(id) {
+  for (i=0; i<messageListData.length; i++) {
+    if (messageListData[i].id == id) {
+      if (messageListData[i].seen) {
+        return;
+      } else {
+        messageListData[i].seen = true;
+      }
+    }
+  }
+  var updateClass = function() {
+    $('#' + id).find('.unseen').removeClass('unseen');
+  }
+  $.ajax({
+    type: 'PATCH',
+    url: '/api/v1/mailbox/' + mailbox + '/' + id,
+    contentType: 'application/json',
+    data: JSON.stringify({'seen': true}),
+    processData: false,
+    success: updateClass
+  });
+}

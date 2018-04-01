@@ -21,6 +21,7 @@ type Message struct {
 	date    time.Time
 	subject string
 	source  []byte
+	seen    bool
 	el      *list.Element // This message in Store.messages
 }
 
@@ -51,3 +52,6 @@ func (m *Message) Source() (io.ReadCloser, error) {
 
 // Size returns the message size in bytes.
 func (m *Message) Size() int64 { return int64(len(m.source)) }
+
+// Seen returns the message seen flag.
+func (m *Message) Seen() bool { return m.seen }

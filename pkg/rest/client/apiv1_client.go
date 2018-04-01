@@ -58,10 +58,20 @@ func (c *Client) GetMessage(name, id string) (message *Message, err error) {
 	return
 }
 
+// MarkSeen marks the specified message as having been read.
+func (c *Client) MarkSeen(name, id string) error {
+	uri := "/api/v1/mailbox/" + url.QueryEscape(name) + "/" + id
+	err := c.doJSON("PATCH", uri, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetMessageSource returns the message source given a mailbox name and message ID.
 func (c *Client) GetMessageSource(name, id string) (*bytes.Buffer, error) {
 	uri := "/api/v1/mailbox/" + url.QueryEscape(name) + "/" + id + "/source"
-	resp, err := c.do("GET", uri)
+	resp, err := c.do("GET", uri, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +91,7 @@ func (c *Client) GetMessageSource(name, id string) (*bytes.Buffer, error) {
 // DeleteMessage deletes a single message given the mailbox name and message ID.
 func (c *Client) DeleteMessage(name, id string) error {
 	uri := "/api/v1/mailbox/" + url.QueryEscape(name) + "/" + id
-	resp, err := c.do("DELETE", uri)
+	resp, err := c.do("DELETE", uri, nil)
 	if err != nil {
 		return err
 	}
@@ -95,7 +105,7 @@ func (c *Client) DeleteMessage(name, id string) error {
 // PurgeMailbox deletes all messages in the given mailbox
 func (c *Client) PurgeMailbox(name string) error {
 	uri := "/api/v1/mailbox/" + url.QueryEscape(name)
-	resp, err := c.do("DELETE", uri)
+	resp, err := c.do("DELETE", uri, nil)
 	if err != nil {
 		return err
 	}

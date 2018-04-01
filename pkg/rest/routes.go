@@ -13,6 +13,8 @@ func SetupRoutes(r *mux.Router) {
 	r.Path("/api/v1/mailbox/{name}/{id}").Handler(
 		web.Handler(MailboxShowV1)).Name("MailboxShowV1").Methods("GET")
 	r.Path("/api/v1/mailbox/{name}/{id}").Handler(
+		web.Handler(MailboxMarkSeenV1)).Name("MailboxMarkSeenV1").Methods("PATCH")
+	r.Path("/api/v1/mailbox/{name}/{id}").Handler(
 		web.Handler(MailboxDeleteV1)).Name("MailboxDeleteV1").Methods("DELETE")
 	r.Path("/api/v1/mailbox/{name}/{id}/source").Handler(
 		web.Handler(MailboxSourceV1)).Name("MailboxSourceV1").Methods("GET")

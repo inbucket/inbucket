@@ -12,6 +12,7 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/stringutil"
+	"github.com/rs/zerolog/log"
 )
 
 // Manager is the interface controllers use to interact with messages.
@@ -25,6 +26,7 @@ type Manager interface {
 	) (id string, err error)
 	GetMetadata(mailbox string) ([]*Metadata, error)
 	GetMessage(mailbox, id string) (*Message, error)
+	MarkSeen(mailbox, id string) error
 	PurgeMessages(mailbox string) error
 	RemoveMessage(mailbox, id string) error
 	SourceReader(mailbox, id string) (io.ReadCloser, error)
@@ -124,6 +126,13 @@ func (s *StoreManager) GetMessage(mailbox, id string) (*Message, error) {
 	return &Message{Metadata: *header, env: env}, nil
 }
 
+// MarkSeen marks the message as having been read.
+func (s *StoreManager) MarkSeen(mailbox, id string) error {
+	log.Debug().Str("module", "manager").Str("mailbox", mailbox).Str("id", id).
+		Msg("Marking as seen")
+	return s.Store.MarkSeen(mailbox, id)
+}
+
 // PurgeMessages removes all messages from the specified mailbox.
 func (s *StoreManager) PurgeMessages(mailbox string) error {
 	return s.Store.PurgeMessages(mailbox)
@@ -158,5 +167,6 @@ func makeMetadata(m storage.Message) *Metadata {
 		Date:    m.Date(),
 		Subject: m.Subject(),
 		Size:    m.Size(),
+		Seen:    m.Seen(),
 	}
 }

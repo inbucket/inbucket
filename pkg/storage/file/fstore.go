@@ -147,6 +147,32 @@ func (fs *Store) GetMessages(mailbox string) ([]storage.Message, error) {
 	return mb.getMessages()
 }
 
+// MarkSeen flags the message as having been read.
+func (fs *Store) MarkSeen(mailbox, id string) error {
+	mb, err := fs.mbox(mailbox)
+	if err != nil {
+		return err
+	}
+	mb.Lock()
+	defer mb.Unlock()
+	if !mb.indexLoaded {
+		if err := mb.readIndex(); err != nil {
+			return err
+		}
+	}
+	for _, m := range mb.messages {
+		if m.Fid == id {
+			if m.Fseen {
+				// Already marked seen.
+				return nil
+			}
+			m.Fseen = true
+			break
+		}
+	}
+	return mb.writeIndex()
+}
+
 // RemoveMessage deletes a message by ID from the specified mailbox.
 func (fs *Store) RemoveMessage(mailbox, id string) error {
 	mb, err := fs.mbox(mailbox)

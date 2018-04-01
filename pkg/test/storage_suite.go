@@ -28,6 +28,7 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 		{"content", testContent, config.Storage{}},
 		{"delivery order", testDeliveryOrder, config.Storage{}},
 		{"size", testSize, config.Storage{}},
+		{"seen", testSeen, config.Storage{}},
 		{"delete", testDelete, config.Storage{}},
 		{"purge", testPurge, config.Storage{}},
 		{"cap=10", testMsgCap, config.Storage{MailboxMsgCap: 10}},
@@ -65,6 +66,7 @@ func testMetadata(t *testing.T, store storage.Store) {
 			To:      to,
 			Date:    date,
 			Subject: subject,
+			Seen:    false,
 		},
 		Reader: strings.NewReader(content),
 	}
@@ -106,6 +108,9 @@ func testMetadata(t *testing.T, store storage.Store) {
 	}
 	if sm.Size() != int64(len(content)) {
 		t.Errorf("got size %v, want: %v", sm.Size(), len(content))
+	}
+	if sm.Seen() {
+		t.Errorf("got seen %v, want: false", sm.Seen())
 	}
 }
 
@@ -207,6 +212,42 @@ func testSize(t *testing.T, store storage.Store) {
 		if got != want {
 			t.Errorf("Got size %v, want: %v", got, want)
 		}
+	}
+}
+
+// testSeen verifies a message can be marked as seen.
+func testSeen(t *testing.T, store storage.Store) {
+	mailbox := "lisa"
+	id1, _ := DeliverToStore(t, store, mailbox, "whatever", time.Now())
+	id2, _ := DeliverToStore(t, store, mailbox, "hello?", time.Now())
+	// Confirm unseen.
+	msg, err := store.GetMessage(mailbox, id1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if msg.Seen() {
+		t.Errorf("got seen %v, want: false", msg.Seen())
+	}
+	// Mark id1 seen.
+	err = store.MarkSeen(mailbox, id1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Verify id1 seen.
+	msg, err = store.GetMessage(mailbox, id1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !msg.Seen() {
+		t.Errorf("id1 got seen %v, want: true", msg.Seen())
+	}
+	// Verify id2 still unseen.
+	msg, err = store.GetMessage(mailbox, id2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if msg.Seen() {
+		t.Errorf("id2 got seen %v, want: false", msg.Seen())
 	}
 }
 

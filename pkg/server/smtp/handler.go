@@ -70,18 +70,18 @@ var commands = map[string]bool{
 
 // Session holds the state of an SMTP session
 type Session struct {
-	server       *Server
-	id           int
-	conn         net.Conn
-	remoteDomain string
-	remoteHost   string
-	sendError    error
-	state        State
-	reader       *bufio.Reader
-	from         string
-	recipients   []*policy.Recipient
-	logger       zerolog.Logger // Session specific logger.
-	debug        bool           // Print network traffic to stdout.
+	*Server                          // Server this session belongs to.
+	id           int                 // Session ID.
+	conn         net.Conn            // TCP connection.
+	remoteDomain string              // Remote domain from HELO command.
+	remoteHost   string              // Remote host.
+	sendError    error               // Last network send error.
+	state        State               // Session state machine.
+	reader       *bufio.Reader       // Buffered reading for TCP conn.
+	from         string              // Sender from MAIL command.
+	recipients   []*policy.Recipient // Recipients from RCPT commands.
+	logger       zerolog.Logger      // Session specific logger.
+	debug        bool                // Print network traffic to stdout.
 }
 
 // NewSession creates a new Session for the given connection
@@ -89,7 +89,7 @@ func NewSession(server *Server, id int, conn net.Conn, logger zerolog.Logger) *S
 	reader := bufio.NewReader(conn)
 	host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 	return &Session{
-		server:     server,
+		Server:     server,
 		id:         id,
 		conn:       conn,
 		state:      GREET,
@@ -244,7 +244,7 @@ func (s *Session) greetHandler(cmd string, arg string) {
 		s.remoteDomain = domain
 		s.send("250-Great, let's get this show on the road")
 		s.send("250-8BITMIME")
-		s.send(fmt.Sprintf("250 SIZE %v", s.server.config.MaxMessageBytes))
+		s.send(fmt.Sprintf("250 SIZE %v", s.config.MaxMessageBytes))
 		s.enterState(READY)
 	default:
 		s.ooSeq(cmd)
@@ -296,7 +296,7 @@ func (s *Session) readyHandler(cmd string, arg string) {
 					s.logger.Warn().Msgf("Unable to parse SIZE %q as an integer", args["SIZE"])
 					return
 				}
-				if int(size) > s.server.config.MaxMessageBytes {
+				if int(size) > s.config.MaxMessageBytes {
 					s.send("552 Max message size exceeded")
 					s.logger.Warn().Msgf("Client wanted to send oversized message: %v", args["SIZE"])
 					return
@@ -323,17 +323,17 @@ func (s *Session) mailHandler(cmd string, arg string) {
 		}
 		// This trim is probably too forgiving
 		addr := strings.Trim(arg[3:], "<> ")
-		recip, err := s.server.addrPolicy.NewRecipient(addr)
+		recip, err := s.addrPolicy.NewRecipient(addr)
 		if err != nil {
 			s.send("501 Bad recipient address syntax")
 			s.logger.Warn().Msgf("Bad address as RCPT arg: %q, %s", addr, err)
 			return
 		}
-		if len(s.recipients) >= s.server.config.MaxRecipients {
+		if len(s.recipients) >= s.config.MaxRecipients {
 			s.logger.Warn().Msgf("Maximum limit of %v recipients reached",
-				s.server.config.MaxRecipients)
+				s.config.MaxRecipients)
 			s.send(fmt.Sprintf("552 Maximum limit of %v recipients reached",
-				s.server.config.MaxRecipients))
+				s.config.MaxRecipients))
 			return
 		}
 		s.recipients = append(s.recipients, recip)
@@ -381,10 +381,10 @@ func (s *Session) dataHandler() {
 				if recip.ShouldStore() {
 					// Generate Received header.
 					prefix := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
-						s.remoteDomain, s.remoteHost, s.server.config.Domain, recip.Address.Address,
+						s.remoteDomain, s.remoteHost, s.config.Domain, recip.Address.Address,
 						tstamp)
 					// Deliver message.
-					_, err := s.server.manager.Deliver(
+					_, err := s.manager.Deliver(
 						recip, s.from, s.recipients, prefix, msgBuf.Bytes())
 					if err != nil {
 						s.logger.Error().Msgf("delivery for %v: %v", recip.LocalPart, err)
@@ -405,7 +405,7 @@ func (s *Session) dataHandler() {
 			lineBuf = lineBuf[1:]
 		}
 		msgBuf.Write(lineBuf)
-		if msgBuf.Len() > s.server.config.MaxMessageBytes {
+		if msgBuf.Len() > s.config.MaxMessageBytes {
 			s.send("552 Maximum message size exceeded")
 			s.logger.Warn().Msgf("Max message size exceeded while in DATA")
 			s.reset()
@@ -420,12 +420,12 @@ func (s *Session) enterState(state State) {
 }
 
 func (s *Session) greet() {
-	s.send(fmt.Sprintf("220 %v Inbucket SMTP ready", s.server.config.Domain))
+	s.send(fmt.Sprintf("220 %v Inbucket SMTP ready", s.config.Domain))
 }
 
 // nextDeadline calculates the next read or write deadline based on configured timeout.
 func (s *Session) nextDeadline() time.Time {
-	return time.Now().Add(s.server.config.Timeout)
+	return time.Now().Add(s.config.Timeout)
 }
 
 // Send requested message, store errors in Session.sendError

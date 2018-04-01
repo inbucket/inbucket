@@ -57,7 +57,7 @@ var commands = map[string]bool{
 
 // Session defines an active POP3 session
 type Session struct {
-	server     *Server           // Reference to the server we belong to.
+	*Server                      // Reference to the server we belong to.
 	id         int               // Session ID number.
 	conn       net.Conn          // Our network connection.
 	remoteHost string            // IP address of client.
@@ -77,7 +77,7 @@ func NewSession(server *Server, id int, conn net.Conn, logger zerolog.Logger) *S
 	reader := bufio.NewReader(conn)
 	host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 	return &Session{
-		server:     server,
+		Server:     server,
 		id:         id,
 		conn:       conn,
 		state:      AUTHORIZATION,
@@ -507,7 +507,7 @@ func (s *Session) sendMessageTop(msg storage.Message, lineCount int) {
 // Load the users mailbox
 func (s *Session) loadMailbox() {
 	s.logger = s.logger.With().Str("mailbox", s.user).Logger()
-	m, err := s.server.store.GetMessages(s.user)
+	m, err := s.store.GetMessages(s.user)
 	if err != nil {
 		s.logger.Error().Msgf("Failed to load messages for %v: %v", s.user, err)
 	}
@@ -533,7 +533,7 @@ func (s *Session) processDeletes() {
 	for i, msg := range s.messages {
 		if !s.retain[i] {
 			s.logger.Debug().Str("id", msg.ID()).Msg("Deleting message")
-			if err := s.server.store.RemoveMessage(s.user, msg.ID()); err != nil {
+			if err := s.store.RemoveMessage(s.user, msg.ID()); err != nil {
 				s.logger.Warn().Str("id", msg.ID()).Err(err).Msg("Error deleting message")
 			}
 		}
@@ -547,7 +547,7 @@ func (s *Session) enterState(state State) {
 
 // nextDeadline calculates the next read or write deadline based on configured timeout.
 func (s *Session) nextDeadline() time.Time {
-	return time.Now().Add(s.server.config.Timeout)
+	return time.Now().Add(s.config.Timeout)
 }
 
 // Send requested message, store errors in Session.sendError

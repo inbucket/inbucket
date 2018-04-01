@@ -21,6 +21,7 @@ type Metadata struct {
 	Date    time.Time
 	Subject string
 	Size    int64
+	Seen    bool
 }
 
 // Message holds both the metadata and content of a message.
@@ -108,4 +109,9 @@ func (d *Delivery) Size() int64 {
 // Source contains the raw content of the message.
 func (d *Delivery) Source() (io.ReadCloser, error) {
 	return ioutil.NopCloser(d.Reader), nil
+}
+
+// Seen getter.
+func (d *Delivery) Seen() bool {
+	return d.Meta.Seen
 }

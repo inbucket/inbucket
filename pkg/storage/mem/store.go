@@ -112,6 +112,17 @@ func (s *Store) GetMessages(mailbox string) (ms []storage.Message, err error) {
 	return ms, err
 }
 
+// MarkSeen marks a message as having been read.
+func (s *Store) MarkSeen(mailbox, id string) error {
+	s.withMailbox(mailbox, true, func(mb *mbox) {
+		m := mb.messages[id]
+		if m != nil {
+			m.seen = true
+		}
+	})
+	return nil
+}
+
 // PurgeMessages deletes the contents of a mailbox.
 func (s *Store) PurgeMessages(mailbox string) error {
 	var messages map[string]*Message

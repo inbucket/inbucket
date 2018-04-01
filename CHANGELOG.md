@@ -16,10 +16,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   page.
 - Debian `.deb` package generation to release process.
 - RedHat `.rpm` package generation to release process.
+- Message seen flag in REST and Web UI so you can see which messages have
+  already been read.
 
 ### Changed
 - Massive refactor of back-end code.  Inbucket should now be both easier and
   more enjoyable to work on.
+- Changes to file storage format, will require pre-2.0 mail store directories to
+  be deleted.
 - Renamed `themes` directory to `ui` and eliminated the intermediate `bootstrap`
   directory.
 - Docker build:

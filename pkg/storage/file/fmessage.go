@@ -21,6 +21,7 @@ type Message struct {
 	Fto      []*mail.Address
 	Fsubject string
 	Fsize    int64
+	Fseen    bool
 }
 
 // newMessage creates a new FileMessage object and sets the Date and ID fields.
@@ -95,4 +96,9 @@ func (m *Message) Source() (reader io.ReadCloser, err error) {
 		return nil, err
 	}
 	return file, nil
+}
+
+// Seen returns the seen flag value.
+func (m *Message) Seen() bool {
+	return m.Fseen
 }

@@ -28,6 +28,7 @@ type Store interface {
 	AddMessage(message Message) (id string, err error)
 	GetMessage(mailbox, id string) (Message, error)
 	GetMessages(mailbox string) ([]Message, error)
+	MarkSeen(mailbox, id string) error
 	PurgeMessages(mailbox string) error
 	RemoveMessage(mailbox, id string) error
 	VisitMailboxes(f func([]Message) (cont bool)) error
@@ -43,6 +44,7 @@ type Message interface {
 	Subject() string
 	Source() (io.ReadCloser, error)
 	Size() int64
+	Seen() bool
 }
 
 // FromConfig creates an instance of the Store based on the provided configuration.

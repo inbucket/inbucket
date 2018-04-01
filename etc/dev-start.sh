@@ -8,7 +8,7 @@ export INBUCKET_WEB_TEMPLATECACHE="false"
 export INBUCKET_WEB_COOKIEAUTHKEY="not-secret"
 export INBUCKET_STORAGE_TYPE="file"
 export INBUCKET_STORAGE_PARAMS="path:/tmp/inbucket"
-export INBUCKET_STORAGE_RETENTIONPERIOD="5m"
+export INBUCKET_STORAGE_RETENTIONPERIOD="15m"
 
 if ! test -x ./inbucket; then
   echo "$PWD/inbucket not found/executable!" >&2

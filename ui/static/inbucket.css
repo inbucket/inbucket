@@ -29,6 +29,10 @@ body {
   font-size: 18px;
 }
 
+.message-list-entry .unseen {
+  font-weight: bold;
+}
+
 .message-list-scroll {
   overflow-y: auto;
 }

@@ -15,8 +15,9 @@ $(document).ready(function() {
 <script type="text/html" id="list-entry-template">
   <button data-id="id" type="button" class="message-list-entry list-group-item">
     <div class="row">
-      <div class="col-sm-4 col-md-12 text-primary" data-content-text="subject"
-        data-format="subject"/>
+      <div class="col-sm-4 col-md-12 text-primary">
+        <span data-class="seenClass" data-content-text="subject" data-format="subject"/>
+      </div>
       <div class="col-sm-4 col-md-12 small" data-content-text="from"/>
       <div class="col-sm-4 col-md-12 small" data-content="date" data-format="date"/>
     </div>

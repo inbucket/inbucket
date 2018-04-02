@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -30,7 +31,7 @@ var (
 
 // Root wraps all other configurations.
 type Root struct {
-	LogLevel string `required:"true" default:"INFO" desc:"DEBUG, INFO, WARN, or ERROR"`
+	LogLevel string `required:"true" default:"info" desc:"debug, info, warn, or error"`
 	SMTP     SMTP
 	POP3     POP3
 	Web      Web
@@ -86,6 +87,7 @@ type Storage struct {
 func Process() (*Root, error) {
 	c := &Root{}
 	err := envconfig.Process(prefix, c)
+	c.LogLevel = strings.ToLower(c.LogLevel)
 	stringutil.SliceToLower(c.SMTP.AcceptDomains)
 	stringutil.SliceToLower(c.SMTP.RejectDomains)
 	stringutil.SliceToLower(c.SMTP.StoreDomains)

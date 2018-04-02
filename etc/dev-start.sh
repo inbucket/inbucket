@@ -2,8 +2,8 @@
 # dev-start.sh
 # description: Developer friendly Inbucket configuration
 
-export INBUCKET_LOGLEVEL="DEBUG"
-export INBUCKET_SMTP_DOMAINNOSTORE="bitbucket.local"
+export INBUCKET_LOGLEVEL="debug"
+export INBUCKET_SMTP_DISCARDDOMAINS="bitbucket.local"
 export INBUCKET_WEB_TEMPLATECACHE="false"
 export INBUCKET_WEB_COOKIEAUTHKEY="not-secret"
 export INBUCKET_STORAGE_TYPE="file"

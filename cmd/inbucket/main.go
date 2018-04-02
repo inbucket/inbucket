@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -168,17 +167,17 @@ signalLoop:
 
 // openLog configures zerolog output, returns func to close logfile.
 func openLog(level string, logfile string, json bool) (close func(), err error) {
-	switch strings.ToUpper(level) {
-	case "DEBUG":
+	switch level {
+	case "debug":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	case "INFO":
+	case "info":
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	case "WARN":
+	case "warn":
 		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	case "ERROR":
+	case "error":
 		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 	default:
-		return nil, fmt.Errorf("Log level %q not one of: DEBUG, INFO, WARN, ERROR", level)
+		return nil, fmt.Errorf("Log level %q not one of: debug, info, warn, error", level)
 	}
 	close = func() {}
 	var w io.Writer

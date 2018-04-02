@@ -8,7 +8,7 @@ User=daemon
 Group=daemon
 PermissionsStartOnly=true
 
-Environment=INBUCKET_LOGLEVEL=WARN
+Environment=INBUCKET_LOGLEVEL=warn
 Environment=INBUCKET_SMTP_ADDR=0.0.0.0:2500
 Environment=INBUCKET_POP3_ADDR=0.0.0.0:1100
 Environment=INBUCKET_WEB_ADDR=0.0.0.0:9000

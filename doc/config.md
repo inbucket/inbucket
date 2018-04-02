@@ -8,7 +8,7 @@ Running `inbucket -help` will yield a condensed summary of the environment
 variables it supports:
 
     KEY                                 DEFAULT             DESCRIPTION
-    INBUCKET_LOGLEVEL                   INFO                DEBUG, INFO, WARN, or ERROR
+    INBUCKET_LOGLEVEL                   info                debug, info, warn, or error
     INBUCKET_SMTP_ADDR                  0.0.0.0:2500        SMTP server IP4 host:port
     INBUCKET_SMTP_DOMAIN                inbucket            HELO domain
     INBUCKET_SMTP_MAXRECIPIENTS         200                 Maximum RCPT TO per message
@@ -47,11 +47,11 @@ The following documentation will describe each of these in more detail.
 `INBUCKET_LOGLEVEL`
 
 This setting controls the verbosity of log output.  A small desktop installation
-should probably select INFO, but a busy shared installation would be better off
-with WARN or ERROR.
+should probably select `info`, but a busy shared installation would be better
+off with `warn` or `error`.
 
-- Default: `INFO`
-- Values: one of `DEBUG`, `INFO`, `WARN`, or `ERROR`
+- Default: `info`
+- Values: one of `debug`, `info`, `warn`, or `error`
 
 
 ## SMTP

@@ -15,6 +15,7 @@ import (
 var TemplateFuncs = template.FuncMap{
 	"friendlyTime": FriendlyTime,
 	"reverse":      Reverse,
+	"stringsJoin":  strings.Join,
 	"textToHtml":   TextToHTML,
 }
 

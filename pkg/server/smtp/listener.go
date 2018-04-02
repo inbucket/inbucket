@@ -97,11 +97,6 @@ func (s *Server) Start(ctx context.Context) {
 		s.emergencyShutdown()
 		return
 	}
-	if !s.config.StoreMessages {
-		slog.Info().Msg("Load test mode active, messages will not be stored")
-	} else if s.config.DomainNoStore != "" {
-		slog.Info().Msgf("Messages sent to domain '%v' will be discarded", s.config.DomainNoStore)
-	}
 	// Listener go routine.
 	go s.serve(ctx)
 	// Wait for shutdown.

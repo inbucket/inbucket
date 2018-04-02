@@ -50,10 +50,14 @@ func (a *Addressing) ShouldAcceptDomain(domain string) bool {
 	return false
 }
 
-// ShouldStoreDomain indicates if Inbucket stores email destined for the specified domain.
+// ShouldStoreDomain indicates if Inbucket stores mail destined for the specified domain.
 func (a *Addressing) ShouldStoreDomain(domain string) bool {
-	if a.Config.StoreMessages {
-		return strings.ToLower(domain) != strings.ToLower(a.Config.DomainNoStore)
+	domain = strings.ToLower(domain)
+	if a.Config.DefaultStore && !stringutil.SliceContains(a.Config.DiscardDomains, domain) {
+		return true
+	}
+	if !a.Config.DefaultStore && stringutil.SliceContains(a.Config.StoreDomains, domain) {
+		return true
 	}
 	return false
 }

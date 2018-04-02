@@ -365,10 +365,8 @@ func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown f
 	cfg := config.SMTP{
 		Addr:            "127.0.0.1:2500",
 		Domain:          "inbucket.local",
-		DomainNoStore:   "bitbucket.local",
 		MaxRecipients:   5,
 		MaxMessageBytes: 5000,
-		StoreMessages:   true,
 		DefaultAccept:   true,
 		RejectDomains:   []string{"deny.com"},
 		Timeout:         5,

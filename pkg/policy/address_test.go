@@ -65,24 +65,24 @@ func TestShouldStoreDomain(t *testing.T) {
 	// Test with storage enabled.
 	ap := &policy.Addressing{
 		Config: config.SMTP{
-			DomainNoStore: "Foo.Com",
-			StoreMessages: true,
+			DefaultStore: false,
+			StoreDomains: []string{"store.com", "a.store.com"},
 		},
 	}
 	testCases := []struct {
 		domain string
 		want   bool
 	}{
-		{domain: "bar.com", want: true},
 		{domain: "foo.com", want: false},
-		{domain: "FOO.com", want: false},
-		{domain: "bar.foo.com", want: true},
+		{domain: "STORE.com", want: true},
+		{domain: "a.store.com", want: true},
+		{domain: "b.store.com", want: false},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.domain, func(t *testing.T) {
 			got := ap.ShouldStoreDomain(tc.domain)
 			if got != tc.want {
-				t.Errorf("Got %v for %q, want: %v", got, tc.domain, tc.want)
+				t.Errorf("Got store %v for %q, want: %v", got, tc.domain, tc.want)
 			}
 
 		})
@@ -90,23 +90,24 @@ func TestShouldStoreDomain(t *testing.T) {
 	// Test with storage disabled.
 	ap = &policy.Addressing{
 		Config: config.SMTP{
-			StoreMessages: false,
+			DefaultStore:   true,
+			DiscardDomains: []string{"discard.com", "a.discard.com"},
 		},
 	}
 	testCases = []struct {
 		domain string
 		want   bool
 	}{
-		{domain: "bar.com", want: false},
-		{domain: "foo.com", want: false},
-		{domain: "FOO.com", want: false},
-		{domain: "bar.foo.com", want: false},
+		{domain: "foo.com", want: true},
+		{domain: "DISCARD.com", want: false},
+		{domain: "a.discard.com", want: false},
+		{domain: "b.discard.com", want: true},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.domain, func(t *testing.T) {
 			got := ap.ShouldStoreDomain(tc.domain)
 			if got != tc.want {
-				t.Errorf("Got %v for %q, want: %v", got, tc.domain, tc.want)
+				t.Errorf("Got store %v for %q, want: %v", got, tc.domain, tc.want)
 			}
 
 		})

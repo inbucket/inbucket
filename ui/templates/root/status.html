@@ -52,10 +52,30 @@ $(document).ready(
         <div class="col-sm-8 col-xs-5"><span>{{.webListener}}</span></div>
       </div>
       <div class="row">
-        <div class="col-sm-3 col-xs-7"><b>No-Store Domain:</b></div>
+        <div class="col-sm-3 col-xs-7"><b>Accept Policy:</b></div>
         <div class="col-sm-8 col-xs-5">
           {{with .smtpConfig}}
-          <span>{{or .DomainNoStore .DomainNoStore "Not Configured"}}</span>
+          <span>
+            {{if .DefaultAccept}}
+            All domains{{with .RejectDomains}}, except: {{stringsJoin . ", "}}{{end}}
+            {{else}}
+            No domains{{with .AcceptDomains}}, except: {{stringsJoin . ", "}}{{end}}
+            {{end}}
+          </span>
+          {{end}}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3 col-xs-7"><b>Store Policy:</b></div>
+        <div class="col-sm-8 col-xs-5">
+          {{with .smtpConfig}}
+          <span>
+            {{if .DefaultStore}}
+            All domains{{with .DiscardDomains}}, except: {{stringsJoin . ", "}}{{end}}
+            {{else}}
+            No domains{{with .StoreDomains}}, except: {{stringsJoin . ", "}}{{end}}
+            {{end}}
+          </span>
           {{end}}
         </div>
       </div>

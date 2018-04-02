@@ -3,7 +3,6 @@ package config
 import (
 	"log"
 	"os"
-	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -42,13 +41,14 @@ type Root struct {
 type SMTP struct {
 	Addr            string        `required:"true" default:"0.0.0.0:2500" desc:"SMTP server IP4 host:port"`
 	Domain          string        `required:"true" default:"inbucket" desc:"HELO domain"`
-	DomainNoStore   string        `desc:"Load testing domain"`
 	MaxRecipients   int           `required:"true" default:"200" desc:"Maximum RCPT TO per message"`
 	MaxMessageBytes int           `required:"true" default:"10240000" desc:"Maximum message size"`
-	StoreMessages   bool          `required:"true" default:"true" desc:"Store incoming mail?"`
 	DefaultAccept   bool          `required:"true" default:"true" desc:"Accept all mail by default?"`
 	AcceptDomains   []string      `desc:"Domains to accept mail for"`
 	RejectDomains   []string      `desc:"Domains to reject mail for"`
+	DefaultStore    bool          `required:"true" default:"true" desc:"Store all mail by default?"`
+	StoreDomains    []string      `desc:"Domains to store mail for"`
+	DiscardDomains  []string      `desc:"Domains to discard mail for"`
 	Timeout         time.Duration `required:"true" default:"300s" desc:"Idle network timeout"`
 	Debug           bool          `ignored:"true"`
 }
@@ -86,9 +86,10 @@ type Storage struct {
 func Process() (*Root, error) {
 	c := &Root{}
 	err := envconfig.Process(prefix, c)
-	c.SMTP.DomainNoStore = strings.ToLower(c.SMTP.DomainNoStore)
 	stringutil.SliceToLower(c.SMTP.AcceptDomains)
 	stringutil.SliceToLower(c.SMTP.RejectDomains)
+	stringutil.SliceToLower(c.SMTP.StoreDomains)
+	stringutil.SliceToLower(c.SMTP.DiscardDomains)
 	return c, err
 }
 

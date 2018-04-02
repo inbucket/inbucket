@@ -18,6 +18,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - RedHat `.rpm` package generation to release process.
 - Message seen flag in REST and Web UI so you can see which messages have
   already been read.
+- Recipient domain accept policy; Inbucket can now reject mail to specific
+  domains.
 
 ### Changed
 - Massive refactor of back-end code.  Inbucket should now be both easier and
@@ -34,9 +36,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   flag; which is enabled by default for the Docker container.
 - SMTP and POP3 network tracing is no longer logged regardless of level, but can
   be sent to stdout via `-netdebug` flag.
+- Replaced store/nostore config variables with a storage policy that mirrors the
+  domain accept policy.
 
 ### Removed
-- Support for SIGHUP and log file rotation.
+- No longer support SIGHUP or log file rotation.
 
 
 ## [v1.3.1] - 2018-03-10

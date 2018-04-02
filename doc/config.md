@@ -11,10 +11,14 @@ variables it supports:
     INBUCKET_LOGLEVEL                   INFO                DEBUG, INFO, WARN, or ERROR
     INBUCKET_SMTP_ADDR                  0.0.0.0:2500        SMTP server IP4 host:port
     INBUCKET_SMTP_DOMAIN                inbucket            HELO domain
-    INBUCKET_SMTP_DOMAINNOSTORE                             Load testing domain
     INBUCKET_SMTP_MAXRECIPIENTS         200                 Maximum RCPT TO per message
     INBUCKET_SMTP_MAXMESSAGEBYTES       10240000            Maximum message size
-    INBUCKET_SMTP_STOREMESSAGES         true                Store incoming mail?
+    INBUCKET_SMTP_DEFAULTACCEPT         true                Accept all mail by default?
+    INBUCKET_SMTP_ACCEPTDOMAINS                             Domains to accept mail for
+    INBUCKET_SMTP_REJECTDOMAINS                             Domains to reject mail for
+    INBUCKET_SMTP_DEFAULTSTORE          true                Store all mail by default?
+    INBUCKET_SMTP_STOREDOMAINS                              Domains to store mail for
+    INBUCKET_SMTP_DISCARDDOMAINS                            Domains to discard mail for
     INBUCKET_SMTP_TIMEOUT               300s                Idle network timeout
     INBUCKET_POP3_ADDR                  0.0.0.0:1100        POP3 server IP4 host:port
     INBUCKET_POP3_DOMAIN                inbucket            HELLO domain
@@ -75,17 +79,6 @@ Most SMTP clients appear to ignore this value.
 
 - Default: `inbucket`
 
-### Load Testing/No Store Domain
-
-`INBUCKET_SMTP_DOMAINNOSTORE`
-
-Mail sent to this domain will not be stored by Inbucket.  This is helpful if you
-are load or soak testing a service, and do not plan to inspect the resulting
-emails.  Messages sent to a domain other than this will be stored normally.
-
-- Default: None
-- Example: `bitbucket.local`
-
 ### Maximum Recipients
 
 `INBUCKET_SMTP_MAXRECIPIENTS`
@@ -105,16 +98,73 @@ exceeding this size will be rejected during the SMTP `DATA` phase.
 
 - Default: `10240000` (10MB)
 
-### Store Messages
+### Default Recipient Accept Policy
 
-`INBUCKET_SMTP_STOREMESSAGES`
+`INBUCKET_SMTP_DEFAULTACCEPT`
 
-This option can be used to disable mail storage entirely.  Useful for load
-testing, or turning Inbucket into a black hole that will consume our entire
-solar system.
+If true, Inbucket will accept mail to any domain unless present in the reject
+domains list.  If false, recipients will be rejected unless their domain is
+present in the accept domains list.
 
 - Default: `true`
 - Values: `true` or `false`
+
+### Accepted Recipient Domain List
+
+`INBUCKET_SMTP_ACCEPTDOMAINS`
+
+List of domains to accept mail for when `INBUCKET_SMTP_DEFAULTACCEPT` is false;
+has no effect when true.
+
+- Default: None
+- Values: Comma separated list of domains
+- Example: `localhost,mysite.org`
+
+### Rejected Recipient Domain List
+
+`INBUCKET_SMTP_REJECTDOMAINS`
+
+List of domains to reject mail for when `INBUCKET_SMTP_DEFAULTACCEPT` is true;
+has no effect when false.
+
+- Default: None
+- Values: Comma separated list of domains
+- Example: `reject.com,gmail.com`
+
+### Default Recipient Store Policy
+
+`INBUCKET_SMTP_DEFAULTSTORE`
+
+If true, Inbucket will store mail sent to any domain unless present in the
+discard domains list.  If false, messages will be discarded unless their domain
+is present in the store domains list.
+
+- Default: `true`
+- Values: `true` or `false`
+
+### Stored Recipient Domain List
+
+`INBUCKET_SMTP_STOREDOMAINS`
+
+List of domains to store mail for when `INBUCKET_SMTP_DEFAULTSTORE` is false;
+has no effect when true.
+
+- Default: None
+- Values: Comma separated list of domains
+- Example: `localhost,mysite.org`
+
+### Discarded Recipient Domain List
+
+`INBUCKET_SMTP_DISCARDDOMAINS`
+
+Mail sent to these domains will not be stored by Inbucket.  This is helpful if
+you are load or soak testing a service, and do not plan to inspect the resulting
+emails.  Messages sent to a domain other than this will be stored normally.
+Only has an effect when `INBUCKET_SMTP_DEFAULTSTORE` is true.
+
+- Default: None
+- Values: Comma separated list of domains
+- Example: `recycle.com,loadtest.org`
 
 ### Network Idle Timeout
 

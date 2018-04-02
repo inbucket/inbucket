@@ -329,6 +329,11 @@ func (s *Session) mailHandler(cmd string, arg string) {
 			s.logger.Warn().Msgf("Bad address as RCPT arg: %q, %s", addr, err)
 			return
 		}
+		if !recip.ShouldAccept() {
+			s.logger.Warn().Str("addr", addr).Msg("Rejecting recipient")
+			s.send("550 Relay not permitted")
+			return
+		}
 		if len(s.recipients) >= s.config.MaxRecipients {
 			s.logger.Warn().Msgf("Maximum limit of %v recipients reached",
 				s.config.MaxRecipients)

@@ -15,6 +15,9 @@ variables it supports:
     INBUCKET_SMTP_MAXRECIPIENTS         200                 Maximum RCPT TO per message
     INBUCKET_SMTP_MAXMESSAGEBYTES       10240000            Maximum message size
     INBUCKET_SMTP_STOREMESSAGES         true                Store incoming mail?
+    INBUCKET_SMTP_DEFAULTACCEPT         true                Accept all mail by default?
+    INBUCKET_SMTP_ACCEPTDOMAINS                             Domains to accept mail for
+    INBUCKET_SMTP_REJECTDOMAINS                             Domains to reject mail for
     INBUCKET_SMTP_TIMEOUT               300s                Idle network timeout
     INBUCKET_POP3_ADDR                  0.0.0.0:1100        POP3 server IP4 host:port
     INBUCKET_POP3_DOMAIN                inbucket            HELLO domain
@@ -115,6 +118,39 @@ solar system.
 
 - Default: `true`
 - Values: `true` or `false`
+
+### Default Recipient Accept Policy
+
+`INBUCKET_SMTP_DEFAULTACCEPT`
+
+If true, Inbucket will accept mail to any domain unless present in the reject
+domains list.  If false, recipients will be rejected unless their domain is
+present in the accept domains list.
+
+- Default: `true`
+- Values: `true` or `false`
+
+### Accepted Recipient Domain List
+
+`INBUCKET_SMTP_ACCEPTDOMAINS`
+
+List of domains to accept mail for when `INBUCKET_SMTP_DEFAULTACCEPT` is false;
+has no effect when true.
+
+- Default: None
+- Values: Comma separated list of domains
+- Example: `localhost,mysite.org`
+
+### Rejected Recipient Domain List
+
+`INBUCKET_SMTP_REJECTDOMAINS`
+
+List of domains to reject mail for when `INBUCKET_SMTP_DEFAULTACCEPT` is true;
+has no effect when false.
+
+- Default: None
+- Values: Comma separated list of domains
+- Example: `reject.com,gmail.com`
 
 ### Network Idle Timeout
 

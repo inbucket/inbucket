@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/mail"
+	"strings"
 )
 
 // HashMailboxName accepts a mailbox name and hashes it.  filestore uses this as
@@ -27,4 +28,21 @@ func StringAddressList(addrs []*mail.Address) []string {
 		}
 	}
 	return s
+}
+
+// SliceContains returns true if s is present in slice.
+func SliceContains(slice []string, s string) bool {
+	for _, v := range slice {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}
+
+// SliceToLower lowercases the contents of slice of strings.
+func SliceToLower(slice []string) {
+	for i, s := range slice {
+		slice[i] = strings.ToLower(s)
+	}
 }

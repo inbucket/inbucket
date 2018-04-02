@@ -8,6 +8,59 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/policy"
 )
 
+func TestShouldAcceptDomain(t *testing.T) {
+	// Test with default accept.
+	ap := &policy.Addressing{
+		Config: config.SMTP{
+			DefaultAccept: true,
+			RejectDomains: []string{"a.deny.com", "deny.com"},
+		},
+	}
+	testCases := []struct {
+		domain string
+		want   bool
+	}{
+		{domain: "bar.com", want: true},
+		{domain: "DENY.com", want: false},
+		{domain: "a.deny.com", want: false},
+		{domain: "b.deny.com", want: true},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.domain, func(t *testing.T) {
+			got := ap.ShouldAcceptDomain(tc.domain)
+			if got != tc.want {
+				t.Errorf("Got %v for %q, want: %v", got, tc.domain, tc.want)
+			}
+
+		})
+	}
+	// Test with default reject.
+	ap = &policy.Addressing{
+		Config: config.SMTP{
+			DefaultAccept: false,
+			AcceptDomains: []string{"a.allow.com", "allow.com"},
+		},
+	}
+	testCases = []struct {
+		domain string
+		want   bool
+	}{
+		{domain: "bar.com", want: false},
+		{domain: "ALLOW.com", want: true},
+		{domain: "a.allow.com", want: true},
+		{domain: "b.allow.com", want: false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.domain, func(t *testing.T) {
+			got := ap.ShouldAcceptDomain(tc.domain)
+			if got != tc.want {
+				t.Errorf("Got %v for %q, want: %v", got, tc.domain, tc.want)
+			}
+
+		})
+	}
+}
+
 func TestShouldStoreDomain(t *testing.T) {
 	// Test with storage enabled.
 	ap := &policy.Addressing{

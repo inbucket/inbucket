@@ -5,7 +5,7 @@ import "net/mail"
 // Recipient represents a potential email recipient, allows policies for it to be queried.
 type Recipient struct {
 	mail.Address
-	apolicy *Addressing
+	addrPolicy *Addressing
 	// LocalPart is the part of the address before @, including +extension.
 	LocalPart string
 	// Domain is the part of the address after @.
@@ -16,10 +16,10 @@ type Recipient struct {
 
 // ShouldAccept returns true if Inbucket should accept mail for this recipient.
 func (r *Recipient) ShouldAccept() bool {
-	return true
+	return r.addrPolicy.ShouldAcceptDomain(r.Domain)
 }
 
 // ShouldStore returns true if Inbucket should store mail for this recipient.
 func (r *Recipient) ShouldStore() bool {
-	return r.apolicy.ShouldStoreDomain(r.Domain)
+	return r.addrPolicy.ShouldStoreDomain(r.Domain)
 }

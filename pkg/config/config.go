@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/jhillyerd/inbucket/pkg/stringutil"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -45,6 +46,9 @@ type SMTP struct {
 	MaxRecipients   int           `required:"true" default:"200" desc:"Maximum RCPT TO per message"`
 	MaxMessageBytes int           `required:"true" default:"10240000" desc:"Maximum message size"`
 	StoreMessages   bool          `required:"true" default:"true" desc:"Store incoming mail?"`
+	DefaultAccept   bool          `required:"true" default:"true" desc:"Accept all mail by default?"`
+	AcceptDomains   []string      `desc:"Domains to accept mail for"`
+	RejectDomains   []string      `desc:"Domains to reject mail for"`
 	Timeout         time.Duration `required:"true" default:"300s" desc:"Idle network timeout"`
 	Debug           bool          `ignored:"true"`
 }
@@ -83,6 +87,8 @@ func Process() (*Root, error) {
 	c := &Root{}
 	err := envconfig.Process(prefix, c)
 	c.SMTP.DomainNoStore = strings.ToLower(c.SMTP.DomainNoStore)
+	stringutil.SliceToLower(c.SMTP.AcceptDomains)
+	stringutil.SliceToLower(c.SMTP.RejectDomains)
 	return c, err
 }
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/jhillyerd/inbucket/pkg/stringutil"
 )
 
 // Addressing handles email address policy.
@@ -29,12 +30,24 @@ func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 		return nil, err
 	}
 	return &Recipient{
-		Address:   *ar,
-		apolicy:   a,
-		LocalPart: local,
-		Domain:    domain,
-		Mailbox:   mailbox,
+		Address:    *ar,
+		addrPolicy: a,
+		LocalPart:  local,
+		Domain:     domain,
+		Mailbox:    mailbox,
 	}, nil
+}
+
+// ShouldAcceptDomain indicates if Inbucket accepts mail destined for the specified domain.
+func (a *Addressing) ShouldAcceptDomain(domain string) bool {
+	domain = strings.ToLower(domain)
+	if a.Config.DefaultAccept && !stringutil.SliceContains(a.Config.RejectDomains, domain) {
+		return true
+	}
+	if !a.Config.DefaultAccept && stringutil.SliceContains(a.Config.AcceptDomains, domain) {
+		return true
+	}
+	return false
 }
 
 // ShouldStoreDomain indicates if Inbucket stores email destined for the specified domain.

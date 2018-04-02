@@ -169,6 +169,7 @@ func TestMailState(t *testing.T) {
 		{"RCPT TO:<u1@gmail.com>", 250},
 		{"RCPT TO: <u2@gmail.com>", 250},
 		{"RCPT TO:u3@gmail.com", 250},
+		{"RCPT TO:u3@deny.com", 550},
 		{"RCPT TO: u4@gmail.com", 250},
 		{"RSET", 250},
 		{"MAIL FROM:<john@gmail.com>", 250},
@@ -366,9 +367,11 @@ func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown f
 		Domain:          "inbucket.local",
 		DomainNoStore:   "bitbucket.local",
 		MaxRecipients:   5,
-		Timeout:         5,
 		MaxMessageBytes: 5000,
 		StoreMessages:   true,
+		DefaultAccept:   true,
+		RejectDomains:   []string{"deny.com"},
+		Timeout:         5,
 	}
 
 	// Capture log output

@@ -11,9 +11,11 @@ import (
 func TestShouldAcceptDomain(t *testing.T) {
 	// Test with default accept.
 	ap := &policy.Addressing{
-		Config: config.SMTP{
-			DefaultAccept: true,
-			RejectDomains: []string{"a.deny.com", "deny.com"},
+		Config: &config.Root{
+			SMTP: config.SMTP{
+				DefaultAccept: true,
+				RejectDomains: []string{"a.deny.com", "deny.com"},
+			},
 		},
 	}
 	testCases := []struct {
@@ -36,9 +38,11 @@ func TestShouldAcceptDomain(t *testing.T) {
 	}
 	// Test with default reject.
 	ap = &policy.Addressing{
-		Config: config.SMTP{
-			DefaultAccept: false,
-			AcceptDomains: []string{"a.allow.com", "allow.com"},
+		Config: &config.Root{
+			SMTP: config.SMTP{
+				DefaultAccept: false,
+				AcceptDomains: []string{"a.allow.com", "allow.com"},
+			},
 		},
 	}
 	testCases = []struct {
@@ -64,9 +68,11 @@ func TestShouldAcceptDomain(t *testing.T) {
 func TestShouldStoreDomain(t *testing.T) {
 	// Test with storage enabled.
 	ap := &policy.Addressing{
-		Config: config.SMTP{
-			DefaultStore: false,
-			StoreDomains: []string{"store.com", "a.store.com"},
+		Config: &config.Root{
+			SMTP: config.SMTP{
+				DefaultStore: false,
+				StoreDomains: []string{"store.com", "a.store.com"},
+			},
 		},
 	}
 	testCases := []struct {
@@ -89,9 +95,11 @@ func TestShouldStoreDomain(t *testing.T) {
 	}
 	// Test with storage disabled.
 	ap = &policy.Addressing{
-		Config: config.SMTP{
-			DefaultStore:   true,
-			DiscardDomains: []string{"discard.com", "a.discard.com"},
+		Config: &config.Root{
+			SMTP: config.SMTP{
+				DefaultStore:   true,
+				DiscardDomains: []string{"discard.com", "a.discard.com"},
+			},
 		},
 	}
 	testCases = []struct {

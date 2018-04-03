@@ -12,7 +12,7 @@ import (
 
 // Addressing handles email address policy.
 type Addressing struct {
-	Config config.SMTP
+	Config *config.Root
 }
 
 // NewRecipient parses an address into a Recipient.
@@ -41,10 +41,12 @@ func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 // ShouldAcceptDomain indicates if Inbucket accepts mail destined for the specified domain.
 func (a *Addressing) ShouldAcceptDomain(domain string) bool {
 	domain = strings.ToLower(domain)
-	if a.Config.DefaultAccept && !stringutil.SliceContains(a.Config.RejectDomains, domain) {
+	if a.Config.SMTP.DefaultAccept &&
+		!stringutil.SliceContains(a.Config.SMTP.RejectDomains, domain) {
 		return true
 	}
-	if !a.Config.DefaultAccept && stringutil.SliceContains(a.Config.AcceptDomains, domain) {
+	if !a.Config.SMTP.DefaultAccept &&
+		stringutil.SliceContains(a.Config.SMTP.AcceptDomains, domain) {
 		return true
 	}
 	return false
@@ -53,10 +55,12 @@ func (a *Addressing) ShouldAcceptDomain(domain string) bool {
 // ShouldStoreDomain indicates if Inbucket stores mail destined for the specified domain.
 func (a *Addressing) ShouldStoreDomain(domain string) bool {
 	domain = strings.ToLower(domain)
-	if a.Config.DefaultStore && !stringutil.SliceContains(a.Config.DiscardDomains, domain) {
+	if a.Config.SMTP.DefaultStore &&
+		!stringutil.SliceContains(a.Config.SMTP.DiscardDomains, domain) {
 		return true
 	}
-	if !a.Config.DefaultStore && stringutil.SliceContains(a.Config.StoreDomains, domain) {
+	if !a.Config.SMTP.DefaultStore &&
+		stringutil.SliceContains(a.Config.SMTP.StoreDomains, domain) {
 		return true
 	}
 	return false

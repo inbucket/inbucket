@@ -361,41 +361,39 @@ func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
 func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown func()) {
-	// Test Server Config
-	cfg := config.SMTP{
-		Addr:            "127.0.0.1:2500",
-		Domain:          "inbucket.local",
-		MaxRecipients:   5,
-		MaxMessageBytes: 5000,
-		DefaultAccept:   true,
-		RejectDomains:   []string{"deny.com"},
-		Timeout:         5,
+	cfg := &config.Root{
+		SMTP: config.SMTP{
+			Addr:            "127.0.0.1:2500",
+			Domain:          "inbucket.local",
+			MaxRecipients:   5,
+			MaxMessageBytes: 5000,
+			DefaultAccept:   true,
+			RejectDomains:   []string{"deny.com"},
+			Timeout:         5,
+		},
 	}
-
-	// Capture log output
+	// Capture log output.
 	buf = new(bytes.Buffer)
 	log.SetOutput(buf)
-
-	// Create a server, don't start it
+	// Create a server, don't start it.
 	shutdownChan := make(chan bool)
 	teardown = func() {
 		close(shutdownChan)
 	}
-	apolicy := &policy.Addressing{Config: cfg}
+	addrPolicy := &policy.Addressing{Config: cfg}
 	manager := &message.StoreManager{Store: ds}
-	s = NewServer(cfg, shutdownChan, manager, apolicy)
+	s = NewServer(cfg.SMTP, shutdownChan, manager, addrPolicy)
 	return s, buf, teardown
 }
 
 var sessionNum int
 
 func setupSMTPSession(server *Server) net.Conn {
-	// Pair of pipes to communicate
+	// Pair of pipes to communicate.
 	serverConn, clientConn := net.Pipe()
-	// Start the session
+	// Start the session.
 	server.wg.Add(1)
 	sessionNum++
 	go server.startSession(sessionNum, &mockConn{serverConn})
-
 	return clientConn
 }

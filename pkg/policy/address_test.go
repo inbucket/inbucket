@@ -122,7 +122,9 @@ func TestShouldStoreDomain(t *testing.T) {
 	}
 }
 
-func TestParseMailboxName(t *testing.T) {
+func TestExtractMailbox(t *testing.T) {
+	addrPolicy := policy.Addressing{Config: &config.Root{}}
+
 	var validTable = []struct {
 		input  string
 		expect string
@@ -139,7 +141,7 @@ func TestParseMailboxName(t *testing.T) {
 		{"chars|}~", "chars|}~"},
 	}
 	for _, tt := range validTable {
-		if result, err := policy.ParseMailboxName(tt.input); err != nil {
+		if result, err := addrPolicy.ExtractMailbox(tt.input); err != nil {
 			t.Errorf("Error while parsing %q: %v", tt.input, err)
 		} else {
 			if result != tt.expect {
@@ -157,7 +159,7 @@ func TestParseMailboxName(t *testing.T) {
 		{"first\nlast", "Control chars not permitted"},
 	}
 	for _, tt := range invalidTable {
-		if _, err := policy.ParseMailboxName(tt.input); err == nil {
+		if _, err := addrPolicy.ExtractMailbox(tt.input); err == nil {
 			t.Errorf("Didn't get an error while parsing %q: %v", tt.input, tt.msg)
 		}
 	}

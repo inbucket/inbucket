@@ -35,8 +35,9 @@ type Manager interface {
 
 // StoreManager is a message Manager backed by the storage.Store.
 type StoreManager struct {
-	Store storage.Store
-	Hub   *msghub.Hub
+	AddrPolicy *policy.Addressing
+	Store      storage.Store
+	Hub        *msghub.Hub
 }
 
 // Deliver submits a new message to the store.
@@ -154,7 +155,7 @@ func (s *StoreManager) SourceReader(mailbox, id string) (io.ReadCloser, error) {
 
 // MailboxForAddress parses an email address to return the canonical mailbox name.
 func (s *StoreManager) MailboxForAddress(mailbox string) (string, error) {
-	return policy.ParseMailboxName(mailbox)
+	return s.AddrPolicy.ExtractMailbox(mailbox)
 }
 
 // makeMetadata populates Metadata from a storage.Message.

@@ -15,13 +15,18 @@ type Addressing struct {
 	Config *config.Root
 }
 
+// ExtractMailbox extracts the mailbox name from a partial email address.
+func (a *Addressing) ExtractMailbox(address string) (string, error) {
+	return parseMailboxName(address)
+}
+
 // NewRecipient parses an address into a Recipient.
 func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 	local, domain, err := ParseEmailAddress(address)
 	if err != nil {
 		return nil, err
 	}
-	mailbox, err := ParseMailboxName(local)
+	mailbox, err := a.ExtractMailbox(local)
 	if err != nil {
 		return nil, err
 	}
@@ -64,35 +69,6 @@ func (a *Addressing) ShouldStoreDomain(domain string) bool {
 		return true
 	}
 	return false
-}
-
-// ParseMailboxName takes a localPart string (ex: "user+ext" without "@domain")
-// and returns just the mailbox name (ex: "user").  Returns an error if
-// localPart contains invalid characters; it won't accept any that must be
-// quoted according to RFC3696.
-func ParseMailboxName(localPart string) (result string, err error) {
-	if localPart == "" {
-		return "", fmt.Errorf("Mailbox name cannot be empty")
-	}
-	result = strings.ToLower(localPart)
-	invalid := make([]byte, 0, 10)
-	for i := 0; i < len(result); i++ {
-		c := result[i]
-		switch {
-		case 'a' <= c && c <= 'z':
-		case '0' <= c && c <= '9':
-		case bytes.IndexByte([]byte("!#$%&'*+-=/?^_`.{|}~"), c) >= 0:
-		default:
-			invalid = append(invalid, c)
-		}
-	}
-	if len(invalid) > 0 {
-		return "", fmt.Errorf("Mailbox name contained invalid character(s): %q", invalid)
-	}
-	if idx := strings.Index(result, "+"); idx > -1 {
-		result = result[0:idx]
-	}
-	return result, nil
 }
 
 // ParseEmailAddress unescapes an email address, and splits the local part from the domain part.
@@ -262,4 +238,33 @@ func ValidateDomainPart(domain string) bool {
 		prev = c
 	}
 	return true
+}
+
+// ParseMailboxName takes a localPart string (ex: "user+ext" without "@domain")
+// and returns just the mailbox name (ex: "user").  Returns an error if
+// localPart contains invalid characters; it won't accept any that must be
+// quoted according to RFC3696.
+func parseMailboxName(localPart string) (result string, err error) {
+	if localPart == "" {
+		return "", fmt.Errorf("Mailbox name cannot be empty")
+	}
+	result = strings.ToLower(localPart)
+	invalid := make([]byte, 0, 10)
+	for i := 0; i < len(result); i++ {
+		c := result[i]
+		switch {
+		case 'a' <= c && c <= 'z':
+		case '0' <= c && c <= '9':
+		case bytes.IndexByte([]byte("!#$%&'*+-=/?^_`.{|}~"), c) >= 0:
+		default:
+			invalid = append(invalid, c)
+		}
+	}
+	if len(invalid) > 0 {
+		return "", fmt.Errorf("Mailbox name contained invalid character(s): %q", invalid)
+	}
+	if idx := strings.Index(result, "+"); idx > -1 {
+		result = result[0:idx]
+	}
+	return result, nil
 }

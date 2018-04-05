@@ -31,11 +31,12 @@ var (
 
 // Root wraps all other configurations.
 type Root struct {
-	LogLevel string `required:"true" default:"info" desc:"debug, info, warn, or error"`
-	SMTP     SMTP
-	POP3     POP3
-	Web      Web
-	Storage  Storage
+	LogLevel      string `required:"true" default:"info" desc:"debug, info, warn, or error"`
+	MailboxNaming string `required:"true" default:"local" desc:"local or full"`
+	SMTP          SMTP
+	POP3          POP3
+	Web           Web
+	Storage       Storage
 }
 
 // SMTP contains the SMTP server configuration.

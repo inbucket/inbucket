@@ -16,10 +16,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// State tracks the current mode of our SMTP state machine
+// State tracks the current mode of our SMTP state machine.
 type State int
 
 const (
+	// timeStampFormat to use in Received header.
+	timeStampFormat = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
+
 	// GREET State: Waiting for HELO
 	GREET State = iota
 	// READY State: Got HELO, waiting for MAIL
@@ -32,7 +35,11 @@ const (
 	QUIT
 )
 
-const timeStampFormat = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
+// fromRegex captures the from address and optional BODY=8BITMIME clause.  Matches FROM, while
+// accepting '>' as quoted pair and in double quoted strings (?i) makes the regex case insensitive,
+// (?:) is non-grouping sub-match
+var fromRegex = regexp.MustCompile(
+	"(?i)^FROM:\\s*<((?:\\\\>|[^>])+|\"[^\"]+\"@[^>]+)>( [\\w= ]+)?$")
 
 func (s State) String() string {
 	switch s {
@@ -265,10 +272,8 @@ func parseHelloArgument(arg string) (string, error) {
 // READY state -> waiting for MAIL
 func (s *Session) readyHandler(cmd string, arg string) {
 	if cmd == "MAIL" {
-		// Match FROM, while accepting '>' as quoted pair and in double quoted strings
-		// (?i) makes the regex case insensitive, (?:) is non-grouping sub-match
-		re := regexp.MustCompile("(?i)^FROM:\\s*<((?:\\\\>|[^>])+|\"[^\"]+\"@[^>]+)>( [\\w= ]+)?$")
-		m := re.FindStringSubmatch(arg)
+		// Capture group 1: from address.  2: optional params.
+		m := fromRegex.FindStringSubmatch(arg)
 		if m == nil {
 			s.send("501 Was expecting MAIL arg syntax of FROM:<address>")
 			s.logger.Warn().Msgf("Bad MAIL argument: %q", arg)

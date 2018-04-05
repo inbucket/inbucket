@@ -25,7 +25,7 @@ func (a *Addressing) ExtractMailbox(address string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if a.Config.MailboxNaming == "local" {
+	if a.Config.MailboxNaming == config.LocalNaming {
 		return local, nil
 	}
 	if domain == "" {

@@ -123,8 +123,8 @@ func TestShouldStoreDomain(t *testing.T) {
 }
 
 func TestExtractMailboxValid(t *testing.T) {
-	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: "local"}}
-	fullPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: "full"}}
+	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
+	fullPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.FullNaming}}
 
 	testTable := []struct {
 		input string // Input to test
@@ -251,8 +251,8 @@ func TestExtractMailboxValid(t *testing.T) {
 }
 
 func TestExtractMailboxInvalid(t *testing.T) {
-	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: "local"}}
-	fullPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: "full"}}
+	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
+	fullPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.FullNaming}}
 	// Test local mailbox naming policy.
 	localInvalidTable := []struct {
 		input, msg string

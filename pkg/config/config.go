@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -29,10 +30,33 @@ var (
 	BuildDate = ""
 )
 
-// Root wraps all other configurations.
+// mbNaming represents a mailbox naming strategy.
+type mbNaming int
+
+// Mailbox naming strategies.
+const (
+	UnknownNaming mbNaming = iota
+	LocalNaming
+	FullNaming
+)
+
+// Decode a naming strategy from string.
+func (n *mbNaming) Decode(v string) error {
+	switch strings.ToLower(v) {
+	case "local":
+		*n = LocalNaming
+	case "full":
+		*n = FullNaming
+	default:
+		return fmt.Errorf("Unknown MailboxNaming strategy: %q", v)
+	}
+	return nil
+}
+
+// Root contains global configuration, and structs with for specific sub-systems.
 type Root struct {
-	LogLevel      string `required:"true" default:"info" desc:"debug, info, warn, or error"`
-	MailboxNaming string `required:"true" default:"local" desc:"local or full"`
+	LogLevel      string   `required:"true" default:"info" desc:"debug, info, warn, or error"`
+	MailboxNaming mbNaming `required:"true" default:"local" desc:"local or full"`
 	SMTP          SMTP
 	POP3          POP3
 	Web           Web

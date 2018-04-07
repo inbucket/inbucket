@@ -326,28 +326,25 @@ func (s *Session) mailHandler(cmd string, arg string) {
 			s.logger.Warn().Msgf("Bad RCPT argument: %q", arg)
 			return
 		}
-		// This trim is probably too forgiving
 		addr := strings.Trim(arg[3:], "<> ")
 		recip, err := s.addrPolicy.NewRecipient(addr)
 		if err != nil {
 			s.send("501 Bad recipient address syntax")
-			s.logger.Warn().Msgf("Bad address as RCPT arg: %q, %s", addr, err)
+			s.logger.Warn().Str("to", addr).Err(err).Msg("Bad address as RCPT arg")
 			return
 		}
 		if !recip.ShouldAccept() {
-			s.logger.Warn().Str("addr", addr).Msg("Rejecting recipient")
+			s.logger.Warn().Str("to", addr).Msg("Rejecting recipient domain")
 			s.send("550 Relay not permitted")
 			return
 		}
 		if len(s.recipients) >= s.config.MaxRecipients {
-			s.logger.Warn().Msgf("Maximum limit of %v recipients reached",
-				s.config.MaxRecipients)
-			s.send(fmt.Sprintf("552 Maximum limit of %v recipients reached",
-				s.config.MaxRecipients))
+			s.logger.Warn().Msgf("Limit of %v recipients exceeded", s.config.MaxRecipients)
+			s.send(fmt.Sprintf("552 Limit of %v recipients exceeded", s.config.MaxRecipients))
 			return
 		}
 		s.recipients = append(s.recipients, recip)
-		s.logger.Info().Msgf("Recipient: %v", addr)
+		s.logger.Debug().Str("to", addr).Msg("Recipient added")
 		s.send(fmt.Sprintf("250 I'll make sure <%v> gets this", addr))
 		return
 	case "DATA":
@@ -356,13 +353,12 @@ func (s *Session) mailHandler(cmd string, arg string) {
 			s.logger.Warn().Msgf("Got unexpected args on DATA: %q", arg)
 			return
 		}
-		if len(s.recipients) > 0 {
-			// We have recipients, go to accept data
-			s.enterState(DATA)
+		if len(s.recipients) == 0 {
+			// DATA out of sequence
+			s.ooSeq(cmd)
 			return
 		}
-		// DATA out of sequence
-		s.ooSeq(cmd)
+		s.enterState(DATA)
 		return
 	}
 	s.ooSeq(cmd)

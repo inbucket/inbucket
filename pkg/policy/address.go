@@ -28,6 +28,9 @@ func (a *Addressing) ExtractMailbox(address string) (string, error) {
 	if a.Config.MailboxNaming == config.LocalNaming {
 		return local, nil
 	}
+	if a.Config.MailboxNaming != config.FullNaming {
+		return "", fmt.Errorf("Unknown MailboxNaming value: %v", a.Config.MailboxNaming)
+	}
 	if domain == "" {
 		return local, nil
 	}
@@ -43,7 +46,7 @@ func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 	if err != nil {
 		return nil, err
 	}
-	mailbox, err := a.ExtractMailbox(local)
+	mailbox, err := a.ExtractMailbox(address)
 	if err != nil {
 		return nil, err
 	}

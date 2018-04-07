@@ -362,6 +362,7 @@ func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
 func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown func()) {
 	cfg := &config.Root{
+		MailboxNaming: config.FullNaming,
 		SMTP: config.SMTP{
 			Addr:            "127.0.0.1:2500",
 			Domain:          "inbucket.local",

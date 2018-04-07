@@ -56,7 +56,9 @@ func (m *ManagerStub) GetMetadata(mailbox string) ([]*message.Metadata, error) {
 
 // MailboxForAddress invokes policy.ParseMailboxName.
 func (m *ManagerStub) MailboxForAddress(address string) (string, error) {
-	addrPolicy := &policy.Addressing{Config: &config.Root{}}
+	addrPolicy := &policy.Addressing{Config: &config.Root{
+		MailboxNaming: config.FullNaming,
+	}}
 	return addrPolicy.ExtractMailbox(address)
 }
 

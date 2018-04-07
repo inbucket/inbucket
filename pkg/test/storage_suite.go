@@ -27,6 +27,7 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 		{"metadata", testMetadata, config.Storage{}},
 		{"content", testContent, config.Storage{}},
 		{"delivery order", testDeliveryOrder, config.Storage{}},
+		{"naming", testNaming, config.Storage{}},
 		{"size", testSize, config.Storage{}},
 		{"seen", testSeen, config.Storage{}},
 		{"delete", testDelete, config.Storage{}},
@@ -189,6 +190,13 @@ func testDeliveryOrder(t *testing.T, store storage.Store) {
 			t.Errorf("Got subject %q, want %q", got, want)
 		}
 	}
+}
+
+// testNaming ensures the store does not enforce local part mailbox naming.
+func testNaming(t *testing.T, store storage.Store) {
+	DeliverToStore(t, store, "fred@fish.net", "disk #27", time.Now())
+	GetAndCountMessages(t, store, "fred", 0)
+	GetAndCountMessages(t, store, "fred@fish.net", 1)
 }
 
 // testSize verifies message contnet size metadata values.
@@ -406,7 +414,7 @@ func GetAndCountMessages(t *testing.T, s storage.Store, mailbox string, count in
 		t.Fatalf("Failed to GetMessages for %q: %v", mailbox, err)
 	}
 	if len(msgs) != count {
-		t.Errorf("Got %v messages, want: %v", len(msgs), count)
+		t.Errorf("Got %v messages for %q, want: %v", len(msgs), mailbox, count)
 	}
 	return msgs
 }

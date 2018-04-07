@@ -65,6 +65,7 @@ func (s *StoreManager) Deliver(
 			toaddr[i] = &torecip.Address
 		}
 	}
+	log.Debug().Str("module", "message").Str("mailbox", to.Mailbox).Msg("Delivering message")
 	delivery := &Delivery{
 		Meta: Metadata{
 			Mailbox: to.Mailbox,

@@ -119,7 +119,7 @@ func main() {
 	}
 	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf}
-	mmanager := &message.StoreManager{Store: store, Hub: msgHub}
+	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
 	// Start Retention scanner.
 	retentionScanner := storage.NewRetentionScanner(conf.Storage, store, shutdownChan)
 	retentionScanner.Start()

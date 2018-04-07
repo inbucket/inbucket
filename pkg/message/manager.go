@@ -112,7 +112,7 @@ func (s *StoreManager) GetMetadata(mailbox string) ([]*Metadata, error) {
 // GetMessage returns the specified message.
 func (s *StoreManager) GetMessage(mailbox, id string) (*Message, error) {
 	sm, err := s.Store.GetMessage(mailbox, id)
-	if err != nil {
+	if err != nil || sm == nil {
 		return nil, err
 	}
 	r, err := sm.Source()
@@ -148,7 +148,7 @@ func (s *StoreManager) RemoveMessage(mailbox, id string) error {
 // SourceReader allows the stored message source to be read.
 func (s *StoreManager) SourceReader(mailbox, id string) (io.ReadCloser, error) {
 	sm, err := s.Store.GetMessage(mailbox, id)
-	if err != nil {
+	if err != nil || sm == nil {
 		return nil, err
 	}
 	return sm.Source()

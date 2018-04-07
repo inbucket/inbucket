@@ -53,13 +53,12 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 		return err
 	}
 	msg, err := ctx.Manager.GetMessage(name, id)
-	if err == storage.ErrNotExist {
+	if err != nil && err != storage.ErrNotExist {
+		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
+	}
+	if msg == nil {
 		http.NotFound(w, req)
 		return nil
-	}
-	if err != nil {
-		// This doesn't indicate empty, likely an IO error
-		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
 	attachParts := msg.Attachments()
 	attachments := make([]*model.JSONMessageAttachmentV1, len(attachParts))
@@ -146,13 +145,12 @@ func MailboxSourceV1(w http.ResponseWriter, req *http.Request, ctx *web.Context)
 		return err
 	}
 	r, err := ctx.Manager.SourceReader(name, id)
-	if err == storage.ErrNotExist {
+	if err != nil && err != storage.ErrNotExist {
+		return fmt.Errorf("SourceReader(%q) failed: %v", id, err)
+	}
+	if r == nil {
 		http.NotFound(w, req)
 		return nil
-	}
-	if err != nil {
-		// This doesn't indicate missing, likely an IO error
-		return fmt.Errorf("SourceReader(%q) failed: %v", id, err)
 	}
 	// Output message source
 	w.Header().Set("Content-Type", "text/plain")

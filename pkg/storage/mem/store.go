@@ -93,7 +93,11 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 // GetMessage gets a mesage.
 func (s *Store) GetMessage(mailbox, id string) (m storage.Message, err error) {
 	s.withMailbox(mailbox, false, func(mb *mbox) {
-		m = mb.messages[id]
+		var ok bool
+		m, ok = mb.messages[id]
+		if !ok {
+			m = nil
+		}
 	})
 	return m, err
 }

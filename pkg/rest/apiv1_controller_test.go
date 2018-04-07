@@ -37,7 +37,7 @@ func TestRestMailboxList(t *testing.T) {
 	logbuf := setupWebServer(mm)
 
 	// Test invalid mailbox name
-	w, err := testRestGet(baseURL + "/mailbox/foo@bar")
+	w, err := testRestGet(baseURL + "/mailbox/foo%20bar")
 	expectCode := 500
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +139,7 @@ func TestRestMessage(t *testing.T) {
 	logbuf := setupWebServer(mm)
 
 	// Test invalid mailbox name
-	w, err := testRestGet(baseURL + "/mailbox/foo@bar/0001")
+	w, err := testRestGet(baseURL + "/mailbox/foo%20bar/0001")
 	expectCode := 500
 	if err != nil {
 		t.Fatal(err)

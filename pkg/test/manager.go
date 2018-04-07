@@ -3,6 +3,7 @@ package test
 import (
 	"errors"
 
+	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
@@ -55,7 +56,10 @@ func (m *ManagerStub) GetMetadata(mailbox string) ([]*message.Metadata, error) {
 
 // MailboxForAddress invokes policy.ParseMailboxName.
 func (m *ManagerStub) MailboxForAddress(address string) (string, error) {
-	return policy.ParseMailboxName(address)
+	addrPolicy := &policy.Addressing{Config: &config.Root{
+		MailboxNaming: config.FullNaming,
+	}}
+	return addrPolicy.ExtractMailbox(address)
 }
 
 // MarkSeen marks a message as having been read.

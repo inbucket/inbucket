@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog/log"
@@ -66,10 +65,7 @@ func New(cfg config.Storage) (storage.Store, error) {
 
 // AddMessage adds a message to the specified mailbox.
 func (fs *Store) AddMessage(m storage.Message) (id string, err error) {
-	mb, err := fs.mbox(m.Mailbox())
-	if err != nil {
-		return "", err
-	}
+	mb := fs.mbox(m.Mailbox())
 	mb.Lock()
 	defer mb.Unlock()
 	r, err := m.Source()
@@ -127,10 +123,7 @@ func (fs *Store) AddMessage(m storage.Message) (id string, err error) {
 
 // GetMessage returns the messages in the named mailbox, or an error.
 func (fs *Store) GetMessage(mailbox, id string) (storage.Message, error) {
-	mb, err := fs.mbox(mailbox)
-	if err != nil {
-		return nil, err
-	}
+	mb := fs.mbox(mailbox)
 	mb.RLock()
 	defer mb.RUnlock()
 	return mb.getMessage(id)
@@ -138,10 +131,7 @@ func (fs *Store) GetMessage(mailbox, id string) (storage.Message, error) {
 
 // GetMessages returns the messages in the named mailbox, or an error.
 func (fs *Store) GetMessages(mailbox string) ([]storage.Message, error) {
-	mb, err := fs.mbox(mailbox)
-	if err != nil {
-		return nil, err
-	}
+	mb := fs.mbox(mailbox)
 	mb.RLock()
 	defer mb.RUnlock()
 	return mb.getMessages()
@@ -149,10 +139,7 @@ func (fs *Store) GetMessages(mailbox string) ([]storage.Message, error) {
 
 // MarkSeen flags the message as having been read.
 func (fs *Store) MarkSeen(mailbox, id string) error {
-	mb, err := fs.mbox(mailbox)
-	if err != nil {
-		return err
-	}
+	mb := fs.mbox(mailbox)
 	mb.Lock()
 	defer mb.Unlock()
 	if !mb.indexLoaded {
@@ -175,10 +162,7 @@ func (fs *Store) MarkSeen(mailbox, id string) error {
 
 // RemoveMessage deletes a message by ID from the specified mailbox.
 func (fs *Store) RemoveMessage(mailbox, id string) error {
-	mb, err := fs.mbox(mailbox)
-	if err != nil {
-		return err
-	}
+	mb := fs.mbox(mailbox)
 	mb.Lock()
 	defer mb.Unlock()
 	return mb.removeMessage(id)
@@ -186,10 +170,7 @@ func (fs *Store) RemoveMessage(mailbox, id string) error {
 
 // PurgeMessages deletes all messages in the named mailbox, or returns an error.
 func (fs *Store) PurgeMessages(mailbox string) error {
-	mb, err := fs.mbox(mailbox)
-	if err != nil {
-		return err
-	}
+	mb := fs.mbox(mailbox)
 	mb.Lock()
 	defer mb.Unlock()
 	return mb.purge()
@@ -241,12 +222,8 @@ func (fs *Store) VisitMailboxes(f func([]storage.Message) (cont bool)) error {
 }
 
 // mbox returns the named mailbox.
-func (fs *Store) mbox(mailbox string) (*mbox, error) {
-	name, err := policy.ParseMailboxName(mailbox)
-	if err != nil {
-		return nil, err
-	}
-	hash := stringutil.HashMailboxName(name)
+func (fs *Store) mbox(mailbox string) *mbox {
+	hash := stringutil.HashMailboxName(mailbox)
 	s1 := hash[0:3]
 	s2 := hash[0:6]
 	path := filepath.Join(fs.mailPath, s1, s2, hash)
@@ -254,11 +231,11 @@ func (fs *Store) mbox(mailbox string) (*mbox, error) {
 	return &mbox{
 		RWMutex:   fs.hashLock.Get(hash),
 		store:     fs,
-		name:      name,
+		name:      mailbox,
 		dirName:   hash,
 		path:      path,
 		indexPath: indexPath,
-	}, nil
+	}
 }
 
 // mboxFromPath constructs a mailbox based on name hash.

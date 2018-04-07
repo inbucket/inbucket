@@ -118,8 +118,8 @@ func main() {
 		startupLog.Fatal().Err(err).Str("module", "storage").Msg("Fatal storage error")
 	}
 	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
-	addrPolicy := &policy.Addressing{Config: conf.SMTP}
-	mmanager := &message.StoreManager{Store: store, Hub: msgHub}
+	addrPolicy := &policy.Addressing{Config: conf}
+	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
 	// Start Retention scanner.
 	retentionScanner := storage.NewRetentionScanner(conf.Storage, store, shutdownChan)
 	retentionScanner.Start()

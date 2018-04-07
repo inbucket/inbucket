@@ -12,7 +12,32 @@ import (
 
 // Addressing handles email address policy.
 type Addressing struct {
-	Config config.SMTP
+	Config *config.Root
+}
+
+// ExtractMailbox extracts the mailbox name from a partial email address.
+func (a *Addressing) ExtractMailbox(address string) (string, error) {
+	local, domain, err := parseEmailAddress(address)
+	if err != nil {
+		return "", err
+	}
+	local, err = parseMailboxName(local)
+	if err != nil {
+		return "", err
+	}
+	if a.Config.MailboxNaming == config.LocalNaming {
+		return local, nil
+	}
+	if a.Config.MailboxNaming != config.FullNaming {
+		return "", fmt.Errorf("Unknown MailboxNaming value: %v", a.Config.MailboxNaming)
+	}
+	if domain == "" {
+		return local, nil
+	}
+	if !ValidateDomainPart(domain) {
+		return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
+	}
+	return local + "@" + domain, nil
 }
 
 // NewRecipient parses an address into a Recipient.
@@ -21,7 +46,7 @@ func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 	if err != nil {
 		return nil, err
 	}
-	mailbox, err := ParseMailboxName(local)
+	mailbox, err := a.ExtractMailbox(address)
 	if err != nil {
 		return nil, err
 	}
@@ -41,10 +66,12 @@ func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 // ShouldAcceptDomain indicates if Inbucket accepts mail destined for the specified domain.
 func (a *Addressing) ShouldAcceptDomain(domain string) bool {
 	domain = strings.ToLower(domain)
-	if a.Config.DefaultAccept && !stringutil.SliceContains(a.Config.RejectDomains, domain) {
+	if a.Config.SMTP.DefaultAccept &&
+		!stringutil.SliceContains(a.Config.SMTP.RejectDomains, domain) {
 		return true
 	}
-	if !a.Config.DefaultAccept && stringutil.SliceContains(a.Config.AcceptDomains, domain) {
+	if !a.Config.SMTP.DefaultAccept &&
+		stringutil.SliceContains(a.Config.SMTP.AcceptDomains, domain) {
 		return true
 	}
 	return false
@@ -53,48 +80,84 @@ func (a *Addressing) ShouldAcceptDomain(domain string) bool {
 // ShouldStoreDomain indicates if Inbucket stores mail destined for the specified domain.
 func (a *Addressing) ShouldStoreDomain(domain string) bool {
 	domain = strings.ToLower(domain)
-	if a.Config.DefaultStore && !stringutil.SliceContains(a.Config.DiscardDomains, domain) {
+	if a.Config.SMTP.DefaultStore &&
+		!stringutil.SliceContains(a.Config.SMTP.DiscardDomains, domain) {
 		return true
 	}
-	if !a.Config.DefaultStore && stringutil.SliceContains(a.Config.StoreDomains, domain) {
+	if !a.Config.SMTP.DefaultStore &&
+		stringutil.SliceContains(a.Config.SMTP.StoreDomains, domain) {
 		return true
 	}
 	return false
-}
-
-// ParseMailboxName takes a localPart string (ex: "user+ext" without "@domain")
-// and returns just the mailbox name (ex: "user").  Returns an error if
-// localPart contains invalid characters; it won't accept any that must be
-// quoted according to RFC3696.
-func ParseMailboxName(localPart string) (result string, err error) {
-	if localPart == "" {
-		return "", fmt.Errorf("Mailbox name cannot be empty")
-	}
-	result = strings.ToLower(localPart)
-	invalid := make([]byte, 0, 10)
-	for i := 0; i < len(result); i++ {
-		c := result[i]
-		switch {
-		case 'a' <= c && c <= 'z':
-		case '0' <= c && c <= '9':
-		case bytes.IndexByte([]byte("!#$%&'*+-=/?^_`.{|}~"), c) >= 0:
-		default:
-			invalid = append(invalid, c)
-		}
-	}
-	if len(invalid) > 0 {
-		return "", fmt.Errorf("Mailbox name contained invalid character(s): %q", invalid)
-	}
-	if idx := strings.Index(result, "+"); idx > -1 {
-		result = result[0:idx]
-	}
-	return result, nil
 }
 
 // ParseEmailAddress unescapes an email address, and splits the local part from the domain part.
 // An error is returned if the local or domain parts fail validation following the guidelines
 // in RFC3696.
 func ParseEmailAddress(address string) (local string, domain string, err error) {
+	local, domain, err = parseEmailAddress(address)
+	if err != nil {
+		return "", "", err
+	}
+	if !ValidateDomainPart(domain) {
+		return "", "", fmt.Errorf("Domain part validation failed")
+	}
+	return local, domain, nil
+}
+
+// ValidateDomainPart returns true if the domain part complies to RFC3696, RFC1035. Used by
+// ParseEmailAddress().
+func ValidateDomainPart(domain string) bool {
+	if len(domain) == 0 {
+		return false
+	}
+	if len(domain) > 255 {
+		return false
+	}
+	if domain[len(domain)-1] != '.' {
+		domain += "."
+	}
+	prev := '.'
+	labelLen := 0
+	hasAlphaNum := false
+	for _, c := range domain {
+		switch {
+		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
+			('0' <= c && c <= '9') || c == '_':
+			// Must contain some of these to be a valid label.
+			hasAlphaNum = true
+			labelLen++
+		case c == '-':
+			if prev == '.' {
+				// Cannot lead with hyphen.
+				return false
+			}
+		case c == '.':
+			if prev == '.' || prev == '-' {
+				// Cannot end with hyphen or double-dot.
+				return false
+			}
+			if labelLen > 63 {
+				return false
+			}
+			if !hasAlphaNum {
+				return false
+			}
+			labelLen = 0
+			hasAlphaNum = false
+		default:
+			// Unknown character.
+			return false
+		}
+		prev = c
+	}
+	return true
+}
+
+// parseEmailAddress unescapes an email address, and splits the local part from the domain part.  An
+// error is returned if the local part fails validation following the guidelines in RFC3696. The
+// domain part is optional and not validated.
+func parseEmailAddress(address string) (local string, domain string, err error) {
 	if address == "" {
 		return "", "", fmt.Errorf("Empty address")
 	}
@@ -205,57 +268,34 @@ LOOP:
 	if inStringQuote {
 		return "", "", fmt.Errorf("Cannot end address with unterminated string quote")
 	}
-	if !ValidateDomainPart(domain) {
-		return "", "", fmt.Errorf("Domain part validation failed")
-	}
 	return buf.String(), domain, nil
 }
 
-// ValidateDomainPart returns true if the domain part complies to RFC3696, RFC1035. Used by
-// ParseEmailAddress().
-func ValidateDomainPart(domain string) bool {
-	if len(domain) == 0 {
-		return false
+// ParseMailboxName takes a localPart string (ex: "user+ext" without "@domain")
+// and returns just the mailbox name (ex: "user").  Returns an error if
+// localPart contains invalid characters; it won't accept any that must be
+// quoted according to RFC3696.
+func parseMailboxName(localPart string) (result string, err error) {
+	if localPart == "" {
+		return "", fmt.Errorf("Mailbox name cannot be empty")
 	}
-	if len(domain) > 255 {
-		return false
-	}
-	if domain[len(domain)-1] != '.' {
-		domain += "."
-	}
-	prev := '.'
-	labelLen := 0
-	hasAlphaNum := false
-	for _, c := range domain {
+	result = strings.ToLower(localPart)
+	invalid := make([]byte, 0, 10)
+	for i := 0; i < len(result); i++ {
+		c := result[i]
 		switch {
-		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
-			('0' <= c && c <= '9') || c == '_':
-			// Must contain some of these to be a valid label.
-			hasAlphaNum = true
-			labelLen++
-		case c == '-':
-			if prev == '.' {
-				// Cannot lead with hyphen.
-				return false
-			}
-		case c == '.':
-			if prev == '.' || prev == '-' {
-				// Cannot end with hyphen or double-dot.
-				return false
-			}
-			if labelLen > 63 {
-				return false
-			}
-			if !hasAlphaNum {
-				return false
-			}
-			labelLen = 0
-			hasAlphaNum = false
+		case 'a' <= c && c <= 'z':
+		case '0' <= c && c <= '9':
+		case bytes.IndexByte([]byte("!#$%&'*+-=/?^_`.{|}~"), c) >= 0:
 		default:
-			// Unknown character.
-			return false
+			invalid = append(invalid, c)
 		}
-		prev = c
 	}
-	return true
+	if len(invalid) > 0 {
+		return "", fmt.Errorf("Mailbox name contained invalid character(s): %q", invalid)
+	}
+	if idx := strings.Index(result, "+"); idx > -1 {
+		result = result[0:idx]
+	}
+	return result, nil
 }

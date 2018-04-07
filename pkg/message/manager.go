@@ -35,8 +35,9 @@ type Manager interface {
 
 // StoreManager is a message Manager backed by the storage.Store.
 type StoreManager struct {
-	Store storage.Store
-	Hub   *msghub.Hub
+	AddrPolicy *policy.Addressing
+	Store      storage.Store
+	Hub        *msghub.Hub
 }
 
 // Deliver submits a new message to the store.
@@ -64,6 +65,7 @@ func (s *StoreManager) Deliver(
 			toaddr[i] = &torecip.Address
 		}
 	}
+	log.Debug().Str("module", "message").Str("mailbox", to.Mailbox).Msg("Delivering message")
 	delivery := &Delivery{
 		Meta: Metadata{
 			Mailbox: to.Mailbox,
@@ -110,7 +112,7 @@ func (s *StoreManager) GetMetadata(mailbox string) ([]*Metadata, error) {
 // GetMessage returns the specified message.
 func (s *StoreManager) GetMessage(mailbox, id string) (*Message, error) {
 	sm, err := s.Store.GetMessage(mailbox, id)
-	if err != nil {
+	if err != nil || sm == nil {
 		return nil, err
 	}
 	r, err := sm.Source()
@@ -146,7 +148,7 @@ func (s *StoreManager) RemoveMessage(mailbox, id string) error {
 // SourceReader allows the stored message source to be read.
 func (s *StoreManager) SourceReader(mailbox, id string) (io.ReadCloser, error) {
 	sm, err := s.Store.GetMessage(mailbox, id)
-	if err != nil {
+	if err != nil || sm == nil {
 		return nil, err
 	}
 	return sm.Source()
@@ -154,7 +156,7 @@ func (s *StoreManager) SourceReader(mailbox, id string) (io.ReadCloser, error) {
 
 // MailboxForAddress parses an email address to return the canonical mailbox name.
 func (s *StoreManager) MailboxForAddress(mailbox string) (string, error) {
-	return policy.ParseMailboxName(mailbox)
+	return s.AddrPolicy.ExtractMailbox(mailbox)
 }
 
 // makeMetadata populates Metadata from a storage.Message.

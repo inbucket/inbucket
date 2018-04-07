@@ -16,10 +16,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// State tracks the current mode of our SMTP state machine
+// State tracks the current mode of our SMTP state machine.
 type State int
 
 const (
+	// timeStampFormat to use in Received header.
+	timeStampFormat = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
+
 	// GREET State: Waiting for HELO
 	GREET State = iota
 	// READY State: Got HELO, waiting for MAIL
@@ -32,7 +35,11 @@ const (
 	QUIT
 )
 
-const timeStampFormat = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
+// fromRegex captures the from address and optional BODY=8BITMIME clause.  Matches FROM, while
+// accepting '>' as quoted pair and in double quoted strings (?i) makes the regex case insensitive,
+// (?:) is non-grouping sub-match
+var fromRegex = regexp.MustCompile(
+	"(?i)^FROM:\\s*<((?:\\\\>|[^>])+|\"[^\"]+\"@[^>]+)>( [\\w= ]+)?$")
 
 func (s State) String() string {
 	switch s {
@@ -265,10 +272,8 @@ func parseHelloArgument(arg string) (string, error) {
 // READY state -> waiting for MAIL
 func (s *Session) readyHandler(cmd string, arg string) {
 	if cmd == "MAIL" {
-		// Match FROM, while accepting '>' as quoted pair and in double quoted strings
-		// (?i) makes the regex case insensitive, (?:) is non-grouping sub-match
-		re := regexp.MustCompile("(?i)^FROM:\\s*<((?:\\\\>|[^>])+|\"[^\"]+\"@[^>]+)>( [\\w= ]+)?$")
-		m := re.FindStringSubmatch(arg)
+		// Capture group 1: from address.  2: optional params.
+		m := fromRegex.FindStringSubmatch(arg)
 		if m == nil {
 			s.send("501 Was expecting MAIL arg syntax of FROM:<address>")
 			s.logger.Warn().Msgf("Bad MAIL argument: %q", arg)
@@ -321,28 +326,25 @@ func (s *Session) mailHandler(cmd string, arg string) {
 			s.logger.Warn().Msgf("Bad RCPT argument: %q", arg)
 			return
 		}
-		// This trim is probably too forgiving
 		addr := strings.Trim(arg[3:], "<> ")
 		recip, err := s.addrPolicy.NewRecipient(addr)
 		if err != nil {
 			s.send("501 Bad recipient address syntax")
-			s.logger.Warn().Msgf("Bad address as RCPT arg: %q, %s", addr, err)
+			s.logger.Warn().Str("to", addr).Err(err).Msg("Bad address as RCPT arg")
 			return
 		}
 		if !recip.ShouldAccept() {
-			s.logger.Warn().Str("addr", addr).Msg("Rejecting recipient")
+			s.logger.Warn().Str("to", addr).Msg("Rejecting recipient domain")
 			s.send("550 Relay not permitted")
 			return
 		}
 		if len(s.recipients) >= s.config.MaxRecipients {
-			s.logger.Warn().Msgf("Maximum limit of %v recipients reached",
-				s.config.MaxRecipients)
-			s.send(fmt.Sprintf("552 Maximum limit of %v recipients reached",
-				s.config.MaxRecipients))
+			s.logger.Warn().Msgf("Limit of %v recipients exceeded", s.config.MaxRecipients)
+			s.send(fmt.Sprintf("552 Limit of %v recipients exceeded", s.config.MaxRecipients))
 			return
 		}
 		s.recipients = append(s.recipients, recip)
-		s.logger.Info().Msgf("Recipient: %v", addr)
+		s.logger.Debug().Str("to", addr).Msg("Recipient added")
 		s.send(fmt.Sprintf("250 I'll make sure <%v> gets this", addr))
 		return
 	case "DATA":
@@ -351,13 +353,12 @@ func (s *Session) mailHandler(cmd string, arg string) {
 			s.logger.Warn().Msgf("Got unexpected args on DATA: %q", arg)
 			return
 		}
-		if len(s.recipients) > 0 {
-			// We have recipients, go to accept data
-			s.enterState(DATA)
+		if len(s.recipients) == 0 {
+			// DATA out of sequence
+			s.ooSeq(cmd)
 			return
 		}
-		// DATA out of sequence
-		s.ooSeq(cmd)
+		s.enterState(DATA)
 		return
 	}
 	s.ooSeq(cmd)

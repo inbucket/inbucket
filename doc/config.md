@@ -9,6 +9,7 @@ variables it supports:
 
     KEY                                 DEFAULT             DESCRIPTION
     INBUCKET_LOGLEVEL                   info                debug, info, warn, or error
+    INBUCKET_MAILBOXNAMING              local               Use local or full addressing
     INBUCKET_SMTP_ADDR                  0.0.0.0:2500        SMTP server IP4 host:port
     INBUCKET_SMTP_DOMAIN                inbucket            HELO domain
     INBUCKET_SMTP_MAXRECIPIENTS         200                 Maximum RCPT TO per message
@@ -52,6 +53,30 @@ off with `warn` or `error`.
 
 - Default: `info`
 - Values: one of `debug`, `info`, `warn`, or `error`
+
+### Mailbox Naming
+
+`INBUCKET_MAILBOXNAMING`
+
+The mailbox naming setting determines the name of a mailbox for an incoming
+message, and thus where it must be retrieved from later.
+
+#### `local` ensures the domain is removed, such that:
+
+- `james@inbucket.org` is stored in `james`
+- `james+spam@inbucket.org` is stored in `james`
+
+#### `full` retains the domain as part of the name, such that:
+
+- `james@inbucket.org` is stored in `james@inbucket.org`
+- `james+spam@inbucket.org` is stored in `james@inbucket.org`
+
+Prior to the addition of the mailbox naming setting, Inbucket always operated in
+local mode.  Regardless of this setting, the `+` wildcard/extension is not
+incorporated into the mailbox name.
+
+- Default: `local`
+- Values: one of `local` or `full`
 
 
 ## SMTP
@@ -350,12 +375,12 @@ separated list of key:value pairs.
 - Default: None
 - Examples: `maxkb=10240` or `path=/tmp/inbucket`
 
-#### file parameters
+#### `file` type parameters
 
 - `path`: Operating system specific path to the directory where mail should be
   stored.
 
-#### memory parameters
+#### `memory` type parameters
 
 - `maxkb`: Maximum size of the mail store in kilobytes.  The oldest messages in
   the store will be deleted to enforce the limit.  In-memory storage has some

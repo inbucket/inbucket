@@ -56,7 +56,7 @@ func (n *mbNaming) Decode(v string) error {
 // Root contains global configuration, and structs with for specific sub-systems.
 type Root struct {
 	LogLevel      string   `required:"true" default:"info" desc:"debug, info, warn, or error"`
-	MailboxNaming mbNaming `required:"true" default:"local" desc:"local or full"`
+	MailboxNaming mbNaming `required:"true" default:"local" desc:"Use local or full addressing"`
 	SMTP          SMTP
 	POP3          POP3
 	Web           Web

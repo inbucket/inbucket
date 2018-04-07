@@ -1,15 +1,30 @@
-# Docker build file for Inbucket, see https://www.docker.io/
-# Inbucket website: http://www.inbucket.org/
+# Docker build file for Inbucket: https://www.inbucket.org/
 
-FROM golang:1.10-alpine
+# Build
+FROM golang:1.10-alpine as builder
+RUN apk add --no-cache --virtual .build-deps git make
+WORKDIR /go/src/github.com/jhillyerd/inbucket
+COPY . .
+ENV CGO_ENABLED 0
+RUN make clean deps
+RUN go build -o inbucket \
+  -ldflags "-X 'main.version=$(git describe --tags --always)' -X 'main.date=$(date -Iseconds)'" \
+  -v ./cmd/inbucket
+
+# Run in minimal image
+FROM alpine:3.7
+ENV SRC /go/src/github.com/jhillyerd/inbucket
+WORKDIR /opt/inbucket
+RUN mkdir bin defaults ui
+COPY --from=builder $SRC/inbucket bin
+COPY etc/docker/defaults/greeting.html defaults
+COPY ui ui
+COPY etc/docker/defaults/start-inbucket.sh /
 
 # Configuration
-ENV INBUCKET_SRC $GOPATH/src/github.com/jhillyerd/inbucket
-ENV INBUCKET_HOME /opt/inbucket
 ENV INBUCKET_SMTP_DISCARDDOMAINS bitbucket.local
 ENV INBUCKET_SMTP_TIMEOUT 30s
 ENV INBUCKET_POP3_TIMEOUT 30s
-ENV INBUCKET_WEB_UIDIR $INBUCKET_HOME/ui
 ENV INBUCKET_WEB_GREETINGFILE /config/greeting.html
 ENV INBUCKET_WEB_COOKIEAUTHKEY secret-inbucket-session-cookie-key
 ENV INBUCKET_STORAGE_TYPE file
@@ -24,10 +39,5 @@ EXPOSE 2500 9000 1100
 VOLUME /config
 VOLUME /storage
 
-WORKDIR $INBUCKET_HOME
 ENTRYPOINT ["/start-inbucket.sh"]
 CMD ["-logjson"]
-
-# Build Inbucket
-COPY . $INBUCKET_SRC/
-RUN "$INBUCKET_SRC/etc/docker/install.sh"

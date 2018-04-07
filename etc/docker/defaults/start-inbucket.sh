@@ -2,6 +2,7 @@
 # start-inbucket.sh
 # description: start inbucket (runs within a docker container)
 
+INBUCKET_HOME="/opt/inbucket"
 CONF_SOURCE="$INBUCKET_HOME/defaults"
 CONF_TARGET="/config"
 

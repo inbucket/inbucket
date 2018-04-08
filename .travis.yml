@@ -1,6 +1,11 @@
 language: go
 sudo: false
 
+addons:
+  apt:
+    packages:
+      - rpm
+
 env:
   - DEPLOY_WITH_MAJOR="1.10"
 

@@ -9,7 +9,7 @@ before_script:
   - make deps
 
 go:
-  - "1.10.x"
+  - "1.10.1"
 
 deploy:
   provider: script

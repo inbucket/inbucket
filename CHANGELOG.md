@@ -20,6 +20,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   already been read.
 - Recipient domain accept policy; Inbucket can now reject mail to specific
   domains.
+- Configurable support for identifying a mailbox by full email address instead
+  of just the local part (username).
 
 ### Changed
 - Massive refactor of back-end code.  Inbucket should now be both easier and

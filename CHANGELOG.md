@@ -4,7 +4,7 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [2.0.0-rc1] - 2018-04-07
 
 ### Added
 - Inbucket is now configured using environment variables instead of a config
@@ -154,6 +154,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   specific message.
 
 [Unreleased]:  https://github.com/jhillyerd/inbucket/compare/master...develop
+[v2.0.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/v1.3.1...v2.0.0-rc1
 [v1.3.1]:      https://github.com/jhillyerd/inbucket/compare/v1.3.0...v1.3.1
 [v1.3.0]:      https://github.com/jhillyerd/inbucket/compare/v1.2.0...v1.3.0
 [v1.2.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0-rc2...1.2.0

@@ -47,6 +47,21 @@ func MailboxIndex(w http.ResponseWriter, req *http.Request, ctx *web.Context) (e
 	})
 }
 
+// MailboxIndexFriendly handles pretty links to a particular mailbox. Renders a redirect
+func MailboxIndexFriendly(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
+	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
+	if err != nil {
+		ctx.Session.AddFlash(err.Error(), "errors")
+		_ = ctx.Session.Save(req, w)
+		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
+		return nil
+	}
+	// Build redirect
+	uri := fmt.Sprintf("%s?name=%s", web.Reverse("MailboxIndex"), name)
+	http.Redirect(w, req, uri, http.StatusSeeOther)
+	return nil
+}
+
 // MailboxLink handles pretty links to a particular message. Renders a redirect
 func MailboxLink(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Don't have to validate these aren't empty, Gorilla returns 404

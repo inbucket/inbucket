@@ -22,6 +22,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   domains.
 - Configurable support for identifying a mailbox by full email address instead
   of just the local part (username).
+- Friendly URL support: `<inbucket-url>/<mailbox>` will redirect your browser to
+  that mailbox.
 
 ### Changed
 - Massive refactor of back-end code.  Inbucket should now be both easier and

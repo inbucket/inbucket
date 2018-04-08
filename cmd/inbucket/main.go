@@ -125,8 +125,8 @@ func main() {
 	retentionScanner.Start()
 	// Start HTTP server.
 	web.Initialize(conf, shutdownChan, mmanager, msgHub)
-	webui.SetupRoutes(web.Router)
 	rest.SetupRoutes(web.Router)
+	webui.SetupRoutes(web.Router)
 	go web.Start(rootCtx)
 	// Start POP3 server.
 	pop3Server := pop3.New(conf.POP3, shutdownChan, store)

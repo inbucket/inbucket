@@ -1,25 +1,43 @@
-# Docker build file for Inbucket, see https://www.docker.io/
-# Inbucket website: http://www.inbucket.org/
+# Docker build file for Inbucket: https://www.inbucket.org/
 
-FROM golang:1.9-alpine
-MAINTAINER James Hillyerd, @jameshillyerd
+# Build
+FROM golang:1.10-alpine as builder
+RUN apk add --no-cache --virtual .build-deps git make
+WORKDIR /go/src/github.com/jhillyerd/inbucket
+COPY . .
+ENV CGO_ENABLED 0
+RUN make clean deps
+RUN go build -o inbucket \
+  -ldflags "-X 'main.version=$(git describe --tags --always)' -X 'main.date=$(date -Iseconds)'" \
+  -v ./cmd/inbucket
 
-# Configuration (WORKDIR doesn't support env vars)
-ENV INBUCKET_SRC $GOPATH/src/github.com/jhillyerd/inbucket
-ENV INBUCKET_HOME /opt/inbucket
-WORKDIR $INBUCKET_HOME
-ENTRYPOINT ["/con/context/start-inbucket.sh"]
-CMD ["/con/configuration/inbucket.conf"]
+# Run in minimal image
+FROM alpine:3.7
+ENV SRC /go/src/github.com/jhillyerd/inbucket
+WORKDIR /opt/inbucket
+RUN mkdir bin defaults ui
+COPY --from=builder $SRC/inbucket bin
+COPY etc/docker/defaults/greeting.html defaults
+COPY ui ui
+COPY etc/docker/defaults/start-inbucket.sh /
+
+# Configuration
+ENV INBUCKET_SMTP_DISCARDDOMAINS bitbucket.local
+ENV INBUCKET_SMTP_TIMEOUT 30s
+ENV INBUCKET_POP3_TIMEOUT 30s
+ENV INBUCKET_WEB_GREETINGFILE /config/greeting.html
+ENV INBUCKET_WEB_COOKIEAUTHKEY secret-inbucket-session-cookie-key
+ENV INBUCKET_STORAGE_TYPE file
+ENV INBUCKET_STORAGE_PARAMS path:/storage
+ENV INBUCKET_STORAGE_RETENTIONPERIOD 72h
+ENV INBUCKET_STORAGE_MAILBOXMSGCAP 300
 
 # Ports: SMTP, HTTP, POP3
-EXPOSE 10025 10080 10110
+EXPOSE 2500 9000 1100
 
-# Persistent Volumes, following convention at:
-#   https://github.com/docker/docker/issues/9277
-# NOTE /con/context is also used, not exposed by default
-VOLUME /con/configuration
-VOLUME /con/data
+# Persistent Volumes
+VOLUME /config
+VOLUME /storage
 
-# Build Inbucket
-COPY . $INBUCKET_SRC/
-RUN "$INBUCKET_SRC/etc/docker/install.sh"
+ENTRYPOINT ["/start-inbucket.sh"]
+CMD ["-logjson"]

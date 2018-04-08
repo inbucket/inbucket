@@ -1,26 +1,28 @@
-PKG := inbucket
-SHELL := /bin/sh
+SHELL = /bin/sh
 
 SRC := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
-PKGS := $$(go list ./... | grep -v /vendor/)
+PKGS := $(shell go list ./... | grep -v /vendor/)
 
-.PHONY: all build clean fmt install lint simplify test
+.PHONY: all build clean fmt lint reflex simplify test
 
-all: test lint build
+commands = client inbucket
+
+all: clean test lint build
+
+$(commands): %: cmd/%
+	go build ./$<
 
 clean:
-	go clean
+	go clean $(PKGS)
+	rm -f $(commands)
+	rm -rf dist
 
 deps:
 	go get -t ./...
 
-build: clean deps
-	go build
+build: $(commands)
 
-install: build
-	go install
-
-test: clean deps
+test:
 	go test -race ./...
 
 fmt:
@@ -31,5 +33,8 @@ simplify:
 
 lint:
 	@test -z "$(shell gofmt -l . | tee /dev/stderr)" || echo "[WARN] Fix formatting issues with 'make fmt'"
-	@golint -set_exit_status $${PKGS}
-	@go vet $${PKGS}
+	@golint -set_exit_status $(PKGS)
+	@go vet $(PKGS)
+
+reflex:
+	reflex -r '\.go$$' -- sh -c 'echo; date; echo; go test ./... && echo ALL PASS'

@@ -2,14 +2,14 @@ language: go
 sudo: false
 
 env:
-  - DEPLOY_WITH_MAJOR="1.9"
+  - DEPLOY_WITH_MAJOR="1.10"
 
 before_script:
   - go get github.com/golang/lint/golint
+  - make deps
 
 go:
-  - 1.9.x
-  - "1.10"
+  - "1.10.x"
 
 deploy:
   provider: script

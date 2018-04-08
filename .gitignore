@@ -26,8 +26,12 @@ _testmain.go
 *.swo
 
 # our binaries
+/client
+/client.exe
 /inbucket
 /inbucket.exe
 /dist/**
 /cmd/client/client
 /cmd/client/client.exe
+/cmd/inbucket/inbucket
+/cmd/inbucket/inbucket.exe

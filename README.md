@@ -21,6 +21,9 @@ to contribute code to the project check out [CONTRIBUTING.md].
 
 ## Homebrew Tap
 
+(currently broken, being tracked in [issue
+#68](https://github.com/jhillyerd/inbucket/issues/68))
+
 Inbucket has an OS X [Homebrew] tap available as [jhillyerd/inbucket][Homebrew Tap],
 see the `README.md` there for installation instructions.
 
@@ -31,7 +34,7 @@ You will need a functioning [Go installation][Google Go] for this to work.
 
 Grab the Inbucket source code and compile the daemon:
 
-    go get -v github.com/jhillyerd/inbucket
+    go get -v github.com/jhillyerd/inbucket/cmd/inbucket
 
 Edit etc/inbucket.conf and tailor to your environment.  It should work on most
 Unix and OS X machines as is.  Launch the daemon:

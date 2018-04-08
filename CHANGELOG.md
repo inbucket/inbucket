@@ -4,10 +4,52 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.0-rc1] - 2018-04-07
+
+### Added
+- Inbucket is now configured using environment variables instead of a config
+  file.
+- In-memory storage option, best for small installations and desktops.  Will be
+  used by default.
+- Storage type is now displayed on Status page.
+- Store size is now calculated during retention scan and displayed on the Status
+  page.
+- Debian `.deb` package generation to release process.
+- RedHat `.rpm` package generation to release process.
+- Message seen flag in REST and Web UI so you can see which messages have
+  already been read.
+- Recipient domain accept policy; Inbucket can now reject mail to specific
+  domains.
+- Configurable support for identifying a mailbox by full email address instead
+  of just the local part (username).
+- Friendly URL support: `<inbucket-url>/<mailbox>` will redirect your browser to
+  that mailbox.
+
+### Changed
+- Massive refactor of back-end code.  Inbucket should now be both easier and
+  more enjoyable to work on.
+- Changes to file storage format, will require pre-2.0 mail store directories to
+  be deleted.
+- Renamed `themes` directory to `ui` and eliminated the intermediate `bootstrap`
+  directory.
+- Docker build:
+  - Uses the same default ports as other builds; smtp:2500 http:9000 pop3:1100
+  - Uses volume `/config` for `greeting.html`
+  - Uses volume `/storage` for mail storage
+- Log output is now structured, and will be output as JSON with the `-logjson`
+  flag; which is enabled by default for the Docker container.
+- SMTP and POP3 network tracing is no longer logged regardless of level, but can
+  be sent to stdout via `-netdebug` flag.
+- Replaced store/nostore config variables with a storage policy that mirrors the
+  domain accept policy.
+
+### Removed
+- No longer support SIGHUP or log file rotation.
+
+
 ## [v1.3.1] - 2018-03-10
 
 ### Fixed
-
 - Adding additional locking during message delivery to prevent race condition
   that could lose messages.
 
@@ -112,6 +154,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   specific message.
 
 [Unreleased]:  https://github.com/jhillyerd/inbucket/compare/master...develop
+[v2.0.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/v1.3.1...v2.0.0-rc1
 [v1.3.1]:      https://github.com/jhillyerd/inbucket/compare/v1.3.0...v1.3.1
 [v1.3.0]:      https://github.com/jhillyerd/inbucket/compare/v1.2.0...v1.3.0
 [v1.2.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0-rc2...1.2.0

@@ -2,8 +2,9 @@
 # start-inbucket.sh
 # description: start inbucket (runs within a docker container)
 
+INBUCKET_HOME="/opt/inbucket"
 CONF_SOURCE="$INBUCKET_HOME/defaults"
-CONF_TARGET="/con/configuration"
+CONF_TARGET="/config"
 
 set -eo pipefail
 
@@ -18,7 +19,6 @@ install_default_config() {
   fi
 }
 
-install_default_config "inbucket.conf"
 install_default_config "greeting.html"
 
 exec "$INBUCKET_HOME/bin/inbucket" $* 

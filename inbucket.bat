@@ -1,1 +1,0 @@
-inbucket.exe etc\win-sample.conf

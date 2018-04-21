@@ -373,7 +373,7 @@ Parameters specific to the storage type selected.  Formatted as a comma
 separated list of key:value pairs.
 
 - Default: None
-- Examples: `maxkb=10240` or `path=/tmp/inbucket`
+- Examples: `maxkb:10240` or `path:/tmp/inbucket`
 
 #### `file` type parameters
 

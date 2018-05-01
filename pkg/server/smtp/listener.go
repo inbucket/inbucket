@@ -2,8 +2,8 @@ package smtp
 
 import (
 	"container/list"
-	"crypto/tls"
 	"context"
+	"crypto/tls"
 	"expvar"
 	"net"
 	"sync"
@@ -93,7 +93,7 @@ func NewServer(
 		manager:        manager,
 		addrPolicy:     apolicy,
 		wg:             new(sync.WaitGroup),
-		TLSconfig:	tlsConfig,
+		TLSconfig:      tlsConfig,
 	}
 }
 

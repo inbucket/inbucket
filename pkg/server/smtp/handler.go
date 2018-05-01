@@ -3,15 +3,15 @@ package smtp
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
+	"net/textproto"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	"crypto/tls"
-	"net/textproto"
 
 	"github.com/jhillyerd/inbucket/pkg/policy"
 	"github.com/rs/zerolog"
@@ -60,21 +60,21 @@ func (s State) String() string {
 }
 
 var commands = map[string]bool{
-	"HELO": true,
-	"EHLO": true,
-	"MAIL": true,
-	"RCPT": true,
-	"DATA": true,
-	"RSET": true,
-	"SEND": true,
-	"SOML": true,
-	"SAML": true,
-	"VRFY": true,
-	"EXPN": true,
-	"HELP": true,
-	"NOOP": true,
-	"QUIT": true,
-	"TURN": true,
+	"HELO":     true,
+	"EHLO":     true,
+	"MAIL":     true,
+	"RCPT":     true,
+	"DATA":     true,
+	"RSET":     true,
+	"SEND":     true,
+	"SOML":     true,
+	"SAML":     true,
+	"VRFY":     true,
+	"EXPN":     true,
+	"HELP":     true,
+	"NOOP":     true,
+	"QUIT":     true,
+	"TURN":     true,
 	"STARTTLS": true,
 }
 
@@ -259,9 +259,9 @@ func (s *Session) greetHandler(cmd string, arg string) {
 		}
 		s.remoteDomain = domain
 		// send all options at once so we can deal with aggressive clients
-		respOpts := []string { readyBanner,
-				       "250-8BITMIME",
-				     }
+		respOpts := []string{readyBanner,
+			"250-8BITMIME",
+		}
 		if s.Server.config.TLSEnabled && s.Server.TLSconfig != nil && s.tlsState == nil {
 			respOpts = append(respOpts, "250-STARTTLS")
 		}
@@ -306,7 +306,7 @@ func (s *Session) readyHandler(cmd string, arg string) {
 		tlsConn := tls.Server(s.conn, s.Server.TLSconfig)
 		s.conn = tlsConn
 		s.text = textproto.NewConn(s.conn)
-		s.tlsState = new (tls.ConnectionState)
+		s.tlsState = new(tls.ConnectionState)
 		*s.tlsState = tlsConn.ConnectionState()
 		s.enterState(GREET)
 	} else if cmd == "MAIL" {
@@ -464,7 +464,7 @@ func (s *Session) send(msg string) {
 		s.sendError = err
 		return
 	}
-	if err :=s.text.PrintfLine("%s", msg); err != nil {
+	if err := s.text.PrintfLine("%s", msg); err != nil {
 		s.sendError = err
 		s.logger.Warn().Msgf("Failed to send: %q", msg)
 		return

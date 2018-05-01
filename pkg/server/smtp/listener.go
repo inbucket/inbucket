@@ -2,6 +2,7 @@ package smtp
 
 import (
 	"container/list"
+	"crypto/tls"
 	"context"
 	"expvar"
 	"net"
@@ -63,6 +64,7 @@ type Server struct {
 	manager        message.Manager    // Used to deliver messages.
 	listener       net.Listener       // Incoming network connections.
 	wg             *sync.WaitGroup    // Waitgroup tracks individual sessions.
+	TLSconfig      *tls.Config
 }
 
 // NewServer creates a new Server instance with the specificed config.
@@ -72,12 +74,26 @@ func NewServer(
 	manager message.Manager,
 	apolicy *policy.Addressing,
 ) *Server {
+
+	tlsConfig := &tls.Config{}
+	if smtpConfig.TLSEnabled {
+		var err error
+		tlsConfig.Certificates = make([]tls.Certificate, 1)
+		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(smtpConfig.TLSCert, smtpConfig.TLSPrivKey)
+		if err != nil {
+			log.Error().Msgf("Failed loading X509 KeyPair: %v", err)
+			log.Error().Msgf("Disabling STARTTLS support")
+			smtpConfig.TLSEnabled = false
+		}
+	}
+
 	return &Server{
 		config:         smtpConfig,
 		globalShutdown: globalShutdown,
 		manager:        manager,
 		addrPolicy:     apolicy,
 		wg:             new(sync.WaitGroup),
+		TLSconfig:	tlsConfig,
 	}
 }
 

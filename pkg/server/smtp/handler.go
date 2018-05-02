@@ -240,7 +240,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 
 // GREET state -> waiting for HELO
 func (s *Session) greetHandler(cmd string, arg string) {
-	const readyBanner = "250-Great, let's get this show on the road"
+	const readyBanner = "Great, let's get this show on the road"
 	switch cmd {
 	case "HELO":
 		domain, err := parseHelloArgument(arg)
@@ -249,7 +249,7 @@ func (s *Session) greetHandler(cmd string, arg string) {
 			return
 		}
 		s.remoteDomain = domain
-		s.send(readyBanner)
+		s.send("250 " + readyBanner)
 		s.enterState(READY)
 	case "EHLO":
 		domain, err := parseHelloArgument(arg)
@@ -259,7 +259,8 @@ func (s *Session) greetHandler(cmd string, arg string) {
 		}
 		s.remoteDomain = domain
 		// send all options at once so we can deal with aggressive clients
-		respOpts := []string{readyBanner,
+		respOpts := []string{
+			"250-" + readyBanner,
 			"250-8BITMIME",
 		}
 		if s.Server.config.TLSEnabled && s.Server.TLSconfig != nil && s.tlsState == nil {
@@ -517,7 +518,7 @@ func (s *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 		return strings.ToUpper(line), "", true
 	case l == 5:
 		// Too long to be only command, too short to have args
-		s.logger.Warn().Msgf("too long - no args Mangled command: %q", line)
+		s.logger.Warn().Msgf("Mangled command: %q", line)
 		return "", "", false
 	}
 	// If we made it here, command is long enough to have args

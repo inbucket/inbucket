@@ -258,17 +258,13 @@ func (s *Session) greetHandler(cmd string, arg string) {
 			return
 		}
 		s.remoteDomain = domain
-		// send all options at once so we can deal with aggressive clients
-		respOpts := []string{
-			"250-" + readyBanner,
-			"250-8BITMIME",
-		}
-		if s.Server.config.TLSEnabled && s.Server.TLSconfig != nil && s.tlsState == nil {
-			respOpts = append(respOpts, "250-STARTTLS")
-		}
 		// features before SIZE per RFC
-		respOpts = append(respOpts, fmt.Sprintf("250 SIZE %v", s.config.MaxMessageBytes))
-		s.send(strings.Join(respOpts[:], "\n"))
+                s.send("250-" + readyBanner)
+                s.send("250-8BITMIME")
+                if s.Server.config.TLSEnabled && s.Server.TLSconfig != nil && s.tlsState == nil {
+                        s.send("250-STARTTLS")
+                }
+                s.send(fmt.Sprintf("250 SIZE %v", s.config.MaxMessageBytes))
 		s.enterState(READY)
 	default:
 		s.ooSeq(cmd)

@@ -181,7 +181,7 @@ func openLog(level string, logfile string, json bool) (close func(), err error) 
 	}
 	close = func() {}
 	var w io.Writer
-	color := true
+	color := runtime.GOOS != "windows"
 	switch logfile {
 	case "stderr":
 		w = os.Stderr

@@ -402,7 +402,7 @@ func (s *Session) mailHandler(cmd string, arg string) {
 // DATA
 func (s *Session) dataHandler() {
 	s.send("354 Start mail input; end with <CRLF>.<CRLF>")
-	msgBuf, err := s.readByteLine()
+	msgBuf, err := s.readDataBlock()
 	if err != nil {
 		if netErr, ok := err.(net.Error); ok {
 			if netErr.Timeout() {
@@ -471,8 +471,8 @@ func (s *Session) send(msg string) {
 	}
 }
 
-// readByteLine reads a line of input, returns byte slice.
-func (s *Session) readByteLine() ([]byte, error) {
+// readDataBlock reads message DATA until `.` using the textproto pkg.
+func (s *Session) readDataBlock() ([]byte, error) {
 	if err := s.conn.SetReadDeadline(s.nextDeadline()); err != nil {
 		return nil, err
 	}
@@ -486,7 +486,7 @@ func (s *Session) readByteLine() ([]byte, error) {
 	return b, err
 }
 
-// Reads a line of input
+// readLine reads a line of input respecting deadlines.
 func (s *Session) readLine() (line string, err error) {
 	if err = s.conn.SetReadDeadline(s.nextDeadline()); err != nil {
 		return "", err

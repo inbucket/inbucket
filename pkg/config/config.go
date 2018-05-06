@@ -76,6 +76,9 @@ type SMTP struct {
 	StoreDomains    []string      `desc:"Domains to store mail for"`
 	DiscardDomains  []string      `desc:"Domains to discard mail for"`
 	Timeout         time.Duration `required:"true" default:"300s" desc:"Idle network timeout"`
+	TLSEnabled      bool          `default:"false" desc:"Enable STARTTLS option"`
+	TLSPrivKey      string        `default:"cert.key" desc:"X509 Private Key file for TLS Support"`
+	TLSCert         string        `default:"cert.crt" desc:"X509 Public Certificate file for TLS Support"`
 	Debug           bool          `ignored:"true"`
 }
 

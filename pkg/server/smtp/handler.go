@@ -259,12 +259,12 @@ func (s *Session) greetHandler(cmd string, arg string) {
 		}
 		s.remoteDomain = domain
 		// features before SIZE per RFC
-                s.send("250-" + readyBanner)
-                s.send("250-8BITMIME")
-                if s.Server.config.TLSEnabled && s.Server.TLSconfig != nil && s.tlsState == nil {
-                        s.send("250-STARTTLS")
-                }
-                s.send(fmt.Sprintf("250 SIZE %v", s.config.MaxMessageBytes))
+		s.send("250-" + readyBanner)
+		s.send("250-8BITMIME")
+		if s.Server.config.TLSEnabled && s.Server.tlsConfig != nil && s.tlsState == nil {
+			s.send("250-STARTTLS")
+		}
+		s.send(fmt.Sprintf("250 SIZE %v", s.config.MaxMessageBytes))
 		s.enterState(READY)
 	default:
 		s.ooSeq(cmd)
@@ -300,7 +300,7 @@ func (s *Session) readyHandler(cmd string, arg string) {
 		s.logger.Debug().Msg("Initiating TLS context.")
 		s.send("220 STARTTLS")
 		// start tls connection handshake
-		tlsConn := tls.Server(s.conn, s.Server.TLSconfig)
+		tlsConn := tls.Server(s.conn, s.Server.tlsConfig)
 		s.conn = tlsConn
 		s.text = textproto.NewConn(s.conn)
 		s.tlsState = new(tls.ConnectionState)
@@ -481,7 +481,7 @@ func (s *Session) readByteLine() ([]byte, error) {
 		return nil, err
 	}
 	if s.debug {
-		s.logger.Debug().Msgf("%s", b)
+		fmt.Printf("%04d   Received %d bytes\n", s.id, len(b))
 	}
 	return b, err
 }

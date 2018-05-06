@@ -64,7 +64,7 @@ type Server struct {
 	manager        message.Manager    // Used to deliver messages.
 	listener       net.Listener       // Incoming network connections.
 	wg             *sync.WaitGroup    // Waitgroup tracks individual sessions.
-	TLSconfig      *tls.Config
+	tlsConfig      *tls.Config
 }
 
 // NewServer creates a new Server instance with the specificed config.
@@ -74,16 +74,18 @@ func NewServer(
 	manager message.Manager,
 	apolicy *policy.Addressing,
 ) *Server {
-
+	slog := log.With().Str("module", "smtp").Str("phase", "tls").Logger()
 	tlsConfig := &tls.Config{}
 	if smtpConfig.TLSEnabled {
 		var err error
 		tlsConfig.Certificates = make([]tls.Certificate, 1)
 		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(smtpConfig.TLSCert, smtpConfig.TLSPrivKey)
 		if err != nil {
-			log.Error().Msgf("Failed loading X509 KeyPair: %v", err)
-			log.Error().Msgf("Disabling STARTTLS support")
+			slog.Error().Msgf("Failed loading X509 KeyPair: %v", err)
+			slog.Error().Msg("Disabling STARTTLS support")
 			smtpConfig.TLSEnabled = false
+		} else {
+			slog.Debug().Msg("STARTTLS feature available")
 		}
 	}
 
@@ -93,7 +95,7 @@ func NewServer(
 		manager:        manager,
 		addrPolicy:     apolicy,
 		wg:             new(sync.WaitGroup),
-		TLSconfig:      tlsConfig,
+		tlsConfig:      tlsConfig,
 	}
 }
 

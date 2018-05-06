@@ -22,8 +22,8 @@ variables it supports:
     INBUCKET_SMTP_DISCARDDOMAINS                            Domains to discard mail for
     INBUCKET_SMTP_TIMEOUT               300s                Idle network timeout
     INBUCKET_SMTP_TLSENABLED            false               Enable STARTTLS option
-    INBUCKET_SMTP_TLSPRIVKEY            cert.key            X509 Private Key for TLS Support
-    INBUCKET_SMTP_TLSCERT               cert.crt            X509 Public Certificate for TLS Support
+    INBUCKET_SMTP_TLSPRIVKEY            cert.key            X509 Private Key file for TLS Support
+    INBUCKET_SMTP_TLSCERT               cert.crt            X509 Public Certificate file for TLS Support
     INBUCKET_POP3_ADDR                  0.0.0.0:1100        POP3 server IP4 host:port
     INBUCKET_POP3_DOMAIN                inbucket            HELLO domain
     INBUCKET_POP3_TIMEOUT               600s                Idle network timeout

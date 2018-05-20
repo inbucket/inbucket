@@ -142,7 +142,6 @@ func (s *Server) startSession(id int, conn net.Conn) {
 	}()
 
 	ssn := NewSession(s, id, conn, logger)
-	defer ssn.text.Close()
 	ssn.greet()
 
 	// This is our command reading loop

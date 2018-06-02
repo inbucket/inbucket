@@ -15,8 +15,6 @@ import (
 )
 
 const (
-	baseURL = "http://localhost/api/v1"
-
 	// JSON map keys
 	mailboxKey = "mailbox"
 	idKey      = "id"
@@ -37,7 +35,7 @@ func TestRestMailboxList(t *testing.T) {
 	logbuf := setupWebServer(mm)
 
 	// Test invalid mailbox name
-	w, err := testRestGet(baseURL + "/mailbox/foo%20bar")
+	w, err := testRestGet("http://localhost/api/v1/mailbox/foo%20bar")
 	expectCode := 500
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +45,7 @@ func TestRestMailboxList(t *testing.T) {
 	}
 
 	// Test empty mailbox
-	w, err = testRestGet(baseURL + "/mailbox/empty")
+	w, err = testRestGet("http://localhost/api/v1/mailbox/empty")
 	expectCode = 200
 	if err != nil {
 		t.Fatal(err)
@@ -57,7 +55,7 @@ func TestRestMailboxList(t *testing.T) {
 	}
 
 	// Test Mailbox error
-	w, err = testRestGet(baseURL + "/mailbox/messageserr")
+	w, err = testRestGet("http://localhost/api/v1/mailbox/messageserr")
 	expectCode = 500
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +87,7 @@ func TestRestMailboxList(t *testing.T) {
 	mm.AddMessage("good", &message.Message{Metadata: meta2})
 
 	// Check return code
-	w, err = testRestGet(baseURL + "/mailbox/good")
+	w, err = testRestGet("http://localhost/api/v1/mailbox/good")
 	expectCode = 200
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +137,7 @@ func TestRestMessage(t *testing.T) {
 	logbuf := setupWebServer(mm)
 
 	// Test invalid mailbox name
-	w, err := testRestGet(baseURL + "/mailbox/foo%20bar/0001")
+	w, err := testRestGet("http://localhost/api/v1/mailbox/foo%20bar/0001")
 	expectCode := 500
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +147,7 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Test requesting a message that does not exist
-	w, err = testRestGet(baseURL + "/mailbox/empty/0001")
+	w, err = testRestGet("http://localhost/api/v1/mailbox/empty/0001")
 	expectCode = 404
 	if err != nil {
 		t.Fatal(err)
@@ -159,7 +157,7 @@ func TestRestMessage(t *testing.T) {
 	}
 
 	// Test GetMessage error
-	w, err = testRestGet(baseURL + "/mailbox/messageerr/0001")
+	w, err = testRestGet("http://localhost/api/v1/mailbox/messageerr/0001")
 	expectCode = 500
 	if err != nil {
 		t.Fatal(err)
@@ -201,7 +199,7 @@ func TestRestMessage(t *testing.T) {
 	mm.AddMessage("good", msg1)
 
 	// Check return code
-	w, err = testRestGet(baseURL + "/mailbox/good/0001")
+	w, err = testRestGet("http://localhost/api/v1/mailbox/good/0001")
 	expectCode = 200
 	if err != nil {
 		t.Fatal(err)
@@ -264,7 +262,7 @@ func TestRestMarkSeen(t *testing.T) {
 	mm.AddMessage("good", &message.Message{Metadata: meta1})
 	mm.AddMessage("good", &message.Message{Metadata: meta2})
 	// Mark one read.
-	w, err := testRestPatch(baseURL+"/mailbox/good/0002", `{"seen":true}`)
+	w, err := testRestPatch("http://localhost/api/v1/mailbox/good/0002", `{"seen":true}`)
 	expectCode := 200
 	if err != nil {
 		t.Fatal(err)
@@ -273,7 +271,7 @@ func TestRestMarkSeen(t *testing.T) {
 		t.Fatalf("Expected code %v, got %v", expectCode, w.Code)
 	}
 	// Get mailbox.
-	w, err = testRestGet(baseURL + "/mailbox/good")
+	w, err = testRestGet("http://localhost/api/v1/mailbox/good")
 	expectCode = 200
 	if err != nil {
 		t.Fatal(err)

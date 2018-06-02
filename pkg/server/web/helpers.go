@@ -54,11 +54,11 @@ func Reverse(name string, things ...interface{}) string {
 
 // TextToHTML takes plain text, escapes it and tries to pretty it up for
 // HTML display
-func TextToHTML(text string) template.HTML {
+func TextToHTML(text string) string {
 	text = html.EscapeString(text)
 	text = urlRE.ReplaceAllStringFunc(text, WrapURL)
 	replacer := strings.NewReplacer("\r\n", "<br/>\n", "\r", "<br/>\n", "\n", "<br/>\n")
-	return template.HTML(replacer.Replace(text))
+	return replacer.Replace(text)
 }
 
 // WrapURL wraps a <a href> tag around the provided URL

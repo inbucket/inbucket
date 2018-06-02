@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
-	"path/filepath"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -66,11 +65,8 @@ func Initialize(
 	manager = mm
 
 	// Content Paths
-	staticPath := filepath.Join(conf.Web.UIDir, staticDir)
 	log.Info().Str("module", "web").Str("phase", "startup").Str("path", conf.Web.UIDir).
 		Msg("Web UI content mapped")
-	Router.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
-		http.FileServer(http.Dir(staticPath))))
 	Router.Handle("/debug/vars", expvar.Handler())
 	if conf.Web.PProf {
 		Router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -81,6 +77,8 @@ func Initialize(
 		log.Warn().Str("module", "web").Str("phase", "startup").
 			Msg("Go pprof tools installed to /debug/pprof")
 	}
+	// If no other route matches, attempt to service as UI element.
+	Router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(conf.Web.UIDir))))
 
 	// Session cookie setup
 	if conf.Web.CookieAuthKey == "" {

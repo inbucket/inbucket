@@ -13,13 +13,16 @@ type alias Message =
     , date : String
     , size : Int
     , seen : Bool
-    , body : Body
+    , text : String
+    , html : String
+    , attachments : List Attachment
     }
 
 
-type alias Body =
-    { text : String
-    , html : String
+type alias Attachment =
+    { id : String
+    , fileName : String
+    , contentType : String
     }
 
 
@@ -34,11 +37,14 @@ decoder =
         |> required "date" string
         |> required "size" int
         |> required "seen" bool
-        |> required "body" bodyDecoder
-
-
-bodyDecoder : Decoder Body
-bodyDecoder =
-    decode Body
         |> required "text" string
         |> required "html" string
+        |> required "attachments" (list attachmentDecoder)
+
+
+attachmentDecoder : Decoder Attachment
+attachmentDecoder =
+    decode Attachment
+        |> required "id" string
+        |> required "filename" string
+        |> required "content-type" string

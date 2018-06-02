@@ -34,7 +34,7 @@ init : Value -> Location -> ( Model, Cmd Msg )
 init sessionValue location =
     let
         session =
-            Session.init (Session.decodeValueWithDefault sessionValue)
+            Session.init location (Session.decodeValueWithDefault sessionValue)
 
         model =
             { page = Home Home.init
@@ -197,7 +197,7 @@ setRoute route model =
             )
 
         Route.Monitor ->
-            ( { model | page = Monitor Monitor.init }
+            ( { model | page = Monitor (Monitor.init model.session.host) }
             , Ports.windowTitle "Inbucket Monitor"
             , Session.none
             )

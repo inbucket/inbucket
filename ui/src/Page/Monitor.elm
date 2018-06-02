@@ -10,30 +10,34 @@ import Route
 import WebSocket
 
 
--- MODEL --
+-- MODEL
 
 
 type alias Model =
-    { messages : List MessageHeader }
+    { wsUrl : String
+    , messages : List MessageHeader
+    }
 
 
-init : Model
-init =
-    { messages = [] }
+init : String -> Model
+init host =
+    { wsUrl = "ws://" ++ host ++ "/api/v1/monitor/messages"
+    , messages = []
+    }
 
 
 
--- SUBSCRIPTIONS --
+-- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    WebSocket.listen "ws://192.168.1.10:3000/api/v1/monitor/messages"
+    WebSocket.listen model.wsUrl
         (decodeString MessageHeader.decoder >> NewMessage)
 
 
 
--- UPDATE --
+-- UPDATE
 
 
 type Msg
@@ -58,7 +62,7 @@ update session msg model =
 
 
 
--- VIEW --
+-- VIEW
 
 
 view : Session -> Model -> Html Msg

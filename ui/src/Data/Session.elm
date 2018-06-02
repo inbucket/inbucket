@@ -12,10 +12,12 @@ module Data.Session
 
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+import Navigation exposing (Location)
 
 
 type alias Session =
-    { flash : String
+    { host : String
+    , flash : String
     , routing : Bool
     , persistent : Persistent
     }
@@ -35,9 +37,9 @@ type Msg
     | AddRecent String
 
 
-init : Persistent -> Session
-init persistent =
-    Session "" True persistent
+init : Location -> Persistent -> Session
+init location persistent =
+    Session location.host "" True persistent
 
 
 update : Msg -> Session -> Session

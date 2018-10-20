@@ -7,7 +7,9 @@ addons:
       - rpm
 
 env:
-  - DEPLOY_WITH_MAJOR="1.10"
+  global:
+    - GO111MODULE=on
+    - DEPLOY_WITH_MAJOR="1.11"
 
 before_script:
   - go get golang.org/x/lint/golint

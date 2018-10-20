@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Use Go 1.11 modules for reproducible builds.
 - SMTP TLS support (thanks kingforaday.)
 
 

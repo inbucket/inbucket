@@ -100,6 +100,7 @@ type Web struct {
 	CookieAuthKey  string `desc:"Session cipher key (text)"`
 	MonitorVisible bool   `required:"true" default:"true" desc:"Show monitor tab in UI?"`
 	MonitorHistory int    `required:"true" default:"30" desc:"Monitor remembered messages"`
+	PProf          bool   `required:"true" default:"false" desc:"Expose profiling tools on /debug/pprof"`
 }
 
 // Storage contains the mail store configuration.

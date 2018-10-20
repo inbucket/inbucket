@@ -6,6 +6,7 @@ import (
 	"expvar"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"path/filepath"
 	"time"
 
@@ -70,7 +71,16 @@ func Initialize(
 		Msg("Web UI content mapped")
 	Router.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
 		http.FileServer(http.Dir(staticPath))))
-	http.Handle("/", Router)
+	Router.Handle("/debug/vars", expvar.Handler())
+	if conf.Web.PProf {
+		Router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		Router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		Router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		Router.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		Router.PathPrefix("/debug/pprof/").HandlerFunc(pprof.Index)
+		log.Warn().Str("module", "web").Str("phase", "startup").
+			Msg("Go pprof tools installed to /debug/pprof")
+	}
 
 	// Session cookie setup
 	if conf.Web.CookieAuthKey == "" {
@@ -88,7 +98,7 @@ func Initialize(
 func Start(ctx context.Context) {
 	server = &http.Server{
 		Addr:         rootConfig.Web.Addr,
-		Handler:      nil,
+		Handler:      Router,
 		ReadTimeout:  60 * time.Second,
 		WriteTimeout: 60 * time.Second,
 	}

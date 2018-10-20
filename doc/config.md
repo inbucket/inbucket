@@ -35,6 +35,7 @@ variables it supports:
     INBUCKET_WEB_COOKIEAUTHKEY                              Session cipher key (text)
     INBUCKET_WEB_MONITORVISIBLE         true                Show monitor tab in UI?
     INBUCKET_WEB_MONITORHISTORY         30                  Monitor remembered messages
+    INBUCKET_WEB_PPROF                  false               Expose profiling tools on /debug/pprof
     INBUCKET_STORAGE_TYPE               memory              Storage impl: file or memory
     INBUCKET_STORAGE_PARAMS                                 Storage impl parameters, see docs.
     INBUCKET_STORAGE_RETENTIONPERIOD    24h                 Duration to retain messages
@@ -376,6 +377,20 @@ them.
 
 - Default: `30`
 - Values: Integer greater than or equal to 0
+
+### Performance Profiling & Debug Tools
+
+`INBUCKET_WEB_PPROF`
+
+If true, Go's pprof package will be installed to the `/debug/pprof` URI.  This
+exposes detailed memory and CPU performance data for debugging Inbucket.  If you
+enable this option, please make sure it is not exposed to the public internet,
+as its use can significantly impact performance.
+
+For example usage, see https://golang.org/pkg/net/http/pprof/
+
+- Default: `false`
+- Values: `true` or `false`
 
 
 ## Storage

@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Use Go 1.11 modules for reproducible builds.
 - SMTP TLS support (thanks kingforaday.)
+- `INBUCKET_WEB_PPROF` configuration option for performance profiling.
 
 ### Changed
 - Docker build now uses Go 1.11 and Alpine 3.8

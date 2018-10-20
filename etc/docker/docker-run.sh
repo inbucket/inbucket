@@ -12,9 +12,9 @@ PORT_POP3=1100
 
 # Volumes exposed on host:
 VOL_CONFIG="/tmp/inbucket/config"
-VOL_DATA="/tmp/inbucket/data"
+VOL_DATA="/tmp/inbucket/storage"
 
-set -eo pipefail
+set -e
 
 main() {
   local run_opts=""
@@ -39,11 +39,11 @@ main() {
   done
 
   docker run $run_opts \
-    -p $PORT_HTTP:10080 \
-    -p $PORT_SMTP:10025 \
-    -p $PORT_POP3:10110 \
-    -v "$VOL_CONFIG:/con/configuration" \
-    -v "$VOL_DATA:/con/data" \
+    -p $PORT_HTTP:9000 \
+    -p $PORT_SMTP:2500 \
+    -p $PORT_POP3:1100 \
+    -v "$VOL_CONFIG:/config" \
+    -v "$VOL_DATA:/storage" \
     "$IMAGE"
 }
 

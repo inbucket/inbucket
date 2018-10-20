@@ -1,9 +1,9 @@
 # Docker build file for Inbucket: https://www.inbucket.org/
 
 # Build
-FROM golang:1.10-alpine as builder
+FROM golang:1.11-alpine3.8 as builder
 RUN apk add --no-cache --virtual .build-deps git make
-WORKDIR /go/src/github.com/jhillyerd/inbucket
+WORKDIR /build
 COPY . .
 ENV CGO_ENABLED 0
 RUN make clean deps
@@ -12,11 +12,10 @@ RUN go build -o inbucket \
   -v ./cmd/inbucket
 
 # Run in minimal image
-FROM alpine:3.7
-ENV SRC /go/src/github.com/jhillyerd/inbucket
+FROM alpine:3.8
 WORKDIR /opt/inbucket
 RUN mkdir bin defaults ui
-COPY --from=builder $SRC/inbucket bin
+COPY --from=builder /build/inbucket bin
 COPY etc/docker/defaults/greeting.html defaults
 COPY ui ui
 COPY etc/docker/defaults/start-inbucket.sh /

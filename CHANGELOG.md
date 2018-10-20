@@ -8,7 +8,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Use Go 1.11 modules for reproducible builds.
 - SMTP TLS support (thanks kingforaday.)
+
+### Changed
+- Docker build now uses Go 1.11 and Alpine 3.8
 
 
 ## [v2.0.0] - 2018-05-05

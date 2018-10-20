@@ -536,7 +536,7 @@ func (s *Session) parseArgs(arg string) (args map[string]string, ok bool) {
 	re := regexp.MustCompile(` (\w+)=(\w+)`)
 	pm := re.FindAllStringSubmatch(arg, -1)
 	if pm == nil {
-		s.logger.Warn().Msgf("Failed to parse arg string: %q")
+		s.logger.Warn().Msgf("Failed to parse arg string: %q", arg)
 		return nil, false
 	}
 	for _, m := range pm {

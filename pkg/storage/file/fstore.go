@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
@@ -40,10 +41,11 @@ func countGenerator(c chan int) {
 // Store implements DataStore aand is the root of the mail storage
 // hiearchy.  It provides access to Mailbox objects
 type Store struct {
-	hashLock   storage.HashLock
-	path       string
-	mailPath   string
-	messageCap int
+	hashLock      storage.HashLock
+	path          string
+	mailPath      string
+	messageCap    int
+	bufReaderPool sync.Pool
 }
 
 // New creates a new DataStore object using the specified path
@@ -60,7 +62,16 @@ func New(cfg config.Storage) (storage.Store, error) {
 				Msg("Error creating dir")
 		}
 	}
-	return &Store{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}, nil
+	return &Store{
+		path:       path,
+		mailPath:   mailPath,
+		messageCap: cfg.MailboxMsgCap,
+		bufReaderPool: sync.Pool{
+			New: func() interface{} {
+				return bufio.NewReader(nil)
+			},
+		},
+	}, nil
 }
 
 // AddMessage adds a message to the specified mailbox.
@@ -251,6 +262,18 @@ func (fs *Store) mboxFromHash(hash string) *mbox {
 		path:      path,
 		indexPath: indexPath,
 	}
+}
+
+// getPooledReader pulls a buffered reader from the fs.bufReaderPool
+func (fs *Store) getPooledReader(r io.Reader) *bufio.Reader {
+	br := fs.bufReaderPool.Get().(*bufio.Reader)
+	br.Reset(r)
+	return br
+}
+
+// putPooledReader returns a buffered reader to the fs.bufReaderPool
+func (fs *Store) putPooledReader(br *bufio.Reader) {
+	fs.bufReaderPool.Put(br)
 }
 
 // generatePrefix converts a Time object into the ISO style format we use

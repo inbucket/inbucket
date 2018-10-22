@@ -43,7 +43,6 @@ func setupWebServer(mm message.Manager) *bytes.Buffer {
 	log.SetOutput(buf)
 
 	// Have to reset default mux to prevent duplicate routes
-	http.DefaultServeMux = http.NewServeMux()
 	cfg := &config.Root{
 		Web: config.Web{
 			UIDir: "../ui",
@@ -51,7 +50,7 @@ func setupWebServer(mm message.Manager) *bytes.Buffer {
 	}
 	shutdownChan := make(chan bool)
 	web.Initialize(cfg, shutdownChan, mm, &msghub.Hub{})
-	SetupRoutes(web.Router)
+	SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
 
 	return buf
 }

@@ -9,6 +9,7 @@ require (
 	github.com/gorilla/sessions v1.1.3
 	github.com/gorilla/websocket v1.4.0
 	github.com/jhillyerd/enmime v0.2.1
+	github.com/jhillyerd/goldiff v0.1.0
 	github.com/kelseyhightower/envconfig v1.3.0
 	github.com/microcosm-cc/bluemonday v1.0.1
 	github.com/pmezard/go-difflib v1.0.0 // indirect

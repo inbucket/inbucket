@@ -10,7 +10,7 @@ env:
   - DEPLOY_WITH_MAJOR="1.10"
 
 before_script:
-  - go get github.com/golang/lint/golint
+  - go get golang.org/x/lint/golint
   - make deps
 
 go:

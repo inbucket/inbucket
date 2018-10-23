@@ -8,11 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jhillyerd/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog/log"
 )
 
 // TemplateFuncs declares functions made available to all templates (including partials)
 var TemplateFuncs = template.FuncMap{
+	"address":      stringutil.StringAddress,
 	"friendlyTime": FriendlyTime,
 	"reverse":      Reverse,
 	"stringsJoin":  strings.Join,

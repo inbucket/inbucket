@@ -19,13 +19,28 @@ func HashMailboxName(mailbox string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// StringAddressList converts a list of addresses to a list of strings
+// StringAddress converts an Address to a UTF-8 string.
+func StringAddress(a *mail.Address) string {
+	b := &strings.Builder{}
+	if a != nil {
+		if a.Name != "" {
+			b.WriteString(a.Name)
+			b.WriteRune(' ')
+		}
+		if a.Address != "" {
+			b.WriteRune('<')
+			b.WriteString(a.Address)
+			b.WriteRune('>')
+		}
+	}
+	return b.String()
+}
+
+// StringAddressList converts a list of addresses to a list of UTF-8 strings.
 func StringAddressList(addrs []*mail.Address) []string {
 	s := make([]string, len(addrs))
 	for i, a := range addrs {
-		if a != nil {
-			s[i] = a.String()
-		}
+		s[i] = StringAddress(a)
 	}
 	return s
 }

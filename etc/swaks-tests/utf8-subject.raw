@@ -1,6 +1,8 @@
 Date: %DATE%
-To: %TO_ADDRESS%
-From: %FROM_ADDRESS%
+To: %TO_ADDRESS%,
+  =?utf-8?B?VGVzdCBvZiDIh8myyqLIr8ihyarJtMqb?= <recipient@inbucket.org>
+From: =?utf-8?q?X-=C3=A4=C3=A9=C3=9F_Y-=C3=A4=C3=A9=C3=9F?=
+  <fromuser@inbucket.org>
 Subject: =?utf-8?B?VGVzdCBvZiDIh8myyqLIr8ihyarJtMqb?=
 Thread-Topic: =?utf-8?B?VGVzdCBvZiDIh8myyqLIr8ihyarJtMqb?=
 Thread-Index: Ac6+4nH7mOymA+1JRQyk2LQPe1bEcw==

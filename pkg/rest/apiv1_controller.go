@@ -33,7 +33,7 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 		jmessages[i] = &model.JSONMessageHeaderV1{
 			Mailbox: name,
 			ID:      msg.ID,
-			From:    msg.From.String(),
+			From:    stringutil.StringAddress(msg.From),
 			To:      stringutil.StringAddressList(msg.To),
 			Subject: msg.Subject,
 			Date:    msg.Date,
@@ -79,7 +79,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 		&model.JSONMessageV1{
 			Mailbox: name,
 			ID:      msg.ID,
-			From:    msg.From.String(),
+			From:    stringutil.StringAddress(msg.From),
 			To:      stringutil.StringAddressList(msg.To),
 			Subject: msg.Subject,
 			Date:    msg.Date,

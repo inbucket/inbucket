@@ -44,6 +44,7 @@ func TestSuite(t *testing.T) {
 	}{
 		{"basic", testBasic},
 		{"fullname", testFullname},
+		{"encodedHeader", testEncodedHeader},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.test)
@@ -59,13 +60,13 @@ func testBasic(t *testing.T) {
 	to := []string{"recipient@inbucket.org"}
 	input := readTestData("basic.txt")
 
-	// Send mail
+	// Send mail.
 	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Confirm receipt
+	// Confirm receipt.
 	msg, err := client.GetMessage("recipient", "latest")
 	if err != nil {
 		t.Fatal(err)
@@ -88,13 +89,13 @@ func testFullname(t *testing.T) {
 	to := []string{"recipient@inbucket.org"}
 	input := readTestData("fullname.txt")
 
-	// Send mail
+	// Send mail.
 	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Confirm receipt
+	// Confirm receipt.
 	msg, err := client.GetMessage("recipient", "latest")
 	if err != nil {
 		t.Fatal(err)
@@ -106,6 +107,35 @@ func testFullname(t *testing.T) {
 	// Compare to golden.
 	got := formatMessage(msg)
 	goldiff.File(t, got, "testdata", "fullname.golden")
+}
+
+func testEncodedHeader(t *testing.T) {
+	client, err := client.New(restBaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	from := "fromuser@inbucket.org"
+	to := []string{"recipient@inbucket.org"}
+	input := readTestData("encodedheader.txt")
+
+	// Send mail.
+	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Confirm receipt.
+	msg, err := client.GetMessage("recipient", "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if msg == nil {
+		t.Errorf("Got nil message, wanted non-nil message.")
+	}
+
+	// Compare to golden.
+	got := formatMessage(msg)
+	goldiff.File(t, got, "testdata", "encodedheader.golden")
 }
 
 func formatMessage(m *client.Message) []byte {

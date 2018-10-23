@@ -51,12 +51,12 @@
   <div class="panel-body">
     <dl class="dl-horizontal">
       <dt>From:</dt>
-      <dd>{{.message.From}}</dd>
+      <dd>{{.message.From | address}}</dd>
       <dt>To:</dt>
       <dd>
       {{range $i, $addr := .message.To}}
         {{- if $i}},{{end}}
-        {{$addr -}}
+        {{$addr | address -}}
       {{end}}
       </dd>
       <dt>Date:</dt>

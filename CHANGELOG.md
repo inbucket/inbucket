@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 
-## [Unreleased]
+## [v2.1.0-beta1]
 
 ### Added
 - Use Go 1.11 modules for reproducible builds.
@@ -179,7 +179,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   specific message.
 
 [Unreleased]:  https://github.com/jhillyerd/inbucket/compare/master...develop
-[v2.0.0]:  https://github.com/jhillyerd/inbucket/compare/v2.0.0-rc1...v2.0.0
+[v2.1.0-beta1]: https://github.com/jhillyerd/inbucket/compare/v2.0.0...v2.1.0-beta1
+[v2.0.0]:      https://github.com/jhillyerd/inbucket/compare/v2.0.0-rc1...v2.0.0
 [v2.0.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/v1.3.1...v2.0.0-rc1
 [v1.3.1]:      https://github.com/jhillyerd/inbucket/compare/v1.3.0...v1.3.1
 [v1.3.0]:      https://github.com/jhillyerd/inbucket/compare/v1.2.0...v1.3.0

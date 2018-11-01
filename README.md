@@ -7,6 +7,9 @@ address and make them available via web, REST and POP3.  Once compiled,
 Inbucket does not have any external dependencies (HTTP, SMTP, POP3 and storage
 are all built in).
 
+A Go client for the REST API is available in
+`github.com/jhillyerd/inbucket/pkg/rest/client` - [Go API docs]
+
 Read more at the [Inbucket Website]
 
 ![Screenshot](http://www.inbucket.org/images/inbucket-ss1.png "Viewing a message")
@@ -55,6 +58,7 @@ Inbucket is written in [Google Go]
 Inbucket is open source software released under the MIT License.  The latest
 version can be found at https://github.com/jhillyerd/inbucket
 
+[Go API docs]:      https://godoc.org/github.com/jhillyerd/inbucket/pkg/rest/client
 [Build Status]:     https://travis-ci.org/jhillyerd/inbucket
 [Change Log]:       https://github.com/jhillyerd/inbucket/blob/master/CHANGELOG.md
 [CONTRIBUTING.md]:  https://github.com/jhillyerd/inbucket/blob/develop/CONTRIBUTING.md

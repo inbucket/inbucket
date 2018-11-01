@@ -1,0 +1,5 @@
+From: fromuser@inbucket.org
+To: recipient@inbucket.org
+Subject: basic subject
+
+Basic message.

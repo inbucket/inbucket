@@ -4,11 +4,30 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+
+## [v2.1.0-beta1]
+
+### Added
+- Use Go 1.11 modules for reproducible builds.
+- SMTP TLS support (thanks kingforaday.)
+- `INBUCKET_WEB_PPROF` configuration option for performance profiling.
+- Godoc example for the REST API client.
+
+### Changed
+- Docker build now uses Go 1.11 and Alpine 3.8
+
+### Fixed
+- Render UTF-8 addresses correctly in both REST API and Web UI.
+- Memory storage now correctly returns the newest message when asked for ID
+  `latest`.
+
+
 ## [v2.0.0] - 2018-05-05
 
 ### Changed
 - Corrected docs for INBUCKET_STORAGE_PARAMS (thanks evilmrburns.)
 - Disabled color log output on Windows, doesn't work there.
+
 
 ## [v2.0.0-rc1] - 2018-04-07
 
@@ -160,7 +179,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   specific message.
 
 [Unreleased]:  https://github.com/jhillyerd/inbucket/compare/master...develop
-[v2.0.0]:  https://github.com/jhillyerd/inbucket/compare/v2.0.0-rc1...v2.0.0
+[v2.1.0-beta1]: https://github.com/jhillyerd/inbucket/compare/v2.0.0...v2.1.0-beta1
+[v2.0.0]:      https://github.com/jhillyerd/inbucket/compare/v2.0.0-rc1...v2.0.0
 [v2.0.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/v1.3.1...v2.0.0-rc1
 [v1.3.1]:      https://github.com/jhillyerd/inbucket/compare/v1.3.0...v1.3.1
 [v1.3.0]:      https://github.com/jhillyerd/inbucket/compare/v1.2.0...v1.3.0

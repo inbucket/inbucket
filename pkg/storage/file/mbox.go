@@ -120,7 +120,9 @@ func (mb *mbox) readIndex() error {
 		}
 	}()
 	// Decode gob data
-	dec := gob.NewDecoder(bufio.NewReader(file))
+	br := mb.store.getPooledReader(file)
+	defer mb.store.putPooledReader(br)
+	dec := gob.NewDecoder(br)
 	name := ""
 	if err = dec.Decode(&name); err != nil {
 		return fmt.Errorf("Corrupt mailbox %q: %v", mb.indexPath, err)

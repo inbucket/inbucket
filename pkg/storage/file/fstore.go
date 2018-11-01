@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/config"
@@ -40,10 +40,11 @@ func countGenerator(c chan int) {
 // Store implements DataStore aand is the root of the mail storage
 // hiearchy.  It provides access to Mailbox objects
 type Store struct {
-	hashLock   storage.HashLock
-	path       string
-	mailPath   string
-	messageCap int
+	hashLock      storage.HashLock
+	path          string
+	mailPath      string
+	messageCap    int
+	bufReaderPool sync.Pool
 }
 
 // New creates a new DataStore object using the specified path
@@ -60,7 +61,16 @@ func New(cfg config.Storage) (storage.Store, error) {
 				Msg("Error creating dir")
 		}
 	}
-	return &Store{path: path, mailPath: mailPath, messageCap: cfg.MailboxMsgCap}, nil
+	return &Store{
+		path:       path,
+		mailPath:   mailPath,
+		messageCap: cfg.MailboxMsgCap,
+		bufReaderPool: sync.Pool{
+			New: func() interface{} {
+				return bufio.NewReader(nil)
+			},
+		},
+	}, nil
 }
 
 // AddMessage adds a message to the specified mailbox.
@@ -179,41 +189,33 @@ func (fs *Store) PurgeMessages(mailbox string) error {
 // VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
 // continues to return true.
 func (fs *Store) VisitMailboxes(f func([]storage.Message) (cont bool)) error {
-	infos1, err := ioutil.ReadDir(fs.mailPath)
+	names1, err := readDirNames(fs.mailPath)
 	if err != nil {
 		return err
 	}
 	// Loop over level 1 directories
-	for _, inf1 := range infos1 {
-		if inf1.IsDir() {
-			l1 := inf1.Name()
-			infos2, err := ioutil.ReadDir(filepath.Join(fs.mailPath, l1))
+	for _, name1 := range names1 {
+		names2, err := readDirNames(fs.mailPath, name1)
+		if err != nil {
+			return err
+		}
+		// Loop over level 2 directories
+		for _, name2 := range names2 {
+			names3, err := readDirNames(fs.mailPath, name1, name2)
 			if err != nil {
 				return err
 			}
-			// Loop over level 2 directories
-			for _, inf2 := range infos2 {
-				if inf2.IsDir() {
-					l2 := inf2.Name()
-					infos3, err := ioutil.ReadDir(filepath.Join(fs.mailPath, l1, l2))
-					if err != nil {
-						return err
-					}
-					// Loop over mailboxes
-					for _, inf3 := range infos3 {
-						if inf3.IsDir() {
-							mb := fs.mboxFromHash(inf3.Name())
-							mb.RLock()
-							msgs, err := mb.getMessages()
-							mb.RUnlock()
-							if err != nil {
-								return err
-							}
-							if !f(msgs) {
-								return nil
-							}
-						}
-					}
+			// Loop over mailboxes
+			for _, name3 := range names3 {
+				mb := fs.mboxFromHash(name3)
+				mb.RLock()
+				msgs, err := mb.getMessages()
+				mb.RUnlock()
+				if err != nil {
+					return err
+				}
+				if !f(msgs) {
+					return nil
 				}
 			}
 		}
@@ -253,6 +255,18 @@ func (fs *Store) mboxFromHash(hash string) *mbox {
 	}
 }
 
+// getPooledReader pulls a buffered reader from the fs.bufReaderPool.
+func (fs *Store) getPooledReader(r io.Reader) *bufio.Reader {
+	br := fs.bufReaderPool.Get().(*bufio.Reader)
+	br.Reset(r)
+	return br
+}
+
+// putPooledReader returns a buffered reader to the fs.bufReaderPool.
+func (fs *Store) putPooledReader(br *bufio.Reader) {
+	fs.bufReaderPool.Put(br)
+}
+
 // generatePrefix converts a Time object into the ISO style format we use
 // as a prefix for message files.  Note:  It is used directly by unit
 // tests.
@@ -261,7 +275,16 @@ func generatePrefix(date time.Time) string {
 }
 
 // generateId adds a 4-digit unique number onto the end of the string
-// returned by generatePrefix()
+// returned by generatePrefix().
 func generateID(date time.Time) string {
 	return generatePrefix(date) + "-" + fmt.Sprintf("%04d", <-countChannel)
+}
+
+// readDirNames returns a slice of filenames in the specified directory or an error.
+func readDirNames(elem ...string) ([]string, error) {
+	f, err := os.Open(filepath.Join(elem...))
+	if err != nil {
+		return nil, err
+	}
+	return f.Readdirnames(0)
 }

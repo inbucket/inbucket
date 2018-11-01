@@ -27,6 +27,7 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 		{"metadata", testMetadata, config.Storage{}},
 		{"content", testContent, config.Storage{}},
 		{"delivery order", testDeliveryOrder, config.Storage{}},
+		{"latest", testLatest, config.Storage{}},
 		{"naming", testNaming, config.Storage{}},
 		{"size", testSize, config.Storage{}},
 		{"seen", testSeen, config.Storage{}},
@@ -192,6 +193,29 @@ func testDeliveryOrder(t *testing.T, store storage.Store) {
 	}
 }
 
+// testLatest delivers several messages to the same mailbox, and confirms the id `latest` returns
+// the last message sent.
+func testLatest(t *testing.T, store storage.Store) {
+	mailbox := "fred"
+	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
+	for _, subj := range subjects {
+		DeliverToStore(t, store, mailbox, subj, time.Now())
+	}
+	// Confirm latest.
+	latest, err := store.GetMessage(mailbox, "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if latest == nil {
+		t.Fatalf("Got nil message, wanted most recent message for %v.", mailbox)
+	}
+	got := latest.Subject()
+	want := "echo"
+	if got != want {
+		t.Errorf("Got subject %q, want %q", got, want)
+	}
+}
+
 // testNaming ensures the store does not enforce local part mailbox naming.
 func testNaming(t *testing.T, store storage.Store) {
 	DeliverToStore(t, store, "fred@fish.net", "disk #27", time.Now())
@@ -199,7 +223,7 @@ func testNaming(t *testing.T, store storage.Store) {
 	GetAndCountMessages(t, store, "fred@fish.net", 1)
 }
 
-// testSize verifies message contnet size metadata values.
+// testSize verifies message content size metadata values.
 func testSize(t *testing.T, store storage.Store) {
 	mailbox := "fred"
 	subjects := []string{"a", "br", "much longer than the others"}

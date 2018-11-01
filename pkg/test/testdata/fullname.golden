@@ -1,0 +1,12 @@
+Mailbox: recipient
+From: From User <fromuser@inbucket.org>
+To: [Rec I. Pient <recipient@inbucket.org>]
+Subject: basic subject
+Size: 246
+
+BODY TEXT:
+Basic message.
+
+
+BODY HTML:
+

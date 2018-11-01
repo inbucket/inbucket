@@ -92,6 +92,17 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 
 // GetMessage gets a mesage.
 func (s *Store) GetMessage(mailbox, id string) (m storage.Message, err error) {
+	if id == "latest" {
+		ms, err := s.GetMessages(mailbox)
+		if err != nil {
+			return nil, err
+		}
+		count := len(ms)
+		if count == 0 {
+			return nil, nil
+		}
+		return ms[count-1], nil
+	}
 	s.withMailbox(mailbox, false, func(mb *mbox) {
 		var ok bool
 		m, ok = mb.messages[id]

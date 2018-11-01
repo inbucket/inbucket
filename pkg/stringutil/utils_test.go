@@ -17,10 +17,14 @@ func TestHashMailboxName(t *testing.T) {
 
 func TestStringAddressList(t *testing.T) {
 	input := []*mail.Address{
-		{Name: "Fred B. Fish", Address: "fred@fish.org"},
+		{Name: "Fred ß. Fish", Address: "fred@fish.org"},
 		{Name: "User", Address: "user@domain.org"},
+		{Address: "a@b.com"},
 	}
-	want := []string{`"Fred B. Fish" <fred@fish.org>`, `"User" <user@domain.org>`}
+	want := []string{
+		`Fred ß. Fish <fred@fish.org>`,
+		`User <user@domain.org>`,
+		`<a@b.com>`}
 	output := stringutil.StringAddressList(input)
 	if len(output) != len(want) {
 		t.Fatalf("Got %v strings, want: %v", len(output), len(want))

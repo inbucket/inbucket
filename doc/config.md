@@ -21,6 +21,9 @@ variables it supports:
     INBUCKET_SMTP_STOREDOMAINS                              Domains to store mail for
     INBUCKET_SMTP_DISCARDDOMAINS                            Domains to discard mail for
     INBUCKET_SMTP_TIMEOUT               300s                Idle network timeout
+    INBUCKET_SMTP_TLSENABLED            false               Enable STARTTLS option
+    INBUCKET_SMTP_TLSPRIVKEY            cert.key            X509 Private Key file for TLS Support
+    INBUCKET_SMTP_TLSCERT               cert.crt            X509 Public Certificate file for TLS Support
     INBUCKET_POP3_ADDR                  0.0.0.0:1100        POP3 server IP4 host:port
     INBUCKET_POP3_DOMAIN                inbucket            HELLO domain
     INBUCKET_POP3_TIMEOUT               600s                Idle network timeout
@@ -32,6 +35,7 @@ variables it supports:
     INBUCKET_WEB_COOKIEAUTHKEY                              Session cipher key (text)
     INBUCKET_WEB_MONITORVISIBLE         true                Show monitor tab in UI?
     INBUCKET_WEB_MONITORHISTORY         30                  Monitor remembered messages
+    INBUCKET_WEB_PPROF                  false               Expose profiling tools on /debug/pprof
     INBUCKET_STORAGE_TYPE               memory              Storage impl: file or memory
     INBUCKET_STORAGE_PARAMS                                 Storage impl parameters, see docs.
     INBUCKET_STORAGE_RETENTIONPERIOD    24h                 Duration to retain messages
@@ -202,6 +206,36 @@ to the public internet.
 - Default: `300s`
 - Values: Duration ending in `s` for seconds, `m` for minutes
 
+### TLS Support Availability
+
+`INBUCKET_SMTP_TLSENABLED`
+
+Enable the STARTTLS option for opportunistic TLS support
+
+- Default: `false`
+- Values: `true` or `false`
+
+### TLS Private Key File
+
+`INBUCKET_SMTP_TLSPRIVKEY`
+
+Specify the x509 Private key file to be used for TLS negotiation.
+This option is only valid when INBUCKET_SMTP_TLSENABLED is enabled.
+
+- Default: `cert.key`
+- Values: filename or path to private key
+- Example: `server.privkey`
+
+### TLS Public Certificate File
+
+`INBUCKET_SMTP_TLSPRIVKEY`
+
+Specify the x509 Certificate file to be used for TLS negotiation.
+This option is only valid when INBUCKET_SMTP_TLSENABLED is enabled.
+
+- Default: `cert.crt`
+- Values: filename or path to the certificate key
+- Example: `server.crt`
 
 ## POP3
 
@@ -343,6 +377,20 @@ them.
 
 - Default: `30`
 - Values: Integer greater than or equal to 0
+
+### Performance Profiling & Debug Tools
+
+`INBUCKET_WEB_PPROF`
+
+If true, Go's pprof package will be installed to the `/debug/pprof` URI.  This
+exposes detailed memory and CPU performance data for debugging Inbucket.  If you
+enable this option, please make sure it is not exposed to the public internet,
+as its use can significantly impact performance.
+
+For example usage, see https://golang.org/pkg/net/http/pprof/
+
+- Default: `false`
+- Values: `true` or `false`
 
 
 ## Storage

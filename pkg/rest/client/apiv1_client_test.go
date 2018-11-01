@@ -1,183 +1,259 @@
-package client
+package client_test
 
-import "testing"
+import (
+	"github.com/gorilla/mux"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/jhillyerd/inbucket/pkg/rest/client"
+)
 
 func TestClientV1ListMailbox(t *testing.T) {
-	var want, got string
+	// Setup.
+	c, router, teardown := setup()
+	defer teardown()
 
-	c, err := New(baseURLStr)
+	listHandler := &jsonHandler{json: `[
+		{
+			"mailbox": "testbox",
+			"id": "1",
+			"from": "fromuser",
+			"subject": "test subject",
+			"date": "2013-10-15T16:12:02.231532239-07:00",
+			"size": 264,
+			"seen": true
+		}
+	]`}
+
+	router.Path("/api/v1/mailbox/testbox").Methods("GET").Handler(listHandler)
+
+	// Method under test.
+	headers, err := c.ListMailbox("testbox")
 	if err != nil {
 		t.Fatal(err)
 	}
-	mth := &mockHTTPClient{}
-	c.client = mth
 
-	// Method under test
-	_, _ = c.ListMailbox("testbox")
+	if len(headers) != 1 {
+		t.Fatalf("Got %v headers, want 1", len(headers))
+	}
+	h := headers[0]
 
-	want = "GET"
-	got = mth.req.Method
+	got := h.Mailbox
+	want := "testbox"
 	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
+		t.Errorf("Mailbox got %q, want %q", got, want)
 	}
 
-	want = baseURLStr + "/api/v1/mailbox/testbox"
-	got = mth.req.URL.String()
+	got = h.ID
+	want = "1"
 	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
+		t.Errorf("ID got %q, want %q", got, want)
+	}
+
+	got = h.From
+	want = "fromuser"
+	if got != want {
+		t.Errorf("From got %q, want %q", got, want)
+	}
+
+	got = h.Subject
+	want = "test subject"
+	if got != want {
+		t.Errorf("Subject got %q, want %q", got, want)
+	}
+
+	gotTime := h.Date
+	wantTime := time.Date(2013, 10, 15, 16, 12, 02, 231532239, time.FixedZone("UTC-7", -7*60*60))
+	if !wantTime.Equal(gotTime) {
+		t.Errorf("Date got %v, want %v", gotTime, wantTime)
+	}
+
+	gotInt := h.Size
+	wantInt := int64(264)
+	if gotInt != wantInt {
+		t.Errorf("Size got %v, want %v", gotInt, wantInt)
+	}
+
+	wantBool := true
+	gotBool := h.Seen
+	if gotBool != wantBool {
+		t.Errorf("Seen got %v, want %v", gotBool, wantBool)
 	}
 }
 
 func TestClientV1GetMessage(t *testing.T) {
-	var want, got string
+	// Setup.
+	c, router, teardown := setup()
+	defer teardown()
 
-	c, err := New(baseURLStr)
+	messageHandler := &jsonHandler{json: `{
+		"mailbox": "testbox",
+		"id": "20170107T224128-0000",
+		"from": "fromuser",
+		"subject": "test subject",
+		"date": "2013-10-15T16:12:02.231532239-07:00",
+		"size": 264,
+		"seen": true,
+		"body": {
+			"text": "Plain text",
+			"html": "<html>"
+		}
+	}`}
+
+	router.Path("/api/v1/mailbox/testbox/20170107T224128-0000").Methods("GET").Handler(messageHandler)
+
+	// Method under test.
+	m, err := c.GetMessage("testbox", "20170107T224128-0000")
 	if err != nil {
 		t.Fatal(err)
 	}
-	mth := &mockHTTPClient{}
-	c.client = mth
-
-	// Method under test
-	_, _ = c.GetMessage("testbox", "20170107T224128-0000")
-
-	want = "GET"
-	got = mth.req.Method
-	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
+	if m == nil {
+		t.Fatalf("message was nil, wanted a value")
 	}
 
-	want = baseURLStr + "/api/v1/mailbox/testbox/20170107T224128-0000"
-	got = mth.req.URL.String()
+	got := m.Mailbox
+	want := "testbox"
 	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
+		t.Errorf("Mailbox got %q, want %q", got, want)
+	}
+
+	got = m.ID
+	want = "20170107T224128-0000"
+	if got != want {
+		t.Errorf("ID got %q, want %q", got, want)
+	}
+
+	got = m.From
+	want = "fromuser"
+	if got != want {
+		t.Errorf("From got %q, want %q", got, want)
+	}
+
+	got = m.Subject
+	want = "test subject"
+	if got != want {
+		t.Errorf("Subject got %q, want %q", got, want)
+	}
+
+	gotTime := m.Date
+	wantTime := time.Date(2013, 10, 15, 16, 12, 02, 231532239, time.FixedZone("UTC-7", -7*60*60))
+	if !wantTime.Equal(gotTime) {
+		t.Errorf("Date got %v, want %v", gotTime, wantTime)
+	}
+
+	gotInt := m.Size
+	wantInt := int64(264)
+	if gotInt != wantInt {
+		t.Errorf("Size got %v, want %v", gotInt, wantInt)
+	}
+
+	gotBool := m.Seen
+	wantBool := true
+	if gotBool != wantBool {
+		t.Errorf("Seen got %v, want %v", gotBool, wantBool)
+	}
+
+	got = m.Body.Text
+	want = "Plain text"
+	if got != want {
+		t.Errorf("Body Text got %q, want %q", got, want)
+	}
+
+	got = m.Body.HTML
+	want = "<html>"
+	if got != want {
+		t.Errorf("Body HTML got %q, want %q", got, want)
 	}
 }
 
 func TestClientV1MarkSeen(t *testing.T) {
-	var want, got string
+	// Setup.
+	c, router, teardown := setup()
+	defer teardown()
 
-	c, err := New(baseURLStr)
+	handler := &jsonHandler{}
+	router.Path("/api/v1/mailbox/testbox/20170107T224128-0000").Methods("PATCH").
+		Handler(handler)
+
+	// Method under test.
+	err := c.MarkSeen("testbox", "20170107T224128-0000")
 	if err != nil {
 		t.Fatal(err)
 	}
-	mth := &mockHTTPClient{}
-	c.client = mth
 
-	// Method under test
-	_ = c.MarkSeen("testbox", "20170107T224128-0000")
-
-	want = "PATCH"
-	got = mth.req.Method
-	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
-	}
-
-	want = baseURLStr + "/api/v1/mailbox/testbox/20170107T224128-0000"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
+	if !handler.called {
+		t.Error("Wanted HTTP handler to be called, but it was not")
 	}
 }
 
 func TestClientV1GetMessageSource(t *testing.T) {
-	var want, got string
+	// Setup.
+	c, router, teardown := setup()
+	defer teardown()
 
-	c, err := New(baseURLStr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	mth := &mockHTTPClient{
-		body: "message source",
-	}
-	c.client = mth
+	router.Path("/api/v1/mailbox/testbox/20170107T224128-0000/source").Methods("GET").
+		Handler(&jsonHandler{json: `message source`})
 
-	// Method under test
+	// Method under test.
 	source, err := c.GetMessageSource("testbox", "20170107T224128-0000")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want = "GET"
-	got = mth.req.Method
+	want := "message source"
+	got := source.String()
 	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
-	}
-
-	want = baseURLStr + "/api/v1/mailbox/testbox/20170107T224128-0000/source"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
-	}
-
-	want = "message source"
-	got = source.String()
-	if got != want {
-		t.Errorf("Source == %q, want: %q", got, want)
+		t.Errorf("Source got %q, want %q", got, want)
 	}
 }
 
 func TestClientV1DeleteMessage(t *testing.T) {
-	var want, got string
+	// Setup.
+	c, router, teardown := setup()
+	defer teardown()
 
-	c, err := New(baseURLStr)
+	handler := &jsonHandler{}
+	router.Path("/api/v1/mailbox/testbox/20170107T224128-0000").Methods("DELETE").
+		Handler(handler)
+
+	// Method under test.
+	err := c.DeleteMessage("testbox", "20170107T224128-0000")
 	if err != nil {
 		t.Fatal(err)
 	}
-	mth := &mockHTTPClient{}
-	c.client = mth
 
-	// Method under test
-	err = c.DeleteMessage("testbox", "20170107T224128-0000")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	want = "DELETE"
-	got = mth.req.Method
-	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
-	}
-
-	want = baseURLStr + "/api/v1/mailbox/testbox/20170107T224128-0000"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
+	if !handler.called {
+		t.Error("Wanted HTTP handler to be called, but it was not")
 	}
 }
 
 func TestClientV1PurgeMailbox(t *testing.T) {
-	var want, got string
+	// Setup.
+	c, router, teardown := setup()
+	defer teardown()
 
-	c, err := New(baseURLStr)
+	handler := &jsonHandler{}
+	router.Path("/api/v1/mailbox/testbox").Methods("DELETE").Handler(handler)
+
+	// Method under test.
+	err := c.PurgeMailbox("testbox")
 	if err != nil {
 		t.Fatal(err)
 	}
-	mth := &mockHTTPClient{}
-	c.client = mth
 
-	// Method under test
-	err = c.PurgeMailbox("testbox")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	want = "DELETE"
-	got = mth.req.Method
-	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
-	}
-
-	want = baseURLStr + "/api/v1/mailbox/testbox"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
+	if !handler.called {
+		t.Error("Wanted HTTP handler to be called, but it was not")
 	}
 }
 
 func TestClientV1MessageHeader(t *testing.T) {
-	var want, got string
-	response := `[
+	// Setup.
+	c, router, teardown := setup()
+	defer teardown()
+
+	listHandler := &jsonHandler{json: `[
 		{
 			"mailbox":"mailbox1",
 			"id":"id1",
@@ -187,31 +263,13 @@ func TestClientV1MessageHeader(t *testing.T) {
 			"size":100,
 			"seen":true
 		}
-	]`
+	]`}
+	router.Path("/api/v1/mailbox/testbox").Methods("GET").Handler(listHandler)
 
-	c, err := New(baseURLStr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	mth := &mockHTTPClient{body: response}
-	c.client = mth
-
-	// Method under test
+	// Method under test.
 	headers, err := c.ListMailbox("testbox")
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	want = "GET"
-	got = mth.req.Method
-	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
-	}
-
-	want = baseURLStr + "/api/v1/mailbox/testbox"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
 	}
 
 	if len(headers) != 1 {
@@ -219,83 +277,38 @@ func TestClientV1MessageHeader(t *testing.T) {
 	}
 	header := headers[0]
 
-	want = "mailbox1"
-	got = header.Mailbox
-	if got != want {
-		t.Errorf("Mailbox == %q, want %q", got, want)
-	}
-
-	want = "id1"
-	got = header.ID
-	if got != want {
-		t.Errorf("ID == %q, want %q", got, want)
-	}
-
-	want = "from1"
-	got = header.From
-	if got != want {
-		t.Errorf("From == %q, want %q", got, want)
-	}
-
-	want = "subject1"
-	got = header.Subject
-	if got != want {
-		t.Errorf("Subject == %q, want %q", got, want)
-	}
-
-	wantb := true
-	gotb := header.Seen
-	if gotb != wantb {
-		t.Errorf("Seen == %v, want %v", gotb, wantb)
-	}
-
-	// Test MessageHeader.Delete()
-	mth.body = ""
+	// Test MessageHeader.Delete().
+	handler := &jsonHandler{}
+	router.Path("/api/v1/mailbox/mailbox1/id1").Methods("DELETE").Handler(handler)
 	err = header.Delete()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want = "DELETE"
-	got = mth.req.Method
-	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
-	}
-
-	want = baseURLStr + "/api/v1/mailbox/mailbox1/id1"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
-	}
-
-	// Test MessageHeader.GetSource()
-	mth.body = "source1"
-	_, err = header.GetSource()
+	// Test MessageHeader.GetSource().
+	router.Path("/api/v1/mailbox/mailbox1/id1/source").Methods("GET").
+		Handler(&jsonHandler{json: `source1`})
+	buf, err := header.GetSource()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want = "GET"
-	got = mth.req.Method
+	want := "source1"
+	got := buf.String()
 	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
+		t.Errorf("Got source %q, want %q", got, want)
 	}
 
-	want = baseURLStr + "/api/v1/mailbox/mailbox1/id1/source"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
-	}
-
-	// Test MessageHeader.GetMessage()
-	mth.body = `{
+	// Test MessageHeader.GetMessage().
+	messageHandler := &jsonHandler{json: `{
 		"mailbox":"mailbox1",
 		"id":"id1",
 		"from":"from1",
 		"subject":"subject1",
 		"date":"2017-01-01T00:00:00.000-07:00",
 		"size":100
-	}`
+	}`}
+	router.Path("/api/v1/mailbox/mailbox1/id1").Methods("GET").Handler(messageHandler)
 	message, err := header.GetMessage()
 	if err != nil {
 		t.Fatal(err)
@@ -304,53 +317,45 @@ func TestClientV1MessageHeader(t *testing.T) {
 		t.Fatalf("message was nil, wanted a value")
 	}
 
-	want = "GET"
-	got = mth.req.Method
-	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
-	}
-
-	want = baseURLStr + "/api/v1/mailbox/mailbox1/id1"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
-	}
-
-	// Test Message.Delete()
-	mth.body = ""
+	// Test Message.Delete().
 	err = message.Delete()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want = "DELETE"
-	got = mth.req.Method
-	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
-	}
-
-	want = baseURLStr + "/api/v1/mailbox/mailbox1/id1"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
-	}
-
-	// Test MessageHeader.GetSource()
-	mth.body = "source1"
-	_, err = message.GetSource()
+	// Test Message.GetSource().
+	buf, err = message.GetSource()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want = "GET"
-	got = mth.req.Method
+	want = "source1"
+	got = buf.String()
 	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
+		t.Errorf("Got source %q, want %q", got, want)
 	}
+}
 
-	want = baseURLStr + "/api/v1/mailbox/mailbox1/id1/source"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
+// setup returns a client, router and server for API testing.
+func setup() (c *client.Client, router *mux.Router, teardown func()) {
+	router = mux.NewRouter()
+	server := httptest.NewServer(router)
+	c, err := client.New(server.URL)
+	if err != nil {
+		panic(err)
 	}
+	return c, router, func() {
+		server.Close()
+	}
+}
+
+// jsonHandler returns the string in json when servicing a request.
+type jsonHandler struct {
+	json   string
+	called bool
+}
+
+func (j *jsonHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	j.called = true
+	w.Write([]byte(j.json))
 }

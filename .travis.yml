@@ -24,4 +24,3 @@ deploy:
   script: etc/travis-deploy.sh
   on:
     tags: true
-    branch: master

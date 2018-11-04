@@ -26,8 +26,13 @@ type Body
 
 type State
     = NoSelection
-    | Selected String
+    | Selected MessageID
     | Viewing Visible
+    | Transitioning Visible MessageID
+
+
+type alias MessageID =
+    String
 
 
 type alias Visible =
@@ -44,9 +49,14 @@ type alias Model =
     }
 
 
-init : String -> Maybe String -> Model
-init name id =
-    Model name NoSelection [] SafeHtmlBody
+init : String -> Maybe MessageID -> Model
+init name selection =
+    case selection of
+        Just id ->
+            Model name (Selected id) [] SafeHtmlBody
+
+        Nothing ->
+            Model name NoSelection [] SafeHtmlBody
 
 
 load : String -> Cmd Msg
@@ -79,8 +89,8 @@ subscriptions model =
 
 
 type Msg
-    = ClickMessage String
-    | ViewMessage String
+    = ClickMessage MessageID
+    | ViewMessage MessageID
     | DeleteMessage Message
     | DeleteMessageResult (Result Http.Error ())
     | MailboxResult (Result Http.Error (List MessageHeader))
@@ -95,7 +105,7 @@ update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
     case msg of
         ClickMessage id ->
-            ( { model | state = Selected id }
+            ( updateSelected model id
             , Cmd.batch
                 [ Route.newUrl (Route.Message model.name id)
                 , getMessage model.name id
@@ -104,7 +114,7 @@ update session msg model =
             )
 
         ViewMessage id ->
-            ( { model | state = Selected id }
+            ( updateSelected model id
             , getMessage model.name id
             , Session.AddRecent model.name
             )
@@ -200,6 +210,17 @@ update session msg model =
                     ( model, Cmd.none, Session.none )
 
 
+updateSelected : Model -> MessageID -> Model
+updateSelected model id =
+    case model.state of
+        Viewing visible ->
+            -- Use Transitioning state to prevent message flicker.
+            { model | state = Transitioning visible id }
+
+        _ ->
+            { model | state = Selected id }
+
+
 getMailbox : String -> Cmd Msg
 getMailbox name =
     let
@@ -229,7 +250,7 @@ deleteMessage model msg =
         )
 
 
-getMessage : String -> String -> Cmd Msg
+getMessage : String -> MessageID -> Cmd Msg
 getMessage mailbox id =
     let
         url =
@@ -301,6 +322,9 @@ view session model =
                 Viewing { message } ->
                     viewMessage message model.bodyMode
 
+                Transitioning { message } _ ->
+                    viewMessage message model.bodyMode
+
                 _ ->
                     text ""
             ]
@@ -324,7 +348,7 @@ messageList model =
         div [] (List.map (messageChip selected) (List.reverse model.headers))
 
 
-messageChip : Maybe String -> MessageHeader -> Html Msg
+messageChip : Maybe MessageID -> MessageHeader -> Html Msg
 messageChip selected msg =
     div
         [ classList

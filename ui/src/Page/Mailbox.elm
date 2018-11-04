@@ -28,15 +28,18 @@ type alias Model =
     { name : String
     , selected : Maybe String
     , headers : List MessageHeader
-    , message : Maybe Message
+    , visible :
+        Maybe
+            { message : Message
+            , markSeenAt : Maybe Time
+            }
     , bodyMode : Body
-    , markSeenAt : Maybe Time
     }
 
 
 init : String -> Maybe String -> Model
 init name id =
-    Model name id [] Nothing SafeHtmlBody Nothing
+    Model name id [] Nothing SafeHtmlBody
 
 
 load : String -> Cmd Msg
@@ -53,9 +56,14 @@ load name =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.markSeenAt of
-        Just time ->
-            Time.every (250 * Time.millisecond) Tick
+    case model.visible of
+        Just { message, markSeenAt } ->
+            case markSeenAt of
+                Just time ->
+                    Time.every (250 * Time.millisecond) Tick
+
+                Nothing ->
+                    Sub.none
 
         Nothing ->
             Sub.none
@@ -136,7 +144,7 @@ update session msg model =
                         model.bodyMode
             in
                 ( { model
-                    | message = Just msg
+                    | visible = Just { message = msg, markSeenAt = Nothing }
                     , bodyMode = bodyMode
                   }
                 , Task.perform OpenedTime Time.now
@@ -150,16 +158,19 @@ update session msg model =
             ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
 
         OpenedTime time ->
-            case model.message of
-                Just message ->
-                    if message.seen then
-                        ( { model | markSeenAt = Nothing }
-                        , Cmd.none
-                        , Session.none
-                        )
+            case model.visible of
+                Just visible ->
+                    if visible.message.seen then
+                        ( model, Cmd.none, Session.none )
                     else
                         -- Set delay to report message as seen to backend.
-                        ( { model | markSeenAt = Just (time + (1.5 * Time.second)) }
+                        ( { model
+                            | visible =
+                                Just
+                                    { visible
+                                        | markSeenAt = Just (time + (1.5 * Time.second))
+                                    }
+                          }
                         , Cmd.none
                         , Session.none
                         )
@@ -167,15 +178,20 @@ update session msg model =
                 Nothing ->
                     ( model, Cmd.none, Session.none )
 
-        Tick time ->
-            case ( model.message, model.markSeenAt ) of
-                ( Just message, Just markSeenAt ) ->
-                    if time > markSeenAt then
-                        markMessageSeen model message
-                    else
-                        ( model, Cmd.none, Session.none )
+        Tick now ->
+            case model.visible of
+                Just { message, markSeenAt } ->
+                    case markSeenAt of
+                        Just deadline ->
+                            if now >= deadline then
+                                markMessageSeen model message
+                            else
+                                ( model, Cmd.none, Session.none )
 
-                _ ->
+                        Nothing ->
+                            ( model, Cmd.none, Session.none )
+
+                Nothing ->
                     ( model, Cmd.none, Session.none )
 
 
@@ -200,7 +216,7 @@ deleteMessage model msg =
                 |> Http.send DeleteMessageResult
     in
         ( { model
-            | message = Nothing
+            | visible = Nothing
             , selected = Nothing
             , headers = List.filter (\x -> x.id /= msg.id) model.headers
           }
@@ -221,31 +237,36 @@ getMessage mailbox id =
 
 markMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
 markMessageSeen model message =
-    let
-        updateSeen header =
-            if header.id == message.id then
-                { header | seen = True }
-            else
-                header
+    case model.visible of
+        Just visible ->
+            let
+                updateSeen header =
+                    if header.id == message.id then
+                        { header | seen = True }
+                    else
+                        header
 
-        url =
-            "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
+                url =
+                    "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
 
-        command =
-            -- The URL tells the API what message to update, so we only need to indicate the
-            -- desired change in the body.
-            Encode.object [ ( "seen", Encode.bool True ) ]
-                |> Http.jsonBody
-                |> HttpUtil.patch url
-                |> Http.send MarkSeenResult
-    in
-        ( { model
-            | markSeenAt = Nothing
-            , headers = List.map updateSeen model.headers
-          }
-        , command
-        , Session.None
-        )
+                command =
+                    -- The URL tells the API what message to update, so we only need to indicate the
+                    -- desired change in the body.
+                    Encode.object [ ( "seen", Encode.bool True ) ]
+                        |> Http.jsonBody
+                        |> HttpUtil.patch url
+                        |> Http.send MarkSeenResult
+            in
+                ( { model
+                    | visible = Just { visible | markSeenAt = Nothing }
+                    , headers = List.map updateSeen model.headers
+                  }
+                , command
+                , Session.None
+                )
+
+        Nothing ->
+            ( model, Cmd.none, Session.none )
 
 
 
@@ -258,8 +279,8 @@ view session model =
         [ aside [ id "message-list" ] [ messageList model ]
         , main_
             [ id "message" ]
-            [ case model.message of
-                Just message ->
+            [ case model.visible of
+                Just { message } ->
                     viewMessage message model.bodyMode
 
                 Nothing ->

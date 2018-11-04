@@ -18,9 +18,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Handler is a function type that handles an HTTP request in Inbucket
-type Handler func(http.ResponseWriter, *http.Request, *Context) error
-
 const (
 	staticDir   = "static"
 	templateDir = "templates"
@@ -79,6 +76,9 @@ func Initialize(
 	}
 	// If no other route matches, attempt to service as UI element.
 	Router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(conf.Web.UIDir))))
+	Router.NotFoundHandler = noMatchHandler(http.StatusNotFound, "No route matches URI path")
+	Router.MethodNotAllowedHandler = noMatchHandler(http.StatusMethodNotAllowed,
+		"Method not allowed for URI path")
 
 	// Session cookie setup
 	if conf.Web.CookieAuthKey == "" {
@@ -96,7 +96,7 @@ func Initialize(
 func Start(ctx context.Context) {
 	server = &http.Server{
 		Addr:         rootConfig.Web.Addr,
-		Handler:      Router,
+		Handler:      requestLoggingWrapper(Router),
 		ReadTimeout:  60 * time.Second,
 		WriteTimeout: 60 * time.Second,
 	}
@@ -142,29 +142,6 @@ func serve(ctx context.Context) {
 		log.Error().Str("module", "web").Str("phase", "startup").Err(err).
 			Msg("HTTP server failed")
 		emergencyShutdown()
-		return
-	}
-}
-
-// ServeHTTP builds the context and passes onto the real handler
-func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// Create the context
-	ctx, err := NewContext(req)
-	if err != nil {
-		log.Error().Str("module", "web").Err(err).Msg("HTTP failed to create context")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer ctx.Close()
-
-	// Run the handler, grab the error, and report it
-	log.Debug().Str("module", "web").Str("remote", req.RemoteAddr).Str("proto", req.Proto).
-		Str("method", req.Method).Str("path", req.RequestURI).Msg("Request")
-	err = h(w, req, ctx)
-	if err != nil {
-		log.Error().Str("module", "web").Str("path", req.RequestURI).Err(err).
-			Msg("Error handling request")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

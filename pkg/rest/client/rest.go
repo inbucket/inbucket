@@ -33,7 +33,7 @@ func (c *restClient) do(method, uri string, body []byte) (*http.Response, error)
 	}
 	req, err := http.NewRequest(method, url.String(), r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s for %q: %v", method, url, err)
 	}
 	return c.client.Do(req)
 }
@@ -56,7 +56,7 @@ func (c *restClient) doJSON(method string, uri string, v interface{}) error {
 		return json.NewDecoder(resp.Body).Decode(v)
 	}
 
-	return fmt.Errorf("Unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)
+	return fmt.Errorf("%s for %q, unexpected %v: %s", method, uri, resp.StatusCode, resp.Status)
 }
 
 // doJSONBody performs an HTTP request with this client and marshalls the JSON response into v.
@@ -77,5 +77,5 @@ func (c *restClient) doJSONBody(method string, uri string, body []byte, v interf
 		return json.NewDecoder(resp.Body).Decode(v)
 	}
 
-	return fmt.Errorf("Unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)
+	return fmt.Errorf("%s for %q, unexpected %v: %s", method, uri, resp.StatusCode, resp.Status)
 }

@@ -23,6 +23,8 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/storage"
 	"github.com/jhillyerd/inbucket/pkg/storage/mem"
 	"github.com/jhillyerd/inbucket/pkg/webui"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -151,6 +153,7 @@ func formatMessage(m *client.Message) []byte {
 
 func startServer() (func(), error) {
 	// TODO Refactor inbucket/main.go so we don't need to repeat all this here.
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
 	storage.Constructors["memory"] = mem.New
 	os.Clearenv()
 	conf, err := config.Process()

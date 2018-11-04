@@ -1,4 +1,4 @@
-module Page.Mailbox exposing (Model, Msg, init, load, update, view)
+module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, view)
 
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
@@ -9,9 +9,11 @@ import Html.Attributes exposing (class, classList, downloadAs, href, id, propert
 import Html.Events exposing (..)
 import Http exposing (Error)
 import HttpUtil
-import Json.Encode exposing (string)
+import Json.Encode as Encode
 import Ports
-import Route exposing (Route)
+import Route
+import Task
+import Time exposing (Time)
 
 
 -- MODEL
@@ -28,12 +30,13 @@ type alias Model =
     , headers : List MessageHeader
     , message : Maybe Message
     , bodyMode : Body
+    , markSeenAt : Maybe Time
     }
 
 
 init : String -> Maybe String -> Model
 init name id =
-    Model name id [] Nothing SafeHtmlBody
+    Model name id [] Nothing SafeHtmlBody Nothing
 
 
 load : String -> Cmd Msg
@@ -42,6 +45,20 @@ load name =
         [ Ports.windowTitle (name ++ " - Inbucket")
         , getMailbox name
         ]
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    case model.markSeenAt of
+        Just time ->
+            Time.every (250 * Time.millisecond) Tick
+
+        Nothing ->
+            Sub.none
 
 
 
@@ -54,8 +71,11 @@ type Msg
     | DeleteMessage Message
     | DeleteMessageResult (Result Http.Error ())
     | MailboxResult (Result Http.Error (List MessageHeader))
+    | MarkSeenResult (Result Http.Error ())
     | MessageResult (Result Http.Error Message)
     | MessageBody Body
+    | OpenedTime Time
+    | Tick Time
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
@@ -101,6 +121,12 @@ update session msg model =
         MailboxResult (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
+        MarkSeenResult (Ok _) ->
+            ( model, Cmd.none, Session.none )
+
+        MarkSeenResult (Err err) ->
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+
         MessageResult (Ok msg) ->
             let
                 bodyMode =
@@ -113,7 +139,7 @@ update session msg model =
                     | message = Just msg
                     , bodyMode = bodyMode
                   }
-                , Cmd.none
+                , Task.perform OpenedTime Time.now
                 , Session.none
                 )
 
@@ -122,6 +148,35 @@ update session msg model =
 
         MessageBody bodyMode ->
             ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
+
+        OpenedTime time ->
+            case model.message of
+                Just message ->
+                    if message.seen then
+                        ( { model | markSeenAt = Nothing }
+                        , Cmd.none
+                        , Session.none
+                        )
+                    else
+                        -- Set delay to report message as seen to backend.
+                        ( { model | markSeenAt = Just (time + (1.5 * Time.second)) }
+                        , Cmd.none
+                        , Session.none
+                        )
+
+                Nothing ->
+                    ( model, Cmd.none, Session.none )
+
+        Tick time ->
+            case ( model.message, model.markSeenAt ) of
+                ( Just message, Just markSeenAt ) ->
+                    if time > markSeenAt then
+                        markMessageSeen model message
+                    else
+                        ( model, Cmd.none, Session.none )
+
+                _ ->
+                    ( model, Cmd.none, Session.none )
 
 
 getMailbox : String -> Cmd Msg
@@ -162,6 +217,35 @@ getMessage mailbox id =
     in
         Http.get url Message.decoder
             |> Http.send MessageResult
+
+
+markMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
+markMessageSeen model message =
+    let
+        updateSeen header =
+            if header.id == message.id then
+                { header | seen = True }
+            else
+                header
+
+        url =
+            "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
+
+        command =
+            -- The URL tells the API what message to update, so we only need to indicate the
+            -- desired change in the body.
+            Encode.object [ ( "seen", Encode.bool True ) ]
+                |> Http.jsonBody
+                |> HttpUtil.patch url
+                |> Http.send MarkSeenResult
+    in
+        ( { model
+            | markSeenAt = Nothing
+            , headers = List.map updateSeen model.headers
+          }
+        , command
+        , Session.None
+        )
 
 
 
@@ -264,10 +348,10 @@ messageBody message bodyMode =
             , article [ class "message-body" ]
                 [ case bodyMode of
                     SafeHtmlBody ->
-                        div [ property "innerHTML" (string message.html) ] []
+                        div [ property "innerHTML" (Encode.string message.html) ] []
 
                     TextBody ->
-                        div [ property "innerHTML" (string message.text) ] []
+                        div [ property "innerHTML" (Encode.string message.text) ] []
                 ]
             ]
 

@@ -80,6 +80,9 @@ sessionChange =
 pageSubscriptions : Page -> Sub Msg
 pageSubscriptions page =
     case page of
+        Mailbox subModel ->
+            Sub.map MailboxMsg (Mailbox.subscriptions subModel)
+
         Monitor subModel ->
             Sub.map MonitorMsg (Monitor.subscriptions subModel)
 

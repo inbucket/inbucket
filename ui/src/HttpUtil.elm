@@ -16,6 +16,19 @@ delete url =
         }
 
 
+patch : String -> Http.Body -> Http.Request ()
+patch url body =
+    Http.request
+        { method = "PATCH"
+        , headers = []
+        , url = url
+        , body = body
+        , expect = Http.expectStringResponse (\_ -> Ok ())
+        , timeout = Nothing
+        , withCredentials = False
+        }
+
+
 errorString : Http.Error -> String
 errorString error =
     case error of

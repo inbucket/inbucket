@@ -35,8 +35,7 @@ func TestSuite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = stopServer
-	// defer stopServer()
+	defer stopServer()
 
 	testCases := []struct {
 		name string

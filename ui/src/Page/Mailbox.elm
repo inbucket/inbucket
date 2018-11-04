@@ -24,22 +24,29 @@ type Body
     | SafeHtmlBody
 
 
+type State
+    = NoSelection
+    | Selected String
+    | Viewing Visible
+
+
+type alias Visible =
+    { message : Message
+    , markSeenAt : Maybe Time
+    }
+
+
 type alias Model =
     { name : String
-    , selected : Maybe String
+    , state : State
     , headers : List MessageHeader
-    , visible :
-        Maybe
-            { message : Message
-            , markSeenAt : Maybe Time
-            }
     , bodyMode : Body
     }
 
 
 init : String -> Maybe String -> Model
 init name id =
-    Model name id [] Nothing SafeHtmlBody
+    Model name NoSelection [] SafeHtmlBody
 
 
 load : String -> Cmd Msg
@@ -56,16 +63,14 @@ load name =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.visible of
-        Just { message, markSeenAt } ->
-            case markSeenAt of
-                Just time ->
-                    Time.every (250 * Time.millisecond) Tick
+    case model.state of
+        Viewing { message } ->
+            if message.seen then
+                Sub.none
+            else
+                Time.every (250 * Time.millisecond) Tick
 
-                Nothing ->
-                    Sub.none
-
-        Nothing ->
+        _ ->
             Sub.none
 
 
@@ -90,7 +95,7 @@ update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
     case msg of
         ClickMessage id ->
-            ( { model | selected = Just id }
+            ( { model | state = Selected id }
             , Cmd.batch
                 [ Route.newUrl (Route.Message model.name id)
                 , getMessage model.name id
@@ -99,7 +104,7 @@ update session msg model =
             )
 
         ViewMessage id ->
-            ( { model | selected = Just id }
+            ( { model | state = Selected id }
             , getMessage model.name id
             , Session.AddRecent model.name
             )
@@ -118,13 +123,13 @@ update session msg model =
                 newModel =
                     { model | headers = headers }
             in
-                case model.selected of
-                    Nothing ->
-                        ( newModel, Cmd.none, Session.AddRecent model.name )
-
-                    Just id ->
+                case model.state of
+                    Selected id ->
                         -- Recurse to select message id.
                         update session (ViewMessage id) newModel
+
+                    _ ->
+                        ( newModel, Cmd.none, Session.AddRecent model.name )
 
         MailboxResult (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
@@ -144,7 +149,7 @@ update session msg model =
                         model.bodyMode
             in
                 ( { model
-                    | visible = Just { message = msg, markSeenAt = Nothing }
+                    | state = Viewing { message = msg, markSeenAt = Nothing }
                     , bodyMode = bodyMode
                   }
                 , Task.perform OpenedTime Time.now
@@ -158,15 +163,15 @@ update session msg model =
             ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
 
         OpenedTime time ->
-            case model.visible of
-                Just visible ->
+            case model.state of
+                Viewing visible ->
                     if visible.message.seen then
                         ( model, Cmd.none, Session.none )
                     else
                         -- Set delay to report message as seen to backend.
                         ( { model
-                            | visible =
-                                Just
+                            | state =
+                                Viewing
                                     { visible
                                         | markSeenAt = Just (time + (1.5 * Time.second))
                                     }
@@ -175,12 +180,12 @@ update session msg model =
                         , Session.none
                         )
 
-                Nothing ->
+                _ ->
                     ( model, Cmd.none, Session.none )
 
         Tick now ->
-            case model.visible of
-                Just { message, markSeenAt } ->
+            case model.state of
+                Viewing { message, markSeenAt } ->
                     case markSeenAt of
                         Just deadline ->
                             if now >= deadline then
@@ -191,7 +196,7 @@ update session msg model =
                         Nothing ->
                             ( model, Cmd.none, Session.none )
 
-                Nothing ->
+                _ ->
                     ( model, Cmd.none, Session.none )
 
 
@@ -216,8 +221,7 @@ deleteMessage model msg =
                 |> Http.send DeleteMessageResult
     in
         ( { model
-            | visible = Nothing
-            , selected = Nothing
+            | state = NoSelection
             , headers = List.filter (\x -> x.id /= msg.id) model.headers
           }
         , cmd
@@ -237,9 +241,12 @@ getMessage mailbox id =
 
 markMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
 markMessageSeen model message =
-    case model.visible of
-        Just visible ->
+    case model.state of
+        Viewing visible ->
             let
+                message =
+                    visible.message
+
                 updateSeen header =
                     if header.id == message.id then
                         { header | seen = True }
@@ -258,14 +265,19 @@ markMessageSeen model message =
                         |> Http.send MarkSeenResult
             in
                 ( { model
-                    | visible = Just { visible | markSeenAt = Nothing }
+                    | state =
+                        Viewing
+                            { visible
+                                | message = { message | seen = True }
+                                , markSeenAt = Nothing
+                            }
                     , headers = List.map updateSeen model.headers
                   }
                 , command
                 , Session.None
                 )
 
-        Nothing ->
+        _ ->
             ( model, Cmd.none, Session.none )
 
 
@@ -279,22 +291,37 @@ view session model =
         [ aside [ id "message-list" ] [ messageList model ]
         , main_
             [ id "message" ]
-            [ case model.visible of
-                Just { message } ->
-                    viewMessage message model.bodyMode
-
-                Nothing ->
+            [ case model.state of
+                NoSelection ->
                     text
                         ("Select a message on the left,"
                             ++ " or enter a different username into the box on upper right."
                         )
+
+                Viewing { message } ->
+                    viewMessage message model.bodyMode
+
+                _ ->
+                    text ""
             ]
         ]
 
 
 messageList : Model -> Html Msg
 messageList model =
-    div [] (List.map (messageChip model.selected) (List.reverse model.headers))
+    let
+        selected =
+            case model.state of
+                Selected id ->
+                    Just id
+
+                Viewing { message } ->
+                    Just message.id
+
+                _ ->
+                    Nothing
+    in
+        div [] (List.map (messageChip selected) (List.reverse model.headers))
 
 
 messageChip : Maybe String -> MessageHeader -> Html Msg

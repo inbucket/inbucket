@@ -168,9 +168,9 @@ func startServer() (func(), error) {
 	addrPolicy := &policy.Addressing{Config: conf}
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
 	// Start HTTP server.
-	web.Initialize(conf, shutdownChan, mmanager, msgHub)
+	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
-	webui.SetupRoutes(web.Router)
+	web.Initialize(conf, shutdownChan, mmanager, msgHub)
 	go web.Start(rootCtx)
 	// Start SMTP server.
 	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)

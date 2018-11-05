@@ -26,14 +26,20 @@ type Body
 
 type State
     = LoadingList (Maybe MessageID)
-    | ShowingList (List MessageHeader) (Maybe MessageID)
-    | LoadingMessage (List MessageHeader) MessageID
-    | ShowingMessage (List MessageHeader) VisibleMessage
-    | Transitioning (List MessageHeader) VisibleMessage MessageID
+    | ShowingList MessageList (Maybe MessageID)
+    | LoadingMessage MessageList MessageID
+    | ShowingMessage MessageList VisibleMessage
+    | Transitioning MessageList VisibleMessage MessageID
 
 
 type alias MessageID =
     String
+
+
+type alias MessageList =
+    { headers : List MessageHeader
+    , searchFilter : String
+    }
 
 
 type alias VisibleMessage =
@@ -128,7 +134,7 @@ update session msg model =
                 LoadingList selection ->
                     let
                         newModel =
-                            { model | state = ShowingList headers selection }
+                            { model | state = ShowingList (MessageList headers "") selection }
                     in
                         case selection of
                             Just id ->
@@ -263,10 +269,15 @@ deleteMessage model msg =
         cmd =
             HttpUtil.delete url
                 |> Http.send DeleteMessageResult
+
+        filter f messageList =
+            { messageList | headers = List.filter f messageList.headers }
     in
         case model.state of
             ShowingMessage list _ ->
-                ( { model | state = ShowingList (List.filter (\x -> x.id /= msg.id) list) Nothing }
+                ( { model
+                    | state = ShowingList (filter (\x -> x.id /= msg.id) list) Nothing
+                  }
                 , cmd
                 , Session.none
                 )
@@ -309,10 +320,13 @@ markMessageSeen model message =
                         |> Http.jsonBody
                         |> HttpUtil.patch url
                         |> Http.send MarkSeenResult
+
+                map f messageList =
+                    { messageList | headers = List.map f messageList.headers }
             in
                 ( { model
                     | state =
-                        ShowingMessage (List.map updateSeen list)
+                        ShowingMessage (map updateSeen list)
                             { visible
                                 | message = { message | seen = True }
                                 , markSeenAt = Nothing
@@ -336,7 +350,7 @@ view session model =
         [ aside [ id "message-list" ]
             [ case model.state of
                 LoadingList _ ->
-                    messageList [] Nothing
+                    div [] []
 
                 ShowingList list selection ->
                     messageList list selection
@@ -371,9 +385,9 @@ view session model =
         ]
 
 
-messageList : List MessageHeader -> Maybe MessageID -> Html Msg
+messageList : MessageList -> Maybe MessageID -> Html Msg
 messageList list selected =
-    div [] (List.map (messageChip selected) (List.reverse list))
+    div [] (List.map (messageChip selected) (List.reverse list.headers))
 
 
 messageChip : Maybe MessageID -> MessageHeader -> Html Msg

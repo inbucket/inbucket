@@ -25,45 +25,40 @@ type Body
 
 
 type State
-    = NoSelection
-    | Selected MessageID
-    | Viewing Visible
-    | Transitioning Visible MessageID
+    = LoadingList (Maybe MessageID)
+    | ShowingList (List MessageHeader) (Maybe MessageID)
+    | LoadingMessage (List MessageHeader) MessageID
+    | ShowingMessage (List MessageHeader) VisibleMessage
+    | Transitioning (List MessageHeader) VisibleMessage MessageID
 
 
 type alias MessageID =
     String
 
 
-type alias Visible =
+type alias VisibleMessage =
     { message : Message
     , markSeenAt : Maybe Time
     }
 
 
 type alias Model =
-    { name : String
+    { mailboxName : String
     , state : State
-    , headers : List MessageHeader
     , bodyMode : Body
     }
 
 
 init : String -> Maybe MessageID -> Model
-init name selection =
-    case selection of
-        Just id ->
-            Model name (Selected id) [] SafeHtmlBody
-
-        Nothing ->
-            Model name NoSelection [] SafeHtmlBody
+init mailboxName selection =
+    Model mailboxName (LoadingList selection) SafeHtmlBody
 
 
 load : String -> Cmd Msg
-load name =
+load mailboxName =
     Cmd.batch
-        [ Ports.windowTitle (name ++ " - Inbucket")
-        , getMailbox name
+        [ Ports.windowTitle (mailboxName ++ " - Inbucket")
+        , getList mailboxName
         ]
 
 
@@ -74,7 +69,7 @@ load name =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.state of
-        Viewing { message } ->
+        ShowingMessage _ { message } ->
             if message.seen then
                 Sub.none
             else
@@ -93,7 +88,7 @@ type Msg
     | ViewMessage MessageID
     | DeleteMessage Message
     | DeleteMessageResult (Result Http.Error ())
-    | MailboxResult (Result Http.Error (List MessageHeader))
+    | ListResult (Result Http.Error (List MessageHeader))
     | MarkSeenResult (Result Http.Error ())
     | MessageResult (Result Http.Error Message)
     | MessageBody Body
@@ -107,16 +102,16 @@ update session msg model =
         ClickMessage id ->
             ( updateSelected model id
             , Cmd.batch
-                [ Route.newUrl (Route.Message model.name id)
-                , getMessage model.name id
+                [ Route.newUrl (Route.Message model.mailboxName id)
+                , getMessage model.mailboxName id
                 ]
             , Session.DisableRouting
             )
 
         ViewMessage id ->
             ( updateSelected model id
-            , getMessage model.name id
-            , Session.AddRecent model.name
+            , getMessage model.mailboxName id
+            , Session.AddRecent model.mailboxName
             )
 
         DeleteMessage msg ->
@@ -128,20 +123,25 @@ update session msg model =
         DeleteMessageResult (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        MailboxResult (Ok headers) ->
-            let
-                newModel =
-                    { model | headers = headers }
-            in
-                case model.state of
-                    Selected id ->
-                        -- Recurse to select message id.
-                        update session (ViewMessage id) newModel
+        ListResult (Ok headers) ->
+            case model.state of
+                LoadingList selection ->
+                    let
+                        newModel =
+                            { model | state = ShowingList headers selection }
+                    in
+                        case selection of
+                            Just id ->
+                                -- Recurse to select message id.
+                                update session (ViewMessage id) newModel
 
-                    _ ->
-                        ( newModel, Cmd.none, Session.AddRecent model.name )
+                            Nothing ->
+                                ( newModel, Cmd.none, Session.AddRecent model.mailboxName )
 
-        MailboxResult (Err err) ->
+                _ ->
+                    ( model, Cmd.none, Session.none )
+
+        ListResult (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
         MarkSeenResult (Ok _) ->
@@ -157,14 +157,31 @@ update session msg model =
                         TextBody
                     else
                         model.bodyMode
+
+                updateMessage list message =
+                    ( { model
+                        | state = ShowingMessage list { message = message, markSeenAt = Nothing }
+                        , bodyMode = bodyMode
+                      }
+                    , Task.perform OpenedTime Time.now
+                    , Session.none
+                    )
             in
-                ( { model
-                    | state = Viewing { message = msg, markSeenAt = Nothing }
-                    , bodyMode = bodyMode
-                  }
-                , Task.perform OpenedTime Time.now
-                , Session.none
-                )
+                case model.state of
+                    LoadingList _ ->
+                        ( model, Cmd.none, Session.none )
+
+                    ShowingList list _ ->
+                        updateMessage list msg
+
+                    LoadingMessage list _ ->
+                        updateMessage list msg
+
+                    ShowingMessage list _ ->
+                        updateMessage list msg
+
+                    Transitioning list _ _ ->
+                        updateMessage list msg
 
         MessageResult (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
@@ -174,14 +191,14 @@ update session msg model =
 
         OpenedTime time ->
             case model.state of
-                Viewing visible ->
+                ShowingMessage list visible ->
                     if visible.message.seen then
                         ( model, Cmd.none, Session.none )
                     else
                         -- Set delay to report message as seen to backend.
                         ( { model
                             | state =
-                                Viewing
+                                ShowingMessage list
                                     { visible
                                         | markSeenAt = Just (time + (1.5 * Time.second))
                                     }
@@ -195,7 +212,7 @@ update session msg model =
 
         Tick now ->
             case model.state of
-                Viewing { message, markSeenAt } ->
+                ShowingMessage _ { message, markSeenAt } ->
                     case markSeenAt of
                         Just deadline ->
                             if now >= deadline then
@@ -213,22 +230,28 @@ update session msg model =
 updateSelected : Model -> MessageID -> Model
 updateSelected model id =
     case model.state of
-        Viewing visible ->
+        ShowingList list _ ->
+            { model | state = LoadingMessage list id }
+
+        ShowingMessage list visible ->
             -- Use Transitioning state to prevent message flicker.
-            { model | state = Transitioning visible id }
+            { model | state = Transitioning list visible id }
+
+        Transitioning list visible _ ->
+            { model | state = Transitioning list visible id }
 
         _ ->
-            { model | state = Selected id }
+            model
 
 
-getMailbox : String -> Cmd Msg
-getMailbox name =
+getList : String -> Cmd Msg
+getList mailboxName =
     let
         url =
-            "/api/v1/mailbox/" ++ name
+            "/api/v1/mailbox/" ++ mailboxName
     in
         Http.get url (Decode.list MessageHeader.decoder)
-            |> Http.send MailboxResult
+            |> Http.send ListResult
 
 
 deleteMessage : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
@@ -241,20 +264,22 @@ deleteMessage model msg =
             HttpUtil.delete url
                 |> Http.send DeleteMessageResult
     in
-        ( { model
-            | state = NoSelection
-            , headers = List.filter (\x -> x.id /= msg.id) model.headers
-          }
-        , cmd
-        , Session.none
-        )
+        case model.state of
+            ShowingMessage list _ ->
+                ( { model | state = ShowingList (List.filter (\x -> x.id /= msg.id) list) Nothing }
+                , cmd
+                , Session.none
+                )
+
+            _ ->
+                ( model, cmd, Session.none )
 
 
 getMessage : String -> MessageID -> Cmd Msg
-getMessage mailbox id =
+getMessage mailboxName id =
     let
         url =
-            "/serve/m/" ++ mailbox ++ "/" ++ id
+            "/serve/m/" ++ mailboxName ++ "/" ++ id
     in
         Http.get url Message.decoder
             |> Http.send MessageResult
@@ -263,7 +288,7 @@ getMessage mailbox id =
 markMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
 markMessageSeen model message =
     case model.state of
-        Viewing visible ->
+        ShowingMessage list visible ->
             let
                 message =
                     visible.message
@@ -287,12 +312,11 @@ markMessageSeen model message =
             in
                 ( { model
                     | state =
-                        Viewing
+                        ShowingMessage (List.map updateSeen list)
                             { visible
                                 | message = { message | seen = True }
                                 , markSeenAt = Nothing
                             }
-                    , headers = List.map updateSeen model.headers
                   }
                 , command
                 , Session.None
@@ -309,20 +333,36 @@ markMessageSeen model message =
 view : Session -> Model -> Html Msg
 view session model =
     div [ id "page", class "mailbox" ]
-        [ aside [ id "message-list" ] [ messageList model ]
+        [ aside [ id "message-list" ]
+            [ case model.state of
+                LoadingList _ ->
+                    messageList [] Nothing
+
+                ShowingList list selection ->
+                    messageList list selection
+
+                LoadingMessage list selection ->
+                    messageList list (Just selection)
+
+                ShowingMessage list visible ->
+                    messageList list (Just visible.message.id)
+
+                Transitioning list _ selection ->
+                    messageList list (Just selection)
+            ]
         , main_
             [ id "message" ]
             [ case model.state of
-                NoSelection ->
+                ShowingList _ _ ->
                     text
                         ("Select a message on the left,"
                             ++ " or enter a different username into the box on upper right."
                         )
 
-                Viewing { message } ->
+                ShowingMessage _ { message } ->
                     viewMessage message model.bodyMode
 
-                Transitioning { message } _ ->
+                Transitioning _ { message } _ ->
                     viewMessage message model.bodyMode
 
                 _ ->
@@ -331,21 +371,9 @@ view session model =
         ]
 
 
-messageList : Model -> Html Msg
-messageList model =
-    let
-        selected =
-            case model.state of
-                Selected id ->
-                    Just id
-
-                Viewing { message } ->
-                    Just message.id
-
-                _ ->
-                    Nothing
-    in
-        div [] (List.map (messageChip selected) (List.reverse model.headers))
+messageList : List MessageHeader -> Maybe MessageID -> Html Msg
+messageList list selected =
+    div [] (List.map (messageChip selected) (List.reverse list))
 
 
 messageChip : Maybe MessageID -> MessageHeader -> Html Msg

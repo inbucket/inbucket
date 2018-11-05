@@ -243,7 +243,7 @@ view model =
         mailbox =
             case model.page of
                 Mailbox subModel ->
-                    subModel.name
+                    subModel.mailboxName
 
                 _ ->
                     ""

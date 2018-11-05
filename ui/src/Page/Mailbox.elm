@@ -122,7 +122,8 @@ update session msg model =
         ClickMessage id ->
             ( updateSelected model id
             , Cmd.batch
-                [ Route.newUrl (Route.Message model.mailboxName id)
+                [ -- Update browser location
+                  Route.newUrl (Route.Message model.mailboxName id)
                 , getMessage model.mailboxName id
                 ]
             , Session.DisableRouting
@@ -134,8 +135,8 @@ update session msg model =
             , Session.AddRecent model.mailboxName
             )
 
-        DeleteMessage msg ->
-            deleteMessage model msg
+        DeleteMessage message ->
+            updateDeleteMessage model message
 
         DeleteMessageResult (Ok _) ->
             ( model, Cmd.none, Session.none )
@@ -170,38 +171,8 @@ update session msg model =
         MarkSeenResult (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        MessageResult (Ok msg) ->
-            let
-                bodyMode =
-                    if msg.html == "" then
-                        TextBody
-                    else
-                        model.bodyMode
-
-                updateMessage list message =
-                    ( { model
-                        | state = ShowingMessage list { message = message, markSeenAt = Nothing }
-                        , bodyMode = bodyMode
-                      }
-                    , Task.perform OpenedTime Time.now
-                    , Session.none
-                    )
-            in
-                case model.state of
-                    LoadingList _ ->
-                        ( model, Cmd.none, Session.none )
-
-                    ShowingList list _ ->
-                        updateMessage list msg
-
-                    LoadingMessage list _ ->
-                        updateMessage list msg
-
-                    ShowingMessage list _ ->
-                        updateMessage list msg
-
-                    Transitioning list _ _ ->
-                        updateMessage list msg
+        MessageResult (Ok message) ->
+            updateMessageResult model message
 
         MessageResult (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
@@ -210,37 +181,7 @@ update session msg model =
             ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
 
         SearchInput searchInput ->
-            let
-                updateList list =
-                    { list
-                        | searchFilter =
-                            if String.length searchInput > 1 then
-                                searchInput
-                            else
-                                ""
-                    }
-
-                updateModel state =
-                    ( { model | searchInput = searchInput, state = state }
-                    , Cmd.none
-                    , Session.none
-                    )
-            in
-                case model.state of
-                    LoadingList _ ->
-                        ( model, Cmd.none, Session.none )
-
-                    ShowingList list selection ->
-                        updateModel (ShowingList (updateList list) selection)
-
-                    LoadingMessage list id ->
-                        updateModel (LoadingMessage (updateList list) id)
-
-                    ShowingMessage list visible ->
-                        updateModel (ShowingMessage (updateList list) visible)
-
-                    Transitioning list visible id ->
-                        updateModel (Transitioning (updateList list) visible id)
+            updateSearch model searchInput
 
         OpenedTime time ->
             case model.state of
@@ -269,7 +210,7 @@ update session msg model =
                     case markSeenAt of
                         Just deadline ->
                             if now >= deadline then
-                                markMessageSeen model message
+                                updateMarkMessageSeen model message
                             else
                                 ( model, Cmd.none, Session.none )
 
@@ -278,6 +219,76 @@ update session msg model =
 
                 _ ->
                     ( model, Cmd.none, Session.none )
+
+
+updateMessageResult : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
+updateMessageResult model message =
+    let
+        bodyMode =
+            if message.html == "" then
+                TextBody
+            else
+                model.bodyMode
+
+        updateMessage list message =
+            ( { model
+                | state = ShowingMessage list { message = message, markSeenAt = Nothing }
+                , bodyMode = bodyMode
+              }
+            , Task.perform OpenedTime Time.now
+            , Session.none
+            )
+    in
+        case model.state of
+            LoadingList _ ->
+                ( model, Cmd.none, Session.none )
+
+            ShowingList list _ ->
+                updateMessage list message
+
+            LoadingMessage list _ ->
+                updateMessage list message
+
+            ShowingMessage list _ ->
+                updateMessage list message
+
+            Transitioning list _ _ ->
+                updateMessage list message
+
+
+updateSearch : Model -> String -> ( Model, Cmd Msg, Session.Msg )
+updateSearch model searchInput =
+    let
+        updateList list =
+            { list
+                | searchFilter =
+                    if String.length searchInput > 1 then
+                        String.toLower searchInput
+                    else
+                        ""
+            }
+
+        updateModel state =
+            ( { model | searchInput = searchInput, state = state }
+            , Cmd.none
+            , Session.none
+            )
+    in
+        case model.state of
+            LoadingList _ ->
+                ( model, Cmd.none, Session.none )
+
+            ShowingList list selection ->
+                updateModel (ShowingList (updateList list) selection)
+
+            LoadingMessage list id ->
+                updateModel (LoadingMessage (updateList list) id)
+
+            ShowingMessage list visible ->
+                updateModel (ShowingMessage (updateList list) visible)
+
+            Transitioning list visible id ->
+                updateModel (Transitioning (updateList list) visible id)
 
 
 updateSelected : Model -> MessageID -> Model
@@ -297,21 +308,11 @@ updateSelected model id =
             model
 
 
-getList : String -> Cmd Msg
-getList mailboxName =
+updateDeleteMessage : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
+updateDeleteMessage model message =
     let
         url =
-            "/api/v1/mailbox/" ++ mailboxName
-    in
-        Http.get url (Decode.list MessageHeader.decoder)
-            |> Http.send ListResult
-
-
-deleteMessage : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
-deleteMessage model msg =
-    let
-        url =
-            "/api/v1/mailbox/" ++ msg.mailbox ++ "/" ++ msg.id
+            "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
 
         cmd =
             HttpUtil.delete url
@@ -323,7 +324,7 @@ deleteMessage model msg =
         case model.state of
             ShowingMessage list _ ->
                 ( { model
-                    | state = ShowingList (filter (\x -> x.id /= msg.id) list) Nothing
+                    | state = ShowingList (filter (\x -> x.id /= message.id) list) Nothing
                   }
                 , cmd
                 , Session.none
@@ -333,18 +334,8 @@ deleteMessage model msg =
                 ( model, cmd, Session.none )
 
 
-getMessage : String -> MessageID -> Cmd Msg
-getMessage mailboxName id =
-    let
-        url =
-            "/serve/m/" ++ mailboxName ++ "/" ++ id
-    in
-        Http.get url Message.decoder
-            |> Http.send MessageResult
-
-
-markMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
-markMessageSeen model message =
+updateMarkMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
+updateMarkMessageSeen model message =
     case model.state of
         ShowingMessage list visible ->
             let
@@ -385,6 +376,26 @@ markMessageSeen model message =
 
         _ ->
             ( model, Cmd.none, Session.none )
+
+
+getList : String -> Cmd Msg
+getList mailboxName =
+    let
+        url =
+            "/api/v1/mailbox/" ++ mailboxName
+    in
+        Http.get url (Decode.list MessageHeader.decoder)
+            |> Http.send ListResult
+
+
+getMessage : String -> MessageID -> Cmd Msg
+getMessage mailboxName id =
+    let
+        url =
+            "/serve/m/" ++ mailboxName ++ "/" ++ id
+    in
+        Http.get url Message.decoder
+            |> Http.send MessageResult
 
 
 
@@ -445,18 +456,18 @@ messageList list selected =
 
 
 messageChip : Maybe MessageID -> MessageHeader -> Html Msg
-messageChip selected msg =
+messageChip selected message =
     div
         [ classList
             [ ( "message-list-entry", True )
-            , ( "selected", selected == Just msg.id )
-            , ( "unseen", not msg.seen )
+            , ( "selected", selected == Just message.id )
+            , ( "unseen", not message.seen )
             ]
-        , onClick (ClickMessage msg.id)
+        , onClick (ClickMessage message.id)
         ]
-        [ div [ class "subject" ] [ text msg.subject ]
-        , div [ class "from" ] [ text msg.from ]
-        , div [ class "date" ] [ text msg.date ]
+        [ div [ class "subject" ] [ text message.subject ]
+        , div [ class "from" ] [ text message.from ]
+        , div [ class "date" ] [ text message.date ]
         ]
 
 
@@ -561,11 +572,8 @@ filterMessageList list =
         list.headers
     else
         let
-            searchFilter =
-                String.toLower list.searchFilter
-
             matches header =
-                String.contains searchFilter (String.toLower header.subject)
-                    || String.contains searchFilter (String.toLower header.from)
+                String.contains list.searchFilter (String.toLower header.subject)
+                    || String.contains list.searchFilter (String.toLower header.from)
         in
             List.filter matches list.headers

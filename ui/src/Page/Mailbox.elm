@@ -5,7 +5,19 @@ import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
 import Json.Decode as Decode exposing (Decoder)
 import Html exposing (..)
-import Html.Attributes exposing (class, classList, downloadAs, href, id, property, target)
+import Html.Attributes
+    exposing
+        ( class
+        , classList
+        , downloadAs
+        , href
+        , id
+        , placeholder
+        , property
+        , target
+        , type_
+        , value
+        )
 import Html.Events exposing (..)
 import Http exposing (Error)
 import HttpUtil
@@ -52,12 +64,13 @@ type alias Model =
     { mailboxName : String
     , state : State
     , bodyMode : Body
+    , searchInput : String
     }
 
 
 init : String -> Maybe MessageID -> Model
 init mailboxName selection =
-    Model mailboxName (LoadingList selection) SafeHtmlBody
+    Model mailboxName (LoadingList selection) SafeHtmlBody ""
 
 
 load : String -> Cmd Msg
@@ -91,7 +104,6 @@ subscriptions model =
 
 type Msg
     = ClickMessage MessageID
-    | ViewMessage MessageID
     | DeleteMessage Message
     | DeleteMessageResult (Result Http.Error ())
     | ListResult (Result Http.Error (List MessageHeader))
@@ -99,7 +111,9 @@ type Msg
     | MessageResult (Result Http.Error Message)
     | MessageBody Body
     | OpenedTime Time
+    | SearchInput String
     | Tick Time
+    | ViewMessage MessageID
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
@@ -194,6 +208,39 @@ update session msg model =
 
         MessageBody bodyMode ->
             ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
+
+        SearchInput searchInput ->
+            let
+                updateList list =
+                    { list
+                        | searchFilter =
+                            if String.length searchInput > 1 then
+                                searchInput
+                            else
+                                ""
+                    }
+
+                updateModel state =
+                    ( { model | searchInput = searchInput, state = state }
+                    , Cmd.none
+                    , Session.none
+                    )
+            in
+                case model.state of
+                    LoadingList _ ->
+                        ( model, Cmd.none, Session.none )
+
+                    ShowingList list selection ->
+                        updateModel (ShowingList (updateList list) selection)
+
+                    LoadingMessage list id ->
+                        updateModel (LoadingMessage (updateList list) id)
+
+                    ShowingMessage list visible ->
+                        updateModel (ShowingMessage (updateList list) visible)
+
+                    Transitioning list visible id ->
+                        updateModel (Transitioning (updateList list) visible id)
 
         OpenedTime time ->
             case model.state of
@@ -348,7 +395,9 @@ view : Session -> Model -> Html Msg
 view session model =
     div [ id "page", class "mailbox" ]
         [ aside [ id "message-list" ]
-            [ case model.state of
+            [ div []
+                [ input [ type_ "search", placeholder "search", onInput SearchInput, value model.searchInput ] [] ]
+            , case model.state of
                 LoadingList _ ->
                     div [] []
 
@@ -387,7 +436,12 @@ view session model =
 
 messageList : MessageList -> Maybe MessageID -> Html Msg
 messageList list selected =
-    div [] (List.map (messageChip selected) (List.reverse list.headers))
+    div []
+        (list
+            |> filterMessageList
+            |> List.reverse
+            |> List.map (messageChip selected)
+        )
 
 
 messageChip : Maybe MessageID -> MessageHeader -> Html Msg
@@ -495,3 +549,23 @@ attachmentRow baseUrl attach =
                 ]
             , td [] [ a [ href url, downloadAs attach.fileName, class "button" ] [ text "Download" ] ]
             ]
+
+
+
+-- UTILITY
+
+
+filterMessageList : MessageList -> List MessageHeader
+filterMessageList list =
+    if list.searchFilter == "" then
+        list.headers
+    else
+        let
+            searchFilter =
+                String.toLower list.searchFilter
+
+            matches header =
+                String.contains searchFilter (String.toLower header.subject)
+                    || String.contains searchFilter (String.toLower header.from)
+        in
+            List.filter matches list.headers

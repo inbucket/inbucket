@@ -299,7 +299,7 @@ updateSelected model id =
                         { model | state = ShowingList newList LoadingMessage }
 
                     LoadingMessage ->
-                        model
+                        { model | state = ShowingList newList LoadingMessage }
 
                     ShowingMessage visible ->
                         -- Use Transitioning state to prevent blank message flicker.
@@ -406,23 +406,7 @@ getMessage mailboxName id =
 view : Session -> Model -> Html Msg
 view session model =
     div [ id "page", class "mailbox" ]
-        [ aside [ id "message-list" ]
-            [ div []
-                [ input
-                    [ type_ "search"
-                    , placeholder "search"
-                    , onInput SearchInput
-                    , value model.searchInput
-                    ]
-                    []
-                ]
-            , case model.state of
-                LoadingList _ ->
-                    div [] []
-
-                ShowingList list _ ->
-                    messageList list
-            ]
+        [ viewMessageList session model
         , main_
             [ id "message" ]
             [ case model.state of
@@ -444,14 +428,30 @@ view session model =
         ]
 
 
-messageList : MessageList -> Html Msg
-messageList list =
-    div []
-        (list
-            |> filterMessageList
-            |> List.reverse
-            |> List.map (messageChip list.selected)
-        )
+viewMessageList : Session -> Model -> Html Msg
+viewMessageList session model =
+    aside [ id "message-list" ]
+        [ div []
+            [ input
+                [ type_ "search"
+                , placeholder "search"
+                , onInput SearchInput
+                , value model.searchInput
+                ]
+                []
+            ]
+        , case model.state of
+            LoadingList _ ->
+                div [] []
+
+            ShowingList list _ ->
+                div []
+                    (list
+                        |> filterMessageList
+                        |> List.reverse
+                        |> List.map (messageChip list.selected)
+                    )
+        ]
 
 
 messageChip : Maybe MessageID -> MessageHeader -> Html Msg

@@ -43,9 +43,9 @@ type State
 
 type MessageState
     = NoMessage
-    | LoadingMessage MessageID
+    | LoadingMessage
     | ShowingMessage VisibleMessage
-    | Transitioning VisibleMessage MessageID
+    | Transitioning VisibleMessage
 
 
 type alias MessageID =
@@ -54,6 +54,7 @@ type alias MessageID =
 
 type alias MessageList =
     { headers : List MessageHeader
+    , selected : Maybe MessageID
     , searchFilter : String
     }
 
@@ -153,7 +154,9 @@ update session msg model =
                 LoadingList selection ->
                     let
                         newModel =
-                            { model | state = ShowingList (MessageList headers "") NoMessage }
+                            { model
+                                | state = ShowingList (MessageList headers Nothing "") NoMessage
+                            }
                     in
                         case selection of
                             Just id ->
@@ -244,7 +247,10 @@ updateMessageResult model message =
 
             ShowingList list _ ->
                 ( { model
-                    | state = ShowingList list (ShowingMessage (VisibleMessage message Nothing))
+                    | state =
+                        ShowingList
+                            { list | selected = Just message.id }
+                            (ShowingMessage (VisibleMessage message Nothing))
                     , bodyMode = bodyMode
                   }
                 , Task.perform OpenedTime Time.now
@@ -280,18 +286,27 @@ updateSearchInput model searchInput =
 updateSelected : Model -> MessageID -> Model
 updateSelected model id =
     case model.state of
-        ShowingList list NoMessage ->
-            { model | state = ShowingList list (LoadingMessage id) }
-
-        ShowingList list (ShowingMessage visible) ->
-            -- Use Transitioning state to prevent blank message flicker.
-            { model | state = ShowingList list (Transitioning visible id) }
-
-        ShowingList list (Transitioning visible _) ->
-            { model | state = ShowingList list (Transitioning visible id) }
-
-        _ ->
+        LoadingList _ ->
             model
+
+        ShowingList list messageState ->
+            let
+                newList =
+                    { list | selected = Just id }
+            in
+                case messageState of
+                    NoMessage ->
+                        { model | state = ShowingList newList LoadingMessage }
+
+                    LoadingMessage ->
+                        model
+
+                    ShowingMessage visible ->
+                        -- Use Transitioning state to prevent blank message flicker.
+                        { model | state = ShowingList newList (Transitioning visible) }
+
+                    Transitioning visible ->
+                        { model | state = ShowingList newList (Transitioning visible) }
 
 
 updateDeleteMessage : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
@@ -405,17 +420,8 @@ view session model =
                 LoadingList _ ->
                     div [] []
 
-                ShowingList list NoMessage ->
-                    messageList list Nothing
-
-                ShowingList list (LoadingMessage id) ->
-                    messageList list (Just id)
-
-                ShowingList list (ShowingMessage visible) ->
-                    messageList list (Just visible.message.id)
-
-                ShowingList list (Transitioning _ id) ->
-                    messageList list (Just id)
+                ShowingList list _ ->
+                    messageList list
             ]
         , main_
             [ id "message" ]
@@ -429,7 +435,7 @@ view session model =
                 ShowingList _ (ShowingMessage { message }) ->
                     viewMessage message model.bodyMode
 
-                ShowingList _ (Transitioning { message } _) ->
+                ShowingList _ (Transitioning { message }) ->
                     viewMessage message model.bodyMode
 
                 _ ->
@@ -438,13 +444,13 @@ view session model =
         ]
 
 
-messageList : MessageList -> Maybe MessageID -> Html Msg
-messageList list selected =
+messageList : MessageList -> Html Msg
+messageList list =
     div []
         (list
             |> filterMessageList
             |> List.reverse
-            |> List.map (messageChip selected)
+            |> List.map (messageChip list.selected)
         )
 
 

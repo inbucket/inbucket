@@ -38,10 +38,14 @@ type Body
 
 type State
     = LoadingList (Maybe MessageID)
-    | ShowingList MessageList (Maybe MessageID)
-    | LoadingMessage MessageList MessageID
-    | ShowingMessage MessageList VisibleMessage
-    | Transitioning MessageList VisibleMessage MessageID
+    | ShowingList MessageList MessageState
+
+
+type MessageState
+    = NoMessage
+    | LoadingMessage MessageID
+    | ShowingMessage VisibleMessage
+    | Transitioning VisibleMessage MessageID
 
 
 type alias MessageID =
@@ -88,7 +92,7 @@ load mailboxName =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.state of
-        ShowingMessage _ { message } ->
+        ShowingList _ (ShowingMessage { message }) ->
             if message.seen then
                 Sub.none
             else
@@ -122,7 +126,7 @@ update session msg model =
         ClickMessage id ->
             ( updateSelected model id
             , Cmd.batch
-                [ -- Update browser location
+                [ -- Update browser location.
                   Route.newUrl (Route.Message model.mailboxName id)
                 , getMessage model.mailboxName id
                 ]
@@ -149,7 +153,7 @@ update session msg model =
                 LoadingList selection ->
                     let
                         newModel =
-                            { model | state = ShowingList (MessageList headers "") selection }
+                            { model | state = ShowingList (MessageList headers "") NoMessage }
                     in
                         case selection of
                             Just id ->
@@ -181,21 +185,23 @@ update session msg model =
             ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
 
         SearchInput searchInput ->
-            updateSearch model searchInput
+            updateSearchInput model searchInput
 
         OpenedTime time ->
             case model.state of
-                ShowingMessage list visible ->
+                ShowingList list (ShowingMessage visible) ->
                     if visible.message.seen then
                         ( model, Cmd.none, Session.none )
                     else
-                        -- Set delay to report message as seen to backend.
+                        -- Set delay before reporting message as seen to backend.
                         ( { model
                             | state =
-                                ShowingMessage list
-                                    { visible
-                                        | markSeenAt = Just (time + (1.5 * Time.second))
-                                    }
+                                ShowingList list
+                                    (ShowingMessage
+                                        { visible
+                                            | markSeenAt = Just (time + (1.5 * Time.second))
+                                        }
+                                    )
                           }
                         , Cmd.none
                         , Session.none
@@ -206,7 +212,7 @@ update session msg model =
 
         Tick now ->
             case model.state of
-                ShowingMessage _ { message, markSeenAt } ->
+                ShowingList _ (ShowingMessage { message, markSeenAt }) ->
                     case markSeenAt of
                         Just deadline ->
                             if now >= deadline then
@@ -221,6 +227,8 @@ update session msg model =
                     ( model, Cmd.none, Session.none )
 
 
+{-| Replace the currently displayed message.
+-}
 updateMessageResult : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
 updateMessageResult model message =
     let
@@ -229,80 +237,58 @@ updateMessageResult model message =
                 TextBody
             else
                 model.bodyMode
-
-        updateMessage list message =
-            ( { model
-                | state = ShowingMessage list { message = message, markSeenAt = Nothing }
-                , bodyMode = bodyMode
-              }
-            , Task.perform OpenedTime Time.now
-            , Session.none
-            )
     in
         case model.state of
             LoadingList _ ->
                 ( model, Cmd.none, Session.none )
 
             ShowingList list _ ->
-                updateMessage list message
-
-            LoadingMessage list _ ->
-                updateMessage list message
-
-            ShowingMessage list _ ->
-                updateMessage list message
-
-            Transitioning list _ _ ->
-                updateMessage list message
+                ( { model
+                    | state = ShowingList list (ShowingMessage (VisibleMessage message Nothing))
+                    , bodyMode = bodyMode
+                  }
+                , Task.perform OpenedTime Time.now
+                , Session.none
+                )
 
 
-updateSearch : Model -> String -> ( Model, Cmd Msg, Session.Msg )
-updateSearch model searchInput =
+updateSearchInput : Model -> String -> ( Model, Cmd Msg, Session.Msg )
+updateSearchInput model searchInput =
     let
-        updateList list =
-            { list
-                | searchFilter =
-                    if String.length searchInput > 1 then
-                        String.toLower searchInput
-                    else
-                        ""
-            }
-
-        updateModel state =
-            ( { model | searchInput = searchInput, state = state }
-            , Cmd.none
-            , Session.none
-            )
+        searchFilter =
+            if String.length searchInput > 1 then
+                String.toLower searchInput
+            else
+                ""
     in
         case model.state of
             LoadingList _ ->
                 ( model, Cmd.none, Session.none )
 
-            ShowingList list selection ->
-                updateModel (ShowingList (updateList list) selection)
-
-            LoadingMessage list id ->
-                updateModel (LoadingMessage (updateList list) id)
-
-            ShowingMessage list visible ->
-                updateModel (ShowingMessage (updateList list) visible)
-
-            Transitioning list visible id ->
-                updateModel (Transitioning (updateList list) visible id)
+            ShowingList list messageState ->
+                ( { model
+                    | searchInput = searchInput
+                    , state = ShowingList { list | searchFilter = searchFilter } messageState
+                  }
+                , Cmd.none
+                , Session.none
+                )
 
 
+{-| Set the selected message in our model.
+-}
 updateSelected : Model -> MessageID -> Model
 updateSelected model id =
     case model.state of
-        ShowingList list _ ->
-            { model | state = LoadingMessage list id }
+        ShowingList list NoMessage ->
+            { model | state = ShowingList list (LoadingMessage id) }
 
-        ShowingMessage list visible ->
-            -- Use Transitioning state to prevent message flicker.
-            { model | state = Transitioning list visible id }
+        ShowingList list (ShowingMessage visible) ->
+            -- Use Transitioning state to prevent blank message flicker.
+            { model | state = ShowingList list (Transitioning visible id) }
 
-        Transitioning list visible _ ->
-            { model | state = Transitioning list visible id }
+        ShowingList list (Transitioning visible _) ->
+            { model | state = ShowingList list (Transitioning visible id) }
 
         _ ->
             model
@@ -322,9 +308,10 @@ updateDeleteMessage model message =
             { messageList | headers = List.filter f messageList.headers }
     in
         case model.state of
-            ShowingMessage list _ ->
+            ShowingList list _ ->
                 ( { model
-                    | state = ShowingList (filter (\x -> x.id /= message.id) list) Nothing
+                    | state =
+                        ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
                   }
                 , cmd
                 , Session.none
@@ -337,11 +324,8 @@ updateDeleteMessage model message =
 updateMarkMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
 updateMarkMessageSeen model message =
     case model.state of
-        ShowingMessage list visible ->
+        ShowingList list (ShowingMessage visible) ->
             let
-                message =
-                    visible.message
-
                 updateSeen header =
                     if header.id == message.id then
                         { header | seen = True }
@@ -364,11 +348,13 @@ updateMarkMessageSeen model message =
             in
                 ( { model
                     | state =
-                        ShowingMessage (map updateSeen list)
-                            { visible
-                                | message = { message | seen = True }
-                                , markSeenAt = Nothing
-                            }
+                        ShowingList (map updateSeen list)
+                            (ShowingMessage
+                                { visible
+                                    | message = { message | seen = True }
+                                    , markSeenAt = Nothing
+                                }
+                            )
                   }
                 , command
                 , Session.None
@@ -407,36 +393,43 @@ view session model =
     div [ id "page", class "mailbox" ]
         [ aside [ id "message-list" ]
             [ div []
-                [ input [ type_ "search", placeholder "search", onInput SearchInput, value model.searchInput ] [] ]
+                [ input
+                    [ type_ "search"
+                    , placeholder "search"
+                    , onInput SearchInput
+                    , value model.searchInput
+                    ]
+                    []
+                ]
             , case model.state of
                 LoadingList _ ->
                     div [] []
 
-                ShowingList list selection ->
-                    messageList list selection
+                ShowingList list NoMessage ->
+                    messageList list Nothing
 
-                LoadingMessage list selection ->
-                    messageList list (Just selection)
+                ShowingList list (LoadingMessage id) ->
+                    messageList list (Just id)
 
-                ShowingMessage list visible ->
+                ShowingList list (ShowingMessage visible) ->
                     messageList list (Just visible.message.id)
 
-                Transitioning list _ selection ->
-                    messageList list (Just selection)
+                ShowingList list (Transitioning _ id) ->
+                    messageList list (Just id)
             ]
         , main_
             [ id "message" ]
             [ case model.state of
-                ShowingList _ _ ->
+                ShowingList _ NoMessage ->
                     text
                         ("Select a message on the left,"
                             ++ " or enter a different username into the box on upper right."
                         )
 
-                ShowingMessage _ { message } ->
+                ShowingList _ (ShowingMessage { message }) ->
                     viewMessage message model.bodyMode
 
-                Transitioning _ { message } _ ->
+                ShowingList _ (Transitioning { message } _) ->
                     viewMessage message model.bodyMode
 
                 _ ->

@@ -116,6 +116,8 @@ type Msg
     | MessageResult (Result Http.Error Message)
     | MessageBody Body
     | OpenedTime Time
+    | Purge
+    | PurgeResult (Result Http.Error ())
     | SearchInput String
     | Tick Time
     | ViewMessage MessageID
@@ -213,6 +215,15 @@ update session msg model =
                 _ ->
                     ( model, Cmd.none, Session.none )
 
+        Purge ->
+            updatePurge model
+
+        PurgeResult (Ok _) ->
+            ( model, Cmd.none, Session.none )
+
+        PurgeResult (Err err) ->
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+
         Tick now ->
             case model.state of
                 ShowingList _ (ShowingMessage { message, markSeenAt }) ->
@@ -256,6 +267,26 @@ updateMessageResult model message =
                 , Task.perform OpenedTime Time.now
                 , Session.none
                 )
+
+
+updatePurge : Model -> ( Model, Cmd Msg, Session.Msg )
+updatePurge model =
+    let
+        cmd =
+            "/api/v1/mailbox/"
+                ++ model.mailboxName
+                |> HttpUtil.delete
+                |> Http.send PurgeResult
+    in
+        case model.state of
+            ShowingList list _ ->
+                ( { model | state = ShowingList (MessageList [] Nothing "") NoMessage }
+                , cmd
+                , Session.none
+                )
+
+            _ ->
+                ( model, cmd, Session.none )
 
 
 updateSearchInput : Model -> String -> ( Model, Cmd Msg, Session.Msg )
@@ -439,6 +470,7 @@ viewMessageList session model =
                 , value model.searchInput
                 ]
                 []
+            , button [ onClick Purge ] [ text "Purge" ]
             ]
         , case model.state of
             LoadingList _ ->

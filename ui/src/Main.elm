@@ -188,16 +188,24 @@ setRoute route model =
             )
 
         Route.Mailbox name ->
-            ( { model | page = Mailbox (Mailbox.init name Nothing) }
-            , Cmd.map MailboxMsg (Mailbox.load name)
-            , Session.none
-            )
+            let
+                ( subModel, subCmd ) =
+                    Mailbox.init name Nothing
+            in
+                ( { model | page = Mailbox subModel }
+                , Cmd.map MailboxMsg subCmd
+                , Session.none
+                )
 
         Route.Message mailbox id ->
-            ( { model | page = Mailbox (Mailbox.init mailbox (Just id)) }
-            , Cmd.map MailboxMsg (Mailbox.load mailbox)
-            , Session.none
-            )
+            let
+                ( subModel, subCmd ) =
+                    Mailbox.init mailbox (Just id)
+            in
+                ( { model | page = Mailbox subModel }
+                , Cmd.map MailboxMsg subCmd
+                , Session.none
+                )
 
         Route.Monitor ->
             ( { model | page = Monitor (Monitor.init model.session.host) }

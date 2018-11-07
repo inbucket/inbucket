@@ -1,5 +1,6 @@
 module Data.MessageHeader exposing (..)
 
+import Date exposing (Date)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 
@@ -10,7 +11,7 @@ type alias MessageHeader =
     , from : String
     , to : List String
     , subject : String
-    , date : String
+    , date : Date
     , size : Int
     , seen : Bool
     }
@@ -24,6 +25,21 @@ decoder =
         |> optional "from" string ""
         |> required "to" (list string)
         |> optional "subject" string ""
-        |> required "date" string
+        |> required "date" date
         |> required "size" int
         |> required "seen" bool
+
+
+date : Decoder Date
+date =
+    let
+        convert : String -> Decoder Date
+        convert raw =
+            case Date.fromString raw of
+                Ok date ->
+                    succeed date
+
+                Err error ->
+                    fail error
+    in
+        string |> andThen convert

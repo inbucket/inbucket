@@ -2,6 +2,16 @@ module Page.Monitor exposing (Model, Msg, init, subscriptions, update, view)
 
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
+import Date exposing (Date)
+import DateFormat
+    exposing
+        ( format
+        , monthNameFirstThree
+        , dayOfMonthFixed
+        , hourNumber
+        , minuteFixed
+        , amPmUppercase
+        )
 import Json.Decode exposing (decodeString)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -32,8 +42,7 @@ init host =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    WebSocket.listen model.wsUrl
-        (decodeString MessageHeader.decoder >> NewMessage)
+    WebSocket.listen model.wsUrl (decodeString MessageHeader.decoder >> NewMessage)
 
 
 
@@ -85,8 +94,27 @@ view session model =
 viewMessage : MessageHeader -> Html Msg
 viewMessage message =
     tr [ Events.onClick (OpenMessage message) ]
-        [ td [] [ text message.date ]
+        [ td [] [ text (timestamp message.date) ]
         , td [ class "desktop" ] [ text message.from ]
         , td [] [ text message.mailbox ]
         , td [] [ text message.subject ]
+        ]
+
+
+
+-- UTILITY
+
+
+timestamp : Date -> String
+timestamp =
+    format
+        [ dayOfMonthFixed
+        , DateFormat.text "-"
+        , monthNameFirstThree
+        , DateFormat.text " "
+        , hourNumber
+        , DateFormat.text ":"
+        , minuteFixed
+        , DateFormat.text " "
+        , amPmUppercase
         ]

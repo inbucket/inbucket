@@ -3,6 +3,8 @@ module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, vie
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
+import Date exposing (Date)
+import DateFormat.Relative as Relative
 import Json.Decode as Decode exposing (Decoder)
 import Html exposing (..)
 import Html.Attributes
@@ -70,18 +72,22 @@ type alias Model =
     , state : State
     , bodyMode : Body
     , searchInput : String
+    , now : Date
     }
 
 
-init : String -> Maybe MessageID -> Model
+init : String -> Maybe MessageID -> ( Model, Cmd Msg )
 init mailboxName selection =
-    Model mailboxName (LoadingList selection) SafeHtmlBody ""
+    ( Model mailboxName (LoadingList selection) SafeHtmlBody "" (Date.fromTime 0)
+    , load mailboxName
+    )
 
 
 load : String -> Cmd Msg
 load mailboxName =
     Cmd.batch
         [ Ports.windowTitle (mailboxName ++ " - Inbucket")
+        , Task.perform Tick Time.now
         , getList mailboxName
         ]
 
@@ -92,15 +98,22 @@ load mailboxName =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.state of
-        ShowingList _ (ShowingMessage { message }) ->
-            if message.seen then
-                Sub.none
-            else
-                Time.every (250 * Time.millisecond) Tick
+    let
+        subSeen =
+            case model.state of
+                ShowingList _ (ShowingMessage { message }) ->
+                    if message.seen then
+                        Sub.none
+                    else
+                        Time.every (250 * Time.millisecond) SeenTick
 
-        _ ->
-            Sub.none
+                _ ->
+                    Sub.none
+    in
+        Sub.batch
+            [ Time.every (30 * Time.second) Tick
+            , subSeen
+            ]
 
 
 
@@ -119,6 +132,7 @@ type Msg
     | Purge
     | PurgeResult (Result Http.Error ())
     | SearchInput String
+    | SeenTick Time
     | Tick Time
     | ViewMessage MessageID
 
@@ -224,7 +238,7 @@ update session msg model =
         PurgeResult (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        Tick now ->
+        SeenTick now ->
             case model.state of
                 ShowingList _ (ShowingMessage { message, markSeenAt }) ->
                     case markSeenAt of
@@ -239,6 +253,9 @@ update session msg model =
 
                 _ ->
                     ( model, Cmd.none, Session.none )
+
+        Tick now ->
+            ( { model | now = Date.fromTime now }, Cmd.none, Session.none )
 
 
 {-| Replace the currently displayed message.
@@ -481,13 +498,13 @@ viewMessageList session model =
                     (list
                         |> filterMessageList
                         |> List.reverse
-                        |> List.map (messageChip list.selected)
+                        |> List.map (messageChip model list.selected)
                     )
         ]
 
 
-messageChip : Maybe MessageID -> MessageHeader -> Html Msg
-messageChip selected message =
+messageChip : Model -> Maybe MessageID -> MessageHeader -> Html Msg
+messageChip model selected message =
     div
         [ classList
             [ ( "message-list-entry", True )
@@ -498,7 +515,7 @@ messageChip selected message =
         ]
         [ div [ class "subject" ] [ text message.subject ]
         , div [ class "from" ] [ text message.from ]
-        , div [ class "date" ] [ text message.date ]
+        , div [ class "date" ] [ relativeDate model message.date ]
         ]
 
 
@@ -591,6 +608,11 @@ attachmentRow baseUrl attach =
                 ]
             , td [] [ a [ href url, downloadAs attach.fileName, class "button" ] [ text "Download" ] ]
             ]
+
+
+relativeDate : Model -> Date -> Html Msg
+relativeDate model date =
+    Relative.relativeTime model.now date |> text
 
 
 

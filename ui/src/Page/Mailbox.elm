@@ -5,6 +5,7 @@ import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
 import Date exposing (Date)
 import DateFormat.Relative as Relative
+import DateFormat
 import Json.Decode as Decode exposing (Decoder)
 import Html exposing (..)
 import Html.Attributes
@@ -538,7 +539,7 @@ viewMessage message bodyMode =
                 , dt [] [ text "To:" ]
                 , dd [] (List.map text message.to)
                 , dt [] [ text "Date:" ]
-                , dd [] [ text message.date ]
+                , dd [] [ verboseDate message.date ]
                 , dt [] [ text "Subject:" ]
                 , dd [] [ text message.subject ]
                 ]
@@ -613,6 +614,27 @@ attachmentRow baseUrl attach =
 relativeDate : Model -> Date -> Html Msg
 relativeDate model date =
     Relative.relativeTime model.now date |> text
+
+
+verboseDate : Date -> Html Msg
+verboseDate date =
+    DateFormat.format
+        [ DateFormat.monthNameFull
+        , DateFormat.text " "
+        , DateFormat.dayOfMonthSuffix
+        , DateFormat.text ", "
+        , DateFormat.yearNumber
+        , DateFormat.text " "
+        , DateFormat.hourNumber
+        , DateFormat.text ":"
+        , DateFormat.minuteFixed
+        , DateFormat.text ":"
+        , DateFormat.secondFixed
+        , DateFormat.text " "
+        , DateFormat.amPmUppercase
+        ]
+        date
+        |> text
 
 
 

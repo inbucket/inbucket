@@ -94,19 +94,15 @@ view session model =
 viewMessage : MessageHeader -> Html Msg
 viewMessage message =
     tr [ Events.onClick (OpenMessage message) ]
-        [ td [] [ text (timestamp message.date) ]
+        [ td [] [ shortDate message.date ]
         , td [ class "desktop" ] [ text message.from ]
         , td [] [ text message.mailbox ]
         , td [] [ text message.subject ]
         ]
 
 
-
--- UTILITY
-
-
-timestamp : Date -> String
-timestamp =
+shortDate : Date -> Html Msg
+shortDate date =
     format
         [ dayOfMonthFixed
         , DateFormat.text "-"
@@ -118,3 +114,5 @@ timestamp =
         , DateFormat.text " "
         , amPmUppercase
         ]
+        date
+        |> text

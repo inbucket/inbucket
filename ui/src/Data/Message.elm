@@ -1,5 +1,7 @@
 module Data.Message exposing (..)
 
+import Data.Date exposing (date)
+import Date exposing (Date)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 
@@ -10,7 +12,7 @@ type alias Message =
     , from : String
     , to : List String
     , subject : String
-    , date : String
+    , date : Date
     , size : Int
     , seen : Bool
     , text : String
@@ -34,7 +36,7 @@ decoder =
         |> optional "from" string ""
         |> required "to" (list string)
         |> optional "subject" string ""
-        |> required "date" string
+        |> required "date" date
         |> required "size" int
         |> required "seen" bool
         |> required "text" string

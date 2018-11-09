@@ -1,5 +1,6 @@
 module Data.MessageHeader exposing (..)
 
+import Data.Date exposing (date)
 import Date exposing (Date)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
@@ -28,18 +29,3 @@ decoder =
         |> required "date" date
         |> required "size" int
         |> required "seen" bool
-
-
-date : Decoder Date
-date =
-    let
-        convert : String -> Decoder Date
-        convert raw =
-            case Date.fromString raw of
-                Ok date ->
-                    succeed date
-
-                Err error ->
-                    fail error
-    in
-        string |> andThen convert

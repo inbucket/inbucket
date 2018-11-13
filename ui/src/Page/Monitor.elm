@@ -5,17 +5,17 @@ import Data.Session as Session exposing (Session)
 import Date exposing (Date)
 import DateFormat
     exposing
-        ( format
-        , monthNameFirstThree
+        ( amPmUppercase
         , dayOfMonthFixed
+        , format
         , hourNumber
         , minuteFixed
-        , amPmUppercase
+        , monthNameFirstThree
         )
-import Json.Decode exposing (decodeString)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events as Events
+import Json.Decode exposing (decodeString)
 import Route
 import WebSocket
 

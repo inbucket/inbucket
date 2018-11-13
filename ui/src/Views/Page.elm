@@ -10,8 +10,8 @@ import Html.Attributes
         , href
         , id
         , placeholder
-        , type_
         , selected
+        , type_
         , value
         )
 import Html.Events as Events
@@ -101,13 +101,13 @@ navbarRecent page controls =
             else
                 controls.recentOptions
     in
-        li
-            [ id "navbar-recent"
-            , classList [ ( "navbar-dropdown", True ), ( "navbar-active", active ) ]
-            ]
-            [ span [] [ text title ]
-            , div [ class "navbar-dropdown-content" ] (List.map recentItemLink items)
-            ]
+    li
+        [ id "navbar-recent"
+        , classList [ ( "navbar-dropdown", True ), ( "navbar-active", active ) ]
+        ]
+        [ span [] [ text title ]
+        , div [ class "navbar-dropdown-content" ] (List.map recentItemLink items)
+        ]
 
 
 isActive : ActivePage -> Route -> Bool

@@ -1,8 +1,8 @@
 module Main exposing (..)
 
 import Data.Session as Session exposing (Session, decoder)
-import Json.Decode as Decode exposing (Value)
 import Html exposing (..)
+import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
 import Page.Home as Home
 import Page.Mailbox as Mailbox
@@ -45,7 +45,7 @@ init sessionValue location =
         route =
             Route.fromLocation location
     in
-        applySession (setRoute route model)
+    applySession (setRoute route model)
 
 
 type Msg
@@ -118,17 +118,17 @@ update msg model =
                     session =
                         model.session
                 in
-                    ( { model | session = { session | persistent = persistent } }
-                    , Cmd.none
-                    , Session.none
-                    )
+                ( { model | session = { session | persistent = persistent } }
+                , Cmd.none
+                , Session.none
+                )
 
             UpdateSession (Err error) ->
                 let
                     _ =
                         Debug.log "Error decoding session" error
                 in
-                    ( model, Cmd.none, Session.none )
+                ( model, Cmd.none, Session.none )
 
             MailboxNameInput name ->
                 ( { model | mailboxName = name }, Cmd.none, Session.none )
@@ -155,24 +155,24 @@ updatePage msg model =
                 ( newModel, subCmd, sessionMsg ) =
                     subUpdate model.session subMsg subModel
             in
-                ( { model | page = toPage newModel }, Cmd.map toMsg subCmd, sessionMsg )
+            ( { model | page = toPage newModel }, Cmd.map toMsg subCmd, sessionMsg )
     in
-        case ( msg, model.page ) of
-            ( HomeMsg subMsg, Home subModel ) ->
-                modelUpdate Home HomeMsg Home.update subMsg subModel
+    case ( msg, model.page ) of
+        ( HomeMsg subMsg, Home subModel ) ->
+            modelUpdate Home HomeMsg Home.update subMsg subModel
 
-            ( MailboxMsg subMsg, Mailbox subModel ) ->
-                modelUpdate Mailbox MailboxMsg Mailbox.update subMsg subModel
+        ( MailboxMsg subMsg, Mailbox subModel ) ->
+            modelUpdate Mailbox MailboxMsg Mailbox.update subMsg subModel
 
-            ( MonitorMsg subMsg, Monitor subModel ) ->
-                modelUpdate Monitor MonitorMsg Monitor.update subMsg subModel
+        ( MonitorMsg subMsg, Monitor subModel ) ->
+            modelUpdate Monitor MonitorMsg Monitor.update subMsg subModel
 
-            ( StatusMsg subMsg, Status subModel ) ->
-                modelUpdate Status StatusMsg Status.update subMsg subModel
+        ( StatusMsg subMsg, Status subModel ) ->
+            modelUpdate Status StatusMsg Status.update subMsg subModel
 
-            ( _, _ ) ->
-                -- Disregard messages destined for the wrong page.
-                ( model, Cmd.none, Session.none )
+        ( _, _ ) ->
+            -- Disregard messages destined for the wrong page.
+            ( model, Cmd.none, Session.none )
 
 
 setRoute : Route -> Model -> ( Model, Cmd Msg, Session.Msg )
@@ -192,20 +192,20 @@ setRoute route model =
                 ( subModel, subCmd ) =
                     Mailbox.init name Nothing
             in
-                ( { model | page = Mailbox subModel }
-                , Cmd.map MailboxMsg subCmd
-                , Session.none
-                )
+            ( { model | page = Mailbox subModel }
+            , Cmd.map MailboxMsg subCmd
+            , Session.none
+            )
 
         Route.Message mailbox id ->
             let
                 ( subModel, subCmd ) =
                     Mailbox.init mailbox (Just id)
             in
-                ( { model | page = Mailbox subModel }
-                , Cmd.map MailboxMsg subCmd
-                , Session.none
-                )
+            ( { model | page = Mailbox subModel }
+            , Cmd.map MailboxMsg subCmd
+            , Session.none
+            )
 
         Route.Monitor ->
             ( { model | page = Monitor (Monitor.init model.session.host) }
@@ -217,7 +217,7 @@ setRoute route model =
             ( { model | page = Status Status.init }
             , Cmd.batch
                 [ Ports.windowTitle "Inbucket Status"
-                , Cmd.map StatusMsg (Status.load)
+                , Cmd.map StatusMsg Status.load
                 ]
             , Session.none
             )
@@ -232,13 +232,13 @@ applySession ( model, cmd, sessionMsg ) =
         newModel =
             { model | session = session }
     in
-        if session.persistent == model.session.persistent then
-            -- No change
-            ( newModel, cmd )
-        else
-            ( newModel
-            , Cmd.batch [ cmd, Ports.storeSession session.persistent ]
-            )
+    if session.persistent == model.session.persistent then
+        -- No change
+        ( newModel, cmd )
+    else
+        ( newModel
+        , Cmd.batch [ cmd, Ports.storeSession session.persistent ]
+        )
 
 
 
@@ -267,22 +267,22 @@ view model =
         frame =
             Page.frame controls model.session
     in
-        case model.page of
-            Home subModel ->
-                Html.map HomeMsg (Home.view model.session subModel)
-                    |> frame Page.Other
+    case model.page of
+        Home subModel ->
+            Html.map HomeMsg (Home.view model.session subModel)
+                |> frame Page.Other
 
-            Mailbox subModel ->
-                Html.map MailboxMsg (Mailbox.view model.session subModel)
-                    |> frame Page.Mailbox
+        Mailbox subModel ->
+            Html.map MailboxMsg (Mailbox.view model.session subModel)
+                |> frame Page.Mailbox
 
-            Monitor subModel ->
-                Html.map MonitorMsg (Monitor.view model.session subModel)
-                    |> frame Page.Monitor
+        Monitor subModel ->
+            Html.map MonitorMsg (Monitor.view model.session subModel)
+                |> frame Page.Monitor
 
-            Status subModel ->
-                Html.map StatusMsg (Status.view model.session subModel)
-                    |> frame Page.Status
+        Status subModel ->
+            Html.map StatusMsg (Status.view model.session subModel)
+                |> frame Page.Status
 
 
 

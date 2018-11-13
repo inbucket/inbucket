@@ -49,7 +49,7 @@ routeToString page =
                 Status ->
                     [ "status" ]
     in
-        "/#/" ++ String.join "/" pieces
+    "/#/" ++ String.join "/" pieces
 
 
 

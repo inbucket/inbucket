@@ -4,9 +4,8 @@ import Data.Message as Message exposing (Message)
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
 import Date exposing (Date)
-import DateFormat.Relative as Relative
 import DateFormat
-import Json.Decode as Decode exposing (Decoder)
+import DateFormat.Relative as Relative
 import Html exposing (..)
 import Html.Attributes
     exposing
@@ -24,6 +23,7 @@ import Html.Attributes
 import Html.Events exposing (..)
 import Http exposing (Error)
 import HttpUtil
+import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Ports
 import Route
@@ -111,10 +111,10 @@ subscriptions model =
                 _ ->
                     Sub.none
     in
-        Sub.batch
-            [ Time.every (30 * Time.second) Tick
-            , subSeen
-            ]
+    Sub.batch
+        [ Time.every (30 * Time.second) Tick
+        , subSeen
+        ]
 
 
 
@@ -175,13 +175,13 @@ update session msg model =
                                 | state = ShowingList (MessageList headers Nothing "") NoMessage
                             }
                     in
-                        case selection of
-                            Just id ->
-                                -- Recurse to select message id.
-                                update session (ViewMessage id) newModel
+                    case selection of
+                        Just id ->
+                            -- Recurse to select message id.
+                            update session (ViewMessage id) newModel
 
-                            Nothing ->
-                                ( newModel, Cmd.none, Session.AddRecent model.mailboxName )
+                        Nothing ->
+                            ( newModel, Cmd.none, Session.AddRecent model.mailboxName )
 
                 _ ->
                     ( model, Cmd.none, Session.none )
@@ -270,21 +270,21 @@ updateMessageResult model message =
             else
                 model.bodyMode
     in
-        case model.state of
-            LoadingList _ ->
-                ( model, Cmd.none, Session.none )
+    case model.state of
+        LoadingList _ ->
+            ( model, Cmd.none, Session.none )
 
-            ShowingList list _ ->
-                ( { model
-                    | state =
-                        ShowingList
-                            { list | selected = Just message.id }
-                            (ShowingMessage (VisibleMessage message Nothing))
-                    , bodyMode = bodyMode
-                  }
-                , Task.perform OpenedTime Time.now
-                , Session.none
-                )
+        ShowingList list _ ->
+            ( { model
+                | state =
+                    ShowingList
+                        { list | selected = Just message.id }
+                        (ShowingMessage (VisibleMessage message Nothing))
+                , bodyMode = bodyMode
+              }
+            , Task.perform OpenedTime Time.now
+            , Session.none
+            )
 
 
 updatePurge : Model -> ( Model, Cmd Msg, Session.Msg )
@@ -296,15 +296,15 @@ updatePurge model =
                 |> HttpUtil.delete
                 |> Http.send PurgeResult
     in
-        case model.state of
-            ShowingList list _ ->
-                ( { model | state = ShowingList (MessageList [] Nothing "") NoMessage }
-                , cmd
-                , Session.none
-                )
+    case model.state of
+        ShowingList list _ ->
+            ( { model | state = ShowingList (MessageList [] Nothing "") NoMessage }
+            , cmd
+            , Session.none
+            )
 
-            _ ->
-                ( model, cmd, Session.none )
+        _ ->
+            ( model, cmd, Session.none )
 
 
 updateSearchInput : Model -> String -> ( Model, Cmd Msg, Session.Msg )
@@ -316,18 +316,18 @@ updateSearchInput model searchInput =
             else
                 ""
     in
-        case model.state of
-            LoadingList _ ->
-                ( model, Cmd.none, Session.none )
+    case model.state of
+        LoadingList _ ->
+            ( model, Cmd.none, Session.none )
 
-            ShowingList list messageState ->
-                ( { model
-                    | searchInput = searchInput
-                    , state = ShowingList { list | searchFilter = searchFilter } messageState
-                  }
-                , Cmd.none
-                , Session.none
-                )
+        ShowingList list messageState ->
+            ( { model
+                | searchInput = searchInput
+                , state = ShowingList { list | searchFilter = searchFilter } messageState
+              }
+            , Cmd.none
+            , Session.none
+            )
 
 
 {-| Set the selected message in our model.
@@ -343,19 +343,19 @@ updateSelected model id =
                 newList =
                     { list | selected = Just id }
             in
-                case messageState of
-                    NoMessage ->
-                        { model | state = ShowingList newList LoadingMessage }
+            case messageState of
+                NoMessage ->
+                    { model | state = ShowingList newList LoadingMessage }
 
-                    LoadingMessage ->
-                        { model | state = ShowingList newList LoadingMessage }
+                LoadingMessage ->
+                    { model | state = ShowingList newList LoadingMessage }
 
-                    ShowingMessage visible ->
-                        -- Use Transitioning state to prevent blank message flicker.
-                        { model | state = ShowingList newList (Transitioning visible) }
+                ShowingMessage visible ->
+                    -- Use Transitioning state to prevent blank message flicker.
+                    { model | state = ShowingList newList (Transitioning visible) }
 
-                    Transitioning visible ->
-                        { model | state = ShowingList newList (Transitioning visible) }
+                Transitioning visible ->
+                    { model | state = ShowingList newList (Transitioning visible) }
 
 
 updateDeleteMessage : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
@@ -371,18 +371,18 @@ updateDeleteMessage model message =
         filter f messageList =
             { messageList | headers = List.filter f messageList.headers }
     in
-        case model.state of
-            ShowingList list _ ->
-                ( { model
-                    | state =
-                        ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
-                  }
-                , cmd
-                , Session.none
-                )
+    case model.state of
+        ShowingList list _ ->
+            ( { model
+                | state =
+                    ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
+              }
+            , cmd
+            , Session.none
+            )
 
-            _ ->
-                ( model, cmd, Session.none )
+        _ ->
+            ( model, cmd, Session.none )
 
 
 updateMarkMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
@@ -410,19 +410,19 @@ updateMarkMessageSeen model message =
                 map f messageList =
                     { messageList | headers = List.map f messageList.headers }
             in
-                ( { model
-                    | state =
-                        ShowingList (map updateSeen list)
-                            (ShowingMessage
-                                { visible
-                                    | message = { message | seen = True }
-                                    , markSeenAt = Nothing
-                                }
-                            )
-                  }
-                , command
-                , Session.None
-                )
+            ( { model
+                | state =
+                    ShowingList (map updateSeen list)
+                        (ShowingMessage
+                            { visible
+                                | message = { message | seen = True }
+                                , markSeenAt = Nothing
+                            }
+                        )
+              }
+            , command
+            , Session.None
+            )
 
         _ ->
             ( model, Cmd.none, Session.none )
@@ -434,8 +434,8 @@ getList mailboxName =
         url =
             "/api/v1/mailbox/" ++ mailboxName
     in
-        Http.get url (Decode.list MessageHeader.decoder)
-            |> Http.send ListResult
+    Http.get url (Decode.list MessageHeader.decoder)
+        |> Http.send ListResult
 
 
 getMessage : String -> MessageID -> Cmd Msg
@@ -444,8 +444,8 @@ getMessage mailboxName id =
         url =
             "/serve/m/" ++ mailboxName ++ "/" ++ id
     in
-        Http.get url Message.decoder
-            |> Http.send MessageResult
+    Http.get url Message.decoder
+        |> Http.send MessageResult
 
 
 
@@ -526,26 +526,26 @@ viewMessage message bodyMode =
         sourceUrl message =
             "/serve/m/" ++ message.mailbox ++ "/" ++ message.id ++ "/source"
     in
-        div []
-            [ div [ class "button-bar" ]
-                [ button [ class "danger", onClick (DeleteMessage message) ] [ text "Delete" ]
-                , a
-                    [ href (sourceUrl message), target "_blank" ]
-                    [ button [] [ text "Source" ] ]
-                ]
-            , dl [ id "message-header" ]
-                [ dt [] [ text "From:" ]
-                , dd [] [ text message.from ]
-                , dt [] [ text "To:" ]
-                , dd [] (List.map text message.to)
-                , dt [] [ text "Date:" ]
-                , dd [] [ verboseDate message.date ]
-                , dt [] [ text "Subject:" ]
-                , dd [] [ text message.subject ]
-                ]
-            , messageBody message bodyMode
-            , attachments message
+    div []
+        [ div [ class "button-bar" ]
+            [ button [ class "danger", onClick (DeleteMessage message) ] [ text "Delete" ]
+            , a
+                [ href (sourceUrl message), target "_blank" ]
+                [ button [] [ text "Source" ] ]
             ]
+        , dl [ id "message-header" ]
+            [ dt [] [ text "From:" ]
+            , dd [] [ text message.from ]
+            , dt [] [ text "To:" ]
+            , dd [] (List.map text message.to)
+            , dt [] [ text "Date:" ]
+            , dd [] [ verboseDate message.date ]
+            , dt [] [ text "Subject:" ]
+            , dd [] [ text message.subject ]
+            ]
+        , messageBody message bodyMode
+        , attachments message
+        ]
 
 
 messageBody : Message -> Body -> Html Msg
@@ -571,17 +571,17 @@ messageBody message bodyMode =
             else
                 [ safeHtml, plainText ]
     in
-        div [ class "tab-panel" ]
-            [ nav [ class "tab-bar" ] tabs
-            , article [ class "message-body" ]
-                [ case bodyMode of
-                    SafeHtmlBody ->
-                        div [ property "innerHTML" (Encode.string message.html) ] []
+    div [ class "tab-panel" ]
+        [ nav [ class "tab-bar" ] tabs
+        , article [ class "message-body" ]
+            [ case bodyMode of
+                SafeHtmlBody ->
+                    div [ property "innerHTML" (Encode.string message.html) ] []
 
-                    TextBody ->
-                        div [ property "innerHTML" (Encode.string message.text) ] []
-                ]
+                TextBody ->
+                    div [ property "innerHTML" (Encode.string message.text) ] []
             ]
+        ]
 
 
 attachments : Message -> Html Msg
@@ -590,10 +590,10 @@ attachments message =
         baseUrl =
             "/serve/m/attach/" ++ message.mailbox ++ "/" ++ message.id ++ "/"
     in
-        if List.isEmpty message.attachments then
-            div [] []
-        else
-            table [ class "attachments well" ] (List.map (attachmentRow baseUrl) message.attachments)
+    if List.isEmpty message.attachments then
+        div [] []
+    else
+        table [ class "attachments well" ] (List.map (attachmentRow baseUrl) message.attachments)
 
 
 attachmentRow : String -> Message.Attachment -> Html Msg
@@ -602,13 +602,13 @@ attachmentRow baseUrl attach =
         url =
             baseUrl ++ attach.id ++ "/" ++ attach.fileName
     in
-        tr []
-            [ td []
-                [ a [ href url, target "_blank" ] [ text attach.fileName ]
-                , text (" (" ++ attach.contentType ++ ") ")
-                ]
-            , td [] [ a [ href url, downloadAs attach.fileName, class "button" ] [ text "Download" ] ]
+    tr []
+        [ td []
+            [ a [ href url, target "_blank" ] [ text attach.fileName ]
+            , text (" (" ++ attach.contentType ++ ") ")
             ]
+        , td [] [ a [ href url, downloadAs attach.fileName, class "button" ] [ text "Download" ] ]
+        ]
 
 
 relativeDate : Model -> Date -> Html Msg
@@ -651,4 +651,4 @@ filterMessageList list =
                 String.contains list.searchFilter (String.toLower header.subject)
                     || String.contains list.searchFilter (String.toLower header.from)
         in
-            List.filter matches list.headers
+        List.filter matches list.headers

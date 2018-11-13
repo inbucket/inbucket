@@ -18,4 +18,4 @@ date =
                 Err error ->
                     fail error
     in
-        string |> andThen convert
+    string |> andThen convert

@@ -7,7 +7,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http exposing (Error)
 import HttpUtil
-import Sparkline exposing (sparkline, Point, DataSet, Size)
+import Sparkline exposing (DataSet, Point, Size, sparkline)
 import Svg.Attributes as SvgAttrib
 import Time exposing (Time)
 
@@ -69,7 +69,7 @@ init =
 initDataSet : DataSet
 initDataSet =
     List.range 0 59
-        |> List.map (\x -> ( toFloat (x), 0 ))
+        |> List.map (\x -> ( toFloat x, 0 ))
 
 
 load : Cmd Msg
@@ -116,52 +116,52 @@ updateMetrics metrics model =
         x =
             model.xCounter
     in
-        { model
-            | metrics = Just metrics
-            , xCounter = x + 1
-            , sysMem = updateLocalMetric model.sysMem x metrics.sysMem
-            , heapSize = updateLocalMetric model.heapSize x metrics.heapSize
-            , heapUsed = updateLocalMetric model.heapUsed x metrics.heapUsed
-            , heapObjects = updateLocalMetric model.heapObjects x metrics.heapObjects
-            , goRoutines = updateLocalMetric model.goRoutines x metrics.goRoutines
-            , webSockets = updateLocalMetric model.webSockets x metrics.webSockets
-            , smtpConnOpen = updateLocalMetric model.smtpConnOpen x metrics.smtpConnOpen
-            , smtpConnTotal =
-                updateRemoteTotal
-                    model.smtpConnTotal
-                    metrics.smtpConnTotal
-                    metrics.smtpConnHist
-            , smtpReceivedTotal =
-                updateRemoteTotal
-                    model.smtpReceivedTotal
-                    metrics.smtpReceivedTotal
-                    metrics.smtpReceivedHist
-            , smtpErrorsTotal =
-                updateRemoteTotal
-                    model.smtpErrorsTotal
-                    metrics.smtpErrorsTotal
-                    metrics.smtpErrorsHist
-            , smtpWarnsTotal =
-                updateRemoteTotal
-                    model.smtpWarnsTotal
-                    metrics.smtpWarnsTotal
-                    metrics.smtpWarnsHist
-            , retentionDeletesTotal =
-                updateRemoteTotal
-                    model.retentionDeletesTotal
-                    metrics.retentionDeletesTotal
-                    metrics.retentionDeletesHist
-            , retainedCount =
-                updateRemoteMetric
-                    model.retainedCount
-                    metrics.retainedCount
-                    metrics.retainedCountHist
-            , retainedSize =
-                updateRemoteMetric
-                    model.retainedSize
-                    metrics.retainedSize
-                    metrics.retainedSizeHist
-        }
+    { model
+        | metrics = Just metrics
+        , xCounter = x + 1
+        , sysMem = updateLocalMetric model.sysMem x metrics.sysMem
+        , heapSize = updateLocalMetric model.heapSize x metrics.heapSize
+        , heapUsed = updateLocalMetric model.heapUsed x metrics.heapUsed
+        , heapObjects = updateLocalMetric model.heapObjects x metrics.heapObjects
+        , goRoutines = updateLocalMetric model.goRoutines x metrics.goRoutines
+        , webSockets = updateLocalMetric model.webSockets x metrics.webSockets
+        , smtpConnOpen = updateLocalMetric model.smtpConnOpen x metrics.smtpConnOpen
+        , smtpConnTotal =
+            updateRemoteTotal
+                model.smtpConnTotal
+                metrics.smtpConnTotal
+                metrics.smtpConnHist
+        , smtpReceivedTotal =
+            updateRemoteTotal
+                model.smtpReceivedTotal
+                metrics.smtpReceivedTotal
+                metrics.smtpReceivedHist
+        , smtpErrorsTotal =
+            updateRemoteTotal
+                model.smtpErrorsTotal
+                metrics.smtpErrorsTotal
+                metrics.smtpErrorsHist
+        , smtpWarnsTotal =
+            updateRemoteTotal
+                model.smtpWarnsTotal
+                metrics.smtpWarnsTotal
+                metrics.smtpWarnsHist
+        , retentionDeletesTotal =
+            updateRemoteTotal
+                model.retentionDeletesTotal
+                metrics.retentionDeletesTotal
+                metrics.retentionDeletesHist
+        , retainedCount =
+            updateRemoteMetric
+                model.retainedCount
+                metrics.retainedCount
+                metrics.retainedCountHist
+        , retainedSize =
+            updateRemoteMetric
+                model.retainedSize
+                metrics.retainedSize
+                metrics.retainedSizeHist
+    }
 
 
 {-| Update a single Metric, with history tracked locally.
@@ -171,8 +171,8 @@ updateLocalMetric metric x value =
     { metric
         | value = value
         , history =
-            (Maybe.withDefault [] (List.tail metric.history))
-                ++ [ ( x, (toFloat value) ) ]
+            Maybe.withDefault [] (List.tail metric.history)
+                ++ [ ( x, toFloat value ) ]
     }
 
 
@@ -320,11 +320,11 @@ graphChange data =
                 Just point ->
                     Tuple.first point
     in
-        sparkline graphSize
-            [ Sparkline.Bar 2.5 data |> barStyle
-            , Sparkline.ZeroLine |> zeroStyle
-            , Sparkline.Domain [ ( x, 0 ), ( x, 1 ) ]
-            ]
+    sparkline graphSize
+        [ Sparkline.Bar 2.5 data |> barStyle
+        , Sparkline.ZeroLine |> zeroStyle
+        , Sparkline.Domain [ ( x, 0 ), ( x, 1 ) ]
+        ]
 
 
 {-| Zero based area graph, for charting absolute values relative to 0.
@@ -341,11 +341,11 @@ graphZero data =
                 Just point ->
                     Tuple.first point
     in
-        sparkline graphSize
-            [ Sparkline.Area data |> areaStyle
-            , Sparkline.ZeroLine |> zeroStyle
-            , Sparkline.Domain [ ( x, 0 ), ( x, 1 ) ]
-            ]
+    sparkline graphSize
+        [ Sparkline.Area data |> areaStyle
+        , Sparkline.ZeroLine |> zeroStyle
+        , Sparkline.Domain [ ( x, 0 ), ( x, 1 ) ]
+        ]
 
 
 framePanel : String -> List (Html a) -> Html a
@@ -368,7 +368,7 @@ changeList numbers =
         tail =
             List.tail numbers |> Maybe.withDefault []
     in
-        List.map2 (-) tail numbers
+    List.map2 (-) tail numbers
 
 
 {-| Pad the front of a list with 0s to make it at least 60 elements long.
@@ -379,10 +379,10 @@ zeroPadList numbers =
         needed =
             60 - List.length numbers
     in
-        if needed > 0 then
-            (List.repeat needed 0) ++ numbers
-        else
-            numbers
+    if needed > 0 then
+        List.repeat needed 0 ++ numbers
+    else
+        numbers
 
 
 {-| Format an Int with thousands separators.
@@ -395,6 +395,6 @@ fmtInt n =
             if String.length str <= 3 then
                 str
             else
-                (thousands (String.slice 0 -3 str)) ++ "," ++ (String.right 3 str)
+                thousands (String.slice 0 -3 str) ++ "," ++ String.right 3 str
     in
-        thousands (toString n)
+    thousands (toString n)

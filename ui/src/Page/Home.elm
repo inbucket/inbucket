@@ -1,8 +1,8 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
+import Data.Session as Session exposing (Session)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Data.Session as Session exposing (Session)
 
 
 -- MODEL --

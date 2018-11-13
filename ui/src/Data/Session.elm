@@ -1,10 +1,10 @@
 module Data.Session
     exposing
-        ( Session
+        ( Msg(..)
         , Persistent
-        , Msg(..)
-        , decoder
+        , Session
         , decodeValueWithDefault
+        , decoder
         , init
         , none
         , update
@@ -74,7 +74,7 @@ update msg session =
                     persistent =
                         session.persistent
                 in
-                    { session | persistent = { persistent | recentMailboxes = recent } }
+                { session | persistent = { persistent | recentMailboxes = recent } }
 
 
 none : Msg

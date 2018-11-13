@@ -8,8 +8,8 @@ import (
 
 // SetupRoutes populates routes for the webui into the provided Router.
 func SetupRoutes(r *mux.Router) {
-	r.Path("/").Handler(
-		web.Handler(RootIndex)).Name("RootIndex").Methods("GET")
+	r.Path("/greeting").Handler(
+		web.Handler(RootGreeting)).Name("RootGreeting").Methods("GET")
 	r.Path("/monitor").Handler(
 		web.Handler(RootMonitor)).Name("RootMonitor").Methods("GET")
 	r.Path("/monitor/{name}").Handler(

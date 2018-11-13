@@ -3,18 +3,33 @@ module Page.Home exposing (Model, Msg, init, update, view)
 import Data.Session as Session exposing (Session)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Http
+import HttpUtil
+import Json.Encode as Encode
+import Ports
 
 
 -- MODEL --
 
 
 type alias Model =
-    {}
+    { greeting : String }
 
 
-init : Model
+init : ( Model, Cmd Msg )
 init =
-    {}
+    ( Model ""
+    , Cmd.batch
+        [ Ports.windowTitle "Inbucket"
+        , cmdGreeting
+        ]
+    )
+
+
+cmdGreeting : Cmd Msg
+cmdGreeting =
+    Http.send GreetingResult <|
+        Http.getString "/serve/greeting"
 
 
 
@@ -22,12 +37,17 @@ init =
 
 
 type Msg
-    = Msg
+    = GreetingResult (Result Http.Error String)
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
-    ( model, Cmd.none, Session.none )
+    case msg of
+        GreetingResult (Ok greeting) ->
+            ( Model greeting, Cmd.none, Session.none )
+
+        GreetingResult (Err err) ->
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
 
 
@@ -37,6 +57,9 @@ update session msg model =
 view : Session -> Model -> Html Msg
 view session model =
     div [ id "page" ]
-        [ h1 [] [ text "Inbucket" ]
-        , text "This is the home page"
+        [ div
+            [ class "greeting"
+            , property "innerHTML" (Encode.string model.greeting)
+            ]
+            []
         ]

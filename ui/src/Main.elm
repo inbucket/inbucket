@@ -36,8 +36,11 @@ init sessionValue location =
         session =
             Session.init location (Session.decodeValueWithDefault sessionValue)
 
+        ( subModel, _ ) =
+            Home.init
+
         model =
-            { page = Home Home.init
+            { page = Home subModel
             , session = session
             , mailboxName = ""
             }
@@ -182,8 +185,12 @@ setRoute route model =
             ( model, Cmd.none, Session.SetFlash ("Unknown route requested: " ++ hash) )
 
         Route.Home ->
-            ( { model | page = Home Home.init }
-            , Ports.windowTitle "Inbucket"
+            let
+                ( subModel, subCmd ) =
+                    Home.init
+            in
+            ( { model | page = Home subModel }
+            , Cmd.map HomeMsg subCmd
             , Session.none
             )
 

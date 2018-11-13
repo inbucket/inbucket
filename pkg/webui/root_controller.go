@@ -2,7 +2,6 @@ package webui
 
 import (
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"net/http"
 
@@ -10,23 +9,16 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 )
 
-// RootIndex serves the Inbucket landing page
-func RootIndex(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
+// RootGreeting serves the Inbucket greeting.
+func RootGreeting(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	greeting, err := ioutil.ReadFile(ctx.RootConfig.Web.GreetingFile)
 	if err != nil {
 		return fmt.Errorf("Failed to load greeting: %v", err)
 	}
-	// Get flash messages, save session
-	errorFlash := ctx.Session.Flashes("errors")
-	if err = ctx.Session.Save(req, w); err != nil {
-		return err
-	}
-	// Render template
-	return web.RenderTemplate("root/index.html", w, map[string]interface{}{
-		"ctx":        ctx,
-		"errorFlash": errorFlash,
-		"greeting":   template.HTML(string(greeting)),
-	})
+
+	w.Header().Set("Content-Type", "text/html")
+	_, err = w.Write(greeting)
+	return err
 }
 
 // RootMonitor serves the Inbucket monitor page

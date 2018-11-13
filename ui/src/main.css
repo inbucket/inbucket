@@ -30,6 +30,11 @@ time, mark, audio, video {
   vertical-align: baseline;
 }
 
+::placeholder {
+  color: var(--placeholder-color);
+  opacity: 1;
+}
+
 a {
     color: #337ab7;
     text-decoration: none;
@@ -46,9 +51,8 @@ body, input, table {
   color: var(--primary-color);
 }
 
-::placeholder {
-  color: var(--placeholder-color);
-  opacity: 1;
+h1, h2, h3, h4, h5, h6, p {
+  margin-bottom: 10px;
 }
 
 /** SHARED */
@@ -127,6 +131,10 @@ footer {
 h1 {
   font-size: 30px;
   font-weight: 500;
+}
+
+.greeting {
+  max-width: 1000px;
 }
 
 /** NAV BAR */

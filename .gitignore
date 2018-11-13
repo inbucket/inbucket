@@ -40,14 +40,12 @@ _testmain.go
 /cmd/inbucket/inbucket.exe
 
 # Elm UI
-/ui/elm.js
-/ui/index.html
 # elm-package generated files
 /ui/elm-stuff
 /ui/tests/elm-stuff
 # elm-repl generated files
 repl-temp-*
 # Distribution
-/ui/build/
+#/ui/build/
 # Dependency directories
 /ui/node_modules

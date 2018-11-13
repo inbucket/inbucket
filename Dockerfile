@@ -17,7 +17,7 @@ WORKDIR /opt/inbucket
 RUN mkdir bin defaults ui
 COPY --from=builder /build/inbucket bin
 COPY etc/docker/defaults/greeting.html defaults
-COPY ui ui
+COPY ui/build ui
 COPY etc/docker/defaults/start-inbucket.sh /
 
 # Configuration

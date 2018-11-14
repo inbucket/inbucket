@@ -27,7 +27,6 @@
         "elm-lang/http": "1.0.0 <= v < 2.0.0",
         "elm-lang/navigation": "2.1.0 <= v < 3.0.0",
         "elm-lang/svg": "2.0.0 <= v < 3.0.0",
-        "elm-lang/websocket": "1.0.2 <= v < 2.0.0",
         "evancz/url-parser": "2.0.1 <= v < 3.0.0",
         "jweir/sparkline": "3.0.0 <= v < 4.0.0",
         "ryannhg/elm-date-format": "2.1.2 <= v < 3.0.0"

@@ -180,54 +180,68 @@ updatePage msg model =
 
 setRoute : Route -> Model -> ( Model, Cmd Msg, Session.Msg )
 setRoute route model =
-    case route of
-        Route.Unknown hash ->
-            ( model, Cmd.none, Session.SetFlash ("Unknown route requested: " ++ hash) )
+    let
+        ( newModel, newCmd, newSession ) =
+            case route of
+                Route.Unknown hash ->
+                    ( model, Cmd.none, Session.SetFlash ("Unknown route requested: " ++ hash) )
 
-        Route.Home ->
-            let
-                ( subModel, subCmd ) =
-                    Home.init
-            in
-            ( { model | page = Home subModel }
-            , Cmd.map HomeMsg subCmd
-            , Session.none
-            )
+                Route.Home ->
+                    let
+                        ( subModel, subCmd ) =
+                            Home.init
+                    in
+                    ( { model | page = Home subModel }
+                    , Cmd.map HomeMsg subCmd
+                    , Session.none
+                    )
 
-        Route.Mailbox name ->
-            let
-                ( subModel, subCmd ) =
-                    Mailbox.init name Nothing
-            in
-            ( { model | page = Mailbox subModel }
-            , Cmd.map MailboxMsg subCmd
-            , Session.none
-            )
+                Route.Mailbox name ->
+                    let
+                        ( subModel, subCmd ) =
+                            Mailbox.init name Nothing
+                    in
+                    ( { model | page = Mailbox subModel }
+                    , Cmd.map MailboxMsg subCmd
+                    , Session.none
+                    )
 
-        Route.Message mailbox id ->
-            let
-                ( subModel, subCmd ) =
-                    Mailbox.init mailbox (Just id)
-            in
-            ( { model | page = Mailbox subModel }
-            , Cmd.map MailboxMsg subCmd
-            , Session.none
-            )
+                Route.Message mailbox id ->
+                    let
+                        ( subModel, subCmd ) =
+                            Mailbox.init mailbox (Just id)
+                    in
+                    ( { model | page = Mailbox subModel }
+                    , Cmd.map MailboxMsg subCmd
+                    , Session.none
+                    )
 
-        Route.Monitor ->
-            ( { model | page = Monitor (Monitor.init model.session.host) }
-            , Ports.windowTitle "Inbucket Monitor"
-            , Session.none
-            )
+                Route.Monitor ->
+                    let
+                        ( subModel, subCmd ) =
+                            Monitor.init
+                    in
+                    ( { model | page = Monitor subModel }
+                    , Cmd.map MonitorMsg subCmd
+                    , Session.none
+                    )
 
-        Route.Status ->
-            ( { model | page = Status Status.init }
-            , Cmd.batch
-                [ Ports.windowTitle "Inbucket Status"
-                , Cmd.map StatusMsg Status.load
-                ]
-            , Session.none
-            )
+                Route.Status ->
+                    ( { model | page = Status Status.init }
+                    , Cmd.batch
+                        [ Ports.windowTitle "Inbucket Status"
+                        , Cmd.map StatusMsg Status.load
+                        ]
+                    , Session.none
+                    )
+    in
+    case model.page of
+        Monitor _ ->
+            -- Leaving Monitor page, shut down the web socket.
+            ( newModel, Cmd.batch [ Ports.monitorCommand False, newCmd ], newSession )
+
+        _ ->
+            ( newModel, newCmd, newSession )
 
 
 applySession : ( Model, Cmd Msg, Session.Msg ) -> ( Model, Cmd Msg )

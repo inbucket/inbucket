@@ -15,25 +15,28 @@ import DateFormat
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events as Events
-import Json.Decode exposing (decodeString)
+import Json.Decode as D
+import Ports
 import Route
-import WebSocket
 
 
 -- MODEL
 
 
 type alias Model =
-    { wsUrl : String
+    { connected : Bool
     , messages : List MessageHeader
     }
 
 
-init : String -> Model
-init host =
-    { wsUrl = "ws://" ++ host ++ "/api/v1/monitor/messages"
-    , messages = []
-    }
+init : ( Model, Cmd Msg )
+init =
+    ( Model False []
+    , Cmd.batch
+        [ Ports.windowTitle "Inbucket Monitor"
+        , Ports.monitorCommand True
+        ]
+    )
 
 
 
@@ -42,7 +45,16 @@ init host =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    WebSocket.listen model.wsUrl (decodeString MessageHeader.decoder >> NewMessage)
+    let
+        monitorMessage =
+            D.oneOf
+                [ D.map Message MessageHeader.decoder
+                , D.map Connected D.bool
+                ]
+                |> D.decodeValue
+                |> Ports.monitorMessage
+    in
+    Sub.map MonitorResult monitorMessage
 
 
 
@@ -50,17 +62,25 @@ subscriptions model =
 
 
 type Msg
-    = NewMessage (Result String MessageHeader)
+    = MonitorResult (Result String MonitorMessage)
     | OpenMessage MessageHeader
+
+
+type MonitorMessage
+    = Connected Bool
+    | Message MessageHeader
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
     case msg of
-        NewMessage (Ok msg) ->
+        MonitorResult (Ok (Connected status)) ->
+            ( { model | connected = status }, Cmd.none, Session.none )
+
+        MonitorResult (Ok (Message msg)) ->
             ( { model | messages = msg :: model.messages }, Cmd.none, Session.none )
 
-        NewMessage (Err err) ->
+        MonitorResult (Err err) ->
             ( model, Cmd.none, Session.SetFlash err )
 
         OpenMessage msg ->
@@ -78,7 +98,17 @@ view : Session -> Model -> Html Msg
 view session model =
     div [ id "page" ]
         [ h1 [] [ text "Monitor" ]
-        , p [] [ text "Messages will be listed here shortly after delivery." ]
+        , p []
+            [ text "Messages will be listed here shortly after delivery. "
+            , em []
+                [ text
+                    (if model.connected then
+                        "Connected."
+                     else
+                        "Disconnected!"
+                    )
+                ]
+            ]
         , table [ id "monitor" ]
             [ thead []
                 [ th [] [ text "Date" ]

@@ -9,13 +9,15 @@ module Data.Session exposing
     , update
     )
 
-import Json.Decode as Decode exposing (..)
+import Browser.Navigation as Nav
+import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
-import Navigation exposing (Location)
+import Url exposing (Url)
 
 
 type alias Session =
-    { host : String
+    { key : Nav.Key
+    , host : String
     , flash : String
     , routing : Bool
     , persistent : Persistent
@@ -36,9 +38,9 @@ type Msg
     | AddRecent String
 
 
-init : Location -> Persistent -> Session
-init location persistent =
-    Session location.host "" True persistent
+init : Nav.Key -> Url -> Persistent -> Session
+init key location persistent =
+    Session key location.host "" True persistent
 
 
 update : Msg -> Session -> Session
@@ -84,10 +86,10 @@ none =
 
 decoder : Decoder Persistent
 decoder =
-    decode Persistent
+    succeed Persistent
         |> optional "recentMailboxes" (list string) []
 
 
 decodeValueWithDefault : Value -> Persistent
 decodeValueWithDefault =
-    Decode.decodeValue decoder >> Result.withDefault { recentMailboxes = [] }
+    decodeValue decoder >> Result.withDefault { recentMailboxes = [] }

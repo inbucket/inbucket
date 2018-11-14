@@ -1,9 +1,10 @@
-module Route exposing (Route(..), fromLocation, href, modifyUrl, newUrl)
+module Route exposing (Route(..), fromUrl, href, modifyUrl, newUrl)
 
+import Browser.Navigation as Navigation exposing (Key)
 import Html exposing (Attribute)
 import Html.Attributes as Attr
-import Navigation exposing (Location)
-import UrlParser as Url exposing ((</>), Parser, parseHash, s, string)
+import Url exposing (Url)
+import Url.Parser as Parser exposing ((</>), Parser, map, oneOf, s, string, top)
 
 
 type Route
@@ -15,14 +16,14 @@ type Route
     | Status
 
 
-matcher : Parser (Route -> a) a
-matcher =
-    Url.oneOf
-        [ Url.map Home (s "")
-        , Url.map Message (s "m" </> string </> string)
-        , Url.map Mailbox (s "m" </> string)
-        , Url.map Monitor (s "monitor")
-        , Url.map Status (s "status")
+routeParser : Parser (Route -> a) a
+routeParser =
+    oneOf
+        [ map Home top
+        , map Message (s "m" </> string </> string)
+        , map Mailbox (s "m" </> string)
+        , map Monitor (s "monitor")
+        , map Status (s "status")
         ]
 
 
@@ -49,37 +50,35 @@ routeToString page =
                 Status ->
                     [ "status" ]
     in
-    "/#/" ++ String.join "/" pieces
+    "/" ++ String.join "/" pieces
 
 
 
 -- PUBLIC HELPERS
 
 
-href : Route -> Attribute msg
-href route =
+href : Key -> Route -> Attribute msg
+href key route =
     Attr.href (routeToString route)
 
 
-modifyUrl : Route -> Cmd msg
-modifyUrl =
-    routeToString >> Navigation.modifyUrl
+modifyUrl : Key -> Route -> Cmd msg
+modifyUrl key =
+    routeToString >> Navigation.replaceUrl key
 
 
-newUrl : Route -> Cmd msg
-newUrl =
-    routeToString >> Navigation.newUrl
+newUrl : Key -> Route -> Cmd msg
+newUrl key =
+    routeToString >> Navigation.pushUrl key
 
 
-fromLocation : Location -> Route
-fromLocation location =
-    if String.isEmpty location.hash then
-        Home
+{-| Returns the Route for a given URL; by matching the path after # (fragment.)
+-}
+fromUrl : Url -> Route
+fromUrl location =
+    case Parser.parse routeParser location of
+        Nothing ->
+            Unknown location.path
 
-    else
-        case parseHash matcher location of
-            Nothing ->
-                Unknown location.hash
-
-            Just route ->
-                route
+        Just route ->
+            route

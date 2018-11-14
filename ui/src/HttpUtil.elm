@@ -42,11 +42,11 @@ errorString error =
             "HTTP Network error"
 
         Http.BadStatus res ->
-            "Bad HTTP status: " ++ toString res.status.code
+            "Bad HTTP status: " ++ String.fromInt res.status.code
 
         Http.BadPayload msg res ->
             "Bad HTTP payload: "
                 ++ msg
                 ++ " ("
-                ++ toString res.status.code
+                ++ String.fromInt res.status.code
                 ++ ")"

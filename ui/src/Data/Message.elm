@@ -1,9 +1,9 @@
 module Data.Message exposing (Attachment, Message, attachmentDecoder, decoder)
 
 import Data.Date exposing (date)
-import Date exposing (Date)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+import Time exposing (Posix)
 
 
 type alias Message =
@@ -12,7 +12,7 @@ type alias Message =
     , from : String
     , to : List String
     , subject : String
-    , date : Date
+    , date : Posix
     , size : Int
     , seen : Bool
     , text : String
@@ -30,7 +30,7 @@ type alias Attachment =
 
 decoder : Decoder Message
 decoder =
-    decode Message
+    succeed Message
         |> required "mailbox" string
         |> required "id" string
         |> optional "from" string ""
@@ -46,7 +46,7 @@ decoder =
 
 attachmentDecoder : Decoder Attachment
 attachmentDecoder =
-    decode Attachment
+    succeed Attachment
         |> required "id" string
         |> required "filename" string
         |> required "content-type" string

@@ -2,7 +2,6 @@ module Page.Monitor exposing (Model, Msg, init, subscriptions, update, view)
 
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
-import Date exposing (Date)
 import DateFormat
     exposing
         ( amPmUppercase
@@ -10,7 +9,7 @@ import DateFormat
         , format
         , hourNumber
         , minuteFixed
-        , monthNameFirstThree
+        , monthNameAbbreviated
         )
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -18,6 +17,7 @@ import Html.Events as Events
 import Json.Decode as D
 import Ports
 import Route
+import Time exposing (Posix)
 
 
 
@@ -63,7 +63,7 @@ subscriptions model =
 
 
 type Msg
-    = MonitorResult (Result String MonitorMessage)
+    = MonitorResult (Result D.Error MonitorMessage)
     | OpenMessage MessageHeader
 
 
@@ -78,15 +78,15 @@ update session msg model =
         MonitorResult (Ok (Connected status)) ->
             ( { model | connected = status }, Cmd.none, Session.none )
 
-        MonitorResult (Ok (Message msg)) ->
-            ( { model | messages = msg :: model.messages }, Cmd.none, Session.none )
+        MonitorResult (Ok (Message header)) ->
+            ( { model | messages = header :: model.messages }, Cmd.none, Session.none )
 
         MonitorResult (Err err) ->
-            ( model, Cmd.none, Session.SetFlash err )
+            ( model, Cmd.none, Session.SetFlash (D.errorToString err) )
 
-        OpenMessage msg ->
+        OpenMessage header ->
             ( model
-            , Route.newUrl (Route.Message msg.mailbox msg.id)
+            , Route.newUrl session.key (Route.Message header.mailbox header.id)
             , Session.none
             )
 
@@ -133,12 +133,12 @@ viewMessage message =
         ]
 
 
-shortDate : Date -> Html Msg
+shortDate : Posix -> Html Msg
 shortDate date =
     format
         [ dayOfMonthFixed
         , DateFormat.text "-"
-        , monthNameFirstThree
+        , monthNameAbbreviated
         , DateFormat.text " "
         , hourNumber
         , DateFormat.text ":"
@@ -146,5 +146,6 @@ shortDate date =
         , DateFormat.text " "
         , amPmUppercase
         ]
+        Time.utc
         date
         |> text

@@ -39,10 +39,11 @@ frame controls session page content =
     div [ id "app" ]
         [ header []
             [ ul [ class "navbar", attribute "role" "navigation" ]
-                [ li [ id "navbar-brand" ] [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
-                , navbarLink page Route.Monitor [ text "Monitor" ]
-                , navbarLink page Route.Status [ text "Status" ]
-                , navbarRecent page controls
+                [ li [ id "navbar-brand" ]
+                    [ a [ Route.href session.key Route.Home ] [ text "@ inbucket" ] ]
+                , navbarLink session page Route.Monitor [ text "Monitor" ]
+                , navbarLink session page Route.Status [ text "Status" ]
+                , navbarRecent session page controls
                 , li [ id "navbar-mailbox" ]
                     [ form [ Events.onSubmit (controls.viewMailbox controls.mailboxValue) ]
                         [ input
@@ -70,19 +71,19 @@ frame controls session page content =
         ]
 
 
-navbarLink : ActivePage -> Route -> List (Html a) -> Html a
-navbarLink page route linkContent =
+navbarLink : Session -> ActivePage -> Route -> List (Html a) -> Html a
+navbarLink session page route linkContent =
     li [ classList [ ( "navbar-active", isActive page route ) ] ]
-        [ a [ Route.href route ] linkContent ]
+        [ a [ Route.href session.key route ] linkContent ]
 
 
 {-| Renders list of recent mailboxes, selecting the currently active mailbox.
 -}
-navbarRecent : ActivePage -> FrameControls msg -> Html msg
-navbarRecent page controls =
+navbarRecent : Session -> ActivePage -> FrameControls msg -> Html msg
+navbarRecent session page controls =
     let
         recentItemLink mailbox =
-            a [ Route.href (Route.Mailbox mailbox) ] [ text mailbox ]
+            a [ Route.href session.key (Route.Mailbox mailbox) ] [ text mailbox ]
 
         active =
             page == Mailbox

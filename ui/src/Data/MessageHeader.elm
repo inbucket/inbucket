@@ -1,9 +1,9 @@
 module Data.MessageHeader exposing (MessageHeader, decoder)
 
 import Data.Date exposing (date)
-import Date exposing (Date)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+import Time exposing (Posix)
 
 
 type alias MessageHeader =
@@ -12,7 +12,7 @@ type alias MessageHeader =
     , from : String
     , to : List String
     , subject : String
-    , date : Date
+    , date : Posix
     , size : Int
     , seen : Bool
     }
@@ -20,7 +20,7 @@ type alias MessageHeader =
 
 decoder : Decoder MessageHeader
 decoder =
-    decode MessageHeader
+    succeed MessageHeader
         |> required "mailbox" string
         |> required "id" string
         |> optional "from" string ""

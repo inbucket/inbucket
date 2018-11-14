@@ -9,7 +9,7 @@ import Http exposing (Error)
 import HttpUtil
 import Sparkline exposing (DataSet, Point, Size, sparkline)
 import Svg.Attributes as SvgAttrib
-import Time exposing (Time)
+import Time exposing (Posix)
 
 
 
@@ -84,7 +84,7 @@ load =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every (10 * Time.second) Tick
+    Time.every (10 * 1000) Tick
 
 
 
@@ -93,7 +93,7 @@ subscriptions model =
 
 type Msg
     = NewMetrics (Result Http.Error Metrics)
-    | Tick Time
+    | Tick Posix
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
@@ -256,7 +256,7 @@ viewMetric metric =
         , div [ class "value" ] [ text (metric.formatter metric.value) ]
         , div [ class "graph" ]
             [ metric.graph metric.history
-            , text ("(" ++ toString metric.minutes ++ "min)")
+            , text ("(" ++ String.fromInt metric.minutes ++ "min)")
             ]
         ]
 
@@ -280,7 +280,11 @@ graphNull =
 
 graphSize : Size
 graphSize =
-    ( 180, 16, 0, 0 )
+    { width = 180
+    , height = 16
+    , marginLR = 0
+    , marginTB = 0
+    }
 
 
 areaStyle : Sparkline.Param a -> Sparkline.Param a
@@ -400,4 +404,4 @@ fmtInt n =
             else
                 thousands (String.slice 0 -3 str) ++ "," ++ String.right 3 str
     in
-    thousands (toString n)
+    thousands (String.fromInt n)

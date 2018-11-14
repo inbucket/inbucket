@@ -1,10 +1,13 @@
 import './main.css'
-import { Main } from './Main.elm'
+import { Elm } from './Main.elm'
 import registerServiceWorker from './registerServiceWorker'
 import registerMonitorPorts from './registerMonitor'
 
 // App startup.
-var app = Main.embed(document.getElementById('root'), sessionObject())
+var app = Elm.Main.init({
+  node: document.getElementById('root'),
+  flags: sessionObject()
+})
 
 // Message monitor.
 registerMonitorPorts(app)

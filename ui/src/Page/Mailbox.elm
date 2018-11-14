@@ -3,7 +3,6 @@ module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, vie
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
-import Date exposing (Date)
 import DateFormat
 import DateFormat.Relative as Relative
 import Html exposing (..)
@@ -11,7 +10,7 @@ import Html.Attributes
     exposing
         ( class
         , classList
-        , downloadAs
+        , download
         , href
         , id
         , placeholder
@@ -28,7 +27,7 @@ import Json.Encode as Encode
 import Ports
 import Route
 import Task
-import Time exposing (Time)
+import Time exposing (Posix)
 
 
 
@@ -65,7 +64,7 @@ type alias MessageList =
 
 type alias VisibleMessage =
     { message : Message
-    , markSeenAt : Maybe Time
+    , markSeenAt : Maybe Int
     }
 
 
@@ -74,13 +73,13 @@ type alias Model =
     , state : State
     , bodyMode : Body
     , searchInput : String
-    , now : Date
+    , now : Posix
     }
 
 
 init : String -> Maybe MessageID -> ( Model, Cmd Msg )
 init mailboxName selection =
-    ( Model mailboxName (LoadingList selection) SafeHtmlBody "" (Date.fromTime 0)
+    ( Model mailboxName (LoadingList selection) SafeHtmlBody "" (Time.millisToPosix 0)
     , load mailboxName
     )
 
@@ -108,13 +107,13 @@ subscriptions model =
                         Sub.none
 
                     else
-                        Time.every (250 * Time.millisecond) SeenTick
+                        Time.every 250 SeenTick
 
                 _ ->
                     Sub.none
     in
     Sub.batch
-        [ Time.every (30 * Time.second) Tick
+        [ Time.every (30 * 1000) Tick
         , subSeen
         ]
 
@@ -131,12 +130,12 @@ type Msg
     | MarkSeenResult (Result Http.Error ())
     | MessageResult (Result Http.Error Message)
     | MessageBody Body
-    | OpenedTime Time
+    | OpenedTime Posix
     | Purge
     | PurgeResult (Result Http.Error ())
     | SearchInput String
-    | SeenTick Time
-    | Tick Time
+    | SeenTick Posix
+    | Tick Posix
     | ViewMessage MessageID
 
 
@@ -147,7 +146,7 @@ update session msg model =
             ( updateSelected model id
             , Cmd.batch
                 [ -- Update browser location.
-                  Route.newUrl (Route.Message model.mailboxName id)
+                  Route.newUrl session.key (Route.Message model.mailboxName id)
                 , getMessage model.mailboxName id
                 ]
             , Session.DisableRouting
@@ -216,13 +215,17 @@ update session msg model =
                         ( model, Cmd.none, Session.none )
 
                     else
-                        -- Set delay before reporting message as seen to backend.
+                        -- Set 1500ms delay before reporting message as seen to backend.
+                        let
+                            markSeenAt =
+                                Time.posixToMillis time + 1500
+                        in
                         ( { model
                             | state =
                                 ShowingList list
                                     (ShowingMessage
                                         { visible
-                                            | markSeenAt = Just (time + (1.5 * Time.second))
+                                            | markSeenAt = Just markSeenAt
                                         }
                                     )
                           }
@@ -247,7 +250,7 @@ update session msg model =
                 ShowingList _ (ShowingMessage { message, markSeenAt }) ->
                     case markSeenAt of
                         Just deadline ->
-                            if now >= deadline then
+                            if Time.posixToMillis now >= deadline then
                                 updateMarkMessageSeen model message
 
                             else
@@ -260,7 +263,7 @@ update session msg model =
                     ( model, Cmd.none, Session.none )
 
         Tick now ->
-            ( { model | now = Date.fromTime now }, Cmd.none, Session.none )
+            ( { model | now = now }, Cmd.none, Session.none )
 
 
 {-| Replace the currently displayed message.
@@ -530,14 +533,14 @@ messageChip model selected message =
 viewMessage : Message -> Body -> Html Msg
 viewMessage message bodyMode =
     let
-        sourceUrl message =
+        sourceUrl =
             "/serve/m/" ++ message.mailbox ++ "/" ++ message.id ++ "/source"
     in
     div []
         [ div [ class "button-bar" ]
             [ button [ class "danger", onClick (DeleteMessage message) ] [ text "Delete" ]
             , a
-                [ href (sourceUrl message), target "_blank" ]
+                [ href sourceUrl, target "_blank" ]
                 [ button [] [ text "Source" ] ]
             ]
         , dl [ id "message-header" ]
@@ -616,16 +619,16 @@ attachmentRow baseUrl attach =
             [ a [ href url, target "_blank" ] [ text attach.fileName ]
             , text (" (" ++ attach.contentType ++ ") ")
             ]
-        , td [] [ a [ href url, downloadAs attach.fileName, class "button" ] [ text "Download" ] ]
+        , td [] [ a [ href url, download attach.fileName, class "button" ] [ text "Download" ] ]
         ]
 
 
-relativeDate : Model -> Date -> Html Msg
+relativeDate : Model -> Posix -> Html Msg
 relativeDate model date =
     Relative.relativeTime model.now date |> text
 
 
-verboseDate : Date -> Html Msg
+verboseDate : Posix -> Html Msg
 verboseDate date =
     DateFormat.format
         [ DateFormat.monthNameFull
@@ -642,6 +645,7 @@ verboseDate date =
         , DateFormat.text " "
         , DateFormat.amPmUppercase
         ]
+        Time.utc
         date
         |> text
 

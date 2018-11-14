@@ -1,11 +1,10 @@
-port module Ports
-    exposing
-        ( monitorCommand
-        , monitorMessage
-        , onSessionChange
-        , storeSession
-        , windowTitle
-        )
+port module Ports exposing
+    ( monitorCommand
+    , monitorMessage
+    , onSessionChange
+    , storeSession
+    , windowTitle
+    )
 
 import Data.Session exposing (Persistent)
 import Json.Encode exposing (Value)

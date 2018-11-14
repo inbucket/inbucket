@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Main exposing (Model, Msg(..), Page(..), applySession, init, main, pageSubscriptions, sessionChange, setRoute, subscriptions, update, updatePage, view)
 
 import Data.Session as Session exposing (Session, decoder)
 import Html exposing (..)
@@ -11,6 +11,7 @@ import Page.Status as Status
 import Ports
 import Route exposing (Route)
 import Views.Page as Page exposing (ActivePage(..), frame)
+
 
 
 -- MODEL
@@ -112,6 +113,7 @@ update msg model =
                 -- Responds to new browser URL.
                 if model.session.routing then
                     setRoute route model
+
                 else
                     -- Skip once, but re-enable routing.
                     ( model, Cmd.none, Session.EnableRouting )
@@ -256,6 +258,7 @@ applySession ( model, cmd, sessionMsg ) =
     if session.persistent == model.session.persistent then
         -- No change
         ( newModel, cmd )
+
     else
         ( newModel
         , Cmd.batch [ cmd, Ports.storeSession session.persistent ]

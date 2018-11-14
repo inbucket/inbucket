@@ -20,6 +20,7 @@ import Ports
 import Route
 
 
+
 -- MODEL
 
 
@@ -104,6 +105,7 @@ view session model =
                 [ text
                     (if model.connected then
                         "Connected."
+
                      else
                         "Disconnected!"
                     )

@@ -1,14 +1,13 @@
-module Data.Session
-    exposing
-        ( Msg(..)
-        , Persistent
-        , Session
-        , decodeValueWithDefault
-        , decoder
-        , init
-        , none
-        , update
-        )
+module Data.Session exposing
+    ( Msg(..)
+    , Persistent
+    , Session
+    , decodeValueWithDefault
+    , decoder
+    , init
+    , none
+    , update
+    )
 
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
@@ -63,6 +62,7 @@ update msg session =
         AddRecent mailbox ->
             if List.head session.persistent.recentMailboxes == Just mailbox then
                 session
+
             else
                 let
                     recent =

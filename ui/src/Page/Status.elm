@@ -12,6 +12,7 @@ import Svg.Attributes as SvgAttrib
 import Time exposing (Time)
 
 
+
 -- MODEL --
 
 
@@ -381,6 +382,7 @@ zeroPadList numbers =
     in
     if needed > 0 then
         List.repeat needed 0 ++ numbers
+
     else
         numbers
 
@@ -394,6 +396,7 @@ fmtInt n =
         thousands str =
             if String.length str <= 3 then
                 str
+
             else
                 thousands (String.slice 0 -3 str) ++ "," ++ String.right 3 str
     in

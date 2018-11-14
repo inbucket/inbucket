@@ -1,4 +1,4 @@
-module Data.Metrics exposing (..)
+module Data.Metrics exposing (Metrics, decodeIntList, decoder)
 
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)

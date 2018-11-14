@@ -1,4 +1,4 @@
-module HttpUtil exposing (..)
+module HttpUtil exposing (delete, errorString, patch)
 
 import Http
 

@@ -91,6 +91,7 @@ navbarRecent page controls =
         title =
             if active then
                 controls.recentActive
+
             else
                 "Recent Mailboxes"
 
@@ -98,6 +99,7 @@ navbarRecent page controls =
         items =
             if active then
                 List.tail controls.recentOptions |> Maybe.withDefault []
+
             else
                 controls.recentOptions
     in

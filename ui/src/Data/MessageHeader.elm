@@ -1,4 +1,4 @@
-module Data.MessageHeader exposing (..)
+module Data.MessageHeader exposing (MessageHeader, decoder)
 
 import Data.Date exposing (date)
 import Date exposing (Date)

@@ -75,6 +75,7 @@ fromLocation : Location -> Route
 fromLocation location =
     if String.isEmpty location.hash then
         Home
+
     else
         case parseHash matcher location of
             Nothing ->

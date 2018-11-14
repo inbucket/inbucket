@@ -1,4 +1,4 @@
-module Data.Message exposing (..)
+module Data.Message exposing (Attachment, Message, attachmentDecoder, decoder)
 
 import Data.Date exposing (date)
 import Date exposing (Date)

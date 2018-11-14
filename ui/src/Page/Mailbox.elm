@@ -31,6 +31,7 @@ import Task
 import Time exposing (Time)
 
 
+
 -- MODEL
 
 
@@ -105,6 +106,7 @@ subscriptions model =
                 ShowingList _ (ShowingMessage { message }) ->
                     if message.seen then
                         Sub.none
+
                     else
                         Time.every (250 * Time.millisecond) SeenTick
 
@@ -212,6 +214,7 @@ update session msg model =
                 ShowingList list (ShowingMessage visible) ->
                     if visible.message.seen then
                         ( model, Cmd.none, Session.none )
+
                     else
                         -- Set delay before reporting message as seen to backend.
                         ( { model
@@ -246,6 +249,7 @@ update session msg model =
                         Just deadline ->
                             if now >= deadline then
                                 updateMarkMessageSeen model message
+
                             else
                                 ( model, Cmd.none, Session.none )
 
@@ -267,6 +271,7 @@ updateMessageResult model message =
         bodyMode =
             if message.html == "" then
                 TextBody
+
             else
                 model.bodyMode
     in
@@ -313,6 +318,7 @@ updateSearchInput model searchInput =
         searchFilter =
             if String.length searchInput > 1 then
                 String.toLower searchInput
+
             else
                 ""
     in
@@ -393,6 +399,7 @@ updateMarkMessageSeen model message =
                 updateSeen header =
                     if header.id == message.id then
                         { header | seen = True }
+
                     else
                         header
 
@@ -568,6 +575,7 @@ messageBody message bodyMode =
         tabs =
             if message.html == "" then
                 [ plainText ]
+
             else
                 [ safeHtml, plainText ]
     in
@@ -592,6 +600,7 @@ attachments message =
     in
     if List.isEmpty message.attachments then
         div [] []
+
     else
         table [ class "attachments well" ] (List.map (attachmentRow baseUrl) message.attachments)
 
@@ -645,6 +654,7 @@ filterMessageList : MessageList -> List MessageHeader
 filterMessageList list =
     if list.searchFilter == "" then
         list.headers
+
     else
         let
             matches header =

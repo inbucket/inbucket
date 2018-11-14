@@ -1,4 +1,4 @@
-module Data.Date exposing (..)
+module Data.Date exposing (date)
 
 import Date exposing (Date)
 import Json.Decode as Decode exposing (..)

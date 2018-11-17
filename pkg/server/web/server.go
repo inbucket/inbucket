@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"path/filepath"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -47,7 +48,7 @@ func init() {
 	m.Set("WebSocketConnectsCurrent", ExpWebSocketConnectsCurrent)
 }
 
-// Initialize sets up things for unit tests or the Start() method
+// Initialize sets up things for unit tests or the Start() method.
 func Initialize(
 	conf *config.Root,
 	shutdownChan chan bool,
@@ -57,11 +58,11 @@ func Initialize(
 	rootConfig = conf
 	globalShutdown = shutdownChan
 
-	// NewContext() will use this DataStore for the web handlers
+	// NewContext() will use this DataStore for the web handlers.
 	msgHub = mh
 	manager = mm
 
-	// Content Paths
+	// Dynamic paths.
 	log.Info().Str("module", "web").Str("phase", "startup").Str("path", conf.Web.UIDir).
 		Msg("Web UI content mapped")
 	Router.Handle("/debug/vars", expvar.Handler())
@@ -74,13 +75,27 @@ func Initialize(
 		log.Warn().Str("module", "web").Str("phase", "startup").
 			Msg("Go pprof tools installed to /debug/pprof")
 	}
-	// If no other route matches, attempt to service as UI element.
-	Router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(conf.Web.UIDir))))
-	Router.NotFoundHandler = noMatchHandler(http.StatusNotFound, "No route matches URI path")
-	Router.MethodNotAllowedHandler = noMatchHandler(http.StatusMethodNotAllowed,
-		"Method not allowed for URI path")
 
-	// Session cookie setup
+	// Static paths.
+	Router.PathPrefix("/static").Handler(
+		http.StripPrefix("/", http.FileServer(http.Dir(conf.Web.UIDir))))
+	Router.Path("/favicon.png").Handler(
+		fileHandler(filepath.Join(conf.Web.UIDir, "favicon.png")))
+
+	// SPA managed paths.
+	spaHandler := fileHandler(filepath.Join(conf.Web.UIDir, "index.html"))
+	Router.Path("/").Handler(spaHandler)
+	Router.Path("/monitor").Handler(spaHandler)
+	Router.Path("/status").Handler(spaHandler)
+	Router.PathPrefix("/m/").Handler(spaHandler)
+
+	// Error handlers.
+	Router.NotFoundHandler = noMatchHandler(
+		http.StatusNotFound, "No route matches URI path")
+	Router.MethodNotAllowedHandler = noMatchHandler(
+		http.StatusMethodNotAllowed, "Method not allowed for URI path")
+
+	// Session cookie setup.
 	if conf.Web.CookieAuthKey == "" {
 		log.Info().Str("module", "web").Str("phase", "startup").
 			Msg("Generating random cookie.auth.key")

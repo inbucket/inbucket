@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/rs/zerolog/log"
 )
@@ -28,6 +29,29 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+// fileHandler creates a handler that sends the named file regardless of the requested URL.
+func fileHandler(name string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		f, err := os.Open(name)
+		if err != nil {
+			log.Error().Str("module", "web").Str("path", req.RequestURI).Str("file", name).Err(err).
+				Msg("Error opening file")
+			http.Error(w, "Error opening file", http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+
+		d, err := f.Stat()
+		if err != nil {
+			log.Error().Str("module", "web").Str("path", req.RequestURI).Str("file", name).Err(err).
+				Msg("Error stating file")
+			http.Error(w, "Error opening file", http.StatusInternalServerError)
+			return
+		}
+		http.ServeContent(w, req, d.Name(), d.ModTime(), f)
+	})
 }
 
 // noMatchHandler creates a handler to log requests that Gorilla mux is unable to route,

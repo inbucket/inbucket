@@ -1,10 +1,10 @@
 {
-  "short_name": "Elm App",
-  "name": "Create Elm App Sample",
+  "short_name": "Inbucket",
+  "name": "Inbucket",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "192x192",
+      "src": "favicon.png",
+      "sizes": "16x16",
       "type": "image/png"
     }
   ],

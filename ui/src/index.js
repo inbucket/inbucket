@@ -1,6 +1,5 @@
 import './main.css'
 import { Elm } from './Main.elm'
-import registerServiceWorker from './registerServiceWorker'
 import registerMonitorPorts from './registerMonitor'
 
 // App startup.
@@ -39,5 +38,3 @@ function sessionObject() {
 app.ports.windowTitle.subscribe(function (title) {
   document.title = title
 })
-
-registerServiceWorker()

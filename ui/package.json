@@ -6,11 +6,14 @@
   "scripts": {
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch",
-    "dev": "webpack-dev-server --mode development --port 3000",
+    "dev": "webpack-dev-server --mode development --port 3000 --hot",
     "errors": "webpack --mode development --display-error-details"
   },
   "dependencies": {},
   "devDependencies": {
+    "@babel/core": "^7.1.6",
+    "@babel/preset-env": "^7.1.6",
+    "babel-loader": "^8.0.4",
     "css-loader": "^1.0.1",
     "elm-hot-webpack-loader": "^1.0.2",
     "elm-webpack-loader": "^5.0.0",

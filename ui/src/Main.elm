@@ -154,11 +154,10 @@ update msg model =
                 )
 
             UpdateSession (Err error) ->
-                let
-                    _ =
-                        Debug.log "Error decoding session" error
-                in
-                ( model, Cmd.none, Session.none )
+                ( model
+                , Cmd.none
+                , Session.SetFlash ("Error decoding session: " ++ D.errorToString error)
+                )
 
             MailboxNameInput name ->
                 ( { model | mailboxName = name }, Cmd.none, Session.none )

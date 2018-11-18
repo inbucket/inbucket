@@ -38,12 +38,18 @@ module.exports = {
   ],
   devServer: {
     inline: true,
+    historyApiFallback: true,
     hot: true,
     stats: { colors: true },
+    overlay: true,
+    open: true,
     proxy: [{
       context: ['/api', '/debug', '/serve'],
       target: 'http://localhost:9000',
       ws: true,
     }],
+    watchOptions: {
+      ignored: /node_modules/,
+    },
   },
 };

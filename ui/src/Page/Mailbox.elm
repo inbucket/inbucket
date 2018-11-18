@@ -588,10 +588,10 @@ messageBody message bodyMode =
         , article [ class "message-body" ]
             [ case bodyMode of
                 SafeHtmlBody ->
-                    div [ property "innerHTML" (Encode.string message.html) ] []
+                    Html.node "rendered-html" [ property "content" (Encode.string message.html) ] []
 
                 TextBody ->
-                    div [ property "innerHTML" (Encode.string message.text) ] []
+                    Html.node "rendered-html" [ property "content" (Encode.string message.text) ] []
             ]
         ]
 

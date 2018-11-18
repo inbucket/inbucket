@@ -1,6 +1,7 @@
 import './main.css'
 import { Elm } from './Main.elm'
 import registerMonitorPorts from './registerMonitor'
+import './renderedHtml'
 
 // App startup.
 var app = Elm.Main.init({

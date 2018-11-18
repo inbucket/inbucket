@@ -60,9 +60,9 @@ update session msg model =
 view : Session -> Model -> Html Msg
 view session model =
     div [ id "page" ]
-        [ div
+        [ Html.node "rendered-html"
             [ class "greeting"
-            , property "innerHTML" (Encode.string model.greeting)
+            , property "content" (Encode.string model.greeting)
             ]
             []
         ]

@@ -79,12 +79,14 @@ func decodedNumberEquals(t *testing.T, json interface{}, path string, want float
 		t.Errorf("JSON result%s", msg)
 		return
 	}
-	if got, ok := val.(float64); ok {
+	got, ok := val.(float64)
+	if ok {
 		if got == want {
 			return
 		}
 	}
-	t.Errorf("JSON result/%s == %v (%T), want: %v", path, val, val, want)
+	t.Errorf("JSON result/%s == %v (%T) %v (int64),\nwant: %v / %v",
+		path, val, val, int64(got), want, int64(want))
 }
 
 func decodedStringEquals(t *testing.T, json interface{}, path string, want string) {

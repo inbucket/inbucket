@@ -26,6 +26,6 @@ decoder =
         |> optional "from" string ""
         |> required "to" (list string)
         |> optional "subject" string ""
-        |> required "date" date
+        |> required "posix-millis" date
         |> required "size" int
         |> required "seen" bool

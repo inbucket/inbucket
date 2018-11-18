@@ -4,8 +4,8 @@ import Json.Decode as Decode exposing (..)
 import Time exposing (Posix)
 
 
-{-| Decode a POSIX milliseconds timestamp. Currently faked until backend API is updated.
+{-| Decode a POSIX milliseconds timestamp.
 -}
 date : Decoder Posix
 date =
-    succeed (Time.millisToPosix 0)
+    int |> andThen (Time.millisToPosix >> succeed)

@@ -29,8 +29,10 @@ init =
 
 cmdGreeting : Cmd Msg
 cmdGreeting =
-    Http.send GreetingResult <|
-        Http.getString "/serve/greeting"
+    Http.get
+        { url = "/serve/greeting"
+        , expect = Http.expectString GreetingResult
+        }
 
 
 

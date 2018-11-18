@@ -207,8 +207,10 @@ updateRemoteTotal metric value history =
 
 getMetrics : Cmd Msg
 getMetrics =
-    Http.get "/debug/vars" Metrics.decoder
-        |> Http.send NewMetrics
+    Http.get
+        { url = "/debug/vars"
+        , expect = Http.expectJson NewMetrics Metrics.decoder
+        }
 
 
 

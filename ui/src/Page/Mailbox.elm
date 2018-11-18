@@ -301,8 +301,7 @@ updatePurge model =
         cmd =
             "/api/v1/mailbox/"
                 ++ model.mailboxName
-                |> HttpUtil.delete
-                |> Http.send PurgeResult
+                |> HttpUtil.delete PurgeResult
     in
     case model.state of
         ShowingList list _ ->
@@ -374,8 +373,7 @@ updateDeleteMessage model message =
             "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
 
         cmd =
-            HttpUtil.delete url
-                |> Http.send DeleteMessageResult
+            HttpUtil.delete DeleteMessageResult url
 
         filter f messageList =
             { messageList | headers = List.filter f messageList.headers }
@@ -414,8 +412,7 @@ updateMarkMessageSeen model message =
                     -- desired change in the body.
                     Encode.object [ ( "seen", Encode.bool True ) ]
                         |> Http.jsonBody
-                        |> HttpUtil.patch url
-                        |> Http.send MarkSeenResult
+                        |> HttpUtil.patch MarkSeenResult url
 
                 map f messageList =
                     { messageList | headers = List.map f messageList.headers }
@@ -444,8 +441,10 @@ getList mailboxName =
         url =
             "/api/v1/mailbox/" ++ mailboxName
     in
-    Http.get url (Decode.list MessageHeader.decoder)
-        |> Http.send ListResult
+    Http.get
+        { url = url
+        , expect = Http.expectJson ListResult (Decode.list MessageHeader.decoder)
+        }
 
 
 getMessage : String -> MessageID -> Cmd Msg
@@ -454,8 +453,10 @@ getMessage mailboxName id =
         url =
             "/serve/m/" ++ mailboxName ++ "/" ++ id
     in
-    Http.get url Message.decoder
-        |> Http.send MessageResult
+    Http.get
+        { url = url
+        , expect = Http.expectJson MessageResult Message.decoder
+        }
 
 
 

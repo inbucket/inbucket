@@ -127,8 +127,8 @@ update msg model =
                     Browser.Internal url ->
                         ( model, Nav.pushUrl model.session.key (Url.toString url), Session.none )
 
-                    _ ->
-                        Debug.todo "implement external links"
+                    Browser.External url ->
+                        ( model, Nav.load url, Session.none )
 
             UrlChanged url ->
                 -- Responds to new browser URL.

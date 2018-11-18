@@ -10,7 +10,9 @@ import Html.Attributes
         , href
         , id
         , placeholder
+        , rel
         , selected
+        , target
         , type_
         , value
         )
@@ -62,13 +64,18 @@ frame controls session page content =
         , content
         , footer []
             [ div [ id "footer" ]
-                [ a [ href "https://www.inbucket.org" ] [ text "Inbucket" ]
+                [ externalLink "https://www.inbucket.org" "Inbucket"
                 , text " is an open source projected hosted at "
-                , a [ href "https://github.com/jhillyerd/inbucket" ] [ text "GitHub" ]
+                , externalLink "https://github.com/jhillyerd/inbucket" "GitHub"
                 , text "."
                 ]
             ]
         ]
+
+
+externalLink : String -> String -> Html a
+externalLink url title =
+    a [ href url, target "_blank", rel "noopener" ] [ text title ]
 
 
 navbarLink : Session -> ActivePage -> Route -> List (Html a) -> Html a

@@ -217,38 +217,41 @@ getMetrics =
 -- VIEW --
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
-    div [ id "page" ]
-        [ h1 [] [ text "Status" ]
-        , case model.metrics of
-            Nothing ->
-                div [] [ text "Loading metrics..." ]
+    { title = "Inbucket Status"
+    , content =
+        div [ id "page" ]
+            [ h1 [] [ text "Status" ]
+            , case model.metrics of
+                Nothing ->
+                    div [] [ text "Loading metrics..." ]
 
-            Just metrics ->
-                div []
-                    [ framePanel "General Metrics"
-                        [ viewMetric model.sysMem
-                        , viewMetric model.heapSize
-                        , viewMetric model.heapUsed
-                        , viewMetric model.heapObjects
-                        , viewMetric model.goRoutines
-                        , viewMetric model.webSockets
+                Just metrics ->
+                    div []
+                        [ framePanel "General Metrics"
+                            [ viewMetric model.sysMem
+                            , viewMetric model.heapSize
+                            , viewMetric model.heapUsed
+                            , viewMetric model.heapObjects
+                            , viewMetric model.goRoutines
+                            , viewMetric model.webSockets
+                            ]
+                        , framePanel "SMTP Metrics"
+                            [ viewMetric model.smtpConnOpen
+                            , viewMetric model.smtpConnTotal
+                            , viewMetric model.smtpReceivedTotal
+                            , viewMetric model.smtpErrorsTotal
+                            , viewMetric model.smtpWarnsTotal
+                            ]
+                        , framePanel "Storage Metrics"
+                            [ viewMetric model.retentionDeletesTotal
+                            , viewMetric model.retainedCount
+                            , viewMetric model.retainedSize
+                            ]
                         ]
-                    , framePanel "SMTP Metrics"
-                        [ viewMetric model.smtpConnOpen
-                        , viewMetric model.smtpConnTotal
-                        , viewMetric model.smtpReceivedTotal
-                        , viewMetric model.smtpErrorsTotal
-                        , viewMetric model.smtpWarnsTotal
-                        ]
-                    , framePanel "Storage Metrics"
-                        [ viewMetric model.retentionDeletesTotal
-                        , viewMetric model.retainedCount
-                        , viewMetric model.retainedSize
-                        ]
-                    ]
-        ]
+            ]
+    }
 
 
 viewMetric : Metric -> Html Msg

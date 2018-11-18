@@ -87,8 +87,7 @@ init mailboxName selection =
 load : String -> Cmd Msg
 load mailboxName =
     Cmd.batch
-        [ Ports.windowTitle (mailboxName ++ " - Inbucket")
-        , Task.perform Tick Time.now
+        [ Task.perform Tick Time.now
         , getList mailboxName
         ]
 
@@ -463,29 +462,32 @@ getMessage mailboxName id =
 -- VIEW
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
-    div [ id "page", class "mailbox" ]
-        [ viewMessageList session model
-        , main_
-            [ id "message" ]
-            [ case model.state of
-                ShowingList _ NoMessage ->
-                    text
-                        ("Select a message on the left,"
-                            ++ " or enter a different username into the box on upper right."
-                        )
+    { title = model.mailboxName ++ " - Inbucket"
+    , content =
+        div [ id "page", class "mailbox" ]
+            [ viewMessageList session model
+            , main_
+                [ id "message" ]
+                [ case model.state of
+                    ShowingList _ NoMessage ->
+                        text
+                            ("Select a message on the left,"
+                                ++ " or enter a different username into the box on upper right."
+                            )
 
-                ShowingList _ (ShowingMessage { message }) ->
-                    viewMessage message model.bodyMode
+                    ShowingList _ (ShowingMessage { message }) ->
+                        viewMessage message model.bodyMode
 
-                ShowingList _ (Transitioning { message }) ->
-                    viewMessage message model.bodyMode
+                    ShowingList _ (Transitioning { message }) ->
+                        viewMessage message model.bodyMode
 
-                _ ->
-                    text ""
+                    _ ->
+                        text ""
+                ]
             ]
-        ]
+    }
 
 
 viewMessageList : Session -> Model -> Html Msg

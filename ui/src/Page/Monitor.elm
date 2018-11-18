@@ -32,12 +32,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model False []
-    , Cmd.batch
-        [ Ports.windowTitle "Inbucket Monitor"
-        , Ports.monitorCommand True
-        ]
-    )
+    ( Model False [], Ports.monitorCommand True )
 
 
 
@@ -95,32 +90,35 @@ update session msg model =
 -- VIEW
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
-    div [ id "page" ]
-        [ h1 [] [ text "Monitor" ]
-        , p []
-            [ text "Messages will be listed here shortly after delivery. "
-            , em []
-                [ text
-                    (if model.connected then
-                        "Connected."
+    { title = "Inbucket Monitor"
+    , content =
+        div [ id "page" ]
+            [ h1 [] [ text "Monitor" ]
+            , p []
+                [ text "Messages will be listed here shortly after delivery. "
+                , em []
+                    [ text
+                        (if model.connected then
+                            "Connected."
 
-                     else
-                        "Disconnected!"
-                    )
+                         else
+                            "Disconnected!"
+                        )
+                    ]
+                ]
+            , table [ id "monitor" ]
+                [ thead []
+                    [ th [] [ text "Date" ]
+                    , th [ class "desktop" ] [ text "From" ]
+                    , th [] [ text "Mailbox" ]
+                    , th [] [ text "Subject" ]
+                    ]
+                , tbody [] (List.map viewMessage model.messages)
                 ]
             ]
-        , table [ id "monitor" ]
-            [ thead []
-                [ th [] [ text "Date" ]
-                , th [ class "desktop" ] [ text "From" ]
-                , th [] [ text "Mailbox" ]
-                , th [] [ text "Subject" ]
-                ]
-            , tbody [] (List.map viewMessage model.messages)
-            ]
-        ]
+    }
 
 
 viewMessage : MessageHeader -> Html Msg

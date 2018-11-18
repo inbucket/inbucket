@@ -19,12 +19,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model ""
-    , Cmd.batch
-        [ Ports.windowTitle "Inbucket"
-        , cmdGreeting
-        ]
-    )
+    ( Model "", cmdGreeting )
 
 
 cmdGreeting : Cmd Msg
@@ -57,12 +52,15 @@ update session msg model =
 -- VIEW --
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
-    div [ id "page" ]
-        [ Html.node "rendered-html"
-            [ class "greeting"
-            , property "content" (Encode.string model.greeting)
+    { title = "Inbucket"
+    , content =
+        div [ id "page" ]
+            [ Html.node "rendered-html"
+                [ class "greeting"
+                , property "content" (Encode.string model.greeting)
+                ]
+                []
             ]
-            []
-        ]
+    }

@@ -34,8 +34,3 @@ function sessionObject() {
   }
   return null
 }
-
-// Window title.
-app.ports.windowTitle.subscribe(function (title) {
-  document.title = title
-})

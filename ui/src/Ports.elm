@@ -3,7 +3,6 @@ port module Ports exposing
     , monitorMessage
     , onSessionChange
     , storeSession
-    , windowTitle
     )
 
 import Data.Session exposing (Persistent)
@@ -20,6 +19,3 @@ port onSessionChange : (Value -> msg) -> Sub msg
 
 
 port storeSession : Persistent -> Cmd msg
-
-
-port windowTitle : String -> Cmd msg

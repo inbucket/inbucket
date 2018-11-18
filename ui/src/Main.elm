@@ -255,10 +255,7 @@ setRoute route model =
 
                 Route.Status ->
                     ( { model | page = Status Status.init }
-                    , Cmd.batch
-                        [ Ports.windowTitle "Inbucket Status"
-                        , Cmd.map StatusMsg Status.load
-                        ]
+                    , Cmd.map StatusMsg Status.load
                     , Session.none
                     )
     in
@@ -313,27 +310,30 @@ view model =
             , recentActive = mailbox
             }
 
-        frame =
-            Page.frame controls model.session
+        framePage :
+            ActivePage
+            -> (msg -> Msg)
+            -> { title : String, content : Html msg }
+            -> Document Msg
+        framePage page toMsg { title, content } =
+            Document title
+                [ content
+                    |> Html.map toMsg
+                    |> Page.frame controls model.session page
+                ]
     in
-    Document "Inbucket Document"
-        [ case model.page of
-            Home subModel ->
-                Html.map HomeMsg (Home.view model.session subModel)
-                    |> frame Page.Other
+    case model.page of
+        Home subModel ->
+            framePage Page.Other HomeMsg (Home.view model.session subModel)
 
-            Mailbox subModel ->
-                Html.map MailboxMsg (Mailbox.view model.session subModel)
-                    |> frame Page.Mailbox
+        Mailbox subModel ->
+            framePage Page.Mailbox MailboxMsg (Mailbox.view model.session subModel)
 
-            Monitor subModel ->
-                Html.map MonitorMsg (Monitor.view model.session subModel)
-                    |> frame Page.Monitor
+        Monitor subModel ->
+            framePage Page.Monitor MonitorMsg (Monitor.view model.session subModel)
 
-            Status subModel ->
-                Html.map StatusMsg (Status.view model.session subModel)
-                    |> frame Page.Status
-        ]
+        Status subModel ->
+            framePage Page.Status StatusMsg (Status.view model.session subModel)
 
 
 

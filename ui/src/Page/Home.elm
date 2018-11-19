@@ -19,15 +19,14 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
+    let
+        cmdGreeting =
+            Http.get
+                { url = "/serve/greeting"
+                , expect = Http.expectString GreetingLoaded
+                }
+    in
     ( Model "", cmdGreeting )
-
-
-cmdGreeting : Cmd Msg
-cmdGreeting =
-    Http.get
-        { url = "/serve/greeting"
-        , expect = Http.expectString GreetingResult
-        }
 
 
 
@@ -35,16 +34,16 @@ cmdGreeting =
 
 
 type Msg
-    = GreetingResult (Result Http.Error String)
+    = GreetingLoaded (Result Http.Error String)
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
     case msg of
-        GreetingResult (Ok greeting) ->
+        GreetingLoaded (Ok greeting) ->
             ( Model greeting, Cmd.none, Session.none )
 
-        GreetingResult (Err err) ->
+        GreetingLoaded (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
 

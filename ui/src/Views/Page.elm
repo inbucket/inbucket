@@ -89,13 +89,10 @@ navbarLink session page route linkContent =
 navbarRecent : Session -> ActivePage -> FrameControls msg -> Html msg
 navbarRecent session page controls =
     let
-        recentItemLink mailbox =
-            a [ Route.href session.key (Route.Mailbox mailbox) ] [ text mailbox ]
-
         active =
             page == Mailbox
 
-        -- Navbar tab title, is current mailbox when active.
+        -- Recent tab title is the name of the current mailbox when active.
         title =
             if active then
                 controls.recentActive
@@ -103,20 +100,23 @@ navbarRecent session page controls =
             else
                 "Recent Mailboxes"
 
-        -- Items to show in recent list, doesn't include active mailbox.
-        items =
+        -- Mailboxes to show in recent list, doesn't include active mailbox.
+        recentMailboxes =
             if active then
                 List.tail controls.recentOptions |> Maybe.withDefault []
 
             else
                 controls.recentOptions
+
+        recentLink mailbox =
+            a [ Route.href session.key (Route.Mailbox mailbox) ] [ text mailbox ]
     in
     li
         [ id "navbar-recent"
         , classList [ ( "navbar-dropdown", True ), ( "navbar-active", active ) ]
         ]
         [ span [] [ text title ]
-        , div [ class "navbar-dropdown-content" ] (List.map recentItemLink items)
+        , div [ class "navbar-dropdown-content" ] (List.map recentLink recentMailboxes)
         ]
 
 

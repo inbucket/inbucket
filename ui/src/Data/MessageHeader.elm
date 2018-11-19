@@ -1,7 +1,7 @@
 module Data.MessageHeader exposing (MessageHeader, decoder)
 
 import Data.Date exposing (date)
-import Json.Decode as Decode exposing (..)
+import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Time exposing (Posix)
 

@@ -1,18 +1,4 @@
-module Main exposing
-    ( Model
-    , Msg(..)
-    , Page(..)
-    , applySession
-    , init
-    , main
-    , pageSubscriptions
-    , sessionChange
-    , setRoute
-    , subscriptions
-    , update
-    , updatePage
-    , view
-    )
+module Main exposing (main)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav
@@ -73,7 +59,7 @@ type Msg
     | UrlChanged Url
     | LinkClicked UrlRequest
     | UpdateSession (Result D.Error Session.Persistent)
-    | MailboxNameInput String
+    | OnMailboxNameInput String
     | ViewMailbox String
     | HomeMsg Home.Msg
     | MailboxMsg Mailbox.Msg
@@ -159,7 +145,7 @@ update msg model =
                 , Session.SetFlash ("Error decoding session: " ++ D.errorToString error)
                 )
 
-            MailboxNameInput name ->
+            OnMailboxNameInput name ->
                 ( { model | mailboxName = name }, Cmd.none, Session.none )
 
             ViewMailbox name ->
@@ -303,7 +289,7 @@ view model =
 
         controls =
             { viewMailbox = ViewMailbox
-            , mailboxOnInput = MailboxNameInput
+            , mailboxOnInput = OnMailboxNameInput
             , mailboxValue = model.mailboxName
             , recentOptions = model.session.persistent.recentMailboxes
             , recentActive = mailbox

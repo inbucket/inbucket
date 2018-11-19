@@ -3,7 +3,7 @@ module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, vie
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
-import DateFormat
+import DateFormat as DF
 import DateFormat.Relative as Relative
 import Html exposing (..)
 import Html.Attributes
@@ -106,7 +106,7 @@ subscriptions model =
                         Sub.none
 
                     else
-                        Time.every 250 SeenTick
+                        Time.every 250 MarkSeenTick
 
                 _ ->
                     Sub.none
@@ -122,20 +122,20 @@ subscriptions model =
 
 
 type Msg
-    = ClickMessage MessageID
-    | DeleteMessage Message
-    | DeleteMessageResult (Result Http.Error ())
-    | ListResult (Result Http.Error (List MessageHeader))
-    | MarkSeenResult (Result Http.Error ())
-    | MessageResult (Result Http.Error Message)
+    = ListLoaded (Result Http.Error (List MessageHeader))
+    | ClickMessage MessageID
+    | OpenMessage MessageID
+    | MessageLoaded (Result Http.Error Message)
     | MessageBody Body
     | OpenedTime Posix
-    | Purge
-    | PurgeResult (Result Http.Error ())
-    | SearchInput String
-    | SeenTick Posix
+    | MarkSeenTick Posix
+    | MarkedSeen (Result Http.Error ())
+    | DeleteMessage Message
+    | DeletedMessage (Result Http.Error ())
+    | PurgeMailbox
+    | PurgedMailbox (Result Http.Error ())
+    | OnSearchInput String
     | Tick Posix
-    | ViewMessage MessageID
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
@@ -151,22 +151,19 @@ update session msg model =
             , Session.DisableRouting
             )
 
-        ViewMessage id ->
-            ( updateSelected model id
-            , getMessage model.mailboxName id
-            , Session.AddRecent model.mailboxName
-            )
+        OpenMessage id ->
+            updateOpenMessage session model id
 
         DeleteMessage message ->
             updateDeleteMessage model message
 
-        DeleteMessageResult (Ok _) ->
+        DeletedMessage (Ok _) ->
             ( model, Cmd.none, Session.none )
 
-        DeleteMessageResult (Err err) ->
+        DeletedMessage (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        ListResult (Ok headers) ->
+        ListLoaded (Ok headers) ->
             case model.state of
                 LoadingList selection ->
                     let
@@ -177,8 +174,7 @@ update session msg model =
                     in
                     case selection of
                         Just id ->
-                            -- Recurse to select message id.
-                            update session (ViewMessage id) newModel
+                            updateOpenMessage session newModel id
 
                         Nothing ->
                             ( newModel, Cmd.none, Session.AddRecent model.mailboxName )
@@ -186,25 +182,25 @@ update session msg model =
                 _ ->
                     ( model, Cmd.none, Session.none )
 
-        ListResult (Err err) ->
+        ListLoaded (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        MarkSeenResult (Ok _) ->
+        MarkedSeen (Ok _) ->
             ( model, Cmd.none, Session.none )
 
-        MarkSeenResult (Err err) ->
+        MarkedSeen (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        MessageResult (Ok message) ->
+        MessageLoaded (Ok message) ->
             updateMessageResult model message
 
-        MessageResult (Err err) ->
+        MessageLoaded (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
         MessageBody bodyMode ->
             ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
 
-        SearchInput searchInput ->
+        OnSearchInput searchInput ->
             updateSearchInput model searchInput
 
         OpenedTime time ->
@@ -235,16 +231,16 @@ update session msg model =
                 _ ->
                     ( model, Cmd.none, Session.none )
 
-        Purge ->
+        PurgeMailbox ->
             updatePurge model
 
-        PurgeResult (Ok _) ->
+        PurgedMailbox (Ok _) ->
             ( model, Cmd.none, Session.none )
 
-        PurgeResult (Err err) ->
+        PurgedMailbox (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        SeenTick now ->
+        MarkSeenTick now ->
             case model.state of
                 ShowingList _ (ShowingMessage { message, markSeenAt }) ->
                     case markSeenAt of
@@ -300,7 +296,7 @@ updatePurge model =
         cmd =
             "/api/v1/mailbox/"
                 ++ model.mailboxName
-                |> HttpUtil.delete PurgeResult
+                |> HttpUtil.delete PurgedMailbox
     in
     case model.state of
         ShowingList list _ ->
@@ -372,7 +368,7 @@ updateDeleteMessage model message =
             "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
 
         cmd =
-            HttpUtil.delete DeleteMessageResult url
+            HttpUtil.delete DeletedMessage url
 
         filter f messageList =
             { messageList | headers = List.filter f messageList.headers }
@@ -411,7 +407,7 @@ updateMarkMessageSeen model message =
                     -- desired change in the body.
                     Encode.object [ ( "seen", Encode.bool True ) ]
                         |> Http.jsonBody
-                        |> HttpUtil.patch MarkSeenResult url
+                        |> HttpUtil.patch MarkedSeen url
 
                 map f messageList =
                     { messageList | headers = List.map f messageList.headers }
@@ -434,6 +430,14 @@ updateMarkMessageSeen model message =
             ( model, Cmd.none, Session.none )
 
 
+updateOpenMessage : Session -> Model -> String -> ( Model, Cmd Msg, Session.Msg )
+updateOpenMessage session model id =
+    ( updateSelected model id
+    , getMessage model.mailboxName id
+    , Session.AddRecent model.mailboxName
+    )
+
+
 getList : String -> Cmd Msg
 getList mailboxName =
     let
@@ -442,7 +446,7 @@ getList mailboxName =
     in
     Http.get
         { url = url
-        , expect = Http.expectJson ListResult (Decode.list MessageHeader.decoder)
+        , expect = Http.expectJson ListLoaded (Decode.list MessageHeader.decoder)
         }
 
 
@@ -454,7 +458,7 @@ getMessage mailboxName id =
     in
     Http.get
         { url = url
-        , expect = Http.expectJson MessageResult Message.decoder
+        , expect = Http.expectJson MessageLoaded Message.decoder
         }
 
 
@@ -497,11 +501,11 @@ viewMessageList session model =
             [ input
                 [ type_ "search"
                 , placeholder "search"
-                , onInput SearchInput
+                , onInput OnSearchInput
                 , value model.searchInput
                 ]
                 []
-            , button [ onClick Purge ] [ text "Purge" ]
+            , button [ onClick PurgeMailbox ] [ text "Purge" ]
             ]
         , case model.state of
             LoadingList _ ->
@@ -633,24 +637,24 @@ relativeDate model date =
 
 verboseDate : Posix -> Html Msg
 verboseDate date =
-    DateFormat.format
-        [ DateFormat.monthNameFull
-        , DateFormat.text " "
-        , DateFormat.dayOfMonthSuffix
-        , DateFormat.text ", "
-        , DateFormat.yearNumber
-        , DateFormat.text " "
-        , DateFormat.hourNumber
-        , DateFormat.text ":"
-        , DateFormat.minuteFixed
-        , DateFormat.text ":"
-        , DateFormat.secondFixed
-        , DateFormat.text " "
-        , DateFormat.amPmUppercase
-        ]
-        Time.utc
-        date
-        |> text
+    text <|
+        DF.format
+            [ DF.monthNameFull
+            , DF.text " "
+            , DF.dayOfMonthSuffix
+            , DF.text ", "
+            , DF.yearNumber
+            , DF.text " "
+            , DF.hourNumber
+            , DF.text ":"
+            , DF.minuteFixed
+            , DF.text ":"
+            , DF.secondFixed
+            , DF.text " "
+            , DF.amPmUppercase
+            ]
+            Time.utc
+            date
 
 
 

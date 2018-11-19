@@ -2,15 +2,7 @@ module Page.Monitor exposing (Model, Msg, init, subscriptions, update, view)
 
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
-import DateFormat
-    exposing
-        ( amPmUppercase
-        , dayOfMonthFixed
-        , format
-        , hourNumber
-        , minuteFixed
-        , monthNameAbbreviated
-        )
+import DateFormat as DF
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events as Events
@@ -28,6 +20,11 @@ type alias Model =
     { connected : Bool
     , messages : List MessageHeader
     }
+
+
+type MonitorMessage
+    = Connected Bool
+    | Message MessageHeader
 
 
 init : ( Model, Cmd Msg )
@@ -50,7 +47,7 @@ subscriptions model =
                 |> D.decodeValue
                 |> Ports.monitorMessage
     in
-    Sub.map MonitorResult monitorMessage
+    Sub.map MessageReceived monitorMessage
 
 
 
@@ -58,25 +55,20 @@ subscriptions model =
 
 
 type Msg
-    = MonitorResult (Result D.Error MonitorMessage)
+    = MessageReceived (Result D.Error MonitorMessage)
     | OpenMessage MessageHeader
-
-
-type MonitorMessage
-    = Connected Bool
-    | Message MessageHeader
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
     case msg of
-        MonitorResult (Ok (Connected status)) ->
+        MessageReceived (Ok (Connected status)) ->
             ( { model | connected = status }, Cmd.none, Session.none )
 
-        MonitorResult (Ok (Message header)) ->
+        MessageReceived (Ok (Message header)) ->
             ( { model | messages = header :: model.messages }, Cmd.none, Session.none )
 
-        MonitorResult (Err err) ->
+        MessageReceived (Err err) ->
             ( model, Cmd.none, Session.SetFlash (D.errorToString err) )
 
         OpenMessage header ->
@@ -133,16 +125,16 @@ viewMessage message =
 
 shortDate : Posix -> Html Msg
 shortDate date =
-    format
-        [ dayOfMonthFixed
-        , DateFormat.text "-"
-        , monthNameAbbreviated
-        , DateFormat.text " "
-        , hourNumber
-        , DateFormat.text ":"
-        , minuteFixed
-        , DateFormat.text " "
-        , amPmUppercase
+    DF.format
+        [ DF.dayOfMonthFixed
+        , DF.text "-"
+        , DF.monthNameAbbreviated
+        , DF.text " "
+        , DF.hourNumber
+        , DF.text ":"
+        , DF.minuteFixed
+        , DF.text " "
+        , DF.amPmUppercase
         ]
         Time.utc
         date

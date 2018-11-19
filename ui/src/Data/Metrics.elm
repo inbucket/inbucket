@@ -59,4 +59,6 @@ decoder =
 -}
 decodeIntList : Decoder (List Int)
 decodeIntList =
-    map (String.split "," >> List.map (String.toInt >> Maybe.withDefault 0)) string
+    string
+        |> map (String.split ",")
+        |> map (List.map (String.toInt >> Maybe.withDefault 0))

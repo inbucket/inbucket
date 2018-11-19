@@ -16,17 +16,20 @@ type Route
     | Status
 
 
-routeParser : Parser (Route -> a) a
-routeParser =
-    oneOf
-        [ map Home top
-        , map Message (s "m" </> string </> string)
-        , map Mailbox (s "m" </> string)
-        , map Monitor (s "monitor")
-        , map Status (s "status")
-        ]
+{-| Routes our application handles.
+-}
+routes : List (Parser (Route -> a) a)
+routes =
+    [ map Home top
+    , map Message (s "m" </> string </> string)
+    , map Mailbox (s "m" </> string)
+    , map Monitor (s "monitor")
+    , map Status (s "status")
+    ]
 
 
+{-| Convert route to a URI.
+-}
 routeToString : Route -> String
 routeToString page =
     let
@@ -72,11 +75,11 @@ newUrl key =
     routeToString >> Navigation.pushUrl key
 
 
-{-| Returns the Route for a given URL; by matching the path after # (fragment.)
+{-| Returns the Route for a given URL.
 -}
 fromUrl : Url -> Route
 fromUrl location =
-    case Parser.parse routeParser location of
+    case Parser.parse (oneOf routes) location of
         Nothing ->
             Unknown location.path
 

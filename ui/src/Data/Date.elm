@@ -1,6 +1,6 @@
 module Data.Date exposing (date)
 
-import Json.Decode as Decode exposing (..)
+import Json.Decode exposing (..)
 import Time exposing (Posix)
 
 
@@ -8,4 +8,4 @@ import Time exposing (Posix)
 -}
 date : Decoder Posix
 date =
-    int |> andThen (Time.millisToPosix >> succeed)
+    int |> map Time.millisToPosix

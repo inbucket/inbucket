@@ -3,29 +3,29 @@ module HttpUtil exposing (delete, errorString, patch)
 import Http
 
 
-delete : String -> Http.Request ()
-delete url =
+delete : (Result Http.Error () -> msg) -> String -> Cmd msg
+delete msg url =
     Http.request
         { method = "DELETE"
         , headers = []
         , url = url
         , body = Http.emptyBody
-        , expect = Http.expectStringResponse (\_ -> Ok ())
+        , expect = Http.expectWhatever msg
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
 
 
-patch : String -> Http.Body -> Http.Request ()
-patch url body =
+patch : (Result Http.Error () -> msg) -> String -> Http.Body -> Cmd msg
+patch msg url body =
     Http.request
         { method = "PATCH"
         , headers = []
         , url = url
         , body = body
-        , expect = Http.expectStringResponse (\_ -> Ok ())
+        , expect = Http.expectWhatever msg
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
 
 
@@ -42,11 +42,7 @@ errorString error =
             "HTTP Network error"
 
         Http.BadStatus res ->
-            "Bad HTTP status: " ++ toString res.status.code
+            "Bad HTTP status: " ++ String.fromInt res
 
-        Http.BadPayload msg res ->
-            "Bad HTTP payload: "
-                ++ msg
-                ++ " ("
-                ++ toString res.status.code
-                ++ ")"
+        Http.BadBody msg ->
+            "Bad HTTP body: " ++ msg

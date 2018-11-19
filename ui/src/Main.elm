@@ -1,15 +1,17 @@
-module Main exposing (Model, Msg(..), Page(..), applySession, init, main, pageSubscriptions, sessionChange, setRoute, subscriptions, update, updatePage, view)
+module Main exposing (main)
 
+import Browser exposing (Document, UrlRequest)
+import Browser.Navigation as Nav
 import Data.Session as Session exposing (Session, decoder)
 import Html exposing (..)
-import Json.Decode as Decode exposing (Value)
-import Navigation exposing (Location)
+import Json.Decode as D exposing (Value)
 import Page.Home as Home
 import Page.Mailbox as Mailbox
 import Page.Monitor as Monitor
 import Page.Status as Status
 import Ports
 import Route exposing (Route)
+import Url exposing (Url)
 import Views.Page as Page exposing (ActivePage(..), frame)
 
 
@@ -31,11 +33,11 @@ type alias Model =
     }
 
 
-init : Value -> Location -> ( Model, Cmd Msg )
-init sessionValue location =
+init : Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init sessionValue location key =
     let
         session =
-            Session.init location (Session.decodeValueWithDefault sessionValue)
+            Session.init key location (Session.decodeValueWithDefault sessionValue)
 
         ( subModel, _ ) =
             Home.init
@@ -47,16 +49,17 @@ init sessionValue location =
             }
 
         route =
-            Route.fromLocation location
+            Route.fromUrl location
     in
     applySession (setRoute route model)
 
 
 type Msg
     = SetRoute Route
-    | NewRoute Route
-    | UpdateSession (Result String Session.Persistent)
-    | MailboxNameInput String
+    | UrlChanged Url
+    | LinkClicked UrlRequest
+    | UpdateSession (Result D.Error Session.Persistent)
+    | OnMailboxNameInput String
     | ViewMailbox String
     | HomeMsg Home.Msg
     | MailboxMsg Mailbox.Msg
@@ -76,9 +79,9 @@ subscriptions model =
         ]
 
 
-sessionChange : Sub (Result String Session.Persistent)
+sessionChange : Sub (Result D.Error Session.Persistent)
 sessionChange =
-    Ports.onSessionChange (Decode.decodeValue Session.decoder)
+    Ports.onSessionChange (D.decodeValue Session.decoder)
 
 
 pageSubscriptions : Page -> Sub Msg
@@ -105,18 +108,26 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     applySession <|
         case msg of
-            SetRoute route ->
-                -- Updates broser URL to requested route.
-                ( model, Route.newUrl route, Session.none )
+            LinkClicked req ->
+                case req of
+                    Browser.Internal url ->
+                        ( model, Nav.pushUrl model.session.key (Url.toString url), Session.none )
 
-            NewRoute route ->
+                    Browser.External url ->
+                        ( model, Nav.load url, Session.none )
+
+            UrlChanged url ->
                 -- Responds to new browser URL.
                 if model.session.routing then
-                    setRoute route model
+                    setRoute (Route.fromUrl url) model
 
                 else
                     -- Skip once, but re-enable routing.
                     ( model, Cmd.none, Session.EnableRouting )
+
+            SetRoute route ->
+                -- Updates broser URL to requested route.
+                ( model, Route.newUrl model.session.key route, Session.none )
 
             UpdateSession (Ok persistent) ->
                 let
@@ -129,18 +140,17 @@ update msg model =
                 )
 
             UpdateSession (Err error) ->
-                let
-                    _ =
-                        Debug.log "Error decoding session" error
-                in
-                ( model, Cmd.none, Session.none )
+                ( model
+                , Cmd.none
+                , Session.SetFlash ("Error decoding session: " ++ D.errorToString error)
+                )
 
-            MailboxNameInput name ->
+            OnMailboxNameInput name ->
                 ( { model | mailboxName = name }, Cmd.none, Session.none )
 
             ViewMailbox name ->
                 ( { model | mailboxName = "" }
-                , Route.newUrl (Route.Mailbox name)
+                , Route.newUrl model.session.key (Route.Mailbox name)
                 , Session.none
                 )
 
@@ -230,10 +240,7 @@ setRoute route model =
 
                 Route.Status ->
                     ( { model | page = Status Status.init }
-                    , Cmd.batch
-                        [ Ports.windowTitle "Inbucket Status"
-                        , Cmd.map StatusMsg Status.load
-                        ]
+                    , Cmd.map StatusMsg Status.load
                     , Session.none
                     )
     in
@@ -269,7 +276,7 @@ applySession ( model, cmd, sessionMsg ) =
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
     let
         mailbox =
@@ -282,31 +289,36 @@ view model =
 
         controls =
             { viewMailbox = ViewMailbox
-            , mailboxOnInput = MailboxNameInput
+            , mailboxOnInput = OnMailboxNameInput
             , mailboxValue = model.mailboxName
             , recentOptions = model.session.persistent.recentMailboxes
             , recentActive = mailbox
             }
 
-        frame =
-            Page.frame controls model.session
+        framePage :
+            ActivePage
+            -> (msg -> Msg)
+            -> { title : String, content : Html msg }
+            -> Document Msg
+        framePage page toMsg { title, content } =
+            Document title
+                [ content
+                    |> Html.map toMsg
+                    |> Page.frame controls model.session page
+                ]
     in
     case model.page of
         Home subModel ->
-            Html.map HomeMsg (Home.view model.session subModel)
-                |> frame Page.Other
+            framePage Page.Other HomeMsg (Home.view model.session subModel)
 
         Mailbox subModel ->
-            Html.map MailboxMsg (Mailbox.view model.session subModel)
-                |> frame Page.Mailbox
+            framePage Page.Mailbox MailboxMsg (Mailbox.view model.session subModel)
 
         Monitor subModel ->
-            Html.map MonitorMsg (Monitor.view model.session subModel)
-                |> frame Page.Monitor
+            framePage Page.Monitor MonitorMsg (Monitor.view model.session subModel)
 
         Status subModel ->
-            Html.map StatusMsg (Status.view model.session subModel)
-                |> frame Page.Status
+            framePage Page.Status StatusMsg (Status.view model.session subModel)
 
 
 
@@ -315,9 +327,11 @@ view model =
 
 main : Program Value Model Msg
 main =
-    Navigation.programWithFlags (Route.fromLocation >> NewRoute)
+    Browser.application
         { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
+        , onUrlChange = UrlChanged
+        , onUrlRequest = LinkClicked
         }

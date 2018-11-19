@@ -2,22 +2,14 @@ module Page.Monitor exposing (Model, Msg, init, subscriptions, update, view)
 
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
-import Date exposing (Date)
-import DateFormat
-    exposing
-        ( amPmUppercase
-        , dayOfMonthFixed
-        , format
-        , hourNumber
-        , minuteFixed
-        , monthNameFirstThree
-        )
+import DateFormat as DF
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events as Events
 import Json.Decode as D
 import Ports
 import Route
+import Time exposing (Posix)
 
 
 
@@ -30,14 +22,14 @@ type alias Model =
     }
 
 
+type MonitorMessage
+    = Connected Bool
+    | Message MessageHeader
+
+
 init : ( Model, Cmd Msg )
 init =
-    ( Model False []
-    , Cmd.batch
-        [ Ports.windowTitle "Inbucket Monitor"
-        , Ports.monitorCommand True
-        ]
-    )
+    ( Model False [], Ports.monitorCommand True )
 
 
 
@@ -55,7 +47,7 @@ subscriptions model =
                 |> D.decodeValue
                 |> Ports.monitorMessage
     in
-    Sub.map MonitorResult monitorMessage
+    Sub.map MessageReceived monitorMessage
 
 
 
@@ -63,30 +55,25 @@ subscriptions model =
 
 
 type Msg
-    = MonitorResult (Result String MonitorMessage)
+    = MessageReceived (Result D.Error MonitorMessage)
     | OpenMessage MessageHeader
-
-
-type MonitorMessage
-    = Connected Bool
-    | Message MessageHeader
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
     case msg of
-        MonitorResult (Ok (Connected status)) ->
+        MessageReceived (Ok (Connected status)) ->
             ( { model | connected = status }, Cmd.none, Session.none )
 
-        MonitorResult (Ok (Message msg)) ->
-            ( { model | messages = msg :: model.messages }, Cmd.none, Session.none )
+        MessageReceived (Ok (Message header)) ->
+            ( { model | messages = header :: model.messages }, Cmd.none, Session.none )
 
-        MonitorResult (Err err) ->
-            ( model, Cmd.none, Session.SetFlash err )
+        MessageReceived (Err err) ->
+            ( model, Cmd.none, Session.SetFlash (D.errorToString err) )
 
-        OpenMessage msg ->
+        OpenMessage header ->
             ( model
-            , Route.newUrl (Route.Message msg.mailbox msg.id)
+            , Route.newUrl session.key (Route.Message header.mailbox header.id)
             , Session.none
             )
 
@@ -95,32 +82,35 @@ update session msg model =
 -- VIEW
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
-    div [ id "page" ]
-        [ h1 [] [ text "Monitor" ]
-        , p []
-            [ text "Messages will be listed here shortly after delivery. "
-            , em []
-                [ text
-                    (if model.connected then
-                        "Connected."
+    { title = "Inbucket Monitor"
+    , content =
+        div [ id "page" ]
+            [ h1 [] [ text "Monitor" ]
+            , p []
+                [ text "Messages will be listed here shortly after delivery. "
+                , em []
+                    [ text
+                        (if model.connected then
+                            "Connected."
 
-                     else
-                        "Disconnected!"
-                    )
+                         else
+                            "Disconnected!"
+                        )
+                    ]
+                ]
+            , table [ id "monitor" ]
+                [ thead []
+                    [ th [] [ text "Date" ]
+                    , th [ class "desktop" ] [ text "From" ]
+                    , th [] [ text "Mailbox" ]
+                    , th [] [ text "Subject" ]
+                    ]
+                , tbody [] (List.map viewMessage model.messages)
                 ]
             ]
-        , table [ id "monitor" ]
-            [ thead []
-                [ th [] [ text "Date" ]
-                , th [ class "desktop" ] [ text "From" ]
-                , th [] [ text "Mailbox" ]
-                , th [] [ text "Subject" ]
-                ]
-            , tbody [] (List.map viewMessage model.messages)
-            ]
-        ]
+    }
 
 
 viewMessage : MessageHeader -> Html Msg
@@ -133,18 +123,19 @@ viewMessage message =
         ]
 
 
-shortDate : Date -> Html Msg
+shortDate : Posix -> Html Msg
 shortDate date =
-    format
-        [ dayOfMonthFixed
-        , DateFormat.text "-"
-        , monthNameFirstThree
-        , DateFormat.text " "
-        , hourNumber
-        , DateFormat.text ":"
-        , minuteFixed
-        , DateFormat.text " "
-        , amPmUppercase
+    DF.format
+        [ DF.dayOfMonthFixed
+        , DF.text "-"
+        , DF.monthNameAbbreviated
+        , DF.text " "
+        , DF.hourNumber
+        , DF.text ":"
+        , DF.minuteFixed
+        , DF.text " "
+        , DF.amPmUppercase
         ]
+        Time.utc
         date
         |> text

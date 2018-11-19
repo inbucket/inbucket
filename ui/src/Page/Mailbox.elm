@@ -3,15 +3,14 @@ module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, vie
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
-import Date exposing (Date)
-import DateFormat
+import DateFormat as DF
 import DateFormat.Relative as Relative
 import Html exposing (..)
 import Html.Attributes
     exposing
         ( class
         , classList
-        , downloadAs
+        , download
         , href
         , id
         , placeholder
@@ -28,7 +27,7 @@ import Json.Encode as Encode
 import Ports
 import Route
 import Task
-import Time exposing (Time)
+import Time exposing (Posix)
 
 
 
@@ -65,7 +64,7 @@ type alias MessageList =
 
 type alias VisibleMessage =
     { message : Message
-    , markSeenAt : Maybe Time
+    , markSeenAt : Maybe Int
     }
 
 
@@ -74,13 +73,13 @@ type alias Model =
     , state : State
     , bodyMode : Body
     , searchInput : String
-    , now : Date
+    , now : Posix
     }
 
 
 init : String -> Maybe MessageID -> ( Model, Cmd Msg )
 init mailboxName selection =
-    ( Model mailboxName (LoadingList selection) SafeHtmlBody "" (Date.fromTime 0)
+    ( Model mailboxName (LoadingList selection) SafeHtmlBody "" (Time.millisToPosix 0)
     , load mailboxName
     )
 
@@ -88,8 +87,7 @@ init mailboxName selection =
 load : String -> Cmd Msg
 load mailboxName =
     Cmd.batch
-        [ Ports.windowTitle (mailboxName ++ " - Inbucket")
-        , Task.perform Tick Time.now
+        [ Task.perform Tick Time.now
         , getList mailboxName
         ]
 
@@ -108,13 +106,13 @@ subscriptions model =
                         Sub.none
 
                     else
-                        Time.every (250 * Time.millisecond) SeenTick
+                        Time.every 250 MarkSeenTick
 
                 _ ->
                     Sub.none
     in
     Sub.batch
-        [ Time.every (30 * Time.second) Tick
+        [ Time.every (30 * 1000) Tick
         , subSeen
         ]
 
@@ -124,20 +122,20 @@ subscriptions model =
 
 
 type Msg
-    = ClickMessage MessageID
-    | DeleteMessage Message
-    | DeleteMessageResult (Result Http.Error ())
-    | ListResult (Result Http.Error (List MessageHeader))
-    | MarkSeenResult (Result Http.Error ())
-    | MessageResult (Result Http.Error Message)
+    = ListLoaded (Result Http.Error (List MessageHeader))
+    | ClickMessage MessageID
+    | OpenMessage MessageID
+    | MessageLoaded (Result Http.Error Message)
     | MessageBody Body
-    | OpenedTime Time
-    | Purge
-    | PurgeResult (Result Http.Error ())
-    | SearchInput String
-    | SeenTick Time
-    | Tick Time
-    | ViewMessage MessageID
+    | OpenedTime Posix
+    | MarkSeenTick Posix
+    | MarkedSeen (Result Http.Error ())
+    | DeleteMessage Message
+    | DeletedMessage (Result Http.Error ())
+    | PurgeMailbox
+    | PurgedMailbox (Result Http.Error ())
+    | OnSearchInput String
+    | Tick Posix
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
@@ -147,28 +145,25 @@ update session msg model =
             ( updateSelected model id
             , Cmd.batch
                 [ -- Update browser location.
-                  Route.newUrl (Route.Message model.mailboxName id)
+                  Route.newUrl session.key (Route.Message model.mailboxName id)
                 , getMessage model.mailboxName id
                 ]
             , Session.DisableRouting
             )
 
-        ViewMessage id ->
-            ( updateSelected model id
-            , getMessage model.mailboxName id
-            , Session.AddRecent model.mailboxName
-            )
+        OpenMessage id ->
+            updateOpenMessage session model id
 
         DeleteMessage message ->
             updateDeleteMessage model message
 
-        DeleteMessageResult (Ok _) ->
+        DeletedMessage (Ok _) ->
             ( model, Cmd.none, Session.none )
 
-        DeleteMessageResult (Err err) ->
+        DeletedMessage (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        ListResult (Ok headers) ->
+        ListLoaded (Ok headers) ->
             case model.state of
                 LoadingList selection ->
                     let
@@ -179,8 +174,7 @@ update session msg model =
                     in
                     case selection of
                         Just id ->
-                            -- Recurse to select message id.
-                            update session (ViewMessage id) newModel
+                            updateOpenMessage session newModel id
 
                         Nothing ->
                             ( newModel, Cmd.none, Session.AddRecent model.mailboxName )
@@ -188,25 +182,25 @@ update session msg model =
                 _ ->
                     ( model, Cmd.none, Session.none )
 
-        ListResult (Err err) ->
+        ListLoaded (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        MarkSeenResult (Ok _) ->
+        MarkedSeen (Ok _) ->
             ( model, Cmd.none, Session.none )
 
-        MarkSeenResult (Err err) ->
+        MarkedSeen (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        MessageResult (Ok message) ->
+        MessageLoaded (Ok message) ->
             updateMessageResult model message
 
-        MessageResult (Err err) ->
+        MessageLoaded (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
         MessageBody bodyMode ->
             ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
 
-        SearchInput searchInput ->
+        OnSearchInput searchInput ->
             updateSearchInput model searchInput
 
         OpenedTime time ->
@@ -216,13 +210,17 @@ update session msg model =
                         ( model, Cmd.none, Session.none )
 
                     else
-                        -- Set delay before reporting message as seen to backend.
+                        -- Set 1500ms delay before reporting message as seen to backend.
+                        let
+                            markSeenAt =
+                                Time.posixToMillis time + 1500
+                        in
                         ( { model
                             | state =
                                 ShowingList list
                                     (ShowingMessage
                                         { visible
-                                            | markSeenAt = Just (time + (1.5 * Time.second))
+                                            | markSeenAt = Just markSeenAt
                                         }
                                     )
                           }
@@ -233,21 +231,21 @@ update session msg model =
                 _ ->
                     ( model, Cmd.none, Session.none )
 
-        Purge ->
+        PurgeMailbox ->
             updatePurge model
 
-        PurgeResult (Ok _) ->
+        PurgedMailbox (Ok _) ->
             ( model, Cmd.none, Session.none )
 
-        PurgeResult (Err err) ->
+        PurgedMailbox (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
-        SeenTick now ->
+        MarkSeenTick now ->
             case model.state of
                 ShowingList _ (ShowingMessage { message, markSeenAt }) ->
                     case markSeenAt of
                         Just deadline ->
-                            if now >= deadline then
+                            if Time.posixToMillis now >= deadline then
                                 updateMarkMessageSeen model message
 
                             else
@@ -260,7 +258,7 @@ update session msg model =
                     ( model, Cmd.none, Session.none )
 
         Tick now ->
-            ( { model | now = Date.fromTime now }, Cmd.none, Session.none )
+            ( { model | now = now }, Cmd.none, Session.none )
 
 
 {-| Replace the currently displayed message.
@@ -298,8 +296,7 @@ updatePurge model =
         cmd =
             "/api/v1/mailbox/"
                 ++ model.mailboxName
-                |> HttpUtil.delete
-                |> Http.send PurgeResult
+                |> HttpUtil.delete PurgedMailbox
     in
     case model.state of
         ShowingList list _ ->
@@ -371,8 +368,7 @@ updateDeleteMessage model message =
             "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
 
         cmd =
-            HttpUtil.delete url
-                |> Http.send DeleteMessageResult
+            HttpUtil.delete DeletedMessage url
 
         filter f messageList =
             { messageList | headers = List.filter f messageList.headers }
@@ -411,8 +407,7 @@ updateMarkMessageSeen model message =
                     -- desired change in the body.
                     Encode.object [ ( "seen", Encode.bool True ) ]
                         |> Http.jsonBody
-                        |> HttpUtil.patch url
-                        |> Http.send MarkSeenResult
+                        |> HttpUtil.patch MarkedSeen url
 
                 map f messageList =
                     { messageList | headers = List.map f messageList.headers }
@@ -435,14 +430,24 @@ updateMarkMessageSeen model message =
             ( model, Cmd.none, Session.none )
 
 
+updateOpenMessage : Session -> Model -> String -> ( Model, Cmd Msg, Session.Msg )
+updateOpenMessage session model id =
+    ( updateSelected model id
+    , getMessage model.mailboxName id
+    , Session.AddRecent model.mailboxName
+    )
+
+
 getList : String -> Cmd Msg
 getList mailboxName =
     let
         url =
             "/api/v1/mailbox/" ++ mailboxName
     in
-    Http.get url (Decode.list MessageHeader.decoder)
-        |> Http.send ListResult
+    Http.get
+        { url = url
+        , expect = Http.expectJson ListLoaded (Decode.list MessageHeader.decoder)
+        }
 
 
 getMessage : String -> MessageID -> Cmd Msg
@@ -451,37 +456,42 @@ getMessage mailboxName id =
         url =
             "/serve/m/" ++ mailboxName ++ "/" ++ id
     in
-    Http.get url Message.decoder
-        |> Http.send MessageResult
+    Http.get
+        { url = url
+        , expect = Http.expectJson MessageLoaded Message.decoder
+        }
 
 
 
 -- VIEW
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
-    div [ id "page", class "mailbox" ]
-        [ viewMessageList session model
-        , main_
-            [ id "message" ]
-            [ case model.state of
-                ShowingList _ NoMessage ->
-                    text
-                        ("Select a message on the left,"
-                            ++ " or enter a different username into the box on upper right."
-                        )
+    { title = model.mailboxName ++ " - Inbucket"
+    , content =
+        div [ id "page", class "mailbox" ]
+            [ viewMessageList session model
+            , main_
+                [ id "message" ]
+                [ case model.state of
+                    ShowingList _ NoMessage ->
+                        text
+                            ("Select a message on the left,"
+                                ++ " or enter a different username into the box on upper right."
+                            )
 
-                ShowingList _ (ShowingMessage { message }) ->
-                    viewMessage message model.bodyMode
+                    ShowingList _ (ShowingMessage { message }) ->
+                        viewMessage message model.bodyMode
 
-                ShowingList _ (Transitioning { message }) ->
-                    viewMessage message model.bodyMode
+                    ShowingList _ (Transitioning { message }) ->
+                        viewMessage message model.bodyMode
 
-                _ ->
-                    text ""
+                    _ ->
+                        text ""
+                ]
             ]
-        ]
+    }
 
 
 viewMessageList : Session -> Model -> Html Msg
@@ -491,11 +501,11 @@ viewMessageList session model =
             [ input
                 [ type_ "search"
                 , placeholder "search"
-                , onInput SearchInput
+                , onInput OnSearchInput
                 , value model.searchInput
                 ]
                 []
-            , button [ onClick Purge ] [ text "Purge" ]
+            , button [ onClick PurgeMailbox ] [ text "Purge" ]
             ]
         , case model.state of
             LoadingList _ ->
@@ -530,14 +540,14 @@ messageChip model selected message =
 viewMessage : Message -> Body -> Html Msg
 viewMessage message bodyMode =
     let
-        sourceUrl message =
+        sourceUrl =
             "/serve/m/" ++ message.mailbox ++ "/" ++ message.id ++ "/source"
     in
     div []
         [ div [ class "button-bar" ]
             [ button [ class "danger", onClick (DeleteMessage message) ] [ text "Delete" ]
             , a
-                [ href (sourceUrl message), target "_blank" ]
+                [ href sourceUrl, target "_blank" ]
                 [ button [] [ text "Source" ] ]
             ]
         , dl [ id "message-header" ]
@@ -584,10 +594,10 @@ messageBody message bodyMode =
         , article [ class "message-body" ]
             [ case bodyMode of
                 SafeHtmlBody ->
-                    div [ property "innerHTML" (Encode.string message.html) ] []
+                    Html.node "rendered-html" [ property "content" (Encode.string message.html) ] []
 
                 TextBody ->
-                    div [ property "innerHTML" (Encode.string message.text) ] []
+                    Html.node "rendered-html" [ property "content" (Encode.string message.text) ] []
             ]
         ]
 
@@ -616,34 +626,35 @@ attachmentRow baseUrl attach =
             [ a [ href url, target "_blank" ] [ text attach.fileName ]
             , text (" (" ++ attach.contentType ++ ") ")
             ]
-        , td [] [ a [ href url, downloadAs attach.fileName, class "button" ] [ text "Download" ] ]
+        , td [] [ a [ href url, download attach.fileName, class "button" ] [ text "Download" ] ]
         ]
 
 
-relativeDate : Model -> Date -> Html Msg
+relativeDate : Model -> Posix -> Html Msg
 relativeDate model date =
     Relative.relativeTime model.now date |> text
 
 
-verboseDate : Date -> Html Msg
+verboseDate : Posix -> Html Msg
 verboseDate date =
-    DateFormat.format
-        [ DateFormat.monthNameFull
-        , DateFormat.text " "
-        , DateFormat.dayOfMonthSuffix
-        , DateFormat.text ", "
-        , DateFormat.yearNumber
-        , DateFormat.text " "
-        , DateFormat.hourNumber
-        , DateFormat.text ":"
-        , DateFormat.minuteFixed
-        , DateFormat.text ":"
-        , DateFormat.secondFixed
-        , DateFormat.text " "
-        , DateFormat.amPmUppercase
-        ]
-        date
-        |> text
+    text <|
+        DF.format
+            [ DF.monthNameFull
+            , DF.text " "
+            , DF.dayOfMonthSuffix
+            , DF.text ", "
+            , DF.yearNumber
+            , DF.text " "
+            , DF.hourNumber
+            , DF.text ":"
+            , DF.minuteFixed
+            , DF.text ":"
+            , DF.secondFixed
+            , DF.text " "
+            , DF.amPmUppercase
+            ]
+            Time.utc
+            date
 
 
 

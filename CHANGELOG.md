@@ -4,6 +4,12 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Added
+- `posix-millis` field to REST message and header responses for easier date
+  parsing.
+
 
 ## [v2.1.0-beta1]
 

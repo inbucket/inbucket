@@ -1,21 +1,11 @@
 module Data.Date exposing (date)
 
-import Date exposing (Date)
-import Json.Decode as Decode exposing (..)
+import Json.Decode exposing (..)
+import Time exposing (Posix)
 
 
-{-| Decode an ISO 8601 date
+{-| Decode a POSIX milliseconds timestamp.
 -}
-date : Decoder Date
+date : Decoder Posix
 date =
-    let
-        convert : String -> Decoder Date
-        convert raw =
-            case Date.fromString raw of
-                Ok date ->
-                    succeed date
-
-                Err error ->
-                    fail error
-    in
-    string |> andThen convert
+    int |> map Time.millisToPosix

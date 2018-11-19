@@ -10,7 +10,9 @@ import Html.Attributes
         , href
         , id
         , placeholder
+        , rel
         , selected
+        , target
         , type_
         , value
         )
@@ -39,10 +41,11 @@ frame controls session page content =
     div [ id "app" ]
         [ header []
             [ ul [ class "navbar", attribute "role" "navigation" ]
-                [ li [ id "navbar-brand" ] [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
-                , navbarLink page Route.Monitor [ text "Monitor" ]
-                , navbarLink page Route.Status [ text "Status" ]
-                , navbarRecent page controls
+                [ li [ id "navbar-brand" ]
+                    [ a [ Route.href session.key Route.Home ] [ text "@ inbucket" ] ]
+                , navbarLink session page Route.Monitor [ text "Monitor" ]
+                , navbarLink session page Route.Status [ text "Status" ]
+                , navbarRecent session page controls
                 , li [ id "navbar-mailbox" ]
                     [ form [ Events.onSubmit (controls.viewMailbox controls.mailboxValue) ]
                         [ input
@@ -61,33 +64,35 @@ frame controls session page content =
         , content
         , footer []
             [ div [ id "footer" ]
-                [ a [ href "https://www.inbucket.org" ] [ text "Inbucket" ]
+                [ externalLink "https://www.inbucket.org" "Inbucket"
                 , text " is an open source projected hosted at "
-                , a [ href "https://github.com/jhillyerd/inbucket" ] [ text "GitHub" ]
+                , externalLink "https://github.com/jhillyerd/inbucket" "GitHub"
                 , text "."
                 ]
             ]
         ]
 
 
-navbarLink : ActivePage -> Route -> List (Html a) -> Html a
-navbarLink page route linkContent =
+externalLink : String -> String -> Html a
+externalLink url title =
+    a [ href url, target "_blank", rel "noopener" ] [ text title ]
+
+
+navbarLink : Session -> ActivePage -> Route -> List (Html a) -> Html a
+navbarLink session page route linkContent =
     li [ classList [ ( "navbar-active", isActive page route ) ] ]
-        [ a [ Route.href route ] linkContent ]
+        [ a [ Route.href session.key route ] linkContent ]
 
 
 {-| Renders list of recent mailboxes, selecting the currently active mailbox.
 -}
-navbarRecent : ActivePage -> FrameControls msg -> Html msg
-navbarRecent page controls =
+navbarRecent : Session -> ActivePage -> FrameControls msg -> Html msg
+navbarRecent session page controls =
     let
-        recentItemLink mailbox =
-            a [ Route.href (Route.Mailbox mailbox) ] [ text mailbox ]
-
         active =
             page == Mailbox
 
-        -- Navbar tab title, is current mailbox when active.
+        -- Recent tab title is the name of the current mailbox when active.
         title =
             if active then
                 controls.recentActive
@@ -95,20 +100,23 @@ navbarRecent page controls =
             else
                 "Recent Mailboxes"
 
-        -- Items to show in recent list, doesn't include active mailbox.
-        items =
+        -- Mailboxes to show in recent list, doesn't include active mailbox.
+        recentMailboxes =
             if active then
                 List.tail controls.recentOptions |> Maybe.withDefault []
 
             else
                 controls.recentOptions
+
+        recentLink mailbox =
+            a [ Route.href session.key (Route.Mailbox mailbox) ] [ text mailbox ]
     in
     li
         [ id "navbar-recent"
         , classList [ ( "navbar-dropdown", True ), ( "navbar-active", active ) ]
         ]
         [ span [] [ text title ]
-        , div [ class "navbar-dropdown-content" ] (List.map recentItemLink items)
+        , div [ class "navbar-dropdown-content" ] (List.map recentLink recentMailboxes)
         ]
 
 

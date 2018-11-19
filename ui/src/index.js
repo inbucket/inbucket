@@ -1,10 +1,13 @@
 import './main.css'
-import { Main } from './Main.elm'
-import registerServiceWorker from './registerServiceWorker'
+import { Elm } from './Main.elm'
 import registerMonitorPorts from './registerMonitor'
+import './renderedHtml'
 
 // App startup.
-var app = Main.embed(document.getElementById('root'), sessionObject())
+var app = Elm.Main.init({
+  node: document.getElementById('root'),
+  flags: sessionObject()
+})
 
 // Message monitor.
 registerMonitorPorts(app)
@@ -31,10 +34,3 @@ function sessionObject() {
   }
   return null
 }
-
-// Window title.
-app.ports.windowTitle.subscribe(function (title) {
-  document.title = title
-})
-
-registerServiceWorker()

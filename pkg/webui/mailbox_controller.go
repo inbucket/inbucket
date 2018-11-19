@@ -23,6 +23,7 @@ type JSONMessage struct {
 	To          []string            `json:"to"`
 	Subject     string              `json:"subject"`
 	Date        time.Time           `json:"date"`
+	PosixMillis int64               `json:"posix-millis"`
 	Size        int64               `json:"size"`
 	Seen        bool                `json:"seen"`
 	Header      map[string][]string `json:"header"`
@@ -81,6 +82,7 @@ func MailboxMessage(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 			To:          stringutil.StringAddressList(msg.To),
 			Subject:     msg.Subject,
 			Date:        msg.Date,
+			PosixMillis: msg.Date.UnixNano() / 1000000,
 			Size:        msg.Size,
 			Seen:        msg.Seen,
 			Header:      msg.Header(),

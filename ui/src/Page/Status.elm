@@ -7,9 +7,9 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http exposing (Error)
 import HttpUtil
-import Sparkline exposing (DataSet, Point, Size, sparkline)
+import Sparkline as Spark
 import Svg.Attributes as SvgAttrib
-import Time exposing (Time)
+import Time exposing (Posix)
 
 
 
@@ -40,8 +40,8 @@ type alias Metric =
     { label : String
     , value : Int
     , formatter : Int -> String
-    , graph : DataSet -> Html Msg
-    , history : DataSet
+    , graph : Spark.DataSet -> Html Msg
+    , history : Spark.DataSet
     , minutes : Int
     }
 
@@ -67,7 +67,7 @@ init =
     }
 
 
-initDataSet : DataSet
+initDataSet : Spark.DataSet
 initDataSet =
     List.range 0 59
         |> List.map (\x -> ( toFloat x, 0 ))
@@ -84,7 +84,7 @@ load =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every (10 * Time.second) Tick
+    Time.every (10 * 1000) Tick
 
 
 
@@ -92,17 +92,17 @@ subscriptions model =
 
 
 type Msg
-    = NewMetrics (Result Http.Error Metrics)
-    | Tick Time
+    = MetricsReceived (Result Http.Error Metrics)
+    | Tick Posix
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
     case msg of
-        NewMetrics (Ok metrics) ->
+        MetricsReceived (Ok metrics) ->
             ( updateMetrics metrics model, Cmd.none, Session.none )
 
-        NewMetrics (Err err) ->
+        MetricsReceived (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
         Tick time ->
@@ -207,46 +207,51 @@ updateRemoteTotal metric value history =
 
 getMetrics : Cmd Msg
 getMetrics =
-    Http.get "/debug/vars" Metrics.decoder
-        |> Http.send NewMetrics
+    Http.get
+        { url = "/debug/vars"
+        , expect = Http.expectJson MetricsReceived Metrics.decoder
+        }
 
 
 
 -- VIEW --
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
-    div [ id "page" ]
-        [ h1 [] [ text "Status" ]
-        , case model.metrics of
-            Nothing ->
-                div [] [ text "Loading metrics..." ]
+    { title = "Inbucket Status"
+    , content =
+        div [ id "page" ]
+            [ h1 [] [ text "Status" ]
+            , case model.metrics of
+                Nothing ->
+                    div [] [ text "Loading metrics..." ]
 
-            Just metrics ->
-                div []
-                    [ framePanel "General Metrics"
-                        [ viewMetric model.sysMem
-                        , viewMetric model.heapSize
-                        , viewMetric model.heapUsed
-                        , viewMetric model.heapObjects
-                        , viewMetric model.goRoutines
-                        , viewMetric model.webSockets
+                Just metrics ->
+                    div []
+                        [ framePanel "General Metrics"
+                            [ viewMetric model.sysMem
+                            , viewMetric model.heapSize
+                            , viewMetric model.heapUsed
+                            , viewMetric model.heapObjects
+                            , viewMetric model.goRoutines
+                            , viewMetric model.webSockets
+                            ]
+                        , framePanel "SMTP Metrics"
+                            [ viewMetric model.smtpConnOpen
+                            , viewMetric model.smtpConnTotal
+                            , viewMetric model.smtpReceivedTotal
+                            , viewMetric model.smtpErrorsTotal
+                            , viewMetric model.smtpWarnsTotal
+                            ]
+                        , framePanel "Storage Metrics"
+                            [ viewMetric model.retentionDeletesTotal
+                            , viewMetric model.retainedCount
+                            , viewMetric model.retainedSize
+                            ]
                         ]
-                    , framePanel "SMTP Metrics"
-                        [ viewMetric model.smtpConnOpen
-                        , viewMetric model.smtpConnTotal
-                        , viewMetric model.smtpReceivedTotal
-                        , viewMetric model.smtpErrorsTotal
-                        , viewMetric model.smtpWarnsTotal
-                        ]
-                    , framePanel "Storage Metrics"
-                        [ viewMetric model.retentionDeletesTotal
-                        , viewMetric model.retainedCount
-                        , viewMetric model.retainedSize
-                        ]
-                    ]
-        ]
+            ]
+    }
 
 
 viewMetric : Metric -> Html Msg
@@ -256,7 +261,7 @@ viewMetric metric =
         , div [ class "value" ] [ text (metric.formatter metric.value) ]
         , div [ class "graph" ]
             [ metric.graph metric.history
-            , text ("(" ++ toString metric.minutes ++ "min)")
+            , text ("(" ++ String.fromInt metric.minutes ++ "min)")
             ]
         ]
 
@@ -278,30 +283,34 @@ graphNull =
     div [] []
 
 
-graphSize : Size
+graphSize : Spark.Size
 graphSize =
-    ( 180, 16, 0, 0 )
+    { width = 180
+    , height = 16
+    , marginLR = 0
+    , marginTB = 0
+    }
 
 
-areaStyle : Sparkline.Param a -> Sparkline.Param a
+areaStyle : Spark.Param a -> Spark.Param a
 areaStyle =
-    Sparkline.Style
+    Spark.Style
         [ SvgAttrib.fill "rgba(50,100,255,0.3)"
         , SvgAttrib.stroke "rgba(50,100,255,1.0)"
         , SvgAttrib.strokeWidth "1.0"
         ]
 
 
-barStyle : Sparkline.Param a -> Sparkline.Param a
+barStyle : Spark.Param a -> Spark.Param a
 barStyle =
-    Sparkline.Style
+    Spark.Style
         [ SvgAttrib.fill "rgba(50,200,50,0.7)"
         ]
 
 
-zeroStyle : Sparkline.Param a -> Sparkline.Param a
+zeroStyle : Spark.Param a -> Spark.Param a
 zeroStyle =
-    Sparkline.Style
+    Spark.Style
         [ SvgAttrib.stroke "rgba(0,0,0,0.2)"
         , SvgAttrib.strokeWidth "1.0"
         ]
@@ -309,7 +318,7 @@ zeroStyle =
 
 {-| Bar graph to be used with updateRemoteTotal metrics (change instead of absolute values).
 -}
-graphChange : DataSet -> Html a
+graphChange : Spark.DataSet -> Html a
 graphChange data =
     let
         -- Used with Domain to stop sparkline forgetting about zero; continue scrolling graph.
@@ -321,16 +330,16 @@ graphChange data =
                 Just point ->
                     Tuple.first point
     in
-    sparkline graphSize
-        [ Sparkline.Bar 2.5 data |> barStyle
-        , Sparkline.ZeroLine |> zeroStyle
-        , Sparkline.Domain [ ( x, 0 ), ( x, 1 ) ]
+    Spark.sparkline graphSize
+        [ Spark.Bar 2.5 data |> barStyle
+        , Spark.ZeroLine |> zeroStyle
+        , Spark.Domain [ ( x, 0 ), ( x, 1 ) ]
         ]
 
 
 {-| Zero based area graph, for charting absolute values relative to 0.
 -}
-graphZero : DataSet -> Html a
+graphZero : Spark.DataSet -> Html a
 graphZero data =
     let
         -- Used with Domain to stop sparkline forgetting about zero; continue scrolling graph.
@@ -342,10 +351,10 @@ graphZero data =
                 Just point ->
                     Tuple.first point
     in
-    sparkline graphSize
-        [ Sparkline.Area data |> areaStyle
-        , Sparkline.ZeroLine |> zeroStyle
-        , Sparkline.Domain [ ( x, 0 ), ( x, 1 ) ]
+    Spark.sparkline graphSize
+        [ Spark.Area data |> areaStyle
+        , Spark.ZeroLine |> zeroStyle
+        , Spark.Domain [ ( x, 0 ), ( x, 1 ) ]
         ]
 
 
@@ -400,4 +409,4 @@ fmtInt n =
             else
                 thousands (String.slice 0 -3 str) ++ "," ++ String.right 3 str
     in
-    thousands (toString n)
+    thousands (String.fromInt n)

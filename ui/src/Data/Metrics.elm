@@ -31,7 +31,7 @@ type alias Metrics =
 
 decoder : Decoder Metrics
 decoder =
-    decode Metrics
+    succeed Metrics
         |> requiredAt [ "memstats", "Sys" ] int
         |> requiredAt [ "memstats", "HeapSys" ] int
         |> requiredAt [ "memstats", "HeapAlloc" ] int
@@ -59,4 +59,6 @@ decoder =
 -}
 decodeIntList : Decoder (List Int)
 decodeIntList =
-    map (String.split "," >> List.map (String.toInt >> Result.withDefault 0)) string
+    string
+        |> map (String.split ",")
+        |> map (List.map (String.toInt >> Maybe.withDefault 0))

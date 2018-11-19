@@ -19,18 +19,14 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model ""
-    , Cmd.batch
-        [ Ports.windowTitle "Inbucket"
-        , cmdGreeting
-        ]
-    )
-
-
-cmdGreeting : Cmd Msg
-cmdGreeting =
-    Http.send GreetingResult <|
-        Http.getString "/serve/greeting"
+    let
+        cmdGreeting =
+            Http.get
+                { url = "/serve/greeting"
+                , expect = Http.expectString GreetingLoaded
+                }
+    in
+    ( Model "", cmdGreeting )
 
 
 
@@ -38,16 +34,16 @@ cmdGreeting =
 
 
 type Msg
-    = GreetingResult (Result Http.Error String)
+    = GreetingLoaded (Result Http.Error String)
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
     case msg of
-        GreetingResult (Ok greeting) ->
+        GreetingLoaded (Ok greeting) ->
             ( Model greeting, Cmd.none, Session.none )
 
-        GreetingResult (Err err) ->
+        GreetingLoaded (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
 
@@ -55,12 +51,15 @@ update session msg model =
 -- VIEW --
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
-    div [ id "page" ]
-        [ div
-            [ class "greeting"
-            , property "innerHTML" (Encode.string model.greeting)
+    { title = "Inbucket"
+    , content =
+        div [ id "page" ]
+            [ Html.node "rendered-html"
+                [ class "greeting"
+                , property "content" (Encode.string model.greeting)
+                ]
+                []
             ]
-            []
-        ]
+    }

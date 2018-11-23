@@ -10,8 +10,10 @@ module Data.Session exposing
     )
 
 import Browser.Navigation as Nav
-import Json.Decode exposing (..)
+import Json.Decode as D
 import Json.Decode.Pipeline exposing (..)
+import Json.Encode as E
+import Ports
 import Url exposing (Url)
 
 
@@ -43,40 +45,51 @@ init key location persistent =
     Session key location.host "" True persistent
 
 
-update : Msg -> Session -> Session
+update : Msg -> Session -> ( Session, Cmd a )
 update msg session =
-    case msg of
-        None ->
-            session
+    let
+        newSession =
+            case msg of
+                None ->
+                    session
 
-        SetFlash flash ->
-            { session | flash = flash }
+                SetFlash flash ->
+                    { session | flash = flash }
 
-        ClearFlash ->
-            { session | flash = "" }
+                ClearFlash ->
+                    { session | flash = "" }
 
-        DisableRouting ->
-            { session | routing = False }
+                DisableRouting ->
+                    { session | routing = False }
 
-        EnableRouting ->
-            { session | routing = True }
+                EnableRouting ->
+                    { session | routing = True }
 
-        AddRecent mailbox ->
-            if List.head session.persistent.recentMailboxes == Just mailbox then
-                session
+                AddRecent mailbox ->
+                    if List.head session.persistent.recentMailboxes == Just mailbox then
+                        session
 
-            else
-                let
-                    recent =
-                        session.persistent.recentMailboxes
-                            |> List.filter ((/=) mailbox)
-                            |> List.take 7
-                            |> (::) mailbox
+                    else
+                        let
+                            recent =
+                                session.persistent.recentMailboxes
+                                    |> List.filter ((/=) mailbox)
+                                    |> List.take 7
+                                    |> (::) mailbox
 
-                    persistent =
-                        session.persistent
-                in
-                { session | persistent = { persistent | recentMailboxes = recent } }
+                            persistent =
+                                session.persistent
+                        in
+                        { session | persistent = { persistent | recentMailboxes = recent } }
+    in
+    if session.persistent == newSession.persistent then
+        -- No change
+        ( newSession, Cmd.none )
+
+    else
+        ( newSession
+        , Ports.storeSession (encode newSession.persistent)
+        )
 
 
 none : Msg
@@ -84,12 +97,19 @@ none =
     None
 
 
-decoder : Decoder Persistent
+decoder : D.Decoder Persistent
 decoder =
-    succeed Persistent
-        |> optional "recentMailboxes" (list string) []
+    D.succeed Persistent
+        |> optional "recentMailboxes" (D.list D.string) []
 
 
-decodeValueWithDefault : Value -> Persistent
+decodeValueWithDefault : D.Value -> Persistent
 decodeValueWithDefault =
-    decodeValue decoder >> Result.withDefault { recentMailboxes = [] }
+    D.decodeValue decoder >> Result.withDefault { recentMailboxes = [] }
+
+
+encode : Persistent -> E.Value
+encode persistent =
+    E.object
+        [ ( "recentMailboxes", E.list E.string persistent.recentMailboxes )
+        ]

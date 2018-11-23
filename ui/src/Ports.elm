@@ -5,7 +5,6 @@ port module Ports exposing
     , storeSession
     )
 
-import Data.Session exposing (Persistent)
 import Json.Encode exposing (Value)
 
 
@@ -18,4 +17,4 @@ port monitorMessage : (Value -> msg) -> Sub msg
 port onSessionChange : (Value -> msg) -> Sub msg
 
 
-port storeSession : Persistent -> Cmd msg
+port storeSession : Value -> Cmd msg

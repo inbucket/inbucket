@@ -224,20 +224,12 @@ changeRouteTo route model =
 updateSession : ( Model, Cmd Msg, Session.Msg ) -> ( Model, Cmd Msg )
 updateSession ( model, cmd, sessionMsg ) =
     let
-        session =
+        ( session, newCmd ) =
             Session.update sessionMsg model.session
-
-        newModel =
-            { model | session = session }
     in
-    if session.persistent == model.session.persistent then
-        -- No change
-        ( newModel, cmd )
-
-    else
-        ( newModel
-        , Cmd.batch [ cmd, Ports.storeSession session.persistent ]
-        )
+    ( { model | session = session }
+    , Cmd.batch [ newCmd, cmd ]
+    )
 
 
 {-| Map page updates to Main Model and Msg types.

@@ -146,7 +146,7 @@ update session msg model =
             ( updateSelected model id
             , Cmd.batch
                 [ -- Update browser location.
-                  Route.newUrl session.key (Route.Message model.mailboxName id)
+                  Route.replaceUrl session.key (Route.Message model.mailboxName id)
                 , getMessage model.mailboxName id
                 ]
             , Session.DisableRouting

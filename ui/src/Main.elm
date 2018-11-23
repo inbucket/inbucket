@@ -127,7 +127,7 @@ update msg model =
 
             SetRoute route ->
                 -- Updates broser URL to requested route.
-                ( model, Route.newUrl model.session.key route, Session.none )
+                ( model, Route.pushUrl model.session.key route, Session.none )
 
             UpdateSession (Ok persistent) ->
                 let
@@ -150,7 +150,7 @@ update msg model =
 
             ViewMailbox name ->
                 ( { model | mailboxName = "" }
-                , Route.newUrl model.session.key (Route.Mailbox name)
+                , Route.pushUrl model.session.key (Route.Mailbox name)
                 , Session.none
                 )
 

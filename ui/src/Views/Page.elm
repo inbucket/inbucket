@@ -42,10 +42,10 @@ frame controls session page content =
         [ header []
             [ ul [ class "navbar", attribute "role" "navigation" ]
                 [ li [ id "navbar-brand" ]
-                    [ a [ Route.href session.key Route.Home ] [ text "@ inbucket" ] ]
-                , navbarLink session page Route.Monitor [ text "Monitor" ]
-                , navbarLink session page Route.Status [ text "Status" ]
-                , navbarRecent session page controls
+                    [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
+                , navbarLink page Route.Monitor [ text "Monitor" ]
+                , navbarLink page Route.Status [ text "Status" ]
+                , navbarRecent page controls
                 , li [ id "navbar-mailbox" ]
                     [ form [ Events.onSubmit (controls.viewMailbox controls.mailboxValue) ]
                         [ input
@@ -78,16 +78,16 @@ externalLink url title =
     a [ href url, target "_blank", rel "noopener" ] [ text title ]
 
 
-navbarLink : Session -> ActivePage -> Route -> List (Html a) -> Html a
-navbarLink session page route linkContent =
+navbarLink : ActivePage -> Route -> List (Html a) -> Html a
+navbarLink page route linkContent =
     li [ classList [ ( "navbar-active", isActive page route ) ] ]
-        [ a [ Route.href session.key route ] linkContent ]
+        [ a [ Route.href route ] linkContent ]
 
 
 {-| Renders list of recent mailboxes, selecting the currently active mailbox.
 -}
-navbarRecent : Session -> ActivePage -> FrameControls msg -> Html msg
-navbarRecent session page controls =
+navbarRecent : ActivePage -> FrameControls msg -> Html msg
+navbarRecent page controls =
     let
         active =
             page == Mailbox
@@ -109,7 +109,7 @@ navbarRecent session page controls =
                 controls.recentOptions
 
         recentLink mailbox =
-            a [ Route.href session.key (Route.Mailbox mailbox) ] [ text mailbox ]
+            a [ Route.href (Route.Mailbox mailbox) ] [ text mailbox ]
     in
     li
         [ id "navbar-recent"

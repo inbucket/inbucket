@@ -73,7 +73,7 @@ update session msg model =
 
         OpenMessage header ->
             ( model
-            , Route.newUrl session.key (Route.Message header.mailbox header.id)
+            , Route.pushUrl session.key (Route.Message header.mailbox header.id)
             , Session.none
             )
 

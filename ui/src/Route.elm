@@ -1,9 +1,10 @@
-module Route exposing (Route(..), fromUrl, href, modifyUrl, newUrl)
+module Route exposing (Route(..), fromUrl, href, pushUrl, replaceUrl)
 
 import Browser.Navigation as Navigation exposing (Key)
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Url exposing (Url)
+import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), Parser, map, oneOf, s, string, top)
 
 
@@ -30,8 +31,8 @@ routes =
 
 {-| Convert route to a URI.
 -}
-routeToString : Route -> String
-routeToString page =
+routeToPath : Route -> String
+routeToPath page =
     let
         pieces =
             case page of
@@ -53,26 +54,26 @@ routeToString page =
                 Status ->
                     [ "status" ]
     in
-    "/" ++ String.join "/" pieces
+    Builder.absolute pieces []
 
 
 
 -- PUBLIC HELPERS
 
 
-href : Key -> Route -> Attribute msg
-href key route =
-    Attr.href (routeToString route)
+href : Route -> Attribute msg
+href route =
+    Attr.href (routeToPath route)
 
 
-modifyUrl : Key -> Route -> Cmd msg
-modifyUrl key =
-    routeToString >> Navigation.replaceUrl key
+replaceUrl : Key -> Route -> Cmd msg
+replaceUrl key =
+    routeToPath >> Navigation.replaceUrl key
 
 
-newUrl : Key -> Route -> Cmd msg
-newUrl key =
-    routeToString >> Navigation.pushUrl key
+pushUrl : Key -> Route -> Cmd msg
+pushUrl key =
+    routeToPath >> Navigation.pushUrl key
 
 
 {-| Returns the Route for a given URL.

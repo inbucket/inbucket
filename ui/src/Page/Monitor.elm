@@ -27,9 +27,9 @@ type MonitorMessage
     | Message MessageHeader
 
 
-init : ( Model, Cmd Msg )
+init : ( Model, Cmd Msg, Session.Msg )
 init =
-    ( Model False [], Ports.monitorCommand True )
+    ( Model False [], Ports.monitorCommand True, Session.none )
 
 
 

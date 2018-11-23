@@ -17,7 +17,7 @@ type alias Model =
     { greeting : String }
 
 
-init : ( Model, Cmd Msg )
+init : ( Model, Cmd Msg, Session.Msg )
 init =
     let
         cmdGreeting =
@@ -26,7 +26,7 @@ init =
                 , expect = Http.expectString GreetingLoaded
                 }
     in
-    ( Model "", cmdGreeting )
+    ( Model "", cmdGreeting, Session.none )
 
 
 

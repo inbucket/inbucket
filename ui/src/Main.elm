@@ -39,7 +39,7 @@ init sessionValue location key =
         session =
             Session.init key location (Session.decodeValueWithDefault sessionValue)
 
-        ( subModel, _ ) =
+        ( subModel, _, _ ) =
             Home.init
 
         model =
@@ -51,7 +51,7 @@ init sessionValue location key =
         route =
             Route.fromUrl location
     in
-    applySession (setRoute route model)
+    changeRouteTo route model |> updateSession
 
 
 type Msg
@@ -106,7 +106,7 @@ pageSubscriptions page =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    applySession <|
+    updateSession <|
         case msg of
             LinkClicked req ->
                 case req of
@@ -119,7 +119,7 @@ update msg model =
             UrlChanged url ->
                 -- Responds to new browser URL.
                 if model.session.routing then
-                    setRoute (Route.fromUrl url) model
+                    changeRouteTo (Route.fromUrl url) model
 
                 else
                     -- Skip once, but re-enable routing.
@@ -162,36 +162,30 @@ update msg model =
 -}
 updatePage : Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 updatePage msg model =
-    let
-        -- Handles sub-model update by calling toUpdate with subMsg & subModel, then packing the
-        -- updated sub-model back into model.page.
-        modelUpdate toPage toMsg subUpdate subMsg subModel =
-            let
-                ( newModel, subCmd, sessionMsg ) =
-                    subUpdate model.session subMsg subModel
-            in
-            ( { model | page = toPage newModel }, Cmd.map toMsg subCmd, sessionMsg )
-    in
     case ( msg, model.page ) of
         ( HomeMsg subMsg, Home subModel ) ->
-            modelUpdate Home HomeMsg Home.update subMsg subModel
+            Home.update model.session subMsg subModel
+                |> updateWith Home HomeMsg model
 
         ( MailboxMsg subMsg, Mailbox subModel ) ->
-            modelUpdate Mailbox MailboxMsg Mailbox.update subMsg subModel
+            Mailbox.update model.session subMsg subModel
+                |> updateWith Mailbox MailboxMsg model
 
         ( MonitorMsg subMsg, Monitor subModel ) ->
-            modelUpdate Monitor MonitorMsg Monitor.update subMsg subModel
+            Monitor.update model.session subMsg subModel
+                |> updateWith Monitor MonitorMsg model
 
         ( StatusMsg subMsg, Status subModel ) ->
-            modelUpdate Status StatusMsg Status.update subMsg subModel
+            Status.update model.session subMsg subModel
+                |> updateWith Status StatusMsg model
 
         ( _, _ ) ->
             -- Disregard messages destined for the wrong page.
             ( model, Cmd.none, Session.none )
 
 
-setRoute : Route -> Model -> ( Model, Cmd Msg, Session.Msg )
-setRoute route model =
+changeRouteTo : Route -> Model -> ( Model, Cmd Msg, Session.Msg )
+changeRouteTo route model =
     let
         ( newModel, newCmd, newSession ) =
             case route of
@@ -199,50 +193,24 @@ setRoute route model =
                     ( model, Cmd.none, Session.SetFlash ("Unknown route requested: " ++ hash) )
 
                 Route.Home ->
-                    let
-                        ( subModel, subCmd ) =
-                            Home.init
-                    in
-                    ( { model | page = Home subModel }
-                    , Cmd.map HomeMsg subCmd
-                    , Session.none
-                    )
+                    Home.init
+                        |> updateWith Home HomeMsg model
 
                 Route.Mailbox name ->
-                    let
-                        ( subModel, subCmd ) =
-                            Mailbox.init name Nothing
-                    in
-                    ( { model | page = Mailbox subModel }
-                    , Cmd.map MailboxMsg subCmd
-                    , Session.none
-                    )
+                    Mailbox.init name Nothing
+                        |> updateWith Mailbox MailboxMsg model
 
                 Route.Message mailbox id ->
-                    let
-                        ( subModel, subCmd ) =
-                            Mailbox.init mailbox (Just id)
-                    in
-                    ( { model | page = Mailbox subModel }
-                    , Cmd.map MailboxMsg subCmd
-                    , Session.none
-                    )
+                    Mailbox.init mailbox (Just id)
+                        |> updateWith Mailbox MailboxMsg model
 
                 Route.Monitor ->
-                    let
-                        ( subModel, subCmd ) =
-                            Monitor.init
-                    in
-                    ( { model | page = Monitor subModel }
-                    , Cmd.map MonitorMsg subCmd
-                    , Session.none
-                    )
+                    Monitor.init
+                        |> updateWith Monitor MonitorMsg model
 
                 Route.Status ->
-                    ( { model | page = Status Status.init }
-                    , Cmd.map StatusMsg Status.load
-                    , Session.none
-                    )
+                    Status.init
+                        |> updateWith Status StatusMsg model
     in
     case model.page of
         Monitor _ ->
@@ -253,8 +221,8 @@ setRoute route model =
             ( newModel, newCmd, newSession )
 
 
-applySession : ( Model, Cmd Msg, Session.Msg ) -> ( Model, Cmd Msg )
-applySession ( model, cmd, sessionMsg ) =
+updateSession : ( Model, Cmd Msg, Session.Msg ) -> ( Model, Cmd Msg )
+updateSession ( model, cmd, sessionMsg ) =
     let
         session =
             Session.update sessionMsg model.session
@@ -270,6 +238,21 @@ applySession ( model, cmd, sessionMsg ) =
         ( newModel
         , Cmd.batch [ cmd, Ports.storeSession session.persistent ]
         )
+
+
+{-| Map page updates to Main Model and Msg types.
+-}
+updateWith :
+    (subModel -> Page)
+    -> (subMsg -> Msg)
+    -> Model
+    -> ( subModel, Cmd subMsg, Session.Msg )
+    -> ( Model, Cmd Msg, Session.Msg )
+updateWith toPage toMsg model ( subModel, subCmd, sessionMsg ) =
+    ( { model | page = toPage subModel }
+    , Cmd.map toMsg subCmd
+    , sessionMsg
+    )
 
 
 

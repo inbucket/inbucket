@@ -1,4 +1,4 @@
-module Page.Status exposing (Model, Msg, init, load, subscriptions, update, view)
+module Page.Status exposing (Model, Msg, init, subscriptions, update, view)
 
 import Data.Metrics as Metrics exposing (Metrics)
 import Data.Session as Session exposing (Session)
@@ -46,36 +46,34 @@ type alias Metric =
     }
 
 
-init : Model
+init : ( Model, Cmd Msg, Session.Msg )
 init =
-    { metrics = Nothing
-    , xCounter = 60
-    , sysMem = Metric "System Memory" 0 Filesize.format graphZero initDataSet 10
-    , heapSize = Metric "Heap Size" 0 Filesize.format graphZero initDataSet 10
-    , heapUsed = Metric "Heap Used" 0 Filesize.format graphZero initDataSet 10
-    , heapObjects = Metric "Heap # Objects" 0 fmtInt graphZero initDataSet 10
-    , goRoutines = Metric "Goroutines" 0 fmtInt graphZero initDataSet 10
-    , webSockets = Metric "Open WebSockets" 0 fmtInt graphZero initDataSet 10
-    , smtpConnOpen = Metric "Open Connections" 0 fmtInt graphZero initDataSet 10
-    , smtpConnTotal = Metric "Total Connections" 0 fmtInt graphChange initDataSet 60
-    , smtpReceivedTotal = Metric "Messages Received" 0 fmtInt graphChange initDataSet 60
-    , smtpErrorsTotal = Metric "Messages Errors" 0 fmtInt graphChange initDataSet 60
-    , smtpWarnsTotal = Metric "Messages Warns" 0 fmtInt graphChange initDataSet 60
-    , retentionDeletesTotal = Metric "Retention Deletes" 0 fmtInt graphChange initDataSet 60
-    , retainedCount = Metric "Stored Messages" 0 fmtInt graphZero initDataSet 60
-    , retainedSize = Metric "Store Size" 0 Filesize.format graphZero initDataSet 60
-    }
+    ( { metrics = Nothing
+      , xCounter = 60
+      , sysMem = Metric "System Memory" 0 Filesize.format graphZero initDataSet 10
+      , heapSize = Metric "Heap Size" 0 Filesize.format graphZero initDataSet 10
+      , heapUsed = Metric "Heap Used" 0 Filesize.format graphZero initDataSet 10
+      , heapObjects = Metric "Heap # Objects" 0 fmtInt graphZero initDataSet 10
+      , goRoutines = Metric "Goroutines" 0 fmtInt graphZero initDataSet 10
+      , webSockets = Metric "Open WebSockets" 0 fmtInt graphZero initDataSet 10
+      , smtpConnOpen = Metric "Open Connections" 0 fmtInt graphZero initDataSet 10
+      , smtpConnTotal = Metric "Total Connections" 0 fmtInt graphChange initDataSet 60
+      , smtpReceivedTotal = Metric "Messages Received" 0 fmtInt graphChange initDataSet 60
+      , smtpErrorsTotal = Metric "Messages Errors" 0 fmtInt graphChange initDataSet 60
+      , smtpWarnsTotal = Metric "Messages Warns" 0 fmtInt graphChange initDataSet 60
+      , retentionDeletesTotal = Metric "Retention Deletes" 0 fmtInt graphChange initDataSet 60
+      , retainedCount = Metric "Stored Messages" 0 fmtInt graphZero initDataSet 60
+      , retainedSize = Metric "Store Size" 0 Filesize.format graphZero initDataSet 60
+      }
+    , getMetrics
+    , Session.none
+    )
 
 
 initDataSet : Spark.DataSet
 initDataSet =
     List.range 0 59
         |> List.map (\x -> ( toFloat x, 0 ))
-
-
-load : Cmd Msg
-load =
-    getMetrics
 
 
 

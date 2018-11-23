@@ -77,10 +77,11 @@ type alias Model =
     }
 
 
-init : String -> Maybe MessageID -> ( Model, Cmd Msg )
+init : String -> Maybe MessageID -> ( Model, Cmd Msg, Session.Msg )
 init mailboxName selection =
     ( Model mailboxName (LoadingList selection) SafeHtmlBody "" (Time.millisToPosix 0)
     , load mailboxName
+    , Session.none
     )
 
 

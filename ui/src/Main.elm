@@ -11,6 +11,8 @@ import Page.Monitor as Monitor
 import Page.Status as Status
 import Ports
 import Route exposing (Route)
+import Task
+import Time
 import Url exposing (Url)
 import Views.Page as Page exposing (ActivePage(..), frame)
 
@@ -42,7 +44,7 @@ init sessionValue location key =
         ( subModel, _, _ ) =
             Home.init
 
-        model =
+        initModel =
             { page = Home subModel
             , session = session
             , mailboxName = ""
@@ -50,8 +52,11 @@ init sessionValue location key =
 
         route =
             Route.fromUrl location
+
+        ( model, cmd ) =
+            changeRouteTo route initModel |> updateSession
     in
-    changeRouteTo route model |> updateSession
+    ( model, Cmd.batch [ cmd, Task.perform TimeZoneLoaded Time.here ] )
 
 
 type Msg
@@ -59,6 +64,7 @@ type Msg
     | UrlChanged Url
     | LinkClicked UrlRequest
     | UpdateSession (Result D.Error Session.Persistent)
+    | TimeZoneLoaded Time.Zone
     | OnMailboxNameInput String
     | ViewMailbox String
     | HomeMsg Home.Msg
@@ -143,6 +149,16 @@ update msg model =
                 ( model
                 , Cmd.none
                 , Session.SetFlash ("Error decoding session: " ++ D.errorToString error)
+                )
+
+            TimeZoneLoaded zone ->
+                let
+                    session =
+                        model.session
+                in
+                ( { model | session = { session | zone = zone } }
+                , Cmd.none
+                , Session.none
                 )
 
             OnMailboxNameInput name ->

@@ -107,24 +107,24 @@ view session model =
                     , th [] [ text "Mailbox" ]
                     , th [] [ text "Subject" ]
                     ]
-                , tbody [] (List.map viewMessage model.messages)
+                , tbody [] (List.map (viewMessage session.zone) model.messages)
                 ]
             ]
     }
 
 
-viewMessage : MessageHeader -> Html Msg
-viewMessage message =
+viewMessage : Time.Zone -> MessageHeader -> Html Msg
+viewMessage zone message =
     tr [ Events.onClick (OpenMessage message) ]
-        [ td [] [ shortDate message.date ]
+        [ td [] [ shortDate zone message.date ]
         , td [ class "desktop" ] [ text message.from ]
         , td [] [ text message.mailbox ]
         , td [] [ text message.subject ]
         ]
 
 
-shortDate : Posix -> Html Msg
-shortDate date =
+shortDate : Time.Zone -> Posix -> Html Msg
+shortDate zone date =
     DF.format
         [ DF.dayOfMonthFixed
         , DF.text "-"
@@ -136,6 +136,6 @@ shortDate date =
         , DF.text " "
         , DF.amPmUppercase
         ]
-        Time.utc
+        zone
         date
         |> text

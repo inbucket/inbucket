@@ -483,10 +483,10 @@ view session model =
                             )
 
                     ShowingList _ (ShowingMessage { message }) ->
-                        viewMessage message model.bodyMode
+                        viewMessage session.zone message model.bodyMode
 
                     ShowingList _ (Transitioning { message }) ->
-                        viewMessage message model.bodyMode
+                        viewMessage session.zone message model.bodyMode
 
                     _ ->
                         text ""
@@ -538,8 +538,8 @@ messageChip model selected message =
         ]
 
 
-viewMessage : Message -> Body -> Html Msg
-viewMessage message bodyMode =
+viewMessage : Time.Zone -> Message -> Body -> Html Msg
+viewMessage zone message bodyMode =
     let
         sourceUrl =
             "/serve/m/" ++ message.mailbox ++ "/" ++ message.id ++ "/source"
@@ -557,7 +557,7 @@ viewMessage message bodyMode =
             , dt [] [ text "To:" ]
             , dd [] (List.map text message.to)
             , dt [] [ text "Date:" ]
-            , dd [] [ verboseDate message.date ]
+            , dd [] [ verboseDate zone message.date ]
             , dt [] [ text "Subject:" ]
             , dd [] [ text message.subject ]
             ]
@@ -636,8 +636,8 @@ relativeDate model date =
     Relative.relativeTime model.now date |> text
 
 
-verboseDate : Posix -> Html Msg
-verboseDate date =
+verboseDate : Time.Zone -> Posix -> Html Msg
+verboseDate zone date =
     text <|
         DF.format
             [ DF.monthNameFull
@@ -653,8 +653,9 @@ verboseDate date =
             , DF.secondFixed
             , DF.text " "
             , DF.amPmUppercase
+            , DF.text " (Local)"
             ]
-            Time.utc
+            zone
             date
 
 

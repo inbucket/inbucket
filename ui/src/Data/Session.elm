@@ -14,6 +14,7 @@ import Json.Decode as D
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode as E
 import Ports
+import Time
 import Url exposing (Url)
 
 
@@ -22,6 +23,7 @@ type alias Session =
     , host : String
     , flash : String
     , routing : Bool
+    , zone : Time.Zone
     , persistent : Persistent
     }
 
@@ -42,7 +44,13 @@ type Msg
 
 init : Nav.Key -> Url -> Persistent -> Session
 init key location persistent =
-    Session key location.host "" True persistent
+    { key = key
+    , host = location.host
+    , flash = ""
+    , routing = True
+    , zone = Time.utc
+    , persistent = persistent
+    }
 
 
 update : Msg -> Session -> ( Session, Cmd a )

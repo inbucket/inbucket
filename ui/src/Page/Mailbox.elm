@@ -156,7 +156,7 @@ update session msg model =
             updateOpenMessage session model id
 
         DeleteMessage message ->
-            updateDeleteMessage model message
+            updateDeleteMessage session model message
 
         DeletedMessage (Ok _) ->
             ( model, Cmd.none, Session.none )
@@ -362,8 +362,8 @@ updateSelected model id =
                     { model | state = ShowingList newList (Transitioning visible) }
 
 
-updateDeleteMessage : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
-updateDeleteMessage model message =
+updateDeleteMessage : Session -> Model -> Message -> ( Model, Cmd Msg, Session.Msg )
+updateDeleteMessage session model message =
     let
         url =
             "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
@@ -380,8 +380,11 @@ updateDeleteMessage model message =
                 | state =
                     ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
               }
-            , cmd
-            , Session.none
+            , Cmd.batch
+                [ cmd
+                , Route.replaceUrl session.key (Route.Mailbox model.mailboxName)
+                ]
+            , Session.DisableRouting
             )
 
         _ ->

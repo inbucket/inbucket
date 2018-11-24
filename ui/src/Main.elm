@@ -117,7 +117,16 @@ update msg model =
             LinkClicked req ->
                 case req of
                     Browser.Internal url ->
-                        ( model, Nav.pushUrl model.session.key (Url.toString url), Session.none )
+                        case url.fragment of
+                            Just "" ->
+                                -- Anchor tag for accessibility purposes only, already handled.
+                                ( model, Cmd.none, Session.none )
+
+                            _ ->
+                                ( model
+                                , Nav.pushUrl model.session.key (Url.toString url)
+                                , Session.none
+                                )
 
                     Browser.External url ->
                         ( model, Nav.load url, Session.none )

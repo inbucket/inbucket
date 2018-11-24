@@ -573,7 +573,7 @@ messageBody message bodyMode =
             a
                 [ classList [ ( "active", bodyMode == mode ) ]
                 , onClick (MessageBody mode)
-                , href "javacript:void(0)"
+                , href "#"
                 ]
                 [ text label ]
 

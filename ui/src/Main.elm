@@ -60,13 +60,13 @@ init sessionValue location key =
 
 
 type Msg
-    = SetRoute Route
-    | UrlChanged Url
+    = UrlChanged Url
     | LinkClicked UrlRequest
-    | UpdateSession (Result D.Error Session.Persistent)
+    | SessionUpdated (Result D.Error Session.Persistent)
     | TimeZoneLoaded Time.Zone
     | OnMailboxNameInput String
     | ViewMailbox String
+    | SessionMsg Session.Msg
     | HomeMsg Home.Msg
     | MailboxMsg Mailbox.Msg
     | MonitorMsg Monitor.Msg
@@ -81,7 +81,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ pageSubscriptions model.page
-        , Sub.map UpdateSession sessionChange
+        , Sub.map SessionUpdated sessionChange
         ]
 
 
@@ -125,7 +125,7 @@ update msg model =
                             _ ->
                                 ( model
                                 , Nav.pushUrl model.session.key (Url.toString url)
-                                , Session.none
+                                , Session.ClearFlash
                                 )
 
                     Browser.External url ->
@@ -140,11 +140,10 @@ update msg model =
                     -- Skip once, but re-enable routing.
                     ( model, Cmd.none, Session.EnableRouting )
 
-            SetRoute route ->
-                -- Updates broser URL to requested route.
-                ( model, Route.pushUrl model.session.key route, Session.none )
+            SessionMsg sessionMsg ->
+                ( model, Cmd.none, sessionMsg )
 
-            UpdateSession (Ok persistent) ->
+            SessionUpdated (Ok persistent) ->
                 let
                     session =
                         model.session
@@ -154,10 +153,10 @@ update msg model =
                 , Session.none
                 )
 
-            UpdateSession (Err error) ->
+            SessionUpdated (Err error) ->
                 ( model
                 , Cmd.none
-                , Session.SetFlash ("Error decoding session: " ++ D.errorToString error)
+                , Session.SetFlash ("Error decoding session:\n" ++ D.errorToString error)
                 )
 
             TimeZoneLoaded zone ->
@@ -176,7 +175,7 @@ update msg model =
             ViewMailbox name ->
                 ( { model | mailboxName = "" }
                 , Route.pushUrl model.session.key (Route.Mailbox name)
-                , Session.none
+                , Session.ClearFlash
                 )
 
             _ ->
@@ -214,8 +213,8 @@ changeRouteTo route model =
     let
         ( newModel, newCmd, newSession ) =
             case route of
-                Route.Unknown hash ->
-                    ( model, Cmd.none, Session.SetFlash ("Unknown route requested: " ++ hash) )
+                Route.Unknown path ->
+                    ( model, Cmd.none, Session.SetFlash ("Unknown route requested: " ++ path) )
 
                 Route.Home ->
                     Home.init
@@ -293,6 +292,7 @@ view model =
             , mailboxValue = model.mailboxName
             , recentOptions = model.session.persistent.recentMailboxes
             , recentActive = mailbox
+            , clearFlash = SessionMsg Session.ClearFlash
             }
 
         framePage :

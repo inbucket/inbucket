@@ -133,6 +133,30 @@ h1 {
   font-weight: 500;
 }
 
+.error {
+  background-color: #f58080;
+  background-image: linear-gradient(to bottom, #e86060 0, #f58080 100%);
+  border: 1px solid #e86060;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  padding: 4px 10px;
+  margin: 20px 0;
+}
+
+.error a {
+  color: #a00000;
+  font-weight: bold;
+}
+
+.error a:hover {
+  text-decoration: underline;
+}
+
+.flash-header {
+  display: flex;
+  justify-content: space-between;
+}
+
 .greeting {
   max-width: 1000px;
 }

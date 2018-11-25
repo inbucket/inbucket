@@ -33,6 +33,7 @@ type alias FrameControls msg =
     , mailboxValue : String
     , recentOptions : List String
     , recentActive : String
+    , clearFlash : msg
     }
 
 
@@ -58,7 +59,7 @@ frame controls session page content =
                         ]
                     ]
                 ]
-            , div [] [ text ("Status: " ++ session.flash) ]
+            , errorFlash controls session.flash
             ]
         , div [ id "navbg" ] [ text "" ]
         , content
@@ -71,6 +72,21 @@ frame controls session page content =
                 ]
             ]
         ]
+
+
+errorFlash : FrameControls msg -> String -> Html msg
+errorFlash controls message =
+    if message == "" then
+        text ""
+
+    else
+        div [ class "error" ]
+            [ div [ class "flash-header" ]
+                [ h2 [] [ text "Error" ]
+                , a [ href "#", Events.onClick controls.clearFlash ] [ text "Close" ]
+                ]
+            , pre [] [ text message ]
+            ]
 
 
 externalLink : String -> String -> Html a

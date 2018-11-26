@@ -286,19 +286,21 @@ li.navbar-active span,
   grid-area: page;
   grid-gap: 20px;
   grid-template-areas:
-    "list"
-    "mesg";
-  justify-self: center;
+    "list mesg";
+  grid-template-columns:
+    minmax(200px, 300px)
+    minmax(650px, 1000px);
+  grid-template-rows: 1fr;
 }
 
-@media (min-width: 1000px) {
+@media (max-width: 999px) {
   .mailbox {
-    grid-template-columns:
-      minmax(200px, 300px)
-      minmax(650px, 1000px);
     grid-template-areas:
-      "list mesg";
-    grid-template-rows: 1fr;
+      "list"
+      "mesg";
+    grid-template-columns: none;
+    grid-template-rows: none;
+    justify-self: center;
   }
 }
 

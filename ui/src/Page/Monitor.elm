@@ -86,7 +86,7 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Inbucket Monitor"
     , content =
-        div [ id "page" ]
+        div [ class "page" ]
             [ h1 [] [ text "Monitor" ]
             , p []
                 [ text "Messages will be listed here shortly after delivery. "
@@ -100,7 +100,7 @@ view session model =
                         )
                     ]
                 ]
-            , table [ id "monitor" ]
+            , table [ class "monitor" ]
                 [ thead []
                     [ th [] [ text "Date" ]
                     , th [ class "desktop" ] [ text "From" ]

@@ -39,15 +39,15 @@ type alias FrameControls msg =
 
 frame : FrameControls msg -> Session -> ActivePage -> Html msg -> Html msg
 frame controls session page content =
-    div [ id "app" ]
+    div [ class "app" ]
         [ header []
             [ ul [ class "navbar", attribute "role" "navigation" ]
-                [ li [ id "navbar-brand" ]
+                [ li [ class "navbar-brand" ]
                     [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
                 , navbarLink page Route.Monitor [ text "Monitor" ]
                 , navbarLink page Route.Status [ text "Status" ]
                 , navbarRecent page controls
-                , li [ id "navbar-mailbox" ]
+                , li [ class "navbar-mailbox" ]
                     [ form [ Events.onSubmit (controls.viewMailbox controls.mailboxValue) ]
                         [ input
                             [ type_ "text"
@@ -61,10 +61,10 @@ frame controls session page content =
                 ]
             , errorFlash controls session.flash
             ]
-        , div [ id "navbg" ] [ text "" ]
+        , div [ class "navbar-bg" ] [ text "" ]
         , content
         , footer []
-            [ div [ id "footer" ]
+            [ div [ class "footer" ]
                 [ externalLink "https://www.inbucket.org" "Inbucket"
                 , text " is an open source projected hosted at "
                 , externalLink "https://github.com/jhillyerd/inbucket" "GitHub"
@@ -128,7 +128,7 @@ navbarRecent page controls =
             a [ Route.href (Route.Mailbox mailbox) ] [ text mailbox ]
     in
     li
-        [ id "navbar-recent"
+        [ class "navbar-recent"
         , classList [ ( "navbar-dropdown", True ), ( "navbar-active", active ) ]
         ]
         [ span [] [ text title ]

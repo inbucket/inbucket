@@ -55,7 +55,7 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Inbucket"
     , content =
-        div [ id "page" ]
+        div [ class "page" ]
             [ Html.node "rendered-html"
                 [ class "greeting"
                 , property "content" (Encode.string model.greeting)

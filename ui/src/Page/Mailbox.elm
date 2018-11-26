@@ -474,10 +474,10 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = model.mailboxName ++ " - Inbucket"
     , content =
-        div [ id "page", class "mailbox" ]
+        div [ class "page mailbox" ]
             [ viewMessageList session model
             , main_
-                [ id "message" ]
+                [ class "message" ]
                 [ case model.state of
                     ShowingList _ NoMessage ->
                         text
@@ -500,7 +500,7 @@ view session model =
 
 viewMessageList : Session -> Model -> Html Msg
 viewMessageList session model =
-    aside [ id "message-list" ]
+    aside [ class "message-list" ]
         [ div []
             [ input
                 [ type_ "search"
@@ -554,7 +554,7 @@ viewMessage zone message bodyMode =
                 [ href sourceUrl, target "_blank" ]
                 [ button [] [ text "Source" ] ]
             ]
-        , dl [ id "message-header" ]
+        , dl [ class "message-header" ]
             [ dt [] [ text "From:" ]
             , dd [] [ text message.from ]
             , dt [] [ text "To:" ]

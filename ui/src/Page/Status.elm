@@ -219,7 +219,7 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Inbucket Status"
     , content =
-        div [ id "page" ]
+        div [ class "page" ]
             [ h1 [] [ text "Status" ]
             , case model.metrics of
                 Nothing ->

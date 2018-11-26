@@ -475,7 +475,17 @@ view session model =
     { title = model.mailboxName ++ " - Inbucket"
     , content =
         div [ class "page mailbox" ]
-            [ viewMessageList session model
+            [ aside [ class "message-list-controls" ]
+                [ input
+                    [ type_ "search"
+                    , placeholder "search"
+                    , onInput OnSearchInput
+                    , value model.searchInput
+                    ]
+                    []
+                , button [ onClick PurgeMailbox ] [ text "Purge" ]
+                ]
+            , viewMessageList session model
             , main_
                 [ class "message" ]
                 [ case model.state of
@@ -500,29 +510,16 @@ view session model =
 
 viewMessageList : Session -> Model -> Html Msg
 viewMessageList session model =
-    aside [ class "message-list" ]
-        [ div []
-            [ input
-                [ type_ "search"
-                , placeholder "search"
-                , onInput OnSearchInput
-                , value model.searchInput
-                ]
-                []
-            , button [ onClick PurgeMailbox ] [ text "Purge" ]
-            ]
-        , case model.state of
+    aside [ class "message-list" ] <|
+        case model.state of
             LoadingList _ ->
-                div [] []
+                []
 
             ShowingList list _ ->
-                div []
-                    (list
-                        |> filterMessageList
-                        |> List.reverse
-                        |> List.map (messageChip model list.selected)
-                    )
-        ]
+                list
+                    |> filterMessageList
+                    |> List.reverse
+                    |> List.map (messageChip model list.selected)
 
 
 messageChip : Model -> Maybe MessageID -> MessageHeader -> Html Msg

@@ -115,6 +115,7 @@ header {
 
 .page {
   grid-area: page;
+  min-height: 0; /* Allows scrolling in nested flex/grids. */
 }
 
 footer {
@@ -284,28 +285,34 @@ li.navbar-active span,
 .mailbox {
   display: grid;
   grid-area: page;
-  grid-gap: 20px;
-  grid-template-areas:
-    "list mesg";
-  grid-template-columns:
-    minmax(200px, 300px)
-    minmax(650px, 1000px);
-  grid-template-rows: 1fr;
+  grid-gap: 1px 20px;
+  grid:
+    "ctrl mesg" auto
+    "list mesg" 1fr / minmax(200px, 300px) minmax(650px, 1000px);
 }
 
-@media (max-width: 999px) {
-  .mailbox {
-    grid-template-areas:
-      "list"
-      "mesg";
-    grid-template-columns: none;
-    grid-template-rows: none;
-    justify-self: center;
-  }
+.message-list-controls {
+  grid-area: ctrl;
 }
 
 .message-list {
   grid-area: list;
+  overflow-y: scroll;
+}
+
+@media (max-width: 999px) {
+  .mailbox {
+    grid:
+      "ctrl" auto
+      "list" auto
+      "mesg" auto / 1fr;
+    justify-self: center;
+    width: 100%;
+  }
+
+  .message-list {
+    overflow-y: visible;
+  }
 }
 
 .message-list-entry {
@@ -343,6 +350,7 @@ li.navbar-active span,
 
 .message {
   grid-area: mesg;
+  overflow: auto;
 }
 
 .message-header {

@@ -462,6 +462,10 @@ nav.tab-bar a.active:hover {
   flex-basis: 15em;
 }
 
+.metric .text-value {
+  flex-basis: 40em;
+}
+
 .metric .graph {
   flex-basis: 25em;
 }

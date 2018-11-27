@@ -71,21 +71,31 @@ func RootMonitorMailbox(w http.ResponseWriter, req *http.Request, ctx *web.Conte
 
 // RootStatus serves the Inbucket status page
 func RootStatus(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
-	// Get flash messages, save session
-	errorFlash := ctx.Session.Flashes("errors")
-	if err = ctx.Session.Save(req, w); err != nil {
-		return err
+	root := ctx.RootConfig
+	retPeriod := ""
+	if root.Storage.RetentionPeriod > 0 {
+		retPeriod = root.Storage.RetentionPeriod.String()
 	}
-	// Render template
-	return web.RenderTemplate("root/status.html", w, map[string]interface{}{
-		"ctx":           ctx,
-		"errorFlash":    errorFlash,
-		"version":       config.Version,
-		"buildDate":     config.BuildDate,
-		"smtpListener":  ctx.RootConfig.SMTP.Addr,
-		"pop3Listener":  ctx.RootConfig.POP3.Addr,
-		"webListener":   ctx.RootConfig.Web.Addr,
-		"smtpConfig":    ctx.RootConfig.SMTP,
-		"storageConfig": ctx.RootConfig.Storage,
-	})
+
+	return web.RenderJSON(w,
+		&jsonServerConfig{
+			Version:      config.Version,
+			BuildDate:    config.BuildDate,
+			POP3Listener: root.POP3.Addr,
+			WebListener:  root.Web.Addr,
+			SMTPConfig: jsonSMTPConfig{
+				Addr:           root.SMTP.Addr,
+				DefaultAccept:  root.SMTP.DefaultAccept,
+				AcceptDomains:  root.SMTP.AcceptDomains,
+				RejectDomains:  root.SMTP.RejectDomains,
+				DefaultStore:   root.SMTP.DefaultStore,
+				StoreDomains:   root.SMTP.StoreDomains,
+				DiscardDomains: root.SMTP.DiscardDomains,
+			},
+			StorageConfig: jsonStorageConfig{
+				MailboxMsgCap:   root.Storage.MailboxMsgCap,
+				StoreType:       root.Storage.Type,
+				RetentionPeriod: retPeriod,
+			},
+		})
 }

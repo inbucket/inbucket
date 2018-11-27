@@ -3,13 +3,19 @@
 # description: Developer friendly Inbucket configuration
 
 export INBUCKET_LOGLEVEL="debug"
+export INBUCKET_SMTP_REJECTDOMAINS="bad-actors.local"
+#export INBUCKET_SMTP_DEFAULTACCEPT="false"
+export INBUCKET_SMTP_ACCEPTDOMAINS="good-actors.local"
 export INBUCKET_SMTP_DISCARDDOMAINS="bitbucket.local"
+#export INBUCKET_SMTP_DEFAULTSTORE="false"
+export INBUCKET_SMTP_STOREDOMAINS="important.local"
 export INBUCKET_WEB_TEMPLATECACHE="false"
 export INBUCKET_WEB_COOKIEAUTHKEY="not-secret"
 export INBUCKET_WEB_UIDIR="ui/dist"
 export INBUCKET_STORAGE_TYPE="file"
 export INBUCKET_STORAGE_PARAMS="path:/tmp/inbucket"
 export INBUCKET_STORAGE_RETENTIONPERIOD="3h"
+export INBUCKET_STORAGE_MAILBOXMSGCAP="300"
 
 if ! test -x ./inbucket; then
   echo "$PWD/inbucket not found/executable!" >&2

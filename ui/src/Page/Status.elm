@@ -1,6 +1,7 @@
 module Page.Status exposing (Model, Msg, init, subscriptions, update, view)
 
 import Data.Metrics as Metrics exposing (Metrics)
+import Data.ServerConfig as ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
 import Filesize
 import Html exposing (..)
@@ -17,7 +18,8 @@ import Time exposing (Posix)
 
 
 type alias Model =
-    { metrics : Maybe Metrics
+    { config : Maybe ServerConfig
+    , metrics : Maybe Metrics
     , xCounter : Float
     , sysMem : Metric
     , heapSize : Metric
@@ -48,7 +50,8 @@ type alias Metric =
 
 init : ( Model, Cmd Msg, Session.Msg )
 init =
-    ( { metrics = Nothing
+    ( { config = Nothing
+      , metrics = Nothing
       , xCounter = 60
       , sysMem = Metric "System Memory" 0 Filesize.format graphZero initDataSet 10
       , heapSize = Metric "Heap Size" 0 Filesize.format graphZero initDataSet 10
@@ -65,7 +68,7 @@ init =
       , retainedCount = Metric "Stored Messages" 0 fmtInt graphZero initDataSet 60
       , retainedSize = Metric "Store Size" 0 Filesize.format graphZero initDataSet 60
       }
-    , getMetrics
+    , Cmd.batch [ loadServerConfig, loadMetrics ]
     , Session.none
     )
 
@@ -91,6 +94,7 @@ subscriptions model =
 
 type Msg
     = MetricsReceived (Result Http.Error Metrics)
+    | ServerConfigLoaded (Result Http.Error ServerConfig)
     | Tick Posix
 
 
@@ -103,8 +107,14 @@ update session msg model =
         MetricsReceived (Err err) ->
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
+        ServerConfigLoaded (Ok config) ->
+            ( { model | config = Just config }, Cmd.none, Session.none )
+
+        ServerConfigLoaded (Err err) ->
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+
         Tick time ->
-            ( model, getMetrics, Session.ClearFlash )
+            ( model, loadMetrics, Session.none )
 
 
 {-| Update all metrics in Model; increment xCounter.
@@ -203,11 +213,19 @@ updateRemoteTotal metric value history =
     }
 
 
-getMetrics : Cmd Msg
-getMetrics =
+loadMetrics : Cmd Msg
+loadMetrics =
     Http.get
         { url = "/debug/vars"
         , expect = Http.expectJson MetricsReceived Metrics.decoder
+        }
+
+
+loadServerConfig : Cmd Msg
+loadServerConfig =
+    Http.get
+        { url = "/serve/status"
+        , expect = Http.expectJson ServerConfigLoaded ServerConfig.decoder
         }
 
 
@@ -221,35 +239,140 @@ view session model =
     , content =
         div [ class "page" ]
             [ h1 [] [ text "Status" ]
-            , case model.metrics of
-                Nothing ->
-                    div [] [ text "Loading metrics..." ]
-
-                Just metrics ->
-                    div []
-                        [ framePanel "General Metrics"
-                            [ viewMetric model.sysMem
-                            , viewMetric model.heapSize
-                            , viewMetric model.heapUsed
-                            , viewMetric model.heapObjects
-                            , viewMetric model.goRoutines
-                            , viewMetric model.webSockets
-                            ]
-                        , framePanel "SMTP Metrics"
-                            [ viewMetric model.smtpConnOpen
-                            , viewMetric model.smtpConnTotal
-                            , viewMetric model.smtpReceivedTotal
-                            , viewMetric model.smtpErrorsTotal
-                            , viewMetric model.smtpWarnsTotal
-                            ]
-                        , framePanel "Storage Metrics"
-                            [ viewMetric model.retentionDeletesTotal
-                            , viewMetric model.retainedCount
-                            , viewMetric model.retainedSize
-                            ]
-                        ]
+            , div [] (configPanel model.config :: metricPanels model)
             ]
     }
+
+
+configPanel : Maybe ServerConfig -> Html Msg
+configPanel maybeConfig =
+    let
+        mailboxCap config =
+            case config.storageConfig.mailboxMsgCap of
+                0 ->
+                    "Unlimited"
+
+                cap ->
+                    String.fromInt cap ++ " messages per mailbox"
+
+        retentionPeriod config =
+            case config.storageConfig.retentionPeriod of
+                "" ->
+                    "Forever"
+
+                period ->
+                    period
+    in
+    case maybeConfig of
+        Nothing ->
+            text "Loading server config..."
+
+        Just config ->
+            framePanel "Configuration"
+                [ textEntry "Version" (config.version ++ ", built on " ++ config.buildDate)
+                , textEntry "SMTP Listener" config.smtpConfig.addr
+                , textEntry "POP3 Listener" config.pop3Listener
+                , textEntry "HTTP Listener" config.webListener
+                , textEntry "Accept Policy" (acceptPolicy config.smtpConfig)
+                , textEntry "Store Policy" (storePolicy config.smtpConfig)
+                , textEntry "Store Type" config.storageConfig.storeType
+                , textEntry "Message Cap" (mailboxCap config)
+                , textEntry "Retention Period" (retentionPeriod config)
+                ]
+
+
+acceptPolicy config =
+    if config.defaultAccept then
+        "All domains"
+            ++ (case config.rejectDomains of
+                    Nothing ->
+                        ""
+
+                    Just [] ->
+                        ""
+
+                    Just domains ->
+                        ", except: " ++ String.join ", " domains
+               )
+
+    else
+        "No domains"
+            ++ (case config.acceptDomains of
+                    Nothing ->
+                        ""
+
+                    Just [] ->
+                        ""
+
+                    Just domains ->
+                        ", except: " ++ String.join ", " domains
+               )
+
+
+storePolicy config =
+    if config.defaultStore then
+        "All domains"
+            ++ (case config.discardDomains of
+                    Nothing ->
+                        ""
+
+                    Just [] ->
+                        ""
+
+                    Just domains ->
+                        ", except: " ++ String.join ", " domains
+               )
+
+    else
+        "No domains"
+            ++ (case config.storeDomains of
+                    Nothing ->
+                        ""
+
+                    Just [] ->
+                        ""
+
+                    Just domains ->
+                        ", except: " ++ String.join ", " domains
+               )
+
+
+metricPanels : Model -> List (Html Msg)
+metricPanels model =
+    case model.metrics of
+        Nothing ->
+            [ text "Loading metrics..." ]
+
+        Just _ ->
+            [ framePanel "General Metrics"
+                [ viewMetric model.sysMem
+                , viewMetric model.heapSize
+                , viewMetric model.heapUsed
+                , viewMetric model.heapObjects
+                , viewMetric model.goRoutines
+                , viewMetric model.webSockets
+                ]
+            , framePanel "SMTP Metrics"
+                [ viewMetric model.smtpConnOpen
+                , viewMetric model.smtpConnTotal
+                , viewMetric model.smtpReceivedTotal
+                , viewMetric model.smtpErrorsTotal
+                , viewMetric model.smtpWarnsTotal
+                ]
+            , framePanel "Storage Metrics"
+                [ viewMetric model.retentionDeletesTotal
+                , viewMetric model.retainedCount
+                , viewMetric model.retainedSize
+                ]
+            ]
+
+
+textEntry : String -> String -> Html Msg
+textEntry name value =
+    div [ class "metric" ]
+        [ div [ class "label" ] [ text name ]
+        , div [ class "text-value" ] [ text value ]
+        ]
 
 
 viewMetric : Metric -> Html Msg

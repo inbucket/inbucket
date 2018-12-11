@@ -40,10 +40,8 @@ var (
 
 func init() {
 	// Server uptime for status page.
-	startTime := time.Now()
-	expvar.Publish("uptime", expvar.Func(func() interface{} {
-		return time.Since(startTime) / time.Second
-	}))
+	startTime := expvar.NewInt("startMillis")
+	startTime.Set(time.Now().UnixNano() / 1000000)
 
 	// Goroutine count for status page.
 	expvar.Publish("goroutines", expvar.Func(func() interface{} {

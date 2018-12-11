@@ -1,11 +1,14 @@
 module Data.Metrics exposing (Metrics, decodeIntList, decoder)
 
+import Data.Date exposing (date)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+import Time exposing (Posix)
 
 
 type alias Metrics =
-    { sysMem : Int
+    { startTime : Posix
+    , sysMem : Int
     , heapSize : Int
     , heapUsed : Int
     , heapObjects : Int
@@ -26,12 +29,14 @@ type alias Metrics =
     , retainedCountHist : List Int
     , retainedSize : Int
     , retainedSizeHist : List Int
+    , scanCompleted : Posix
     }
 
 
 decoder : Decoder Metrics
 decoder =
     succeed Metrics
+        |> requiredAt [ "startMillis" ] date
         |> requiredAt [ "memstats", "Sys" ] int
         |> requiredAt [ "memstats", "HeapSys" ] int
         |> requiredAt [ "memstats", "HeapAlloc" ] int
@@ -53,6 +58,7 @@ decoder =
         |> requiredAt [ "retention", "RetainedHist" ] decodeIntList
         |> requiredAt [ "retention", "RetainedSize" ] int
         |> requiredAt [ "retention", "SizeHist" ] decodeIntList
+        |> requiredAt [ "retention", "ScanCompletedMillis" ] date
 
 
 {-| Decodes Inbuckets hacky comma-separated-int JSON strings.

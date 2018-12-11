@@ -3,6 +3,7 @@ module Page.Status exposing (Model, Msg, init, subscriptions, update, view)
 import Data.Metrics as Metrics exposing (Metrics)
 import Data.ServerConfig as ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
+import DateFormat.Relative as Relative
 import Filesize
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -10,6 +11,7 @@ import Http exposing (Error)
 import HttpUtil
 import Sparkline as Spark
 import Svg.Attributes as SvgAttrib
+import Task
 import Time exposing (Posix)
 
 
@@ -18,7 +20,8 @@ import Time exposing (Posix)
 
 
 type alias Model =
-    { config : Maybe ServerConfig
+    { now : Posix
+    , config : Maybe ServerConfig
     , metrics : Maybe Metrics
     , xCounter : Float
     , sysMem : Metric
@@ -50,7 +53,8 @@ type alias Metric =
 
 init : ( Model, Cmd Msg, Session.Msg )
 init =
-    ( { config = Nothing
+    ( { now = Time.millisToPosix 0
+      , config = Nothing
       , metrics = Nothing
       , xCounter = 60
       , sysMem = Metric "System Memory" 0 Filesize.format graphZero initDataSet 10
@@ -62,13 +66,16 @@ init =
       , smtpConnOpen = Metric "Open Connections" 0 fmtInt graphZero initDataSet 10
       , smtpConnTotal = Metric "Total Connections" 0 fmtInt graphChange initDataSet 60
       , smtpReceivedTotal = Metric "Messages Received" 0 fmtInt graphChange initDataSet 60
-      , smtpErrorsTotal = Metric "Messages Errors" 0 fmtInt graphChange initDataSet 60
-      , smtpWarnsTotal = Metric "Messages Warns" 0 fmtInt graphChange initDataSet 60
+      , smtpErrorsTotal = Metric "Message Errors" 0 fmtInt graphChange initDataSet 60
+      , smtpWarnsTotal = Metric "Message Warnings" 0 fmtInt graphChange initDataSet 60
       , retentionDeletesTotal = Metric "Retention Deletes" 0 fmtInt graphChange initDataSet 60
       , retainedCount = Metric "Stored Messages" 0 fmtInt graphZero initDataSet 60
       , retainedSize = Metric "Store Size" 0 Filesize.format graphZero initDataSet 60
       }
-    , Cmd.batch [ loadServerConfig, loadMetrics ]
+    , Cmd.batch
+        [ Task.perform Tick Time.now
+        , loadServerConfig
+        ]
     , Session.none
     )
 
@@ -114,7 +121,7 @@ update session msg model =
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
         Tick time ->
-            ( model, loadMetrics, Session.none )
+            ( { model | now = time }, loadMetrics, Session.none )
 
 
 {-| Update all metrics in Model; increment xCounter.
@@ -343,9 +350,12 @@ metricPanels model =
         Nothing ->
             [ text "Loading metrics..." ]
 
-        Just _ ->
+        Just metrics ->
             [ framePanel "General Metrics"
-                [ viewMetric model.sysMem
+                [ textEntry "Uptime" <|
+                    "Started "
+                        ++ Relative.relativeTime model.now metrics.startTime
+                , viewMetric model.sysMem
                 , viewMetric model.heapSize
                 , viewMetric model.heapUsed
                 , viewMetric model.heapObjects
@@ -360,11 +370,32 @@ metricPanels model =
                 , viewMetric model.smtpWarnsTotal
                 ]
             , framePanel "Storage Metrics"
-                [ viewMetric model.retentionDeletesTotal
+                [ textEntry "Retention Scan" (retentionScan model)
+                , viewMetric model.retentionDeletesTotal
                 , viewMetric model.retainedCount
                 , viewMetric model.retainedSize
                 ]
             ]
+
+
+retentionScan : Model -> String
+retentionScan model =
+    case ( model.config, model.metrics ) of
+        ( Just config, Just metrics ) ->
+            case config.storageConfig.retentionPeriod of
+                "" ->
+                    "Disabled"
+
+                _ ->
+                    case Time.posixToMillis metrics.scanCompleted of
+                        0 ->
+                            "Not completed"
+
+                        _ ->
+                            "Completed " ++ Relative.relativeTime model.now metrics.scanCompleted
+
+        ( _, _ ) ->
+            "No data"
 
 
 textEntry : String -> String -> Html Msg

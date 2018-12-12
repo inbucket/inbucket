@@ -5,7 +5,7 @@ module.exports = (env, argv) => {
   const production = argv.mode === 'production'
   const config = {
     output: {
-      filename: 'static/[name].js',
+      filename: 'static/[name].[hash:8].js',
       publicPath: '/',
     },
     module: {

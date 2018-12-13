@@ -46,6 +46,6 @@ _testmain.go
 # elm-repl generated files
 repl-temp-*
 # Distribution
-#/ui/build/
+/ui/dist/
 # Dependency directories
 /ui/node_modules

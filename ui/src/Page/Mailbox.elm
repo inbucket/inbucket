@@ -73,13 +73,14 @@ type alias Model =
     , state : State
     , bodyMode : Body
     , searchInput : String
+    , promptPurge : Bool
     , now : Posix
     }
 
 
 init : String -> Maybe MessageID -> ( Model, Cmd Msg, Session.Msg )
 init mailboxName selection =
-    ( Model mailboxName (LoadingList selection) SafeHtmlBody "" (Time.millisToPosix 0)
+    ( Model mailboxName (LoadingList selection) SafeHtmlBody "" False (Time.millisToPosix 0)
     , load mailboxName
     , Session.none
     )
@@ -133,7 +134,9 @@ type Msg
     | MarkedSeen (Result Http.Error ())
     | DeleteMessage Message
     | DeletedMessage (Result Http.Error ())
-    | PurgeMailbox
+    | PurgeMailboxPrompt
+    | PurgeMailboxCanceled
+    | PurgeMailboxConfirmed
     | PurgedMailbox (Result Http.Error ())
     | OnSearchInput String
     | Tick Posix
@@ -232,8 +235,14 @@ update session msg model =
                 _ ->
                     ( model, Cmd.none, Session.none )
 
-        PurgeMailbox ->
-            updatePurge model
+        PurgeMailboxPrompt ->
+            ( { model | promptPurge = True }, Cmd.none, Session.none )
+
+        PurgeMailboxCanceled ->
+            ( { model | promptPurge = False }, Cmd.none, Session.none )
+
+        PurgeMailboxConfirmed ->
+            updatePurge session model
 
         PurgedMailbox (Ok _) ->
             ( model, Cmd.none, Session.none )
@@ -291,19 +300,25 @@ updateMessageResult model message =
             )
 
 
-updatePurge : Model -> ( Model, Cmd Msg, Session.Msg )
-updatePurge model =
+updatePurge : Session -> Model -> ( Model, Cmd Msg, Session.Msg )
+updatePurge session model =
     let
         cmd =
-            "/api/v1/mailbox/"
-                ++ model.mailboxName
-                |> HttpUtil.delete PurgedMailbox
+            Cmd.batch
+                [ Route.replaceUrl session.key (Route.Mailbox model.mailboxName)
+                , "/api/v1/mailbox/"
+                    ++ model.mailboxName
+                    |> HttpUtil.delete PurgedMailbox
+                ]
     in
     case model.state of
         ShowingList list _ ->
-            ( { model | state = ShowingList (MessageList [] Nothing "") NoMessage }
+            ( { model
+                | promptPurge = False
+                , state = ShowingList (MessageList [] Nothing "") NoMessage
+              }
             , cmd
-            , Session.none
+            , Session.DisableRouting
             )
 
         _ ->
@@ -470,9 +485,10 @@ getMessage mailboxName id =
 -- VIEW
 
 
-view : Session -> Model -> { title : String, content : Html Msg }
+view : Session -> Model -> { title : String, modal : Maybe (Html Msg), content : Html Msg }
 view session model =
     { title = model.mailboxName ++ " - Inbucket"
+    , modal = viewModal model.promptPurge
     , content =
         div [ class "page mailbox" ]
             [ aside [ class "message-list-controls" ]
@@ -483,7 +499,7 @@ view session model =
                     , value model.searchInput
                     ]
                     []
-                , button [ onClick PurgeMailbox ] [ text "Purge" ]
+                , button [ onClick PurgeMailboxPrompt ] [ text "Purge" ]
                 ]
             , viewMessageList session model
             , main_
@@ -506,6 +522,22 @@ view session model =
                 ]
             ]
     }
+
+
+viewModal : Bool -> Maybe (Html Msg)
+viewModal promptPurge =
+    if promptPurge then
+        Just <|
+            div []
+                [ p [] [ text "Are you sure you want to delete all messages in this mailbox?" ]
+                , div [ class "button-bar" ]
+                    [ button [ onClick PurgeMailboxConfirmed, class "danger" ] [ text "Yes" ]
+                    , button [ onClick PurgeMailboxCanceled ] [ text "Cancel" ]
+                    ]
+                ]
+
+    else
+        Nothing
 
 
 viewMessageList : Session -> Model -> Html Msg

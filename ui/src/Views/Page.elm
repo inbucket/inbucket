@@ -37,8 +37,8 @@ type alias FrameControls msg =
     }
 
 
-frame : FrameControls msg -> Session -> ActivePage -> Html msg -> Html msg
-frame controls session page content =
+frame : FrameControls msg -> Session -> ActivePage -> Maybe (Html msg) -> Html msg -> Html msg
+frame controls session page modal content =
     div [ class "app" ]
         [ header []
             [ ul [ class "navbar", attribute "role" "navigation" ]
@@ -62,6 +62,7 @@ frame controls session page content =
             , errorFlash controls session.flash
             ]
         , div [ class "navbar-bg" ] [ text "" ]
+        , frameModal modal
         , content
         , footer []
             [ div [ class "footer" ]
@@ -72,6 +73,18 @@ frame controls session page content =
                 ]
             ]
         ]
+
+
+frameModal : Maybe (Html msg) -> Html msg
+frameModal maybeModal =
+    case maybeModal of
+        Just modal ->
+            div [ class "modal-mask" ]
+                [ div [ class "modal well" ] [ modal ]
+                ]
+
+        Nothing ->
+            text ""
 
 
 errorFlash : FrameControls msg -> String -> Html msg

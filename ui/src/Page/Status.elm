@@ -240,9 +240,10 @@ loadServerConfig =
 -- VIEW --
 
 
-view : Session -> Model -> { title : String, content : Html Msg }
+view : Session -> Model -> { title : String, modal : Maybe (Html msg), content : Html Msg }
 view session model =
     { title = "Inbucket Status"
+    , modal = Nothing
     , content =
         div [ class "page" ]
             [ h1 [] [ text "Status" ]

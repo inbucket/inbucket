@@ -1,5 +1,6 @@
 module Page.Status exposing (Model, Msg, init, subscriptions, update, view)
 
+import Api
 import Data.Metrics as Metrics exposing (Metrics)
 import Data.ServerConfig as ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
@@ -74,7 +75,7 @@ init =
       }
     , Cmd.batch
         [ Task.perform Tick Time.now
-        , loadServerConfig
+        , Api.getServerConfig ServerConfigLoaded
         ]
     , Session.none
     )
@@ -121,7 +122,7 @@ update session msg model =
             ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
 
         Tick time ->
-            ( { model | now = time }, loadMetrics, Session.none )
+            ( { model | now = time }, Api.getServerMetrics MetricsReceived, Session.none )
 
 
 {-| Update all metrics in Model; increment xCounter.
@@ -218,22 +219,6 @@ updateRemoteTotal metric value history =
                 |> changeList
                 |> List.indexedMap (\x y -> ( toFloat x, toFloat y ))
     }
-
-
-loadMetrics : Cmd Msg
-loadMetrics =
-    Http.get
-        { url = "/debug/vars"
-        , expect = Http.expectJson MetricsReceived Metrics.decoder
-        }
-
-
-loadServerConfig : Cmd Msg
-loadServerConfig =
-    Http.get
-        { url = "/serve/status"
-        , expect = Http.expectJson ServerConfigLoaded ServerConfig.decoder
-        }
 
 
 

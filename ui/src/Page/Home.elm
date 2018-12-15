@@ -1,5 +1,6 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
+import Api
 import Data.Session as Session exposing (Session)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -19,14 +20,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg, Session.Msg )
 init =
-    let
-        cmdGreeting =
-            Http.get
-                { url = "/serve/greeting"
-                , expect = Http.expectString GreetingLoaded
-                }
-    in
-    ( Model "", cmdGreeting, Session.none )
+    ( Model "", Api.getGreeting GreetingLoaded, Session.none )
 
 
 

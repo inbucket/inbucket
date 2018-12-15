@@ -1,5 +1,6 @@
 module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, view)
 
+import Api
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
@@ -90,7 +91,7 @@ load : String -> Cmd Msg
 load mailboxName =
     Cmd.batch
         [ Task.perform Tick Time.now
-        , getList mailboxName
+        , Api.getHeaderList ListLoaded mailboxName
         ]
 
 
@@ -150,7 +151,7 @@ update session msg model =
             , Cmd.batch
                 [ -- Update browser location.
                   Route.replaceUrl session.key (Route.Message model.mailboxName id)
-                , getMessage model.mailboxName id
+                , Api.getMessage MessageLoaded model.mailboxName id
                 ]
             , Session.DisableRouting
             )
@@ -306,9 +307,7 @@ updatePurge session model =
         cmd =
             Cmd.batch
                 [ Route.replaceUrl session.key (Route.Mailbox model.mailboxName)
-                , "/api/v1/mailbox/"
-                    ++ model.mailboxName
-                    |> HttpUtil.delete PurgedMailbox
+                , Api.purgeMailbox PurgedMailbox model.mailboxName
                 ]
     in
     case model.state of
@@ -380,12 +379,6 @@ updateSelected model id =
 updateDeleteMessage : Session -> Model -> Message -> ( Model, Cmd Msg, Session.Msg )
 updateDeleteMessage session model message =
     let
-        url =
-            "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
-
-        cmd =
-            HttpUtil.delete DeletedMessage url
-
         filter f messageList =
             { messageList | headers = List.filter f messageList.headers }
     in
@@ -396,14 +389,14 @@ updateDeleteMessage session model message =
                     ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
               }
             , Cmd.batch
-                [ cmd
+                [ Api.deleteMessage DeletedMessage message.mailbox message.id
                 , Route.replaceUrl session.key (Route.Mailbox model.mailboxName)
                 ]
             , Session.DisableRouting
             )
 
         _ ->
-            ( model, cmd, Session.none )
+            ( model, Cmd.none, Session.none )
 
 
 updateMarkMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
@@ -418,16 +411,6 @@ updateMarkMessageSeen model message =
                     else
                         header
 
-                url =
-                    "/api/v1/mailbox/" ++ message.mailbox ++ "/" ++ message.id
-
-                command =
-                    -- The URL tells the API what message to update, so we only need to indicate the
-                    -- desired change in the body.
-                    Encode.object [ ( "seen", Encode.bool True ) ]
-                        |> Http.jsonBody
-                        |> HttpUtil.patch MarkedSeen url
-
                 map f messageList =
                     { messageList | headers = List.map f messageList.headers }
             in
@@ -441,7 +424,7 @@ updateMarkMessageSeen model message =
                             }
                         )
               }
-            , command
+            , Api.markMessageSeen MarkedSeen message.mailbox message.id
             , Session.None
             )
 
@@ -452,33 +435,9 @@ updateMarkMessageSeen model message =
 updateOpenMessage : Session -> Model -> String -> ( Model, Cmd Msg, Session.Msg )
 updateOpenMessage session model id =
     ( updateSelected model id
-    , getMessage model.mailboxName id
+    , Api.getMessage MessageLoaded model.mailboxName id
     , Session.AddRecent model.mailboxName
     )
-
-
-getList : String -> Cmd Msg
-getList mailboxName =
-    let
-        url =
-            "/api/v1/mailbox/" ++ mailboxName
-    in
-    Http.get
-        { url = url
-        , expect = Http.expectJson ListLoaded (Decode.list MessageHeader.decoder)
-        }
-
-
-getMessage : String -> MessageID -> Cmd Msg
-getMessage mailboxName id =
-    let
-        url =
-            "/serve/m/" ++ mailboxName ++ "/" ++ id
-    in
-    Http.get
-        { url = url
-        , expect = Http.expectJson MessageLoaded Message.decoder
-        }
 
 
 

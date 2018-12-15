@@ -32,7 +32,6 @@ variables it supports:
     INBUCKET_WEB_GREETINGFILE           ui/greeting.html    Home page greeting HTML
     INBUCKET_WEB_TEMPLATECACHE          true                Cache templates after first use?
     INBUCKET_WEB_MAILBOXPROMPT          @inbucket           Prompt next to mailbox input
-    INBUCKET_WEB_COOKIEAUTHKEY                              Session cipher key (text)
     INBUCKET_WEB_MONITORVISIBLE         true                Show monitor tab in UI?
     INBUCKET_WEB_MONITORHISTORY         30                  Monitor remembered messages
     INBUCKET_WEB_PPROF                  false               Expose profiling tools on /debug/pprof

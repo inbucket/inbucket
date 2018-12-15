@@ -159,16 +159,16 @@ func ValidateDomainPart(domain string) bool {
 // domain part is optional and not validated.
 func parseEmailAddress(address string) (local string, domain string, err error) {
 	if address == "" {
-		return "", "", fmt.Errorf("Empty address")
+		return "", "", fmt.Errorf("empty address")
 	}
 	if len(address) > 320 {
-		return "", "", fmt.Errorf("Address exceeds 320 characters")
+		return "", "", fmt.Errorf("address exceeds 320 characters")
 	}
 	if address[0] == '@' {
-		return "", "", fmt.Errorf("Address cannot start with @ symbol")
+		return "", "", fmt.Errorf("address cannot start with @ symbol")
 	}
 	if address[0] == '.' {
-		return "", "", fmt.Errorf("Address cannot start with a period")
+		return "", "", fmt.Errorf("address cannot start with a period")
 	}
 	// Loop over address parsing out local part.
 	buf := new(bytes.Buffer)

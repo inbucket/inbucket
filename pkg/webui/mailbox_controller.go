@@ -1,6 +1,7 @@
 package webui
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -147,19 +148,13 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 	// Don't have to validate these aren't empty, Gorilla returns 404
 	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
-		ctx.Session.AddFlash(err.Error(), "errors")
-		_ = ctx.Session.Save(req, w)
-		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
-		return nil
+		return err
 	}
 	id := ctx.Vars["id"]
 	numStr := ctx.Vars["num"]
 	num, err := strconv.ParseUint(numStr, 10, 32)
 	if err != nil {
-		ctx.Session.AddFlash("Attachment number must be unsigned numeric", "errors")
-		_ = ctx.Session.Save(req, w)
-		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
-		return nil
+		return err
 	}
 	msg, err := ctx.Manager.GetMessage(name, id)
 	if err == storage.ErrNotExist {
@@ -171,10 +166,7 @@ func MailboxViewAttach(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
 	if int(num) >= len(msg.Attachments()) {
-		ctx.Session.AddFlash("Attachment number too high", "errors")
-		_ = ctx.Session.Save(req, w)
-		http.Redirect(w, req, web.Reverse("RootIndex"), http.StatusSeeOther)
-		return nil
+		return errors.New("requested attachment number does not exist")
 	}
 	// Output attachment
 	part := msg.Attachments()[num]

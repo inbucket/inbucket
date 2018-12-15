@@ -3,7 +3,6 @@ package webui
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strconv"
@@ -110,14 +109,10 @@ func MailboxHTML(w http.ResponseWriter, req *http.Request, ctx *web.Context) (er
 		// This doesn't indicate empty, likely an IO error
 		return fmt.Errorf("GetMessage(%q) failed: %v", id, err)
 	}
-	// Render partial template
+	// Render HTML
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-	return web.RenderPartial("mailbox/_html.html", w, map[string]interface{}{
-		"ctx":     ctx,
-		"name":    name,
-		"message": msg,
-		"body":    template.HTML(msg.HTML()),
-	})
+	_, err = w.Write([]byte(msg.HTML()))
+	return err
 }
 
 // MailboxSource displays the raw source of a message, including headers. Renders text/plain

@@ -17,11 +17,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	staticDir   = "static"
-	templateDir = "templates"
-)
-
 var (
 	// msgHub holds a reference to the message pub/sub system
 	msgHub  *msghub.Hub

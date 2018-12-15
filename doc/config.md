@@ -30,9 +30,7 @@ variables it supports:
     INBUCKET_WEB_ADDR                   0.0.0.0:9000        Web server IP4 host:port
     INBUCKET_WEB_UIDIR                  ui                  User interface dir
     INBUCKET_WEB_GREETINGFILE           ui/greeting.html    Home page greeting HTML
-    INBUCKET_WEB_TEMPLATECACHE          true                Cache templates after first use?
     INBUCKET_WEB_MAILBOXPROMPT          @inbucket           Prompt next to mailbox input
-    INBUCKET_WEB_COOKIEAUTHKEY                              Session cipher key (text)
     INBUCKET_WEB_MONITORVISIBLE         true                Show monitor tab in UI?
     INBUCKET_WEB_MONITORHISTORY         30                  Monitor remembered messages
     INBUCKET_WEB_PPROF                  false               Expose profiling tools on /debug/pprof
@@ -311,16 +309,6 @@ Inbucket installation, as well as link to REST documentation, etc.
 
 - Default: `ui/greeting.html`
 
-### Template Caching
-
-`INBUCKET_WEB_TEMPLATECACHE`
-
-Tells Inbucket to cache parsed template files.  This should be left as default
-unless you are a developer working on the Inbucket web interface.
-
-- Default: `true`
-- Values: `true` or `false`
-
 ### Mailbox Prompt
 
 `INBUCKET_WEB_MAILBOXPROMPT`
@@ -332,17 +320,6 @@ instead of an entire email address.
 Set to an empty string to hide the prompt.
 
 - Default: `@inbucket`
-
-### Cookie Authentication Key
-
-`INBUCKET_WEB_COOKIEAUTHKEY`
-
-Inbucket stores session information in an encrypted browser cookie.  Unless
-specified, Inbucket generates a random key at startup.  The only notable data
-stored in a user session is the list of recently accessed mailboxes.
-
-- Default: None
-- Value: Text string, no particular format required
 
 ### Monitor Visible
 

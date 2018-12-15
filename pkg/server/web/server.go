@@ -11,17 +11,10 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
 	"github.com/jhillyerd/inbucket/pkg/config"
 	"github.com/jhillyerd/inbucket/pkg/message"
 	"github.com/jhillyerd/inbucket/pkg/msghub"
 	"github.com/rs/zerolog/log"
-)
-
-const (
-	staticDir   = "static"
-	templateDir = "templates"
 )
 
 var (
@@ -36,7 +29,6 @@ var (
 	rootConfig     *config.Root
 	server         *http.Server
 	listener       net.Listener
-	sessionStore   sessions.Store
 	globalShutdown chan bool
 
 	// ExpWebSocketConnectsCurrent tracks the number of open WebSockets
@@ -94,17 +86,6 @@ func Initialize(
 		http.StatusNotFound, "No route matches URI path")
 	Router.MethodNotAllowedHandler = noMatchHandler(
 		http.StatusMethodNotAllowed, "Method not allowed for URI path")
-
-	// Session cookie setup.
-	if conf.Web.CookieAuthKey == "" {
-		log.Info().Str("module", "web").Str("phase", "startup").
-			Msg("Generating random cookie.auth.key")
-		sessionStore = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
-	} else {
-		log.Info().Str("module", "web").Str("phase", "startup").
-			Msg("Using configured cookie.auth.key")
-		sessionStore = sessions.NewCookieStore([]byte(conf.Web.CookieAuthKey))
-	}
 }
 
 // Start begins listening for HTTP requests

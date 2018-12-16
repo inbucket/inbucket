@@ -307,7 +307,7 @@ view model =
         framePage :
             ActivePage
             -> (msg -> Msg)
-            -> { title : String, modal : Maybe (Html msg), content : Html msg }
+            -> { title : String, modal : Maybe (Html msg), content : List (Html msg) }
             -> Document Msg
         framePage page toMsg { title, modal, content } =
             Document title
@@ -315,7 +315,7 @@ view model =
                     model.session
                     page
                     (Maybe.map (Html.map toMsg) modal)
-                    (Html.map toMsg content)
+                    (List.map (Html.map toMsg) content)
                 ]
     in
     case model.page of

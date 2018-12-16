@@ -115,7 +115,9 @@ header {
 
 .page {
   grid-area: page;
-  min-height: 0; /* Allows scrolling in nested flex/grids. */
+  /* Explicit minimums required for sizing/scrolling in nested flex+grids. */
+  min-height: 0;
+  min-width: 0;
 }
 
 footer {
@@ -159,7 +161,6 @@ h1 {
 }
 
 .flash-table {
-  max-width: 90vw;
   overflow: auto;
 }
 
@@ -310,7 +311,6 @@ li.navbar-active span,
 
 .mailbox {
   display: grid;
-  grid-area: page;
   grid-gap: 1px 20px;
   grid:
     "ctrl mesg" auto

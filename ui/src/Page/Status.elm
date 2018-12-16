@@ -225,15 +225,14 @@ updateRemoteTotal metric value history =
 -- VIEW --
 
 
-view : Session -> Model -> { title : String, modal : Maybe (Html msg), content : Html Msg }
+view : Session -> Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
 view session model =
     { title = "Inbucket Status"
     , modal = Nothing
     , content =
-        div [ class "page" ]
-            [ h1 [] [ text "Status" ]
-            , div [] (configPanel model.config :: metricPanels model)
-            ]
+        [ h1 [] [ text "Status" ]
+        , div [] (configPanel model.config :: metricPanels model)
+        ]
     }
 
 

@@ -37,7 +37,7 @@ type alias FrameControls msg =
     }
 
 
-frame : FrameControls msg -> Session -> ActivePage -> Maybe (Html msg) -> Html msg -> Html msg
+frame : FrameControls msg -> Session -> ActivePage -> Maybe (Html msg) -> List (Html msg) -> Html msg
 frame controls session page modal content =
     div [ class "app" ]
         [ header []
@@ -59,11 +59,10 @@ frame controls session page modal content =
                         ]
                     ]
                 ]
-            , errorFlash controls session.flash
             ]
         , div [ class "navbar-bg" ] [ text "" ]
         , frameModal modal
-        , content
+        , div [ class "page" ] ([ errorFlash controls session.flash ] ++ content)
         , footer []
             [ div [ class "footer" ]
                 [ externalLink "https://www.inbucket.org" "Inbucket"

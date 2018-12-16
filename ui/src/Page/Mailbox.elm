@@ -444,12 +444,12 @@ updateOpenMessage session model id =
 -- VIEW
 
 
-view : Session -> Model -> { title : String, modal : Maybe (Html Msg), content : Html Msg }
+view : Session -> Model -> { title : String, modal : Maybe (Html Msg), content : List (Html Msg) }
 view session model =
     { title = model.mailboxName ++ " - Inbucket"
     , modal = viewModal model.promptPurge
     , content =
-        div [ class "page mailbox" ]
+        [ div [ class "mailbox" ]
             [ aside [ class "message-list-controls" ]
                 [ input
                     [ type_ "search"
@@ -480,6 +480,7 @@ view session model =
                         text ""
                 ]
             ]
+        ]
     }
 
 

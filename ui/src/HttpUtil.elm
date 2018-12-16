@@ -81,12 +81,12 @@ errorFlash error =
                 }
 
             Http.NetworkError ->
-                { title = "HTTP Network error"
+                { title = "HTTP network error"
                 , table = []
                 }
 
             Http.BadStatus res ->
-                { title = "Bad HTTP status"
+                { title = "HTTP response error"
                 , table = [ ( "Response Code", String.fromInt res ) ]
                 }
 

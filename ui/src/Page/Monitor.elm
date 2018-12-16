@@ -88,35 +88,34 @@ update session msg model =
 -- VIEW
 
 
-view : Session -> Model -> { title : String, modal : Maybe (Html msg), content : Html Msg }
+view : Session -> Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
 view session model =
     { title = "Inbucket Monitor"
     , modal = Nothing
     , content =
-        div [ class "page" ]
-            [ h1 [] [ text "Monitor" ]
-            , p []
-                [ text "Messages will be listed here shortly after delivery. "
-                , em []
-                    [ text
-                        (if model.connected then
-                            "Connected."
+        [ h1 [] [ text "Monitor" ]
+        , p []
+            [ text "Messages will be listed here shortly after delivery. "
+            , em []
+                [ text
+                    (if model.connected then
+                        "Connected."
 
-                         else
-                            "Disconnected!"
-                        )
-                    ]
-                ]
-            , table [ class "monitor" ]
-                [ thead []
-                    [ th [] [ text "Date" ]
-                    , th [ class "desktop" ] [ text "From" ]
-                    , th [] [ text "Mailbox" ]
-                    , th [] [ text "Subject" ]
-                    ]
-                , tbody [] (List.map (viewMessage session.zone) model.messages)
+                     else
+                        "Disconnected!"
+                    )
                 ]
             ]
+        , table [ class "monitor" ]
+            [ thead []
+                [ th [] [ text "Date" ]
+                , th [ class "desktop" ] [ text "From" ]
+                , th [] [ text "Mailbox" ]
+                , th [] [ text "Subject" ]
+                ]
+            , tbody [] (List.map (viewMessage session.zone) model.messages)
+            ]
+        ]
     }
 
 

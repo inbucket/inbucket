@@ -136,13 +136,18 @@ h1 {
   font-weight: 500;
 }
 
+h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .error {
   background-color: #f58080;
   background-image: linear-gradient(to bottom, #e86060 0, #f58080 100%);
   border: 1px solid #e86060;
   border-radius: 4px;
   box-shadow: 0 1px 2px rgba(0,0,0,.05);
-  padding: 4px 10px;
+  padding: 6px 10px;
   margin: 20px 0;
 }
 
@@ -155,13 +160,22 @@ h1 {
   text-decoration: underline;
 }
 
+.error th {
+  padding-right: 5px;
+  text-align: left;
+  white-space: nowrap;
+}
+
 .flash-header {
   display: flex;
   justify-content: space-between;
 }
 
 .flash-table {
+  border-left: 4px solid rgba(0,0,0,0.2);
   overflow: auto;
+  padding-bottom: 4px;
+  padding-left: 4px;
 }
 
 .greeting {

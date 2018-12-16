@@ -63,8 +63,8 @@ errorFlash error =
             { flash
                 | table =
                     flash.table
-                        ++ [ ( "Method", error.request.method )
-                           , ( "URL", error.request.url )
+                        ++ [ ( "Request URL", error.request.url )
+                           , ( "HTTP Method", error.request.method )
                            ]
             }
     in
@@ -92,7 +92,7 @@ errorFlash error =
 
             Http.BadBody body ->
                 { title = "Bad HTTP body"
-                , table = [ ( "Body", body ) ]
+                , table = [ ( "Error", body ) ]
                 }
 
 

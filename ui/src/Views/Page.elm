@@ -90,10 +90,9 @@ errorFlash : FrameControls msg -> Maybe Session.Flash -> Html msg
 errorFlash controls maybeFlash =
     let
         row ( heading, message ) =
-            pre []
-                [ text heading
-                , text ": "
-                , text message
+            tr []
+                [ th [] [ text (heading ++ ":") ]
+                , td [] [ pre [] [ text message ] ]
                 ]
     in
     case maybeFlash of

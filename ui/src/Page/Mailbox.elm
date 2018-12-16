@@ -533,8 +533,20 @@ messageChip model selected message =
 viewMessage : Time.Zone -> Message -> Body -> Html Msg
 viewMessage zone message bodyMode =
     let
+        htmlUrl =
+            Api.serveUrl [ "mailbox", message.mailbox, message.id, "html" ]
+
         sourceUrl =
             Api.serveUrl [ "mailbox", message.mailbox, message.id, "source" ]
+
+        htmlButton =
+            if message.html == "" then
+                text ""
+
+            else
+                a
+                    [ href htmlUrl, target "_blank" ]
+                    [ button [] [ text "Raw HTML" ] ]
     in
     div []
         [ div [ class "button-bar" ]
@@ -542,6 +554,7 @@ viewMessage zone message bodyMode =
             , a
                 [ href sourceUrl, target "_blank" ]
                 [ button [] [ text "Source" ] ]
+            , htmlButton
             ]
         , dl [ class "message-header" ]
             [ dt [] [ text "From:" ]

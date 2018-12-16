@@ -69,7 +69,13 @@ update session msg model =
             ( { model | messages = header :: model.messages }, Cmd.none, Session.none )
 
         MessageReceived (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (D.errorToString err) )
+            ( model
+            , Cmd.none
+            , Session.SetFlash
+                { title = "Decoding failed"
+                , table = [ ( "Error", D.errorToString err ) ]
+                }
+            )
 
         OpenMessage header ->
             ( model

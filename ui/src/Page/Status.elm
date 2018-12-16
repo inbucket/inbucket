@@ -101,8 +101,8 @@ subscriptions model =
 
 
 type Msg
-    = MetricsReceived (Result Http.Error Metrics)
-    | ServerConfigLoaded (Result Http.Error ServerConfig)
+    = MetricsReceived (Result HttpUtil.Error Metrics)
+    | ServerConfigLoaded (Result HttpUtil.Error ServerConfig)
     | Tick Posix
 
 
@@ -113,13 +113,13 @@ update session msg model =
             ( updateMetrics metrics model, Cmd.none, Session.none )
 
         MetricsReceived (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
 
         ServerConfigLoaded (Ok config) ->
             ( { model | config = Just config }, Cmd.none, Session.none )
 
         ServerConfigLoaded (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
 
         Tick time ->
             ( { model | now = time }, Api.getServerMetrics MetricsReceived, Session.none )

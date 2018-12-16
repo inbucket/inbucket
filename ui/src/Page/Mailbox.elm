@@ -125,20 +125,20 @@ subscriptions model =
 
 
 type Msg
-    = ListLoaded (Result Http.Error (List MessageHeader))
+    = ListLoaded (Result HttpUtil.Error (List MessageHeader))
     | ClickMessage MessageID
     | OpenMessage MessageID
-    | MessageLoaded (Result Http.Error Message)
+    | MessageLoaded (Result HttpUtil.Error Message)
     | MessageBody Body
     | OpenedTime Posix
     | MarkSeenTick Posix
-    | MarkedSeen (Result Http.Error ())
+    | MarkedSeen (Result HttpUtil.Error ())
     | DeleteMessage Message
-    | DeletedMessage (Result Http.Error ())
+    | DeletedMessage (Result HttpUtil.Error ())
     | PurgeMailboxPrompt
     | PurgeMailboxCanceled
     | PurgeMailboxConfirmed
-    | PurgedMailbox (Result Http.Error ())
+    | PurgedMailbox (Result HttpUtil.Error ())
     | OnSearchInput String
     | Tick Posix
 
@@ -166,7 +166,7 @@ update session msg model =
             ( model, Cmd.none, Session.none )
 
         DeletedMessage (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
 
         ListLoaded (Ok headers) ->
             case model.state of
@@ -188,19 +188,19 @@ update session msg model =
                     ( model, Cmd.none, Session.none )
 
         ListLoaded (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
 
         MarkedSeen (Ok _) ->
             ( model, Cmd.none, Session.none )
 
         MarkedSeen (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
 
         MessageLoaded (Ok message) ->
             updateMessageResult model message
 
         MessageLoaded (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
 
         MessageBody bodyMode ->
             ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
@@ -249,7 +249,7 @@ update session msg model =
             ( model, Cmd.none, Session.none )
 
         PurgedMailbox (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
 
         MarkSeenTick now ->
             case model.state of
@@ -533,7 +533,7 @@ viewMessage : Time.Zone -> Message -> Body -> Html Msg
 viewMessage zone message bodyMode =
     let
         sourceUrl =
-            "/serve/m/" ++ message.mailbox ++ "/" ++ message.id ++ "/source"
+            Api.serveUrl [ "mailbox", message.mailbox, message.id, "source" ]
     in
     div []
         [ div [ class "button-bar" ]
@@ -596,22 +596,25 @@ messageBody message bodyMode =
 
 attachments : Message -> Html Msg
 attachments message =
-    let
-        baseUrl =
-            "/serve/m/attach/" ++ message.mailbox ++ "/" ++ message.id ++ "/"
-    in
     if List.isEmpty message.attachments then
         div [] []
 
     else
-        table [ class "attachments well" ] (List.map (attachmentRow baseUrl) message.attachments)
+        table [ class "attachments well" ] (List.map (attachmentRow message) message.attachments)
 
 
-attachmentRow : String -> Message.Attachment -> Html Msg
-attachmentRow baseUrl attach =
+attachmentRow : Message -> Message.Attachment -> Html Msg
+attachmentRow message attach =
     let
         url =
-            baseUrl ++ attach.id ++ "/" ++ attach.fileName
+            Api.serveUrl
+                [ "mailbox"
+                , message.mailbox
+                , message.id
+                , "attach"
+                , attach.id
+                , attach.fileName
+                ]
     in
     tr []
         [ td []

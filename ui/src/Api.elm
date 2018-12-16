@@ -7,6 +7,7 @@ module Api exposing
     , getServerMetrics
     , markMessageSeen
     , purgeMailbox
+    , serveUrl
     )
 
 import Data.Message as Message exposing (Message)
@@ -21,11 +22,11 @@ import Url.Builder
 
 
 type alias DataResult msg data =
-    Result Http.Error data -> msg
+    Result HttpUtil.Error data -> msg
 
 
 type alias HttpResult msg =
-    Result Http.Error () -> msg
+    Result HttpUtil.Error () -> msg
 
 
 {-| Builds a public REST API URL (see wiki).
@@ -49,41 +50,71 @@ deleteMessage msg mailboxName id =
 
 getHeaderList : DataResult msg (List MessageHeader) -> String -> Cmd msg
 getHeaderList msg mailboxName =
+    let
+        context =
+            { method = "GET"
+            , url = apiV1Url [ "mailbox", mailboxName ]
+            }
+    in
     Http.get
-        { url = apiV1Url [ "mailbox", mailboxName ]
-        , expect = Http.expectJson msg (Decode.list MessageHeader.decoder)
+        { url = context.url
+        , expect = HttpUtil.expectJson context msg (Decode.list MessageHeader.decoder)
         }
 
 
 getGreeting : DataResult msg String -> Cmd msg
 getGreeting msg =
+    let
+        context =
+            { method = "GET"
+            , url = serveUrl [ "greeting" ]
+            }
+    in
     Http.get
-        { url = serveUrl [ "greeting" ]
-        , expect = Http.expectString msg
+        { url = context.url
+        , expect = HttpUtil.expectString context msg
         }
 
 
 getMessage : DataResult msg Message -> String -> String -> Cmd msg
 getMessage msg mailboxName id =
+    let
+        context =
+            { method = "GET"
+            , url = serveUrl [ "mailbox", mailboxName, id ]
+            }
+    in
     Http.get
-        { url = serveUrl [ "m", mailboxName, id ]
-        , expect = Http.expectJson msg Message.decoder
+        { url = context.url
+        , expect = HttpUtil.expectJson context msg Message.decoder
         }
 
 
 getServerConfig : DataResult msg ServerConfig -> Cmd msg
 getServerConfig msg =
+    let
+        context =
+            { method = "GET"
+            , url = serveUrl [ "status" ]
+            }
+    in
     Http.get
-        { url = serveUrl [ "status" ]
-        , expect = Http.expectJson msg ServerConfig.decoder
+        { url = context.url
+        , expect = HttpUtil.expectJson context msg ServerConfig.decoder
         }
 
 
 getServerMetrics : DataResult msg Metrics -> Cmd msg
 getServerMetrics msg =
+    let
+        context =
+            { method = "GET"
+            , url = Url.Builder.absolute [ "debug", "vars" ] []
+            }
+    in
     Http.get
-        { url = Url.Builder.absolute [ "debug", "vars" ] []
-        , expect = Http.expectJson msg Metrics.decoder
+        { url = context.url
+        , expect = HttpUtil.expectJson context msg Metrics.decoder
         }
 
 

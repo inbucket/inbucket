@@ -28,7 +28,7 @@ init =
 
 
 type Msg
-    = GreetingLoaded (Result Http.Error String)
+    = GreetingLoaded (Result HttpUtil.Error String)
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
@@ -38,7 +38,7 @@ update session msg model =
             ( Model greeting, Cmd.none, Session.none )
 
         GreetingLoaded (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorString err) )
+            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
 
 
 

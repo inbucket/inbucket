@@ -156,7 +156,10 @@ update msg model =
             SessionUpdated (Err error) ->
                 ( model
                 , Cmd.none
-                , Session.SetFlash ("Error decoding session:\n" ++ D.errorToString error)
+                , Session.SetFlash
+                    { title = "Error decoding session"
+                    , table = [ ( "Error", D.errorToString error ) ]
+                    }
                 )
 
             TimeZoneLoaded zone ->
@@ -214,7 +217,13 @@ changeRouteTo route model =
         ( newModel, newCmd, newSession ) =
             case route of
                 Route.Unknown path ->
-                    ( model, Cmd.none, Session.SetFlash ("Unknown route requested: " ++ path) )
+                    ( model
+                    , Cmd.none
+                    , Session.SetFlash
+                        { title = "Unknown route requested"
+                        , table = [ ( "Path", path ) ]
+                        }
+                    )
 
                 Route.Home ->
                     Home.init

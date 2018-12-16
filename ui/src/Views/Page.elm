@@ -87,19 +87,28 @@ frameModal maybeModal =
             text ""
 
 
-errorFlash : FrameControls msg -> String -> Html msg
-errorFlash controls message =
-    if message == "" then
-        text ""
-
-    else
-        div [ class "error" ]
-            [ div [ class "flash-header" ]
-                [ h2 [] [ text "Error" ]
-                , a [ href "#", Events.onClick controls.clearFlash ] [ text "Close" ]
+errorFlash : FrameControls msg -> Maybe Session.Flash -> Html msg
+errorFlash controls maybeFlash =
+    let
+        row ( heading, message ) =
+            pre []
+                [ text heading
+                , text ": "
+                , text message
                 ]
-            , pre [] [ text message ]
-            ]
+    in
+    case maybeFlash of
+        Nothing ->
+            text ""
+
+        Just flash ->
+            div [ class "error" ]
+                [ div [ class "flash-header" ]
+                    [ h2 [] [ text flash.title ]
+                    , a [ href "#", Events.onClick controls.clearFlash ] [ text "Close" ]
+                    ]
+                , div [ class "flash-table" ] (List.map row flash.table)
+                ]
 
 
 externalLink : String -> String -> Html a

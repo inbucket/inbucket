@@ -1,48 +1,133 @@
-module HttpUtil exposing (delete, errorString, patch)
+module HttpUtil exposing (Error, RequestContext, delete, errorFlash, expectJson, expectString, patch)
 
+import Data.Session as Session
+import Html exposing (Html, div, text)
 import Http
+import Json.Decode as Decode
 
 
-delete : (Result Http.Error () -> msg) -> String -> Cmd msg
+type alias Error =
+    { error : Http.Error
+    , request : RequestContext
+    }
+
+
+type alias RequestContext =
+    { method : String
+    , url : String
+    }
+
+
+delete : (Result Error () -> msg) -> String -> Cmd msg
 delete msg url =
+    let
+        context =
+            { method = "DELETE"
+            , url = url
+            }
+    in
     Http.request
-        { method = "DELETE"
+        { method = context.method
         , headers = []
         , url = url
         , body = Http.emptyBody
-        , expect = Http.expectWhatever msg
+        , expect = expectWhatever context msg
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-patch : (Result Http.Error () -> msg) -> String -> Http.Body -> Cmd msg
+patch : (Result Error () -> msg) -> String -> Http.Body -> Cmd msg
 patch msg url body =
+    let
+        context =
+            { method = "PATCH"
+            , url = url
+            }
+    in
     Http.request
-        { method = "PATCH"
+        { method = context.method
         , headers = []
         , url = url
         , body = body
-        , expect = Http.expectWhatever msg
+        , expect = expectWhatever context msg
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-errorString : Http.Error -> String
-errorString error =
-    case error of
-        Http.BadUrl str ->
-            "Bad URL: " ++ str
+errorFlash : Error -> Session.Flash
+errorFlash error =
+    let
+        requestContext flash =
+            { flash
+                | table =
+                    flash.table
+                        ++ [ ( "Method", error.request.method )
+                           , ( "URL", error.request.url )
+                           ]
+            }
+    in
+    requestContext <|
+        case error.error of
+            Http.BadUrl str ->
+                { title = "Bad URL"
+                , table = [ ( "URL", str ) ]
+                }
 
-        Http.Timeout ->
-            "HTTP timeout"
+            Http.Timeout ->
+                { title = "HTTP timeout"
+                , table = []
+                }
 
-        Http.NetworkError ->
-            "HTTP Network error"
+            Http.NetworkError ->
+                { title = "HTTP Network error"
+                , table = []
+                }
 
-        Http.BadStatus res ->
-            "Bad HTTP status: " ++ String.fromInt res
+            Http.BadStatus res ->
+                { title = "Bad HTTP status"
+                , table = [ ( "Response Code", String.fromInt res ) ]
+                }
 
-        Http.BadBody msg ->
-            "Bad HTTP body: " ++ msg
+            Http.BadBody body ->
+                { title = "Bad HTTP body"
+                , table = [ ( "Body", body ) ]
+                }
+
+
+expectJson : RequestContext -> (Result Error a -> msg) -> Decode.Decoder a -> Http.Expect msg
+expectJson context toMsg decoder =
+    Http.expectStringResponse toMsg <|
+        resolve context <|
+            \string ->
+                Result.mapError Decode.errorToString (Decode.decodeString decoder string)
+
+
+expectString : RequestContext -> (Result Error String -> msg) -> Http.Expect msg
+expectString context toMsg =
+    Http.expectStringResponse toMsg (resolve context Ok)
+
+
+expectWhatever : RequestContext -> (Result Error () -> msg) -> Http.Expect msg
+expectWhatever context toMsg =
+    Http.expectBytesResponse toMsg (resolve context (\_ -> Ok ()))
+
+
+resolve : RequestContext -> (body -> Result String a) -> Http.Response body -> Result Error a
+resolve context toResult response =
+    case response of
+        Http.BadUrl_ url ->
+            Err (Error (Http.BadUrl url) context)
+
+        Http.Timeout_ ->
+            Err (Error Http.Timeout context)
+
+        Http.NetworkError_ ->
+            Err (Error Http.NetworkError context)
+
+        Http.BadStatus_ metadata _ ->
+            Err (Error (Http.BadStatus metadata.statusCode) context)
+
+        Http.GoodStatus_ _ body ->
+            Result.mapError (\x -> Error (Http.BadBody x) context) (toResult body)

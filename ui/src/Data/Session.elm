@@ -1,5 +1,6 @@
 module Data.Session exposing
-    ( Msg(..)
+    ( Flash
+    , Msg(..)
     , Persistent
     , Session
     , decodeValueWithDefault
@@ -10,6 +11,7 @@ module Data.Session exposing
     )
 
 import Browser.Navigation as Nav
+import Html exposing (Html)
 import Json.Decode as D
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode as E
@@ -21,10 +23,16 @@ import Url exposing (Url)
 type alias Session =
     { key : Nav.Key
     , host : String
-    , flash : String
+    , flash : Maybe Flash
     , routing : Bool
     , zone : Time.Zone
     , persistent : Persistent
+    }
+
+
+type alias Flash =
+    { title : String
+    , table : List ( String, String )
     }
 
 
@@ -35,7 +43,7 @@ type alias Persistent =
 
 type Msg
     = None
-    | SetFlash String
+    | SetFlash Flash
     | ClearFlash
     | DisableRouting
     | EnableRouting
@@ -46,7 +54,7 @@ init : Nav.Key -> Url -> Persistent -> Session
 init key location persistent =
     { key = key
     , host = location.host
-    , flash = ""
+    , flash = Nothing
     , routing = True
     , zone = Time.utc
     , persistent = persistent
@@ -62,10 +70,10 @@ update msg session =
                     session
 
                 SetFlash flash ->
-                    { session | flash = flash }
+                    { session | flash = Just flash }
 
                 ClearFlash ->
-                    { session | flash = "" }
+                    { session | flash = Nothing }
 
                 DisableRouting ->
                     { session | routing = False }

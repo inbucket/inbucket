@@ -158,6 +158,11 @@ h1 {
   justify-content: space-between;
 }
 
+.flash-table {
+  max-width: 90vw;
+  overflow: auto;
+}
+
 .greeting {
   max-width: 1000px;
 }

@@ -9,7 +9,8 @@ import DateFormat.Relative as Relative
 import Html exposing (..)
 import Html.Attributes
     exposing
-        ( class
+        ( alt
+        , class
         , classList
         , download
         , href
@@ -458,7 +459,11 @@ view session model =
                     , value model.searchInput
                     ]
                     []
-                , button [ onClick PurgeMailboxPrompt ] [ text "Purge" ]
+                , button
+                    [ onClick PurgeMailboxPrompt
+                    , alt "Purge Mailbox"
+                    ]
+                    [ i [ class "fas fa-trash" ] [] ]
                 ]
             , viewMessageList session model
             , main_

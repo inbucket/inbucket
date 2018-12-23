@@ -332,7 +332,13 @@ li.navbar-active span,
 }
 
 .message-list-controls {
+  display: flex;
   grid-area: ctrl;
+}
+
+.message-list-controls input[type="search"] {
+  flex: 1 1 auto;
+  padding: 2px 4px;
 }
 
 .message-list {

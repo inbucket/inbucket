@@ -261,6 +261,7 @@ configPanel maybeConfig =
 
         Just config ->
             framePanel "Configuration"
+                "fa-cog"
                 [ textEntry "Version" (config.version ++ ", built on " ++ config.buildDate)
                 , textEntry "SMTP Listener" config.smtpConfig.addr
                 , textEntry "POP3 Listener" config.pop3Listener
@@ -337,6 +338,7 @@ metricPanels model =
 
         Just metrics ->
             [ framePanel "General Metrics"
+                "fa-tachometer-alt"
                 [ textEntry "Uptime" <|
                     "Started "
                         ++ Relative.relativeTime model.now metrics.startTime
@@ -348,6 +350,7 @@ metricPanels model =
                 , viewMetric model.webSockets
                 ]
             , framePanel "SMTP Metrics"
+                "fa-envelope"
                 [ viewMetric model.smtpConnOpen
                 , viewMetric model.smtpConnTotal
                 , viewMetric model.smtpReceivedTotal
@@ -355,6 +358,7 @@ metricPanels model =
                 , viewMetric model.smtpWarnsTotal
                 ]
             , framePanel "Storage Metrics"
+                "fa-archive"
                 [ textEntry "Retention Scan" (retentionScan model)
                 , viewMetric model.retentionDeletesTotal
                 , viewMetric model.retainedCount
@@ -495,10 +499,18 @@ graphZero data =
         ]
 
 
-framePanel : String -> List (Html a) -> Html a
-framePanel name html =
+framePanel : String -> String -> List (Html a) -> Html a
+framePanel name icon html =
+    let
+        fontIcon cn =
+            i [ class ("fas " ++ cn) ] []
+    in
     div [ class "metric-panel" ]
-        [ h2 [] [ text name ]
+        [ h2 []
+            [ fontIcon icon
+            , text " "
+            , text name
+            ]
         , div [ class "metrics" ] html
         ]
 

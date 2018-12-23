@@ -1,4 +1,5 @@
 import './main.css'
+import '@fortawesome/fontawesome-free/css/all.css'
 import { Elm } from './Main.elm'
 import registerMonitorPorts from './registerMonitor'
 import './renderedHtml'

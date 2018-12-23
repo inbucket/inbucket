@@ -9,17 +9,22 @@ addons:
 env:
   global:
     - GO111MODULE=on
-    - DEPLOY_WITH_MAJOR="1.11"
 
-before_script:
+install:
   - go get golang.org/x/lint/golint
   - make deps
 
 go:
   - "1.11.x"
+  - "tip"
 
-deploy:
-  provider: script
-  script: etc/travis-deploy.sh
-  on:
-    tags: true
+jobs:
+  include:
+    - stage: deploy
+      script: etc/travis-deploy.sh
+      go: "1.11.x"
+
+stages:
+  - test
+  - name: deploy
+    if: tag IS present

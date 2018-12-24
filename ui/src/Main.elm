@@ -30,7 +30,6 @@ type Page
 
 type alias Model =
     { page : Page
-    , session : Session
     , mailboxName : String
     }
 
@@ -41,12 +40,11 @@ init sessionValue location key =
         session =
             Session.init key location (Session.decodeValueWithDefault sessionValue)
 
-        ( subModel, _, _ ) =
+        ( subModel, _ ) =
             Home.init session
 
         initModel =
             { page = Home subModel
-            , session = session
             , mailboxName = ""
             }
 
@@ -54,7 +52,7 @@ init sessionValue location key =
             Route.fromUrl location
 
         ( model, cmd ) =
-            changeRouteTo route initModel |> updateSession
+            changeRouteTo route initModel
     in
     ( model, Cmd.batch [ cmd, Task.perform TimeZoneLoaded Time.here ] )
 
@@ -67,7 +65,6 @@ type Msg
     | ClearFlash
     | OnMailboxNameInput String
     | ViewMailbox String
-    | SessionMsg Session.Msg
     | HomeMsg Home.Msg
     | MailboxMsg Mailbox.Msg
     | MonitorMsg Monitor.Msg
@@ -113,124 +110,109 @@ pageSubscriptions page =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    updateSession <|
-        case msg of
-            LinkClicked req ->
-                case req of
-                    Browser.Internal url ->
-                        case url.fragment of
-                            Just "" ->
-                                -- Anchor tag for accessibility purposes only, already handled.
-                                ( model, Cmd.none, Session.none )
+    let
+        session =
+            getSession model
+    in
+    case msg of
+        LinkClicked req ->
+            case req of
+                Browser.Internal url ->
+                    case url.fragment of
+                        Just "" ->
+                            -- Anchor tag for accessibility purposes only, already handled.
+                            ( model, Cmd.none )
 
-                            _ ->
-                                ( applySessionUpdate Session.clearFlash model
-                                , Nav.pushUrl model.session.key (Url.toString url)
-                                , Session.none
-                                )
+                        _ ->
+                            ( applyToModelSession Session.clearFlash model
+                            , Nav.pushUrl session.key (Url.toString url)
+                            )
 
-                    Browser.External url ->
-                        ( model, Nav.load url, Session.none )
+                Browser.External url ->
+                    ( model, Nav.load url )
 
-            UrlChanged url ->
-                -- Responds to new browser URL.
-                if model.session.routing then
-                    changeRouteTo (Route.fromUrl url) model
+        UrlChanged url ->
+            -- Responds to new browser URL.
+            if session.routing then
+                changeRouteTo (Route.fromUrl url) model
 
-                else
-                    -- Skip once, but re-enable routing.
-                    ( applySessionUpdate Session.enableRouting model
-                    , Cmd.none
-                    , Session.none
-                    )
-
-            ClearFlash ->
-                ( applySessionUpdate Session.clearFlash model
+            else
+                -- Skip once, but re-enable routing.
+                ( applyToModelSession Session.enableRouting model
                 , Cmd.none
-                , Session.none
                 )
 
-            SessionMsg sessionMsg ->
-                ( model, Cmd.none, sessionMsg )
+        ClearFlash ->
+            ( applyToModelSession Session.clearFlash model
+            , Cmd.none
+            )
 
-            SessionUpdated (Ok persistent) ->
-                let
-                    session =
-                        model.session
-                in
-                ( { model | session = { session | persistent = persistent } }
-                , Cmd.none
-                , Session.none
-                )
+        SessionUpdated (Ok persistent) ->
+            ( updateSession model { session | persistent = persistent }
+            , Cmd.none
+            )
 
-            SessionUpdated (Err error) ->
-                let
-                    flash =
-                        { title = "Error decoding session"
-                        , table = [ ( "Error", D.errorToString error ) ]
-                        }
-                in
-                ( { model | session = Session.showFlash flash model.session }
-                , Cmd.none
-                , Session.none
-                )
+        SessionUpdated (Err error) ->
+            let
+                flash =
+                    { title = "Error decoding session"
+                    , table = [ ( "Error", D.errorToString error ) ]
+                    }
+            in
+            ( applyToModelSession (Session.showFlash flash) model
+            , Cmd.none
+            )
 
-            TimeZoneLoaded zone ->
-                let
-                    session =
-                        model.session
-                in
-                ( { model | session = { session | zone = zone } }
-                , Cmd.none
-                , Session.none
-                )
+        TimeZoneLoaded zone ->
+            ( updateSession model { session | zone = zone }
+            , Cmd.none
+            )
 
-            OnMailboxNameInput name ->
-                ( { model | mailboxName = name }, Cmd.none, Session.none )
+        OnMailboxNameInput name ->
+            ( { model | mailboxName = name }, Cmd.none )
 
-            ViewMailbox name ->
-                ( applySessionUpdate Session.clearFlash { model | mailboxName = "" }
-                , Route.pushUrl model.session.key (Route.Mailbox name)
-                , Session.none
-                )
+        ViewMailbox name ->
+            ( applyToModelSession Session.clearFlash { model | mailboxName = "" }
+            , Route.pushUrl session.key (Route.Mailbox name)
+            )
 
-            _ ->
-                updatePage msg model
+        _ ->
+            updatePage msg model
 
 
 {-| Delegates incoming messages to their respective sub-pages.
 -}
-updatePage : Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
+updatePage : Msg -> Model -> ( Model, Cmd Msg )
 updatePage msg model =
     case ( msg, model.page ) of
         ( HomeMsg subMsg, Home subModel ) ->
-            Home.update model.session subMsg subModel
+            Home.update subMsg subModel
                 |> updateWith Home HomeMsg model
 
         ( MailboxMsg subMsg, Mailbox subModel ) ->
-            Mailbox.update model.session subMsg subModel
+            Mailbox.update subMsg subModel
                 |> updateWith Mailbox MailboxMsg model
 
         ( MonitorMsg subMsg, Monitor subModel ) ->
-            Monitor.update model.session subMsg subModel
+            Monitor.update subMsg subModel
                 |> updateWith Monitor MonitorMsg model
 
         ( StatusMsg subMsg, Status subModel ) ->
-            Status.update model.session subMsg subModel
+            Status.update subMsg subModel
                 |> updateWith Status StatusMsg model
 
         ( _, _ ) ->
             -- Disregard messages destined for the wrong page.
-            ( model, Cmd.none, Session.none )
+            ( model, Cmd.none )
 
 
-changeRouteTo : Route -> Model -> ( Model, Cmd Msg, Session.Msg )
+changeRouteTo : Route -> Model -> ( Model, Cmd Msg )
 changeRouteTo route model =
     let
         session =
             getSession model
 
-        ( newModel, newCmd, newSession ) =
+        ( newModel, newCmd ) =
             case route of
                 Route.Unknown path ->
                     let
@@ -239,9 +221,8 @@ changeRouteTo route model =
                             , table = [ ( "Path", path ) ]
                             }
                     in
-                    ( { model | session = Session.showFlash flash model.session }
+                    ( applyToModelSession (Session.showFlash flash) model
                     , Cmd.none
-                    , Session.none
                     )
 
                 Route.Home ->
@@ -267,10 +248,10 @@ changeRouteTo route model =
     case model.page of
         Monitor _ ->
             -- Leaving Monitor page, shut down the web socket.
-            ( newModel, Cmd.batch [ Ports.monitorCommand False, newCmd ], newSession )
+            ( newModel, Cmd.batch [ Ports.monitorCommand False, newCmd ] )
 
         _ ->
-            ( newModel, newCmd, newSession )
+            ( newModel, newCmd )
 
 
 getSession : Model -> Session
@@ -289,12 +270,8 @@ getSession model =
             subModel.session
 
 
-applySessionUpdate : (Session -> Session) -> Model -> Model
-applySessionUpdate f model =
-    let
-        session =
-            f (getSession model)
-    in
+updateSession : Model -> Session -> Model
+updateSession model session =
     case model.page of
         Home subModel ->
             { model | page = Home { subModel | session = session } }
@@ -309,15 +286,9 @@ applySessionUpdate f model =
             { model | page = Status { subModel | session = session } }
 
 
-updateSession : ( Model, Cmd Msg, Session.Msg ) -> ( Model, Cmd Msg )
-updateSession ( model, cmd, sessionMsg ) =
-    let
-        ( session, newCmd ) =
-            Session.update sessionMsg (getSession model)
-    in
-    ( { model | session = session }
-    , Cmd.batch [ newCmd, cmd ]
-    )
+applyToModelSession : (Session -> Session) -> Model -> Model
+applyToModelSession f model =
+    updateSession model (f (getSession model))
 
 
 {-| Map page updates to Main Model and Msg types.
@@ -326,12 +297,11 @@ updateWith :
     (subModel -> Page)
     -> (subMsg -> Msg)
     -> Model
-    -> ( subModel, Cmd subMsg, Session.Msg )
-    -> ( Model, Cmd Msg, Session.Msg )
-updateWith toPage toMsg model ( subModel, subCmd, sessionMsg ) =
+    -> ( subModel, Cmd subMsg )
+    -> ( Model, Cmd Msg )
+updateWith toPage toMsg model ( subModel, subCmd ) =
     ( { model | page = toPage subModel }
     , Cmd.map toMsg subCmd
-    , sessionMsg
     )
 
 
@@ -342,6 +312,9 @@ updateWith toPage toMsg model ( subModel, subCmd, sessionMsg ) =
 view : Model -> Document Msg
 view model =
     let
+        session =
+            getSession model
+
         mailbox =
             case model.page of
                 Mailbox subModel ->
@@ -354,7 +327,7 @@ view model =
             { viewMailbox = ViewMailbox
             , mailboxOnInput = OnMailboxNameInput
             , mailboxValue = model.mailboxName
-            , recentOptions = model.session.persistent.recentMailboxes
+            , recentOptions = session.persistent.recentMailboxes
             , recentActive = mailbox
             , clearFlash = ClearFlash
             }
@@ -366,8 +339,9 @@ view model =
             -> Document Msg
         framePage page toMsg { title, modal, content } =
             Document title
-                [ Page.frame controls
-                    model.session
+                [ Page.frame
+                    controls
+                    session
                     page
                     (Maybe.map (Html.map toMsg) modal)
                     (List.map (Html.map toMsg) content)
@@ -375,16 +349,16 @@ view model =
     in
     case model.page of
         Home subModel ->
-            framePage Page.Other HomeMsg (Home.view model.session subModel)
+            framePage Page.Other HomeMsg (Home.view subModel)
 
         Mailbox subModel ->
-            framePage Page.Mailbox MailboxMsg (Mailbox.view model.session subModel)
+            framePage Page.Mailbox MailboxMsg (Mailbox.view subModel)
 
         Monitor subModel ->
-            framePage Page.Monitor MonitorMsg (Monitor.view model.session subModel)
+            framePage Page.Monitor MonitorMsg (Monitor.view subModel)
 
         Status subModel ->
-            framePage Page.Status StatusMsg (Status.view model.session subModel)
+            framePage Page.Status StatusMsg (Status.view subModel)
 
 
 

@@ -28,11 +28,10 @@ type MonitorMessage
     | Message MessageHeader
 
 
-init : Session -> ( Model, Cmd Msg, Session.Msg )
+init : Session -> ( Model, Cmd Msg )
 init session =
     ( Model session False []
     , Ports.monitorCommand True
-    , Session.none
     )
 
 
@@ -63,14 +62,14 @@ type Msg
     | OpenMessage MessageHeader
 
 
-update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
-update session msg model =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
         MessageReceived (Ok (Connected status)) ->
-            ( { model | connected = status }, Cmd.none, Session.none )
+            ( { model | connected = status }, Cmd.none )
 
         MessageReceived (Ok (Message header)) ->
-            ( { model | messages = header :: model.messages }, Cmd.none, Session.none )
+            ( { model | messages = header :: model.messages }, Cmd.none )
 
         MessageReceived (Err err) ->
             let
@@ -81,13 +80,11 @@ update session msg model =
             in
             ( { model | session = Session.showFlash flash model.session }
             , Cmd.none
-            , Session.none
             )
 
         OpenMessage header ->
             ( model
-            , Route.pushUrl session.key (Route.Message header.mailbox header.id)
-            , Session.none
+            , Route.pushUrl model.session.key (Route.Message header.mailbox header.id)
             )
 
 
@@ -95,8 +92,8 @@ update session msg model =
 -- VIEW
 
 
-view : Session -> Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
-view session model =
+view : Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
+view model =
     { title = "Inbucket Monitor"
     , modal = Nothing
     , content =
@@ -120,7 +117,7 @@ view session model =
                 , th [] [ text "Mailbox" ]
                 , th [] [ text "Subject" ]
                 ]
-            , tbody [] (List.map (viewMessage session.zone) model.messages)
+            , tbody [] (List.map (viewMessage model.session.zone) model.messages)
             ]
         ]
     }

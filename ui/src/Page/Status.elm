@@ -53,7 +53,7 @@ type alias Metric =
     }
 
 
-init : Session -> ( Model, Cmd Msg, Session.Msg )
+init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , now = Time.millisToPosix 0
@@ -79,7 +79,6 @@ init session =
         [ Task.perform Tick Time.now
         , Api.getServerConfig ServerConfigLoaded
         ]
-    , Session.none
     )
 
 
@@ -108,29 +107,27 @@ type Msg
     | Tick Posix
 
 
-update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
-update session msg model =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
         MetricsReceived (Ok metrics) ->
-            ( updateMetrics metrics model, Cmd.none, Session.none )
+            ( updateMetrics metrics model, Cmd.none )
 
         MetricsReceived (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
             , Cmd.none
-            , Session.none
             )
 
         ServerConfigLoaded (Ok config) ->
-            ( { model | config = Just config }, Cmd.none, Session.none )
+            ( { model | config = Just config }, Cmd.none )
 
         ServerConfigLoaded (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
             , Cmd.none
-            , Session.none
             )
 
         Tick time ->
-            ( { model | now = time }, Api.getServerMetrics MetricsReceived, Session.none )
+            ( { model | now = time }, Api.getServerMetrics MetricsReceived )
 
 
 {-| Update all metrics in Model; increment xCounter.
@@ -233,8 +230,8 @@ updateRemoteTotal metric value history =
 -- VIEW --
 
 
-view : Session -> Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
-view session model =
+view : Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
+view model =
     { title = "Inbucket Status"
     , modal = Nothing
     , content =

@@ -1,6 +1,5 @@
 module Data.Session exposing
     ( Flash
-    , Msg(..)
     , Persistent
     , Session
     , addRecent
@@ -10,9 +9,7 @@ module Data.Session exposing
     , disableRouting
     , enableRouting
     , init
-    , none
     , showFlash
-    , update
     )
 
 import Browser.Navigation as Nav
@@ -46,10 +43,6 @@ type alias Persistent =
     }
 
 
-type Msg
-    = None
-
-
 init : Nav.Key -> Url -> Persistent -> Session
 init key location persistent =
     { key = key
@@ -59,29 +52,6 @@ init key location persistent =
     , zone = Time.utc
     , persistent = persistent
     }
-
-
-update : Msg -> Session -> ( Session, Cmd a )
-update msg session =
-    let
-        newSession =
-            case msg of
-                None ->
-                    session
-    in
-    if session.persistent == newSession.persistent then
-        -- No change
-        ( newSession, Cmd.none )
-
-    else
-        ( newSession
-        , Ports.storeSession (encode newSession.persistent)
-        )
-
-
-none : Msg
-none =
-    None
 
 
 addRecent : String -> Session -> Session

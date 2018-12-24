@@ -81,7 +81,7 @@ type alias Model =
     }
 
 
-init : Session -> String -> Maybe MessageID -> ( Model, Cmd Msg, Session.Msg )
+init : Session -> String -> Maybe MessageID -> ( Model, Cmd Msg )
 init session mailboxName selection =
     ( { session = session
       , mailboxName = mailboxName
@@ -92,7 +92,6 @@ init session mailboxName selection =
       , now = Time.millisToPosix 0
       }
     , load mailboxName
-    , Session.none
     )
 
 
@@ -152,32 +151,30 @@ type Msg
     | Tick Posix
 
 
-update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
-update session msg model =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
         ClickMessage id ->
             ( updateSelected { model | session = Session.disableRouting model.session } id
             , Cmd.batch
                 [ -- Update browser location.
-                  Route.replaceUrl session.key (Route.Message model.mailboxName id)
+                  Route.replaceUrl model.session.key (Route.Message model.mailboxName id)
                 , Api.getMessage MessageLoaded model.mailboxName id
                 ]
-            , Session.none
             )
 
         OpenMessage id ->
-            updateOpenMessage session model id
+            updateOpenMessage model.session model id
 
         DeleteMessage message ->
-            updateDeleteMessage session model message
+            updateDeleteMessage model.session model message
 
         DeletedMessage (Ok _) ->
-            ( model, Cmd.none, Session.none )
+            ( model, Cmd.none )
 
         DeletedMessage (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
             , Cmd.none
-            , Session.none
             )
 
         ListLoaded (Ok headers) ->
@@ -191,32 +188,29 @@ update session msg model =
                     in
                     case selection of
                         Just id ->
-                            updateOpenMessage session newModel id
+                            updateOpenMessage model.session newModel id
 
                         Nothing ->
-                            ( { model
+                            ( { newModel
                                 | session = Session.addRecent model.mailboxName model.session
                               }
                             , Cmd.none
-                            , Session.none
                             )
 
                 _ ->
-                    ( model, Cmd.none, Session.none )
+                    ( model, Cmd.none )
 
         ListLoaded (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
             , Cmd.none
-            , Session.none
             )
 
         MarkedSeen (Ok _) ->
-            ( model, Cmd.none, Session.none )
+            ( model, Cmd.none )
 
         MarkedSeen (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
             , Cmd.none
-            , Session.none
             )
 
         MessageLoaded (Ok message) ->
@@ -225,11 +219,10 @@ update session msg model =
         MessageLoaded (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
             , Cmd.none
-            , Session.none
             )
 
         MessageBody bodyMode ->
-            ( { model | bodyMode = bodyMode }, Cmd.none, Session.none )
+            ( { model | bodyMode = bodyMode }, Cmd.none )
 
         OnSearchInput searchInput ->
             updateSearchInput model searchInput
@@ -238,7 +231,7 @@ update session msg model =
             case model.state of
                 ShowingList list (ShowingMessage visible) ->
                     if visible.message.seen then
-                        ( model, Cmd.none, Session.none )
+                        ( model, Cmd.none )
 
                     else
                         -- Set 1500ms delay before reporting message as seen to backend.
@@ -256,28 +249,26 @@ update session msg model =
                                     )
                           }
                         , Cmd.none
-                        , Session.none
                         )
 
                 _ ->
-                    ( model, Cmd.none, Session.none )
+                    ( model, Cmd.none )
 
         PurgeMailboxPrompt ->
-            ( { model | promptPurge = True }, Cmd.none, Session.none )
+            ( { model | promptPurge = True }, Cmd.none )
 
         PurgeMailboxCanceled ->
-            ( { model | promptPurge = False }, Cmd.none, Session.none )
+            ( { model | promptPurge = False }, Cmd.none )
 
         PurgeMailboxConfirmed ->
-            updatePurge session model
+            updatePurge model.session model
 
         PurgedMailbox (Ok _) ->
-            ( model, Cmd.none, Session.none )
+            ( model, Cmd.none )
 
         PurgedMailbox (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
             , Cmd.none
-            , Session.none
             )
 
         MarkSeenTick now ->
@@ -289,21 +280,21 @@ update session msg model =
                                 updateMarkMessageSeen model message
 
                             else
-                                ( model, Cmd.none, Session.none )
+                                ( model, Cmd.none )
 
                         Nothing ->
-                            ( model, Cmd.none, Session.none )
+                            ( model, Cmd.none )
 
                 _ ->
-                    ( model, Cmd.none, Session.none )
+                    ( model, Cmd.none )
 
         Tick now ->
-            ( { model | now = now }, Cmd.none, Session.none )
+            ( { model | now = now }, Cmd.none )
 
 
 {-| Replace the currently displayed message.
 -}
-updateMessageResult : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
+updateMessageResult : Model -> Message -> ( Model, Cmd Msg )
 updateMessageResult model message =
     let
         bodyMode =
@@ -315,7 +306,7 @@ updateMessageResult model message =
     in
     case model.state of
         LoadingList _ ->
-            ( model, Cmd.none, Session.none )
+            ( model, Cmd.none )
 
         ShowingList list _ ->
             ( { model
@@ -326,11 +317,10 @@ updateMessageResult model message =
                 , bodyMode = bodyMode
               }
             , Task.perform OpenedTime Time.now
-            , Session.none
             )
 
 
-updatePurge : Session -> Model -> ( Model, Cmd Msg, Session.Msg )
+updatePurge : Session -> Model -> ( Model, Cmd Msg )
 updatePurge session model =
     let
         cmd =
@@ -347,14 +337,13 @@ updatePurge session model =
                 , state = ShowingList (MessageList [] Nothing "") NoMessage
               }
             , cmd
-            , Session.none
             )
 
         _ ->
-            ( model, cmd, Session.none )
+            ( model, cmd )
 
 
-updateSearchInput : Model -> String -> ( Model, Cmd Msg, Session.Msg )
+updateSearchInput : Model -> String -> ( Model, Cmd Msg )
 updateSearchInput model searchInput =
     let
         searchFilter =
@@ -366,7 +355,7 @@ updateSearchInput model searchInput =
     in
     case model.state of
         LoadingList _ ->
-            ( model, Cmd.none, Session.none )
+            ( model, Cmd.none )
 
         ShowingList list messageState ->
             ( { model
@@ -374,7 +363,6 @@ updateSearchInput model searchInput =
                 , state = ShowingList { list | searchFilter = searchFilter } messageState
               }
             , Cmd.none
-            , Session.none
             )
 
 
@@ -406,7 +394,7 @@ updateSelected model id =
                     { model | state = ShowingList newList (Transitioning visible) }
 
 
-updateDeleteMessage : Session -> Model -> Message -> ( Model, Cmd Msg, Session.Msg )
+updateDeleteMessage : Session -> Model -> Message -> ( Model, Cmd Msg )
 updateDeleteMessage session model message =
     let
         filter f messageList =
@@ -423,14 +411,13 @@ updateDeleteMessage session model message =
                 [ Api.deleteMessage DeletedMessage message.mailbox message.id
                 , Route.replaceUrl session.key (Route.Mailbox model.mailboxName)
                 ]
-            , Session.none
             )
 
         _ ->
-            ( model, Cmd.none, Session.none )
+            ( model, Cmd.none )
 
 
-updateMarkMessageSeen : Model -> Message -> ( Model, Cmd Msg, Session.Msg )
+updateMarkMessageSeen : Model -> Message -> ( Model, Cmd Msg )
 updateMarkMessageSeen model message =
     case model.state of
         ShowingList list (ShowingMessage visible) ->
@@ -456,14 +443,13 @@ updateMarkMessageSeen model message =
                         )
               }
             , Api.markMessageSeen MarkedSeen message.mailbox message.id
-            , Session.None
             )
 
         _ ->
-            ( model, Cmd.none, Session.none )
+            ( model, Cmd.none )
 
 
-updateOpenMessage : Session -> Model -> String -> ( Model, Cmd Msg, Session.Msg )
+updateOpenMessage : Session -> Model -> String -> ( Model, Cmd Msg )
 updateOpenMessage session model id =
     let
         newModel =
@@ -471,7 +457,6 @@ updateOpenMessage session model id =
     in
     ( updateSelected newModel id
     , Api.getMessage MessageLoaded model.mailboxName id
-    , Session.none
     )
 
 
@@ -479,8 +464,8 @@ updateOpenMessage session model id =
 -- VIEW
 
 
-view : Session -> Model -> { title : String, modal : Maybe (Html Msg), content : List (Html Msg) }
-view session model =
+view : Model -> { title : String, modal : Maybe (Html Msg), content : List (Html Msg) }
+view model =
     { title = model.mailboxName ++ " - Inbucket"
     , modal = viewModal model.promptPurge
     , content =
@@ -499,7 +484,7 @@ view session model =
                     ]
                     [ i [ class "fas fa-trash" ] [] ]
                 ]
-            , viewMessageList session model
+            , viewMessageList model.session model
             , main_
                 [ class "message" ]
                 [ case model.state of
@@ -510,10 +495,10 @@ view session model =
                             )
 
                     ShowingList _ (ShowingMessage { message }) ->
-                        viewMessage session.zone message model.bodyMode
+                        viewMessage model.session.zone message model.bodyMode
 
                     ShowingList _ (Transitioning { message }) ->
-                        viewMessage session.zone message model.bodyMode
+                        viewMessage model.session.zone message model.bodyMode
 
                     _ ->
                         text ""

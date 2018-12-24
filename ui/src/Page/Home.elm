@@ -20,9 +20,9 @@ type alias Model =
     }
 
 
-init : Session -> ( Model, Cmd Msg, Session.Msg )
+init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session "", Api.getGreeting GreetingLoaded, Session.none )
+    ( Model session "", Api.getGreeting GreetingLoaded )
 
 
 
@@ -33,16 +33,15 @@ type Msg
     = GreetingLoaded (Result HttpUtil.Error String)
 
 
-update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
-update session msg model =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
         GreetingLoaded (Ok greeting) ->
-            ( { model | greeting = greeting }, Cmd.none, Session.none )
+            ( { model | greeting = greeting }, Cmd.none )
 
         GreetingLoaded (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
             , Cmd.none
-            , Session.none
             )
 
 
@@ -50,8 +49,8 @@ update session msg model =
 -- VIEW --
 
 
-view : Session -> Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
-view session model =
+view : Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
+view model =
     { title = "Inbucket"
     , modal = Nothing
     , content =

@@ -15,12 +15,14 @@ import Ports
 
 
 type alias Model =
-    { greeting : String }
+    { session : Session
+    , greeting : String
+    }
 
 
-init : ( Model, Cmd Msg, Session.Msg )
-init =
-    ( Model "", Api.getGreeting GreetingLoaded, Session.none )
+init : Session -> ( Model, Cmd Msg, Session.Msg )
+init session =
+    ( Model session "", Api.getGreeting GreetingLoaded, Session.none )
 
 
 
@@ -35,10 +37,13 @@ update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update session msg model =
     case msg of
         GreetingLoaded (Ok greeting) ->
-            ( Model greeting, Cmd.none, Session.none )
+            ( { model | greeting = greeting }, Cmd.none, Session.none )
 
         GreetingLoaded (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
+            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
+            , Cmd.none
+            , Session.none
+            )
 
 
 

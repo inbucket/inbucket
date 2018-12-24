@@ -42,7 +42,7 @@ init sessionValue location key =
             Session.init key location (Session.decodeValueWithDefault sessionValue)
 
         ( subModel, _, _ ) =
-            Home.init
+            Home.init session
 
         initModel =
             { page = Home subModel
@@ -64,6 +64,7 @@ type Msg
     | LinkClicked UrlRequest
     | SessionUpdated (Result D.Error Session.Persistent)
     | TimeZoneLoaded Time.Zone
+    | ClearFlash
     | OnMailboxNameInput String
     | ViewMailbox String
     | SessionMsg Session.Msg
@@ -123,9 +124,9 @@ update msg model =
                                 ( model, Cmd.none, Session.none )
 
                             _ ->
-                                ( model
+                                ( applySessionUpdate Session.clearFlash model
                                 , Nav.pushUrl model.session.key (Url.toString url)
-                                , Session.ClearFlash
+                                , Session.none
                                 )
 
                     Browser.External url ->
@@ -138,7 +139,16 @@ update msg model =
 
                 else
                     -- Skip once, but re-enable routing.
-                    ( model, Cmd.none, Session.EnableRouting )
+                    ( applySessionUpdate Session.enableRouting model
+                    , Cmd.none
+                    , Session.none
+                    )
+
+            ClearFlash ->
+                ( applySessionUpdate Session.clearFlash model
+                , Cmd.none
+                , Session.none
+                )
 
             SessionMsg sessionMsg ->
                 ( model, Cmd.none, sessionMsg )
@@ -154,12 +164,15 @@ update msg model =
                 )
 
             SessionUpdated (Err error) ->
-                ( model
+                let
+                    flash =
+                        { title = "Error decoding session"
+                        , table = [ ( "Error", D.errorToString error ) ]
+                        }
+                in
+                ( { model | session = Session.showFlash flash model.session }
                 , Cmd.none
-                , Session.SetFlash
-                    { title = "Error decoding session"
-                    , table = [ ( "Error", D.errorToString error ) ]
-                    }
+                , Session.none
                 )
 
             TimeZoneLoaded zone ->
@@ -176,9 +189,9 @@ update msg model =
                 ( { model | mailboxName = name }, Cmd.none, Session.none )
 
             ViewMailbox name ->
-                ( { model | mailboxName = "" }
+                ( applySessionUpdate Session.clearFlash { model | mailboxName = "" }
                 , Route.pushUrl model.session.key (Route.Mailbox name)
-                , Session.ClearFlash
+                , Session.none
                 )
 
             _ ->
@@ -214,35 +227,41 @@ updatePage msg model =
 changeRouteTo : Route -> Model -> ( Model, Cmd Msg, Session.Msg )
 changeRouteTo route model =
     let
+        session =
+            getSession model
+
         ( newModel, newCmd, newSession ) =
             case route of
                 Route.Unknown path ->
-                    ( model
+                    let
+                        flash =
+                            { title = "Unknown route requested"
+                            , table = [ ( "Path", path ) ]
+                            }
+                    in
+                    ( { model | session = Session.showFlash flash model.session }
                     , Cmd.none
-                    , Session.SetFlash
-                        { title = "Unknown route requested"
-                        , table = [ ( "Path", path ) ]
-                        }
+                    , Session.none
                     )
 
                 Route.Home ->
-                    Home.init
+                    Home.init session
                         |> updateWith Home HomeMsg model
 
                 Route.Mailbox name ->
-                    Mailbox.init name Nothing
+                    Mailbox.init session name Nothing
                         |> updateWith Mailbox MailboxMsg model
 
                 Route.Message mailbox id ->
-                    Mailbox.init mailbox (Just id)
+                    Mailbox.init session mailbox (Just id)
                         |> updateWith Mailbox MailboxMsg model
 
                 Route.Monitor ->
-                    Monitor.init
+                    Monitor.init session
                         |> updateWith Monitor MonitorMsg model
 
                 Route.Status ->
-                    Status.init
+                    Status.init session
                         |> updateWith Status StatusMsg model
     in
     case model.page of
@@ -254,11 +273,47 @@ changeRouteTo route model =
             ( newModel, newCmd, newSession )
 
 
+getSession : Model -> Session
+getSession model =
+    case model.page of
+        Home subModel ->
+            subModel.session
+
+        Mailbox subModel ->
+            subModel.session
+
+        Monitor subModel ->
+            subModel.session
+
+        Status subModel ->
+            subModel.session
+
+
+applySessionUpdate : (Session -> Session) -> Model -> Model
+applySessionUpdate f model =
+    let
+        session =
+            f (getSession model)
+    in
+    case model.page of
+        Home subModel ->
+            { model | page = Home { subModel | session = session } }
+
+        Mailbox subModel ->
+            { model | page = Mailbox { subModel | session = session } }
+
+        Monitor subModel ->
+            { model | page = Monitor { subModel | session = session } }
+
+        Status subModel ->
+            { model | page = Status { subModel | session = session } }
+
+
 updateSession : ( Model, Cmd Msg, Session.Msg ) -> ( Model, Cmd Msg )
 updateSession ( model, cmd, sessionMsg ) =
     let
         ( session, newCmd ) =
-            Session.update sessionMsg model.session
+            Session.update sessionMsg (getSession model)
     in
     ( { model | session = session }
     , Cmd.batch [ newCmd, cmd ]
@@ -301,7 +356,7 @@ view model =
             , mailboxValue = model.mailboxName
             , recentOptions = model.session.persistent.recentMailboxes
             , recentActive = mailbox
-            , clearFlash = SessionMsg Session.ClearFlash
+            , clearFlash = ClearFlash
             }
 
         framePage :

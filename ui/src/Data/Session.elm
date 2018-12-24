@@ -3,10 +3,15 @@ module Data.Session exposing
     , Msg(..)
     , Persistent
     , Session
+    , addRecent
+    , clearFlash
     , decodeValueWithDefault
     , decoder
+    , disableRouting
+    , enableRouting
     , init
     , none
+    , showFlash
     , update
     )
 
@@ -43,11 +48,6 @@ type alias Persistent =
 
 type Msg
     = None
-    | SetFlash Flash
-    | ClearFlash
-    | DisableRouting
-    | EnableRouting
-    | AddRecent String
 
 
 init : Nav.Key -> Url -> Persistent -> Session
@@ -68,35 +68,6 @@ update msg session =
             case msg of
                 None ->
                     session
-
-                SetFlash flash ->
-                    { session | flash = Just flash }
-
-                ClearFlash ->
-                    { session | flash = Nothing }
-
-                DisableRouting ->
-                    { session | routing = False }
-
-                EnableRouting ->
-                    { session | routing = True }
-
-                AddRecent mailbox ->
-                    if List.head session.persistent.recentMailboxes == Just mailbox then
-                        session
-
-                    else
-                        let
-                            recent =
-                                session.persistent.recentMailboxes
-                                    |> List.filter ((/=) mailbox)
-                                    |> List.take 7
-                                    |> (::) mailbox
-
-                            persistent =
-                                session.persistent
-                        in
-                        { session | persistent = { persistent | recentMailboxes = recent } }
     in
     if session.persistent == newSession.persistent then
         -- No change
@@ -111,6 +82,45 @@ update msg session =
 none : Msg
 none =
     None
+
+
+addRecent : String -> Session -> Session
+addRecent mailbox session =
+    if List.head session.persistent.recentMailboxes == Just mailbox then
+        session
+
+    else
+        let
+            recent =
+                session.persistent.recentMailboxes
+                    |> List.filter ((/=) mailbox)
+                    |> List.take 7
+                    |> (::) mailbox
+
+            persistent =
+                session.persistent
+        in
+        { session | persistent = { persistent | recentMailboxes = recent } }
+
+
+disableRouting : Session -> Session
+disableRouting session =
+    { session | routing = False }
+
+
+enableRouting : Session -> Session
+enableRouting session =
+    { session | routing = True }
+
+
+clearFlash : Session -> Session
+clearFlash session =
+    { session | flash = Nothing }
+
+
+showFlash : Flash -> Session -> Session
+showFlash flash session =
+    { session | flash = Just flash }
 
 
 decoder : D.Decoder Persistent

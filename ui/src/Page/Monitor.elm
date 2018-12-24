@@ -17,7 +17,8 @@ import Time exposing (Posix)
 
 
 type alias Model =
-    { connected : Bool
+    { session : Session
+    , connected : Bool
     , messages : List MessageHeader
     }
 
@@ -27,9 +28,12 @@ type MonitorMessage
     | Message MessageHeader
 
 
-init : ( Model, Cmd Msg, Session.Msg )
-init =
-    ( Model False [], Ports.monitorCommand True, Session.none )
+init : Session -> ( Model, Cmd Msg, Session.Msg )
+init session =
+    ( Model session False []
+    , Ports.monitorCommand True
+    , Session.none
+    )
 
 
 
@@ -69,12 +73,15 @@ update session msg model =
             ( { model | messages = header :: model.messages }, Cmd.none, Session.none )
 
         MessageReceived (Err err) ->
-            ( model
+            let
+                flash =
+                    { title = "Decoding failed"
+                    , table = [ ( "Error", D.errorToString err ) ]
+                    }
+            in
+            ( { model | session = Session.showFlash flash model.session }
             , Cmd.none
-            , Session.SetFlash
-                { title = "Decoding failed"
-                , table = [ ( "Error", D.errorToString err ) ]
-                }
+            , Session.none
             )
 
         OpenMessage header ->

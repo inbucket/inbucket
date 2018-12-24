@@ -21,7 +21,8 @@ import Time exposing (Posix)
 
 
 type alias Model =
-    { now : Posix
+    { session : Session
+    , now : Posix
     , config : Maybe ServerConfig
     , metrics : Maybe Metrics
     , xCounter : Float
@@ -52,9 +53,10 @@ type alias Metric =
     }
 
 
-init : ( Model, Cmd Msg, Session.Msg )
-init =
-    ( { now = Time.millisToPosix 0
+init : Session -> ( Model, Cmd Msg, Session.Msg )
+init session =
+    ( { session = session
+      , now = Time.millisToPosix 0
       , config = Nothing
       , metrics = Nothing
       , xCounter = 60
@@ -113,13 +115,19 @@ update session msg model =
             ( updateMetrics metrics model, Cmd.none, Session.none )
 
         MetricsReceived (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
+            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
+            , Cmd.none
+            , Session.none
+            )
 
         ServerConfigLoaded (Ok config) ->
             ( { model | config = Just config }, Cmd.none, Session.none )
 
         ServerConfigLoaded (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
+            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
+            , Cmd.none
+            , Session.none
+            )
 
         Tick time ->
             ( { model | now = time }, Api.getServerMetrics MetricsReceived, Session.none )

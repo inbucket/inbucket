@@ -15,12 +15,14 @@ import Ports
 
 
 type alias Model =
-    { greeting : String }
+    { session : Session
+    , greeting : String
+    }
 
 
-init : ( Model, Cmd Msg, Session.Msg )
-init =
-    ( Model "", Api.getGreeting GreetingLoaded, Session.none )
+init : Session -> ( Model, Cmd Msg )
+init session =
+    ( Model session "", Api.getGreeting GreetingLoaded )
 
 
 
@@ -31,22 +33,24 @@ type Msg
     = GreetingLoaded (Result HttpUtil.Error String)
 
 
-update : Session -> Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
-update session msg model =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
         GreetingLoaded (Ok greeting) ->
-            ( Model greeting, Cmd.none, Session.none )
+            ( { model | greeting = greeting }, Cmd.none )
 
         GreetingLoaded (Err err) ->
-            ( model, Cmd.none, Session.SetFlash (HttpUtil.errorFlash err) )
+            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
+            , Cmd.none
+            )
 
 
 
 -- VIEW --
 
 
-view : Session -> Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
-view session model =
+view : Model -> { title : String, modal : Maybe (Html msg), content : List (Html Msg) }
+view model =
     { title = "Inbucket"
     , modal = Nothing
     , content =

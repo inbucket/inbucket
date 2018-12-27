@@ -329,6 +329,7 @@ li.navbar-active span,
   grid:
     "ctrl mesg" auto
     "list mesg" 1fr / minmax(200px, 300px) minmax(650px, 1000px);
+  height: 100%;
 }
 
 .message-list-controls {

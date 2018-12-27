@@ -42,7 +42,10 @@ module.exports = (env, argv) => {
         {
           include: [/\/node_modules\/@fortawesome\/fontawesome-free\/webfonts/],
           test: /\.(eot|svg|ttf|woff|woff2)$/,
-          loader: ['file-loader'],
+          loader: 'file-loader',
+          options: {
+            name: 'static/[name].[hash:8].[ext]',
+          },
         },
       ]
     },

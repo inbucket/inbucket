@@ -18,6 +18,7 @@ type alias Message =
     , text : String
     , html : String
     , attachments : List Attachment
+    , errors : List Error
     }
 
 
@@ -25,6 +26,13 @@ type alias Attachment =
     { id : String
     , fileName : String
     , contentType : String
+    }
+
+
+type alias Error =
+    { name : String
+    , detail : String
+    , severe : Bool
     }
 
 
@@ -42,6 +50,7 @@ decoder =
         |> required "text" string
         |> required "html" string
         |> required "attachments" (list attachmentDecoder)
+        |> required "errors" (list errorDecoder)
 
 
 attachmentDecoder : Decoder Attachment
@@ -50,3 +59,11 @@ attachmentDecoder =
         |> required "id" string
         |> required "filename" string
         |> required "content-type" string
+
+
+errorDecoder : Decoder Error
+errorDecoder =
+    succeed Error
+        |> required "name" string
+        |> required "detail" string
+        |> required "severe" bool

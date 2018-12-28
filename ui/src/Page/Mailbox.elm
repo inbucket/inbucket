@@ -590,9 +590,32 @@ viewMessage zone message bodyMode =
             , dt [] [ text "Subject:" ]
             , dd [] [ text message.subject ]
             ]
+        , messageErrors message
         , messageBody message bodyMode
         , attachments message
         ]
+
+
+messageErrors : Message -> Html Msg
+messageErrors message =
+    let
+        row error =
+            li []
+                [ span
+                    [ classList [ ( "warn-severe", error.severe ) ] ]
+                    [ text (error.name ++ ": ") ]
+                , text error.detail
+                ]
+    in
+    case message.errors of
+        [] ->
+            text ""
+
+        errors ->
+            div [ class "warn" ]
+                [ div [] [ h3 [] [ text "MIME problems detected" ] ]
+                , ul [] (List.map row errors)
+                ]
 
 
 messageBody : Message -> Body -> Html Msg

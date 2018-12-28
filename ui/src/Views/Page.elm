@@ -100,7 +100,7 @@ errorFlash controls maybeFlash =
             text ""
 
         Just flash ->
-            div [ class "error" ]
+            div [ class "well well-error" ]
                 [ div [ class "flash-header" ]
                     [ h2 [] [ text flash.title ]
                     , a [ href "#", Events.onClick controls.clearFlash ] [ text "Close" ]

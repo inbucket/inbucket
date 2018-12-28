@@ -602,7 +602,7 @@ messageErrors message =
         row error =
             li []
                 [ span
-                    [ classList [ ( "warn-severe", error.severe ) ] ]
+                    [ classList [ ( "message-warn-severe", error.severe ) ] ]
                     [ text (error.name ++ ": ") ]
                 , text error.detail
                 ]
@@ -612,7 +612,7 @@ messageErrors message =
             text ""
 
         errors ->
-            div [ class "warn" ]
+            div [ class "well well-warn message-warn" ]
                 [ div [] [ h3 [] [ text "MIME problems detected" ] ]
                 , ul [] (List.map row errors)
                 ]

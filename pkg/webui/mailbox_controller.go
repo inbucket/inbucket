@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/jhillyerd/inbucket/pkg/server/web"
 	"github.com/jhillyerd/inbucket/pkg/storage"
@@ -14,30 +13,6 @@ import (
 	"github.com/jhillyerd/inbucket/pkg/webui/sanitize"
 	"github.com/rs/zerolog/log"
 )
-
-// JSONMessage formats message data for the UI.
-type JSONMessage struct {
-	Mailbox     string              `json:"mailbox"`
-	ID          string              `json:"id"`
-	From        string              `json:"from"`
-	To          []string            `json:"to"`
-	Subject     string              `json:"subject"`
-	Date        time.Time           `json:"date"`
-	PosixMillis int64               `json:"posix-millis"`
-	Size        int64               `json:"size"`
-	Seen        bool                `json:"seen"`
-	Header      map[string][]string `json:"header"`
-	Text        string              `json:"text"`
-	HTML        string              `json:"html"`
-	Attachments []*JSONAttachment   `json:"attachments"`
-}
-
-// JSONAttachment formats attachment data for the UI.
-type JSONAttachment struct {
-	ID          string `json:"id"`
-	FileName    string `json:"filename"`
-	ContentType string `json:"content-type"`
-}
 
 // MailboxMessage outputs a particular message as JSON for the UI.
 func MailboxMessage(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
@@ -54,15 +29,25 @@ func MailboxMessage(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 		http.NotFound(w, req)
 		return nil
 	}
-	attachParts := msg.Attachments()
-	attachments := make([]*JSONAttachment, len(attachParts))
-	for i, part := range attachParts {
-		attachments[i] = &JSONAttachment{
+
+	attachments := make([]*jsonAttachment, 0)
+	for i, part := range msg.Attachments() {
+		attachments = append(attachments, &jsonAttachment{
 			ID:          strconv.Itoa(i),
 			FileName:    part.FileName,
 			ContentType: part.ContentType,
-		}
+		})
 	}
+
+	mimeErrors := make([]*jsonMIMEError, 0)
+	for _, e := range msg.MIMEErrors() {
+		mimeErrors = append(mimeErrors, &jsonMIMEError{
+			Name:   e.Name,
+			Detail: e.Detail,
+			Severe: e.Severe,
+		})
+	}
+
 	// Sanitize HTML body.
 	htmlBody := ""
 	if msg.HTML() != "" {
@@ -74,8 +59,9 @@ func MailboxMessage(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 				Msg("HTML sanitizer failed")
 		}
 	}
+
 	return web.RenderJSON(w,
-		&JSONMessage{
+		&jsonMessage{
 			Mailbox:     name,
 			ID:          msg.ID,
 			From:        msg.From.String(),
@@ -89,6 +75,7 @@ func MailboxMessage(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 			Text:        web.TextToHTML(msg.Text()),
 			HTML:        htmlBody,
 			Attachments: attachments,
+			Errors:      mimeErrors,
 		})
 }
 

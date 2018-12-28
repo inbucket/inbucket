@@ -56,3 +56,6 @@ swaks $* --data outlook.raw
 # Non-mime responsive HTML test
 swaks $* --data nonmime-html-responsive.raw
 swaks $* --data nonmime-html-inlined.raw
+
+# Incorrect charset, malformed final boundary
+swaks $* --data mime-errors.raw

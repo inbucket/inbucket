@@ -44,7 +44,11 @@ frame controls session page modal content =
             [ ul [ class "navbar", attribute "role" "navigation" ]
                 [ li [ class "navbar-brand" ]
                     [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
-                , navbarLink page Route.Monitor [ text "Monitor" ]
+                , if session.config.monitorVisible then
+                    navbarLink page Route.Monitor [ text "Monitor" ]
+
+                  else
+                    text ""
                 , navbarLink page Route.Status [ text "Status" ]
                 , navbarRecent page controls
                 , li [ class "navbar-mailbox" ]

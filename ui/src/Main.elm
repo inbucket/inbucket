@@ -52,7 +52,7 @@ init configValue location key =
         session =
             case D.decodeValue configDecoder configValue of
                 Ok config ->
-                    Session.init key location config.session
+                    Session.init key location config.appConfig config.session
 
                 Err error ->
                     Session.initError key location (D.errorToString error)
@@ -255,8 +255,20 @@ changeRouteTo route model =
                         |> updateWith Mailbox MailboxMsg model
 
                 Route.Monitor ->
-                    Monitor.init session
-                        |> updateWith Monitor MonitorMsg model
+                    if session.config.monitorVisible then
+                        Monitor.init session
+                            |> updateWith Monitor MonitorMsg model
+
+                    else
+                        let
+                            flash =
+                                { title = "Unknown route requested"
+                                , table = [ ( "Error", "Monitor disabled by configuration." ) ]
+                                }
+                        in
+                        ( applyToModelSession (Session.showFlash flash) model
+                        , Cmd.none
+                        )
 
                 Route.Status ->
                     Status.init session

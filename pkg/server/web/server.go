@@ -3,10 +3,12 @@ package web
 
 import (
 	"context"
+	"encoding/json"
 	"expvar"
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"net/url"
 	"path/filepath"
 	"time"
 
@@ -75,7 +77,8 @@ func Initialize(
 		fileHandler(filepath.Join(conf.Web.UIDir, "favicon.png")))
 
 	// SPA managed paths.
-	spaHandler := fileHandler(filepath.Join(conf.Web.UIDir, "index.html"))
+	spaHandler := cookieHandler(appConfigCookie(conf.Web),
+		fileHandler(filepath.Join(conf.Web.UIDir, "index.html")))
 	Router.Path("/").Handler(spaHandler)
 	Router.Path("/monitor").Handler(spaHandler)
 	Router.Path("/status").Handler(spaHandler)
@@ -123,6 +126,22 @@ func Start(ctx context.Context) {
 	if err := listener.Close(); err != nil {
 		log.Debug().Str("module", "web").Str("phase", "shutdown").Err(err).
 			Msg("Failed to close HTTP listener")
+	}
+}
+
+func appConfigCookie(webConfig config.Web) *http.Cookie {
+	o := &jsonAppConfig{
+		MonitorVisible: webConfig.MonitorVisible,
+	}
+	b, err := json.Marshal(o)
+	if err != nil {
+		log.Error().Str("module", "web").Str("phase", "startup").Err(err).
+			Msg("Failed to convert app-config to JSON")
+	}
+	return &http.Cookie{
+		Name:  "app-config",
+		Value: url.PathEscape(string(b)),
+		Path:  "/",
 	}
 }
 

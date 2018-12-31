@@ -4,15 +4,16 @@ module Data.Session exposing
     , Session
     , addRecent
     , clearFlash
-    , decodeValueWithDefault
     , decoder
     , disableRouting
     , enableRouting
     , init
+    , initError
     , showFlash
     )
 
 import Browser.Navigation as Nav
+import Data.AppConfig as AppConfig exposing (AppConfig)
 import Html exposing (Html)
 import Json.Decode as D
 import Json.Decode.Pipeline exposing (..)
@@ -28,6 +29,7 @@ type alias Session =
     , flash : Maybe Flash
     , routing : Bool
     , zone : Time.Zone
+    , config : AppConfig
     , persistent : Persistent
     }
 
@@ -43,14 +45,27 @@ type alias Persistent =
     }
 
 
-init : Nav.Key -> Url -> Persistent -> Session
-init key location persistent =
+init : Nav.Key -> Url -> AppConfig -> Persistent -> Session
+init key location config persistent =
     { key = key
     , host = location.host
     , flash = Nothing
     , routing = True
     , zone = Time.utc
+    , config = config
     , persistent = persistent
+    }
+
+
+initError : Nav.Key -> Url -> String -> Session
+initError key location error =
+    { key = key
+    , host = location.host
+    , flash = Just (Flash "Initialization failed" [ ( "Error", error ) ])
+    , routing = True
+    , zone = Time.utc
+    , config = AppConfig.default
+    , persistent = Persistent []
     }
 
 
@@ -97,11 +112,6 @@ decoder : D.Decoder Persistent
 decoder =
     D.succeed Persistent
         |> optional "recentMailboxes" (D.list D.string) []
-
-
-decodeValueWithDefault : D.Value -> Persistent
-decodeValueWithDefault =
-    D.decodeValue decoder >> Result.withDefault { recentMailboxes = [] }
 
 
 encode : Persistent -> E.Value

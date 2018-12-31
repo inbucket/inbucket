@@ -2,7 +2,8 @@ module Main exposing (main)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav
-import Data.Session as Session exposing (Session, decoder)
+import Data.AppConfig as AppConfig exposing (AppConfig)
+import Data.Session as Session exposing (Session)
 import Html exposing (..)
 import Json.Decode as D exposing (Value)
 import Page.Home as Home
@@ -34,11 +35,27 @@ type alias Model =
     }
 
 
+type alias InitConfig =
+    { appConfig : AppConfig
+    , session : Session.Persistent
+    }
+
+
 init : Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init sessionValue location key =
+init configValue location key =
     let
+        configDecoder =
+            D.map2 InitConfig
+                (D.field "app-config" AppConfig.decoder)
+                (D.field "session" Session.decoder)
+
         session =
-            Session.init key location (Session.decodeValueWithDefault sessionValue)
+            case D.decodeValue configDecoder configValue of
+                Ok config ->
+                    Session.init key location config.appConfig config.session
+
+                Err error ->
+                    Session.initError key location (D.errorToString error)
 
         ( subModel, _ ) =
             Home.init session
@@ -238,8 +255,20 @@ changeRouteTo route model =
                         |> updateWith Mailbox MailboxMsg model
 
                 Route.Monitor ->
-                    Monitor.init session
-                        |> updateWith Monitor MonitorMsg model
+                    if session.config.monitorVisible then
+                        Monitor.init session
+                            |> updateWith Monitor MonitorMsg model
+
+                    else
+                        let
+                            flash =
+                                { title = "Unknown route requested"
+                                , table = [ ( "Error", "Monitor disabled by configuration." ) ]
+                                }
+                        in
+                        ( applyToModelSession (Session.showFlash flash) model
+                        , Cmd.none
+                        )
 
                 Route.Status ->
                     Status.init session

@@ -4,10 +4,16 @@ import { Elm } from './Main.elm'
 import registerMonitorPorts from './registerMonitor'
 import './renderedHtml'
 
+// Initial configuration from Inbucket server to Elm App.
+var flags = {
+  "app-config": appConfig(),
+  "session": sessionObject(),
+}
+
 // App startup.
 var app = Elm.Main.init({
   node: document.getElementById('root'),
-  flags: sessionObject()
+  flags: flags,
 })
 
 // Message monitor.
@@ -24,9 +30,24 @@ window.addEventListener("storage", function (event) {
   }
 }, false)
 
+// Decode the JSON value of the app-config cookie, then delete it.
+function appConfig() {
+  var name = "app-config"
+  var c = getCookie(name)
+  if (c) {
+    deleteCookie(name)
+    return JSON.parse(decodeURIComponent(c))
+  }
+  console.warn("Inbucket " + name + " cookie not found, running with defaults.")
+  return {
+    "monitor-visible": true,
+  }
+}
+
+// Grab peristent session data out of local storage.
 function sessionObject() {
-  var s = localStorage.session
   try {
+    var s = localStorage.session
     if (s) {
       return JSON.parse(s)
     }
@@ -34,4 +55,21 @@ function sessionObject() {
     console.error(error)
   }
   return null
+}
+
+function getCookie(cookieName) {
+  var name = cookieName + "="
+  var cookies = decodeURIComponent(document.cookie).split(';')
+  for (var i=0; i<cookies.length; i++) {
+    var cookie = cookies[i].trim()
+    if (cookie.indexOf(name) == 0) {
+      return cookie.substring(name.length, cookie.length)
+    }
+  }
+  return null
+}
+
+function deleteCookie(cookieName) {
+  document.cookie = cookieName +
+    "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
 }

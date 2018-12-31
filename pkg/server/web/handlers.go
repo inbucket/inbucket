@@ -31,6 +31,16 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// cookieHandler injects an HTTP cookie into the response.
+func cookieHandler(cookie *http.Cookie, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		log.Debug().Str("module", "web").Str("remote", req.RemoteAddr).Str("proto", req.Proto).
+			Str("method", req.Method).Str("path", req.RequestURI).Msg("Injecting cookie")
+		http.SetCookie(w, cookie)
+		next.ServeHTTP(w, req)
+	})
+}
+
 // fileHandler creates a handler that sends the named file regardless of the requested URL.
 func fileHandler(name string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

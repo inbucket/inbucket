@@ -4,11 +4,11 @@ module Data.Session exposing
     , Session
     , addRecent
     , clearFlash
-    , decodeValueWithDefault
     , decoder
     , disableRouting
     , enableRouting
     , init
+    , initError
     , showFlash
     )
 
@@ -51,6 +51,17 @@ init key location persistent =
     , routing = True
     , zone = Time.utc
     , persistent = persistent
+    }
+
+
+initError : Nav.Key -> Url -> String -> Session
+initError key location error =
+    { key = key
+    , host = location.host
+    , flash = Just (Flash "Initialization failed" [ ( "Error", error ) ])
+    , routing = True
+    , zone = Time.utc
+    , persistent = Persistent []
     }
 
 
@@ -97,11 +108,6 @@ decoder : D.Decoder Persistent
 decoder =
     D.succeed Persistent
         |> optional "recentMailboxes" (D.list D.string) []
-
-
-decodeValueWithDefault : D.Value -> Persistent
-decodeValueWithDefault =
-    D.decodeValue decoder >> Result.withDefault { recentMailboxes = [] }
 
 
 encode : Persistent -> E.Value

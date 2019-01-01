@@ -7,6 +7,7 @@ module Data.Session exposing
     , decoder
     , disableRouting
     , enableRouting
+    , encode
     , init
     , initError
     , showFlash

@@ -130,7 +130,30 @@ update msg model =
     let
         session =
             getSession model
+
+        ( newModel, cmd ) =
+            updateMain msg model session
+
+        newSession =
+            getSession newModel
     in
+    if session.persistent == newSession.persistent then
+        ( newModel, cmd )
+
+    else
+        -- Store updated persistent session.
+        ( newModel
+        , Cmd.batch
+            [ Ports.storeSession (Session.encode newSession.persistent)
+            , cmd
+            ]
+        )
+
+
+{-| Handle global/navbar related msgs.
+-}
+updateMain : Msg -> Model -> Session -> ( Model, Cmd Msg )
+updateMain msg model session =
     case msg of
         LinkClicked req ->
             case req of
@@ -197,7 +220,7 @@ update msg model =
             updatePage msg model
 
 
-{-| Delegates incoming messages to their respective sub-pages.
+{-| Delegate incoming messages to their respective sub-pages.
 -}
 updatePage : Msg -> Model -> ( Model, Cmd Msg )
 updatePage msg model =

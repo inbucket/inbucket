@@ -139,6 +139,7 @@ header {
   /* Explicit minimums required for sizing/scrolling in nested flex+grids. */
   min-height: 0;
   min-width: 0;
+  overflow-y: auto;
 }
 
 footer {
@@ -543,9 +544,12 @@ nav.tab-bar a.active:hover {
 }
 
 .monitor th {
+  background: var(--bg-color);
   border-bottom: 2px solid var(--border-color);
   text-align: left;
   padding: 5px;
+  position: sticky;
+  top: 0;
 }
 
 .monitor td {

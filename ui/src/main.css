@@ -538,6 +538,16 @@ nav.tab-bar a.active:hover {
 
 /** MONITOR **/
 
+.monitor-header {
+  display: flex;
+  width: 100%;
+}
+
+.monitor-description {
+  display: inline-block;
+  margin-right: auto;
+}
+
 .monitor {
   border-collapse: collapse;
   width: 100%;

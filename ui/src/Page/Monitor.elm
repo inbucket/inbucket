@@ -34,6 +34,7 @@ init session =
 type Msg
     = Connected Bool
     | MessageReceived D.Value
+    | Clear
     | OpenMessage MessageHeader
 
 
@@ -64,6 +65,9 @@ update msg model =
                     , Cmd.none
                     )
 
+        Clear ->
+            ( { model | messages = [] }, Cmd.none )
+
         OpenMessage header ->
             ( model
             , Route.pushUrl model.session.key (Route.Message header.mailbox header.id)
@@ -80,16 +84,21 @@ view model =
     , modal = Nothing
     , content =
         [ h1 [] [ text "Monitor" ]
-        , p []
-            [ text "Messages will be listed here shortly after delivery. "
-            , em []
-                [ text
-                    (if model.connected then
-                        "Connected."
+        , div [ class "monitor-header" ]
+            [ span [ class "monitor-description" ]
+                [ text "Messages will be listed here shortly after delivery. "
+                , em []
+                    [ text
+                        (if model.connected then
+                            "Connected."
 
-                     else
-                        "Disconnected!"
-                    )
+                         else
+                            "Disconnected!"
+                        )
+                    ]
+                ]
+            , span [ class "button-bar monitor-buttons" ]
+                [ button [ Events.onClick Clear ] [ text "Clear" ]
                 ]
             ]
         , node "monitor-messages"

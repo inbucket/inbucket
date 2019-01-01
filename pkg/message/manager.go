@@ -85,7 +85,7 @@ func (s *StoreManager) Deliver(
 		broadcast := msghub.Message{
 			Mailbox: to.Mailbox,
 			ID:      id,
-			From:    delivery.From().String(),
+			From:    stringutil.StringAddress(delivery.From()),
 			To:      stringutil.StringAddressList(delivery.To()),
 			Subject: delivery.Subject(),
 			Date:    delivery.Date(),

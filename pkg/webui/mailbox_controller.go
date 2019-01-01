@@ -64,7 +64,7 @@ func MailboxMessage(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 		&jsonMessage{
 			Mailbox:     name,
 			ID:          msg.ID,
-			From:        msg.From.String(),
+			From:        stringutil.StringAddress(msg.From),
 			To:          stringutil.StringAddressList(msg.To),
 			Subject:     msg.Subject,
 			Date:        msg.Date,

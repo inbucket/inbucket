@@ -1,7 +1,7 @@
 import './main.css'
 import '@fortawesome/fontawesome-free/css/all.css'
 import { Elm } from './Main.elm'
-import registerMonitorPorts from './registerMonitor'
+import './monitorMessages'
 import './renderedHtml'
 
 // Initial configuration from Inbucket server to Elm App.
@@ -15,9 +15,6 @@ var app = Elm.Main.init({
   node: document.getElementById('root'),
   flags: flags,
 })
-
-// Message monitor.
-registerMonitorPorts(app)
 
 // Session storage.
 app.ports.storeSession.subscribe(function (session) {

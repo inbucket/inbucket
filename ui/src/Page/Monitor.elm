@@ -1,4 +1,4 @@
-module Page.Monitor exposing (Model, Msg, init, subscriptions, update, view)
+module Page.Monitor exposing (Model, Msg, init, update, view)
 
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
@@ -7,7 +7,6 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events as Events
 import Json.Decode as D
-import Ports
 import Route
 import Time exposing (Posix)
 
@@ -23,34 +22,9 @@ type alias Model =
     }
 
 
-type MonitorMessage
-    = Connected Bool
-    | Message MessageHeader
-
-
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session False []
-    , Ports.monitorCommand True
-    )
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    let
-        monitorMessage =
-            D.oneOf
-                [ D.map Message MessageHeader.decoder
-                , D.map Connected D.bool
-                ]
-                |> D.decodeValue
-                |> Ports.monitorMessage
-    in
-    Sub.map MessageReceived monitorMessage
+    ( Model session False [], Cmd.none )
 
 
 
@@ -58,29 +32,37 @@ subscriptions model =
 
 
 type Msg
-    = MessageReceived (Result D.Error MonitorMessage)
+    = Connected Bool
+    | MessageReceived D.Value
     | OpenMessage MessageHeader
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        MessageReceived (Ok (Connected status)) ->
-            ( { model | connected = status }, Cmd.none )
+        Connected True ->
+            ( { model | connected = True, messages = [] }, Cmd.none )
 
-        MessageReceived (Ok (Message header)) ->
-            ( { model | messages = header :: model.messages }, Cmd.none )
+        Connected False ->
+            ( { model | connected = False }, Cmd.none )
 
-        MessageReceived (Err err) ->
-            let
-                flash =
-                    { title = "Decoding failed"
-                    , table = [ ( "Error", D.errorToString err ) ]
-                    }
-            in
-            ( { model | session = Session.showFlash flash model.session }
-            , Cmd.none
-            )
+        MessageReceived value ->
+            case D.decodeValue (MessageHeader.decoder |> D.at [ "detail" ]) value of
+                Ok header ->
+                    ( { model | messages = header :: model.messages }
+                    , Cmd.none
+                    )
+
+                Err err ->
+                    let
+                        flash =
+                            { title = "Message decoding failed"
+                            , table = [ ( "Error", D.errorToString err ) ]
+                            }
+                    in
+                    ( { model | session = Session.showFlash flash model.session }
+                    , Cmd.none
+                    )
 
         OpenMessage header ->
             ( model
@@ -110,6 +92,11 @@ view model =
                     )
                 ]
             ]
+        , node "monitor-messages"
+            [ Events.on "connected" (D.map Connected <| D.at [ "detail" ] <| D.bool)
+            , Events.on "message" (D.map MessageReceived D.value)
+            ]
+            []
         , table [ class "monitor" ]
             [ thead []
                 [ th [] [ text "Date" ]
@@ -143,6 +130,8 @@ shortDate zone date =
         , DF.hourNumber
         , DF.text ":"
         , DF.minuteFixed
+        , DF.text ":"
+        , DF.secondFixed
         , DF.text " "
         , DF.amPmUppercase
         ]

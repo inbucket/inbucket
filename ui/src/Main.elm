@@ -111,9 +111,6 @@ pageSubscriptions page =
         Mailbox subModel ->
             Sub.map MailboxMsg (Mailbox.subscriptions subModel)
 
-        Monitor subModel ->
-            Sub.map MonitorMsg (Monitor.subscriptions subModel)
-
         Status subModel ->
             Sub.map StatusMsg (Status.subscriptions subModel)
 
@@ -251,59 +248,50 @@ changeRouteTo route model =
     let
         session =
             getSession model
-
-        ( newModel, newCmd ) =
-            case route of
-                Route.Unknown path ->
-                    let
-                        flash =
-                            { title = "Unknown route requested"
-                            , table = [ ( "Path", path ) ]
-                            }
-                    in
-                    ( applyToModelSession (Session.showFlash flash) model
-                    , Cmd.none
-                    )
-
-                Route.Home ->
-                    Home.init session
-                        |> updateWith Home HomeMsg model
-
-                Route.Mailbox name ->
-                    Mailbox.init session name Nothing
-                        |> updateWith Mailbox MailboxMsg model
-
-                Route.Message mailbox id ->
-                    Mailbox.init session mailbox (Just id)
-                        |> updateWith Mailbox MailboxMsg model
-
-                Route.Monitor ->
-                    if session.config.monitorVisible then
-                        Monitor.init session
-                            |> updateWith Monitor MonitorMsg model
-
-                    else
-                        let
-                            flash =
-                                { title = "Unknown route requested"
-                                , table = [ ( "Error", "Monitor disabled by configuration." ) ]
-                                }
-                        in
-                        ( applyToModelSession (Session.showFlash flash) model
-                        , Cmd.none
-                        )
-
-                Route.Status ->
-                    Status.init session
-                        |> updateWith Status StatusMsg model
     in
-    case model.page of
-        Monitor _ ->
-            -- Leaving Monitor page, shut down the web socket.
-            ( newModel, Cmd.batch [ Ports.monitorCommand False, newCmd ] )
+    case route of
+        Route.Unknown path ->
+            let
+                flash =
+                    { title = "Unknown route requested"
+                    , table = [ ( "Path", path ) ]
+                    }
+            in
+            ( applyToModelSession (Session.showFlash flash) model
+            , Cmd.none
+            )
 
-        _ ->
-            ( newModel, newCmd )
+        Route.Home ->
+            Home.init session
+                |> updateWith Home HomeMsg model
+
+        Route.Mailbox name ->
+            Mailbox.init session name Nothing
+                |> updateWith Mailbox MailboxMsg model
+
+        Route.Message mailbox id ->
+            Mailbox.init session mailbox (Just id)
+                |> updateWith Mailbox MailboxMsg model
+
+        Route.Monitor ->
+            if session.config.monitorVisible then
+                Monitor.init session
+                    |> updateWith Monitor MonitorMsg model
+
+            else
+                let
+                    flash =
+                        { title = "Unknown route requested"
+                        , table = [ ( "Error", "Monitor disabled by configuration." ) ]
+                        }
+                in
+                ( applyToModelSession (Session.showFlash flash) model
+                , Cmd.none
+                )
+
+        Route.Status ->
+            Status.init session
+                |> updateWith Status StatusMsg model
 
 
 getSession : Model -> Session

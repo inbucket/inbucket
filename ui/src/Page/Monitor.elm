@@ -49,7 +49,7 @@ update msg model =
         MessageReceived value ->
             case D.decodeValue (MessageHeader.decoder |> D.at [ "detail" ]) value of
                 Ok header ->
-                    ( { model | messages = header :: model.messages }
+                    ( { model | messages = header :: List.take 500 model.messages }
                     , Cmd.none
                     )
 

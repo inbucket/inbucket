@@ -1,4 +1,4 @@
-module Layout exposing (ActivePage(..), frame)
+module Layout exposing (Page(..), frame)
 
 import Data.Session as Session exposing (Session)
 import Html exposing (..)
@@ -20,7 +20,9 @@ import Html.Events as Events
 import Route exposing (Route)
 
 
-type ActivePage
+{-| Used to highlight current page in navbar.
+-}
+type Page
     = Other
     | Mailbox
     | Monitor
@@ -37,20 +39,20 @@ type alias FrameControls msg =
     }
 
 
-frame : FrameControls msg -> Session -> ActivePage -> Maybe (Html msg) -> List (Html msg) -> Html msg
-frame controls session page modal content =
+frame : FrameControls msg -> Session -> Page -> Maybe (Html msg) -> List (Html msg) -> Html msg
+frame controls session activePage modal content =
     div [ class "app" ]
         [ header []
             [ ul [ class "navbar", attribute "role" "navigation" ]
                 [ li [ class "navbar-brand" ]
                     [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
                 , if session.config.monitorVisible then
-                    navbarLink page Route.Monitor [ text "Monitor" ]
+                    navbarLink Monitor Route.Monitor [ text "Monitor" ] activePage
 
                   else
                     text ""
-                , navbarLink page Route.Status [ text "Status" ]
-                , navbarRecent page controls
+                , navbarLink Status Route.Status [ text "Status" ] activePage
+                , navbarRecent activePage controls
                 , li [ class "navbar-mailbox" ]
                     [ form [ Events.onSubmit (controls.viewMailbox controls.mailboxValue) ]
                         [ input
@@ -118,15 +120,15 @@ externalLink url title =
     a [ href url, target "_blank", rel "noopener" ] [ text title ]
 
 
-navbarLink : ActivePage -> Route -> List (Html a) -> Html a
-navbarLink page route linkContent =
-    li [ classList [ ( "navbar-active", isActive page route ) ] ]
+navbarLink : Page -> Route -> List (Html a) -> Page -> Html a
+navbarLink page route linkContent activePage =
+    li [ classList [ ( "navbar-active", page == activePage ) ] ]
         [ a [ Route.href route ] linkContent ]
 
 
 {-| Renders list of recent mailboxes, selecting the currently active mailbox.
 -}
-navbarRecent : ActivePage -> FrameControls msg -> Html msg
+navbarRecent : Page -> FrameControls msg -> Html msg
 navbarRecent page controls =
     let
         active =
@@ -158,16 +160,3 @@ navbarRecent page controls =
         [ span [] [ text title ]
         , div [ class "navbar-dropdown-content" ] (List.map recentLink recentMailboxes)
         ]
-
-
-isActive : ActivePage -> Route -> Bool
-isActive page route =
-    case ( page, route ) of
-        ( Monitor, Route.Monitor ) ->
-            True
-
-        ( Status, Route.Status ) ->
-            True
-
-        _ ->
-            False

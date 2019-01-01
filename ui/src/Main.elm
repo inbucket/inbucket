@@ -6,7 +6,7 @@ import Data.AppConfig as AppConfig exposing (AppConfig)
 import Data.Session as Session exposing (Session)
 import Html exposing (..)
 import Json.Decode as D exposing (Value)
-import Layout exposing (ActivePage(..), frame)
+import Layout
 import Page.Home as Home
 import Page.Mailbox as Mailbox
 import Page.Monitor as Monitor
@@ -22,17 +22,17 @@ import Url exposing (Url)
 -- MODEL
 
 
-type Page
+type alias Model =
+    { page : PageModel
+    , mailboxName : String
+    }
+
+
+type PageModel
     = Home Home.Model
     | Mailbox Mailbox.Model
     | Monitor Monitor.Model
     | Status Status.Model
-
-
-type alias Model =
-    { page : Page
-    , mailboxName : String
-    }
 
 
 type alias InitConfig =
@@ -105,7 +105,7 @@ sessionChange =
     Ports.onSessionChange (D.decodeValue Session.decoder)
 
 
-pageSubscriptions : Page -> Sub Msg
+pageSubscriptions : PageModel -> Sub Msg
 pageSubscriptions page =
     case page of
         Mailbox subModel ->
@@ -346,7 +346,7 @@ applyToModelSession f model =
 {-| Map page updates to Main Model and Msg types.
 -}
 updateWith :
-    (subModel -> Page)
+    (subModel -> PageModel)
     -> (subMsg -> Msg)
     -> Model
     -> ( subModel, Cmd subMsg )
@@ -385,7 +385,7 @@ view model =
             }
 
         framePage :
-            ActivePage
+            Layout.Page
             -> (msg -> Msg)
             -> { title : String, modal : Maybe (Html msg), content : List (Html msg) }
             -> Document Msg

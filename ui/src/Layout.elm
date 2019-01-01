@@ -1,4 +1,4 @@
-module Views.Page exposing (ActivePage(..), frame)
+module Layout exposing (ActivePage(..), frame)
 
 import Data.Session as Session exposing (Session)
 import Html exposing (..)

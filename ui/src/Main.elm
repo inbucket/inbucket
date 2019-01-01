@@ -6,6 +6,7 @@ import Data.AppConfig as AppConfig exposing (AppConfig)
 import Data.Session as Session exposing (Session)
 import Html exposing (..)
 import Json.Decode as D exposing (Value)
+import Layout exposing (ActivePage(..), frame)
 import Page.Home as Home
 import Page.Mailbox as Mailbox
 import Page.Monitor as Monitor
@@ -15,7 +16,6 @@ import Route exposing (Route)
 import Task
 import Time
 import Url exposing (Url)
-import Views.Page as Page exposing (ActivePage(..), frame)
 
 
 
@@ -391,7 +391,7 @@ view model =
             -> Document Msg
         framePage page toMsg { title, modal, content } =
             Document title
-                [ Page.frame
+                [ Layout.frame
                     controls
                     session
                     page
@@ -401,16 +401,16 @@ view model =
     in
     case model.page of
         Home subModel ->
-            framePage Page.Other HomeMsg (Home.view subModel)
+            framePage Layout.Other HomeMsg (Home.view subModel)
 
         Mailbox subModel ->
-            framePage Page.Mailbox MailboxMsg (Mailbox.view subModel)
+            framePage Layout.Mailbox MailboxMsg (Mailbox.view subModel)
 
         Monitor subModel ->
-            framePage Page.Monitor MonitorMsg (Monitor.view subModel)
+            framePage Layout.Monitor MonitorMsg (Monitor.view subModel)
 
         Status subModel ->
-            framePage Page.Status StatusMsg (Status.view subModel)
+            framePage Layout.Status StatusMsg (Status.view subModel)
 
 
 

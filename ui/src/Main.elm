@@ -6,6 +6,7 @@ import Data.AppConfig as AppConfig exposing (AppConfig)
 import Data.Session as Session exposing (Session)
 import Html exposing (..)
 import Json.Decode as D exposing (Value)
+import Layout
 import Page.Home as Home
 import Page.Mailbox as Mailbox
 import Page.Monitor as Monitor
@@ -15,24 +16,23 @@ import Route exposing (Route)
 import Task
 import Time
 import Url exposing (Url)
-import Views.Page as Page exposing (ActivePage(..), frame)
 
 
 
 -- MODEL
 
 
-type Page
+type alias Model =
+    { page : PageModel
+    , mailboxName : String
+    }
+
+
+type PageModel
     = Home Home.Model
     | Mailbox Mailbox.Model
     | Monitor Monitor.Model
     | Status Status.Model
-
-
-type alias Model =
-    { page : Page
-    , mailboxName : String
-    }
 
 
 type alias InitConfig =
@@ -105,7 +105,7 @@ sessionChange =
     Ports.onSessionChange (D.decodeValue Session.decoder)
 
 
-pageSubscriptions : Page -> Sub Msg
+pageSubscriptions : PageModel -> Sub Msg
 pageSubscriptions page =
     case page of
         Mailbox subModel ->
@@ -346,7 +346,7 @@ applyToModelSession f model =
 {-| Map page updates to Main Model and Msg types.
 -}
 updateWith :
-    (subModel -> Page)
+    (subModel -> PageModel)
     -> (subMsg -> Msg)
     -> Model
     -> ( subModel, Cmd subMsg )
@@ -385,13 +385,13 @@ view model =
             }
 
         framePage :
-            ActivePage
+            Layout.Page
             -> (msg -> Msg)
             -> { title : String, modal : Maybe (Html msg), content : List (Html msg) }
             -> Document Msg
         framePage page toMsg { title, modal, content } =
             Document title
-                [ Page.frame
+                [ Layout.frame
                     controls
                     session
                     page
@@ -401,16 +401,16 @@ view model =
     in
     case model.page of
         Home subModel ->
-            framePage Page.Other HomeMsg (Home.view subModel)
+            framePage Layout.Other HomeMsg (Home.view subModel)
 
         Mailbox subModel ->
-            framePage Page.Mailbox MailboxMsg (Mailbox.view subModel)
+            framePage Layout.Mailbox MailboxMsg (Mailbox.view subModel)
 
         Monitor subModel ->
-            framePage Page.Monitor MonitorMsg (Monitor.view subModel)
+            framePage Layout.Monitor MonitorMsg (Monitor.view subModel)
 
         Status subModel ->
-            framePage Page.Status StatusMsg (Status.view subModel)
+            framePage Layout.Status StatusMsg (Status.view subModel)
 
 
 

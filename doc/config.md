@@ -30,7 +30,6 @@ variables it supports:
     INBUCKET_WEB_ADDR                   0.0.0.0:9000        Web server IP4 host:port
     INBUCKET_WEB_UIDIR                  ui                  User interface dir
     INBUCKET_WEB_GREETINGFILE           ui/greeting.html    Home page greeting HTML
-    INBUCKET_WEB_MAILBOXPROMPT          @inbucket           Prompt next to mailbox input
     INBUCKET_WEB_MONITORVISIBLE         true                Show monitor tab in UI?
     INBUCKET_WEB_MONITORHISTORY         30                  Monitor remembered messages
     INBUCKET_WEB_PPROF                  false               Expose profiling tools on /debug/pprof
@@ -308,18 +307,6 @@ Inbucket.  It can be used to instruct users on how to send mail into your
 Inbucket installation, as well as link to REST documentation, etc.
 
 - Default: `ui/greeting.html`
-
-### Mailbox Prompt
-
-`INBUCKET_WEB_MAILBOXPROMPT`
-
-Text prompt displayed to the right of the mailbox name input field in the web
-interface.  Can be used to nudge your users into typing just the mailbox name
-instead of an entire email address.
-
-Set to an empty string to hide the prompt.
-
-- Default: `@inbucket`
 
 ### Monitor Visible
 

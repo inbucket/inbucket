@@ -28,7 +28,7 @@ variables it supports:
     INBUCKET_POP3_DOMAIN                inbucket            HELLO domain
     INBUCKET_POP3_TIMEOUT               600s                Idle network timeout
     INBUCKET_WEB_ADDR                   0.0.0.0:9000        Web server IP4 host:port
-    INBUCKET_WEB_UIDIR                  ui                  User interface dir
+    INBUCKET_WEB_UIDIR                  ui/dist             User interface dir
     INBUCKET_WEB_GREETINGFILE           ui/greeting.html    Home page greeting HTML
     INBUCKET_WEB_MONITORVISIBLE         true                Show monitor tab in UI?
     INBUCKET_WEB_MONITORHISTORY         30                  Monitor remembered messages
@@ -295,7 +295,7 @@ doesn't contain the `ui` directory at startup.
 Inbucket will load templates from the `templates` sub-directory, and serve
 static assets from the `static` sub-directory.
 
-- Default: `ui`
+- Default: `ui/dist`
 - Values: Operating system specific path syntax
 
 ### Greeting HTML File

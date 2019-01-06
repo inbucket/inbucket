@@ -584,7 +584,7 @@ viewMessage zone message bodyMode =
             [ dt [] [ text "From:" ]
             , dd [] [ text message.from ]
             , dt [] [ text "To:" ]
-            , dd [] (List.map text message.to)
+            , dd [] [ text (String.join ", " message.to) ]
             , dt [] [ text "Date:" ]
             , dd [] [ verboseDate zone message.date ]
             , dt [] [ text "Subject:" ]

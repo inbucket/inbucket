@@ -4,11 +4,7 @@ env:
   global:
     - GO111MODULE=on
 
-# deploy will use first go version listed below.
 language: go
-go:
-  - "1.11.x"
-  - "master"
 
 install:
   - "go get golang.org/x/lint/golint"
@@ -16,15 +12,16 @@ install:
 
 jobs:
   include:
-    - stage: elm
+    - go: "1.11.x"
+    - go: "master"
+    - language: elm
+      elm: "0.19.0"
       install:
         - "cd ui"
-        - "npm install"
+        - "npm ci"
       script:
         - "elm-format --validate ."
         - "npm run build"
-      language: elm
-      elm: "0.19.0"
     - stage: deploy
       install: "true"
       script: "curl -sL https://git.io/goreleaser | bash"
@@ -35,6 +32,5 @@ jobs:
 
 stages:
   - test
-  - elm
   - name: deploy
     if: tag IS present

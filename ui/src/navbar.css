@@ -1,0 +1,167 @@
+/** NAV BAR */
+
+:root {
+  --bg-color: #fff;
+  --primary-color: #333;
+  --border-color: #ddd;
+  --selected-color: #eee;
+  --navbar-color: #9d9d9d;
+  --navbar-bg: #222;
+  --navbar-image: linear-gradient(to bottom, #3c3c3c 0, #222 100%);
+  --navbar-height: 50px;
+}
+
+.navbar {
+  background-color: var(--navbar-bg);
+  background-image: var(--navbar-image);
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.2);
+  min-height: var(--navbar-height);
+}
+
+.main-nav {
+  display: none;
+  list-style: none;
+}
+
+.main-nav.active {
+  display: block;
+}
+
+.navbar-brand {
+  font-size: 18px;
+}
+
+.navbar-toggle {
+  color: var(--navbar-color);
+  font-size: 24px;
+  position: absolute;
+  top: 10px;
+  right: 20px;
+}
+
+.navbar a,
+.navbar-dropdown span {
+  color: var(--navbar-color);
+  display: block;
+  padding: 15px;
+  text-decoration: none;
+}
+
+.navbar-brand a {
+  display: inline-block;
+  padding: 12px 15px;
+}
+
+.navbar li {
+  color: var(--navbar-color);
+}
+
+li.navbar-active .navbar-active-bg {
+  background-color: #080808;
+}
+
+li.navbar-active a,
+li.navbar-active span,
+.navbar a:hover {
+  color: #ffffff;
+}
+
+.navbar-dropdown-content a {
+  color: var(--navbar-color) !important;
+  display: block;
+}
+
+.navbar-dropdown-content a:hover {
+  color: #ffffff !important;
+}
+
+.navbar-mailbox {
+  padding: 15px;
+}
+
+.navbar-mailbox input {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 5px 10px;
+  width: 250px;
+}
+
+@media screen and (min-width: 1000px) {
+  .main-nav,
+  .navbar-bg {
+    height: var(--navbar-height);
+  }
+
+  .navbar {
+    align-items: center;
+    background: none;
+    display: flex;
+  }
+
+  .main-nav {
+    display: flex;
+    flex-grow: 2;
+    line-height: 20px;
+    padding: 0;
+  }
+
+  .main-nav.active {
+    display: flex;
+  }
+
+  .navbar-bg {
+    background-color: var(--navbar-bg);
+    background-image: var(--navbar-image);
+    grid-column: 1 / 4;
+    grid-row: 1;
+    width: 100%;
+    z-index: -1;
+  }
+
+  .navbar-brand {
+    margin-left: -15px;
+  }
+
+  .navbar-recent {
+    margin: 0 auto;
+  }
+
+  .navbar-mailbox {
+    order: 1;
+    padding: 8px 0 !important;
+  }
+
+  .navbar-mailbox input {
+    margin-top: 1px;
+  }
+
+  .navbar-dropdown-content {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    display: none;
+    min-width: 160px;
+    position: absolute;
+    text-shadow: none;
+    z-index: 1;
+  }
+
+  .navbar-dropdown:hover .navbar-dropdown-content {
+    display: block;
+  }
+
+  .navbar-dropdown-content a {
+    color: var(--primary-color) !important;
+    padding: 5px 15px;
+  }
+
+  .navbar-dropdown-content a:hover {
+    color: var(--primary-color) !important;
+    background-color: var(--selected-color);
+  }
+
+  .navbar-toggle {
+    display: none;
+  }
+}

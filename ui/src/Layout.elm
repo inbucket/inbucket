@@ -36,6 +36,8 @@ type alias FrameControls msg =
     , recentOptions : List String
     , recentActive : String
     , clearFlash : msg
+    , showMenu : Bool
+    , toggleMenu : msg
     }
 
 
@@ -43,26 +45,30 @@ frame : FrameControls msg -> Session -> Page -> Maybe (Html msg) -> List (Html m
 frame controls session activePage modal content =
     div [ class "app" ]
         [ header []
-            [ ul [ class "navbar", attribute "role" "navigation" ]
-                [ li [ class "navbar-brand" ]
+            [ nav [ class "navbar" ]
+                [ span [ class "navbar-toggle", Events.onClick controls.toggleMenu ]
+                    [ i [ class "fas fa-bars" ] [] ]
+                , span [ class "navbar-brand" ]
                     [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
-                , if session.config.monitorVisible then
-                    navbarLink Monitor Route.Monitor [ text "Monitor" ] activePage
-
-                  else
-                    text ""
-                , navbarLink Status Route.Status [ text "Status" ] activePage
-                , navbarRecent activePage controls
-                , li [ class "navbar-mailbox" ]
-                    [ form [ Events.onSubmit (controls.viewMailbox controls.mailboxValue) ]
-                        [ input
-                            [ type_ "text"
-                            , placeholder "mailbox"
-                            , value controls.mailboxValue
-                            , Events.onInput controls.mailboxOnInput
+                , ul [ classList [ ( "main-nav", True ), ( "active", controls.showMenu ) ] ]
+                    [ li [ class "navbar-mailbox" ]
+                        [ form [ Events.onSubmit (controls.viewMailbox controls.mailboxValue) ]
+                            [ input
+                                [ type_ "text"
+                                , placeholder "mailbox"
+                                , value controls.mailboxValue
+                                , Events.onInput controls.mailboxOnInput
+                                ]
+                                []
                             ]
-                            []
                         ]
+                    , if session.config.monitorVisible then
+                        navbarLink Monitor Route.Monitor [ text "Monitor" ] activePage
+
+                      else
+                        text ""
+                    , navbarLink Status Route.Status [ text "Status" ] activePage
+                    , navbarRecent activePage controls
                     ]
                 ]
             ]
@@ -123,7 +129,7 @@ externalLink url title =
 navbarLink : Page -> Route -> List (Html a) -> Page -> Html a
 navbarLink page route linkContent activePage =
     li [ classList [ ( "navbar-active", page == activePage ) ] ]
-        [ a [ Route.href route ] linkContent ]
+        [ a [ class "navbar-active-bg", Route.href route ] linkContent ]
 
 
 {-| Renders list of recent mailboxes, selecting the currently active mailbox.
@@ -157,6 +163,6 @@ navbarRecent page controls =
         [ class "navbar-recent"
         , classList [ ( "navbar-dropdown", True ), ( "navbar-active", active ) ]
         ]
-        [ span [] [ text title ]
+        [ span [ class "navbar-active-bg" ] [ text title ]
         , div [ class "navbar-dropdown-content" ] (List.map recentLink recentMailboxes)
         ]

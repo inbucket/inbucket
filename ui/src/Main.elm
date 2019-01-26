@@ -25,6 +25,7 @@ import Url exposing (Url)
 type alias Model =
     { page : PageModel
     , mailboxName : String
+    , showMenu : Bool
     }
 
 
@@ -63,6 +64,7 @@ init configValue location key =
         initModel =
             { page = Home subModel
             , mailboxName = ""
+            , showMenu = False
             }
 
         route =
@@ -82,6 +84,7 @@ type Msg
     | ClearFlash
     | OnMailboxNameInput String
     | ViewMailbox String
+    | ToggleMenu
     | HomeMsg Home.Msg
     | MailboxMsg Mailbox.Msg
     | MonitorMsg Monitor.Msg
@@ -213,6 +216,9 @@ updateMain msg model session =
             , Route.pushUrl session.key (Route.Mailbox name)
             )
 
+        ToggleMenu ->
+            ( { model | showMenu = not model.showMenu }, Cmd.none )
+
         _ ->
             updatePage msg model
 
@@ -248,6 +254,9 @@ changeRouteTo route model =
     let
         session =
             getSession model
+
+        newModel =
+            { model | showMenu = False }
     in
     case route of
         Route.Unknown path ->
@@ -257,26 +266,26 @@ changeRouteTo route model =
                     , table = [ ( "Path", path ) ]
                     }
             in
-            ( applyToModelSession (Session.showFlash flash) model
+            ( applyToModelSession (Session.showFlash flash) newModel
             , Cmd.none
             )
 
         Route.Home ->
             Home.init session
-                |> updateWith Home HomeMsg model
+                |> updateWith Home HomeMsg newModel
 
         Route.Mailbox name ->
             Mailbox.init session name Nothing
-                |> updateWith Mailbox MailboxMsg model
+                |> updateWith Mailbox MailboxMsg newModel
 
         Route.Message mailbox id ->
             Mailbox.init session mailbox (Just id)
-                |> updateWith Mailbox MailboxMsg model
+                |> updateWith Mailbox MailboxMsg newModel
 
         Route.Monitor ->
             if session.config.monitorVisible then
                 Monitor.init session
-                    |> updateWith Monitor MonitorMsg model
+                    |> updateWith Monitor MonitorMsg newModel
 
             else
                 let
@@ -285,13 +294,13 @@ changeRouteTo route model =
                         , table = [ ( "Error", "Monitor disabled by configuration." ) ]
                         }
                 in
-                ( applyToModelSession (Session.showFlash flash) model
+                ( applyToModelSession (Session.showFlash flash) newModel
                 , Cmd.none
                 )
 
         Route.Status ->
             Status.init session
-                |> updateWith Status StatusMsg model
+                |> updateWith Status StatusMsg newModel
 
 
 getSession : Model -> Session
@@ -370,6 +379,8 @@ view model =
             , recentOptions = session.persistent.recentMailboxes
             , recentActive = mailbox
             , clearFlash = ClearFlash
+            , showMenu = model.showMenu
+            , toggleMenu = ToggleMenu
             }
 
         framePage :

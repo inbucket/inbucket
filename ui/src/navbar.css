@@ -1,10 +1,6 @@
 /** NAV BAR */
 
 :root {
-  --bg-color: #fff;
-  --primary-color: #333;
-  --border-color: #ddd;
-  --selected-color: #eee;
   --navbar-color: #9d9d9d;
   --navbar-bg: #222;
   --navbar-image: linear-gradient(to bottom, #3c3c3c 0, #222 100%);

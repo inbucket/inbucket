@@ -1,4 +1,5 @@
 import './main.css'
+import './mailbox.css'
 import './navbar.css'
 import '@fortawesome/fontawesome-free/css/all.css'
 import { Elm } from './Main.elm'

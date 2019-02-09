@@ -10,8 +10,12 @@
 }
 
 .message-list-controls {
-  display: flex;
+  display: none;
   grid-area: ctrl;
+}
+
+.list-active .message-list-controls {
+  display: flex;
 }
 
 .message-list-controls input[type="search"] {
@@ -20,11 +24,27 @@
 }
 
 .message-list {
+  display: none;
   grid-area: list;
 }
 
+.list-active .message-list {
+  display: block;
+}
+
 .message {
+  display: none;
   grid-area: mesg;
+  min-height: 0;
+  min-width: 0;
+}
+
+.message-active .message {
+  display: block;
+}
+
+.message-close {
+  margin-right: auto !important;
 }
 
 @media screen and (min-width: 1000px) {
@@ -37,11 +57,21 @@
   }
 
   .message-list {
+    display: block;
     overflow-y: scroll;
   }
 
+  .message-list-controls {
+    display: flex;
+  }
+
   .message {
+    display: block;
     overflow: auto;
+  }
+
+  .message-close {
+    display: none !important;
   }
 }
 
@@ -157,4 +187,3 @@ nav.tab-bar a.active:hover {
 .attachments {
   width: 100%;
 }
-

@@ -136,6 +136,7 @@ type Msg
     = ListLoaded (Result HttpUtil.Error (List MessageHeader))
     | ClickMessage MessageID
     | OpenMessage MessageID
+    | CloseMessage
     | MessageLoaded (Result HttpUtil.Error Message)
     | MessageBody Body
     | OpenedTime Posix
@@ -165,6 +166,14 @@ update msg model =
 
         OpenMessage id ->
             updateOpenMessage model.session model id
+
+        CloseMessage ->
+            case model.state of
+                ShowingList list _ ->
+                    ( { model | state = ShowingList list NoMessage }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         DeleteMessage message ->
             updateDeleteMessage model.session model message
@@ -466,10 +475,19 @@ updateOpenMessage session model id =
 
 view : Model -> { title : String, modal : Maybe (Html Msg), content : List (Html Msg) }
 view model =
+    let
+        mode =
+            case model.state of
+                ShowingList _ (ShowingMessage _) ->
+                    "message-active"
+
+                _ ->
+                    "list-active"
+    in
     { title = model.mailboxName ++ " - Inbucket"
     , modal = viewModal model.promptPurge
     , content =
-        [ div [ class "mailbox" ]
+        [ div [ class ("mailbox " ++ mode) ]
             [ aside [ class "message-list-controls" ]
                 [ input
                     [ type_ "search"
@@ -574,7 +592,9 @@ viewMessage zone message bodyMode =
     in
     div []
         [ div [ class "button-bar" ]
-            [ button [ class "danger", onClick (DeleteMessage message) ] [ text "Delete" ]
+            [ button [ class "message-close light", onClick CloseMessage ]
+                [ i [ class "fas fa-arrow-left" ] [] ]
+            , button [ class "danger", onClick (DeleteMessage message) ] [ text "Delete" ]
             , a
                 [ href sourceUrl, target "_blank" ]
                 [ button [] [ text "Source" ] ]

@@ -30,14 +30,16 @@ type Page
 
 
 type alias FrameControls msg =
-    { viewMailbox : String -> msg
+    { menuVisible : Bool
+    , toggleMenu : msg
+    , recentVisible : Bool
+    , showRecent : Bool -> msg
+    , viewMailbox : String -> msg
     , mailboxOnInput : String -> msg
     , mailboxValue : String
     , recentOptions : List String
     , recentActive : String
     , clearFlash : msg
-    , showMenu : Bool
-    , toggleMenu : msg
     }
 
 
@@ -50,7 +52,7 @@ frame controls session activePage modal content =
                     [ i [ class "fas fa-bars" ] [] ]
                 , span [ class "navbar-brand" ]
                     [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
-                , ul [ classList [ ( "main-nav", True ), ( "active", controls.showMenu ) ] ]
+                , ul [ class "main-nav", classList [ ( "active", controls.menuVisible ) ] ]
                     [ if session.config.monitorVisible then
                         navbarLink Monitor Route.Monitor [ text "Monitor" ] activePage
 
@@ -137,6 +139,7 @@ navbarLink page route linkContent activePage =
 navbarRecent : Page -> FrameControls msg -> Html msg
 navbarRecent page controls =
     let
+        -- Active means we are viewing a specific mailbox.
         active =
             page == Mailbox
 
@@ -156,13 +159,41 @@ navbarRecent page controls =
             else
                 controls.recentOptions
 
+        dropdownExpanded =
+            if controls.recentVisible then
+                "true"
+
+            else
+                "false"
+
         recentLink mailbox =
             a [ Route.href (Route.Mailbox mailbox) ] [ text mailbox ]
     in
     li
-        [ class "navbar-recent"
-        , classList [ ( "navbar-dropdown", True ), ( "navbar-active", active ) ]
+        [ class "navbar-recent navbar-dropdown"
+        , classList [ ( "navbar-active", active ) ]
+        , attribute "aria-haspopup" "true"
+        , ariaExpanded controls.recentVisible
+        , Events.onMouseOver (controls.showRecent True)
+        , Events.onMouseOut (controls.showRecent False)
         ]
-        [ span [ class "navbar-active-bg" ] [ text title ]
+        [ span [ class "navbar-active-bg" ]
+            [ text title
+            , button
+                [ class "navbar-dropdown-button"
+                , Events.onClick (controls.showRecent (not controls.recentVisible))
+                ]
+                [ i [ class "fas fa-chevron-down" ] [] ]
+            ]
         , div [ class "navbar-dropdown-content" ] (List.map recentLink recentMailboxes)
         ]
+
+
+ariaExpanded : Bool -> Attribute msg
+ariaExpanded value =
+    attribute "aria-expanded" <|
+        if value then
+            "true"
+
+        else
+            "false"

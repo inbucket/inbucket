@@ -25,7 +25,8 @@ import Url exposing (Url)
 type alias Model =
     { page : PageModel
     , mailboxName : String
-    , showMenu : Bool
+    , menuVisible : Bool
+    , recentVisible : Bool
     }
 
 
@@ -64,7 +65,8 @@ init configValue location key =
         initModel =
             { page = Home subModel
             , mailboxName = ""
-            , showMenu = False
+            , menuVisible = False
+            , recentVisible = False
             }
 
         route =
@@ -85,6 +87,7 @@ type Msg
     | OnMailboxNameInput String
     | ViewMailbox String
     | ToggleMenu
+    | ShowRecent Bool
     | HomeMsg Home.Msg
     | MailboxMsg Mailbox.Msg
     | MonitorMsg Monitor.Msg
@@ -217,7 +220,10 @@ updateMain msg model session =
             )
 
         ToggleMenu ->
-            ( { model | showMenu = not model.showMenu }, Cmd.none )
+            ( { model | menuVisible = not model.menuVisible }, Cmd.none )
+
+        ShowRecent visible ->
+            ( { model | recentVisible = visible }, Cmd.none )
 
         _ ->
             updatePage msg model
@@ -256,7 +262,7 @@ changeRouteTo route model =
             getSession model
 
         newModel =
-            { model | showMenu = False }
+            { model | menuVisible = False, recentVisible = False }
     in
     case route of
         Route.Unknown path ->
@@ -373,14 +379,16 @@ view model =
                     ""
 
         controls =
-            { viewMailbox = ViewMailbox
+            { menuVisible = model.menuVisible
+            , toggleMenu = ToggleMenu
+            , recentVisible = model.recentVisible
+            , showRecent = ShowRecent
+            , viewMailbox = ViewMailbox
             , mailboxOnInput = OnMailboxNameInput
             , mailboxValue = model.mailboxName
             , recentOptions = session.persistent.recentMailboxes
             , recentActive = mailbox
             , clearFlash = ClearFlash
-            , showMenu = model.showMenu
-            , toggleMenu = ToggleMenu
             }
 
         framePage :

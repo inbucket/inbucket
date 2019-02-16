@@ -36,7 +36,7 @@
 }
 
 .navbar a,
-.navbar-dropdown span {
+.navbar-dropdown {
   color: var(--navbar-color);
   display: block;
   padding: 15px;
@@ -57,7 +57,7 @@
   color: var(--navbar-color);
 }
 
-li.navbar-active .navbar-active-bg {
+li.navbar-active > *:first-child {
   background-color: #080808;
 }
 
@@ -88,8 +88,7 @@ li.navbar-active span,
 }
 
 @media screen and (min-width: 1000px) {
-  .main-nav,
-  .navbar-bg {
+  .main-nav {
     height: var(--navbar-height);
   }
 
@@ -115,16 +114,17 @@ li.navbar-active span,
     background-image: var(--navbar-image);
     grid-column: 1 / 4;
     grid-row: 1;
+    height: var(--navbar-height);
     width: 100%;
     z-index: -1;
   }
 
-  .navbar-brand {
-    margin-left: -15px;
+  .navbar-toggle {
+    display: none;
   }
 
-  .navbar-recent {
-    margin: 0 auto;
+  .navbar-brand {
+    margin-left: -15px;
   }
 
   .navbar-mailbox {
@@ -136,12 +136,20 @@ li.navbar-active span,
     margin-top: 1px;
   }
 
+  .navbar-dropdown-container {
+    margin: 0 auto;
+  }
+
+  .navbar-dropdown {
+    padding: 15px 19px 15px 25px;
+  }
+
   .navbar-dropdown-button {
     background: none;
     border: none;
     color: var(--navbar-color);
     display: inline;
-    padding-right: 0;
+    margin-left: 3px;
   }
 
   .navbar-dropdown-content {
@@ -156,7 +164,7 @@ li.navbar-active span,
     z-index: 1;
   }
 
-  .navbar-dropdown[aria-expanded="true"] .navbar-dropdown-content {
+  .navbar-dropdown-container[aria-expanded="true"] .navbar-dropdown-content {
     display: block;
   }
 
@@ -168,9 +176,5 @@ li.navbar-active span,
   .navbar-dropdown-content a:hover {
     color: var(--primary-color) !important;
     background-color: var(--selected-color);
-  }
-
-  .navbar-toggle {
-    display: none;
   }
 }

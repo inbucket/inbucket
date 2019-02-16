@@ -131,7 +131,7 @@ externalLink url title =
 navbarLink : Page -> Route -> List (Html a) -> Page -> Html a
 navbarLink page route linkContent activePage =
     li [ classList [ ( "navbar-active", page == activePage ) ] ]
-        [ a [ class "navbar-active-bg", Route.href route ] linkContent ]
+        [ a [ Route.href route ] linkContent ]
 
 
 {-| Renders list of recent mailboxes, selecting the currently active mailbox.
@@ -170,14 +170,14 @@ navbarRecent page controls =
             a [ Route.href (Route.Mailbox mailbox) ] [ text mailbox ]
     in
     li
-        [ class "navbar-recent navbar-dropdown"
+        [ class "navbar-dropdown-container"
         , classList [ ( "navbar-active", active ) ]
         , attribute "aria-haspopup" "true"
         , ariaExpanded controls.recentVisible
         , Events.onMouseOver (controls.showRecent True)
         , Events.onMouseOut (controls.showRecent False)
         ]
-        [ span [ class "navbar-active-bg" ]
+        [ span [ class "navbar-dropdown" ]
             [ text title
             , button
                 [ class "navbar-dropdown-button"

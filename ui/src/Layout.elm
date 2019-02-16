@@ -51,7 +51,14 @@ frame controls session activePage modal content =
                 , span [ class "navbar-brand" ]
                     [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
                 , ul [ classList [ ( "main-nav", True ), ( "active", controls.showMenu ) ] ]
-                    [ li [ class "navbar-mailbox" ]
+                    [ if session.config.monitorVisible then
+                        navbarLink Monitor Route.Monitor [ text "Monitor" ] activePage
+
+                      else
+                        text ""
+                    , navbarLink Status Route.Status [ text "Status" ] activePage
+                    , navbarRecent activePage controls
+                    , li [ class "navbar-mailbox" ]
                         [ form [ Events.onSubmit (controls.viewMailbox controls.mailboxValue) ]
                             [ input
                                 [ type_ "text"
@@ -62,13 +69,6 @@ frame controls session activePage modal content =
                                 []
                             ]
                         ]
-                    , if session.config.monitorVisible then
-                        navbarLink Monitor Route.Monitor [ text "Monitor" ] activePage
-
-                      else
-                        text ""
-                    , navbarLink Status Route.Status [ text "Status" ] activePage
-                    , navbarRecent activePage controls
                     ]
                 ]
             ]

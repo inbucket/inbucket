@@ -17,6 +17,7 @@ import Html.Attributes
         , id
         , placeholder
         , property
+        , tabindex
         , target
         , type_
         , value
@@ -586,18 +587,16 @@ viewMessage zone message bodyMode =
                 text ""
 
             else
-                a
-                    [ href htmlUrl, target "_blank" ]
-                    [ button [] [ text "Raw HTML" ] ]
+                a [ href htmlUrl, target "_blank" ]
+                    [ button [ tabindex -1 ] [ text "Raw HTML" ] ]
     in
     div []
         [ div [ class "button-bar" ]
             [ button [ class "message-close light", onClick CloseMessage ]
                 [ i [ class "fas fa-arrow-left" ] [] ]
             , button [ class "danger", onClick (DeleteMessage message) ] [ text "Delete" ]
-            , a
-                [ href sourceUrl, target "_blank" ]
-                [ button [] [ text "Source" ] ]
+            , a [ href sourceUrl, target "_blank" ]
+                [ button [ tabindex -1 ] [ text "Source" ] ]
             , htmlButton
             ]
         , dl [ class "message-header" ]

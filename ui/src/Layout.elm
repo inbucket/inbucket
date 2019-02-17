@@ -31,19 +31,15 @@ type Page
 
 type alias Model msg =
     { mapMsg : Msg -> msg
-    , clearFlash : msg
-    , viewMailbox : String -> msg
     , menuVisible : Bool
     , recentVisible : Bool
     , mailboxName : String
     }
 
 
-init : (Msg -> msg) -> msg -> (String -> msg) -> Model msg
-init mapMsg clearFlash viewMailbox =
+init : (Msg -> msg) -> Model msg
+init mapMsg =
     { mapMsg = mapMsg
-    , clearFlash = clearFlash
-    , viewMailbox = viewMailbox
     , menuVisible = False
     , recentVisible = False
     , mailboxName = ""
@@ -62,22 +58,45 @@ reset model =
 
 
 type Msg
-    = ToggleMenu
-    | ShowRecent Bool
+    = ClearFlash
     | OnMailboxNameInput String
+    | OpenMailbox
+    | ShowRecent Bool
+    | ToggleMenu
 
 
-update : Msg -> Model msg -> Model msg
-update msg model =
+update : Msg -> Model msg -> Session -> ( Model msg, Session, Cmd msg )
+update msg model session =
     case msg of
-        ToggleMenu ->
-            { model | menuVisible = not model.menuVisible }
-
-        ShowRecent visible ->
-            { model | recentVisible = visible }
+        ClearFlash ->
+            ( model
+            , Session.clearFlash session
+            , Cmd.none
+            )
 
         OnMailboxNameInput name ->
-            { model | mailboxName = name }
+            ( { model | mailboxName = name }
+            , session
+            , Cmd.none
+            )
+
+        OpenMailbox ->
+            ( model
+            , session
+            , Route.pushUrl session.key (Route.Mailbox model.mailboxName)
+            )
+
+        ShowRecent visible ->
+            ( { model | recentVisible = visible }
+            , session
+            , Cmd.none
+            )
+
+        ToggleMenu ->
+            ( { model | menuVisible = not model.menuVisible }
+            , session
+            , Cmd.none
+            )
 
 
 type alias State msg =
@@ -108,7 +127,7 @@ frame { model, session, activePage, activeMailbox, modal, content } =
                     , navbarLink Status Route.Status [ text "Status" ] activePage
                     , navbarRecent activePage activeMailbox model session
                     , li [ class "navbar-mailbox" ]
-                        [ form [ Events.onSubmit (model.viewMailbox model.mailboxName) ]
+                        [ form [ Events.onSubmit (OpenMailbox |> model.mapMsg) ]
                             [ input
                                 [ type_ "text"
                                 , placeholder "mailbox"
@@ -148,7 +167,7 @@ frameModal maybeModal =
 
 
 errorFlash : Model msg -> Maybe Session.Flash -> Html msg
-errorFlash controls maybeFlash =
+errorFlash model maybeFlash =
     let
         row ( heading, message ) =
             tr []
@@ -164,7 +183,7 @@ errorFlash controls maybeFlash =
             div [ class "well well-error" ]
                 [ div [ class "flash-header" ]
                     [ h2 [] [ text flash.title ]
-                    , a [ href "#", Events.onClick controls.clearFlash ] [ text "Close" ]
+                    , a [ href "#", Events.onClick (ClearFlash |> model.mapMsg) ] [ text "Close" ]
                     ]
                 , div [ class "flash-table" ] (List.map row flash.table)
                 ]

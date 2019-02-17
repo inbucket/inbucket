@@ -61,7 +61,7 @@ init configValue location key =
             Home.init session
 
         initModel =
-            { layout = Layout.init LayoutMsg ClearFlash ViewMailbox
+            { layout = Layout.init LayoutMsg
             , page = Home subModel
             }
 
@@ -79,8 +79,6 @@ type Msg
     | LinkClicked UrlRequest
     | SessionUpdated (Result D.Error Session.Persistent)
     | TimeZoneLoaded Time.Zone
-    | ClearFlash
-    | ViewMailbox String
     | LayoutMsg Layout.Msg
     | HomeMsg Home.Msg
     | MailboxMsg Mailbox.Msg
@@ -179,11 +177,6 @@ updateMain msg model session =
                 , Cmd.none
                 )
 
-        ClearFlash ->
-            ( applyToModelSession Session.clearFlash model
-            , Cmd.none
-            )
-
         SessionUpdated (Ok persistent) ->
             ( updateSession model { session | persistent = persistent }
             , Cmd.none
@@ -205,13 +198,14 @@ updateMain msg model session =
             , Cmd.none
             )
 
-        ViewMailbox name ->
-            ( applyToModelSession Session.clearFlash model
-            , Route.pushUrl session.key (Route.Mailbox name)
-            )
-
         LayoutMsg subMsg ->
-            ( { model | layout = Layout.update subMsg model.layout }, Cmd.none )
+            let
+                ( layout, newSession, cmd ) =
+                    Layout.update subMsg model.layout session
+            in
+            ( updateSession { model | layout = layout } newSession
+            , cmd
+            )
 
         _ ->
             updatePage msg model

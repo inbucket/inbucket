@@ -18,6 +18,18 @@
   display: flex;
 }
 
+.message-list-controls button,
+.message-list-controls input[type="search"] {
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+}
+
+.message-list-controls button {
+  color: var(--low-color);
+  margin-left: 1px;
+  padding: 0 6px;
+}
+
 .message-list-controls input[type="search"] {
   flex: 1 1 auto;
   padding: 2px 4px;

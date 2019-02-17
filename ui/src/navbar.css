@@ -30,9 +30,10 @@
 .navbar-toggle {
   color: var(--navbar-color);
   font-size: 24px;
+  padding: 0 6px;
   position: absolute;
   top: 10px;
-  right: 20px;
+  right: 14px;
 }
 
 .navbar a,

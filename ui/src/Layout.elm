@@ -114,7 +114,7 @@ frame { model, session, activePage, activeMailbox, modal, content } =
     div [ class "app" ]
         [ header []
             [ nav [ class "navbar" ]
-                [ span [ class "navbar-toggle", Events.onClick (ToggleMenu |> model.mapMsg) ]
+                [ button [ class "navbar-toggle", Events.onClick (ToggleMenu |> model.mapMsg) ]
                     [ i [ class "fas fa-bars" ] [] ]
                 , span [ class "navbar-brand" ]
                     [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]

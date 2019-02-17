@@ -23,9 +23,8 @@ import Url exposing (Url)
 
 
 type alias Model =
-    { page : PageModel
-    , mailboxName : String
-    , showMenu : Bool
+    { layout : Layout.Model Msg
+    , page : PageModel
     }
 
 
@@ -62,9 +61,8 @@ init configValue location key =
             Home.init session
 
         initModel =
-            { page = Home subModel
-            , mailboxName = ""
-            , showMenu = False
+            { layout = Layout.init LayoutMsg
+            , page = Home subModel
             }
 
         route =
@@ -81,10 +79,7 @@ type Msg
     | LinkClicked UrlRequest
     | SessionUpdated (Result D.Error Session.Persistent)
     | TimeZoneLoaded Time.Zone
-    | ClearFlash
-    | OnMailboxNameInput String
-    | ViewMailbox String
-    | ToggleMenu
+    | LayoutMsg Layout.Msg
     | HomeMsg Home.Msg
     | MailboxMsg Mailbox.Msg
     | MonitorMsg Monitor.Msg
@@ -182,11 +177,6 @@ updateMain msg model session =
                 , Cmd.none
                 )
 
-        ClearFlash ->
-            ( applyToModelSession Session.clearFlash model
-            , Cmd.none
-            )
-
         SessionUpdated (Ok persistent) ->
             ( updateSession model { session | persistent = persistent }
             , Cmd.none
@@ -208,16 +198,14 @@ updateMain msg model session =
             , Cmd.none
             )
 
-        OnMailboxNameInput name ->
-            ( { model | mailboxName = name }, Cmd.none )
-
-        ViewMailbox name ->
-            ( applyToModelSession Session.clearFlash { model | mailboxName = "" }
-            , Route.pushUrl session.key (Route.Mailbox name)
+        LayoutMsg subMsg ->
+            let
+                ( layout, newSession, cmd ) =
+                    Layout.update subMsg model.layout session
+            in
+            ( updateSession { model | layout = layout } newSession
+            , cmd
             )
-
-        ToggleMenu ->
-            ( { model | showMenu = not model.showMenu }, Cmd.none )
 
         _ ->
             updatePage msg model
@@ -256,7 +244,7 @@ changeRouteTo route model =
             getSession model
 
         newModel =
-            { model | showMenu = False }
+            { model | layout = Layout.reset model.layout }
     in
     case route of
         Route.Unknown path ->
@@ -372,17 +360,6 @@ view model =
                 _ ->
                     ""
 
-        controls =
-            { viewMailbox = ViewMailbox
-            , mailboxOnInput = OnMailboxNameInput
-            , mailboxValue = model.mailboxName
-            , recentOptions = session.persistent.recentMailboxes
-            , recentActive = mailbox
-            , clearFlash = ClearFlash
-            , showMenu = model.showMenu
-            , toggleMenu = ToggleMenu
-            }
-
         framePage :
             Layout.Page
             -> (msg -> Msg)
@@ -391,11 +368,13 @@ view model =
         framePage page toMsg { title, modal, content } =
             Document title
                 [ Layout.frame
-                    controls
-                    session
-                    page
-                    (Maybe.map (Html.map toMsg) modal)
-                    (List.map (Html.map toMsg) content)
+                    { model = model.layout
+                    , session = session
+                    , activePage = page
+                    , activeMailbox = mailbox
+                    , modal = Maybe.map (Html.map toMsg) modal
+                    , content = List.map (Html.map toMsg) content
+                    }
                 ]
     in
     case model.page of

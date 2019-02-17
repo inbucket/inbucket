@@ -36,6 +36,7 @@ type Msg
     | MessageReceived D.Value
     | Clear
     | OpenMessage MessageHeader
+    | MessageKeyPress MessageHeader Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -69,9 +70,22 @@ update msg model =
             ( { model | messages = [] }, Cmd.none )
 
         OpenMessage header ->
-            ( model
-            , Route.pushUrl model.session.key (Route.Message header.mailbox header.id)
-            )
+            openMessage header model
+
+        MessageKeyPress header keyCode ->
+            case keyCode of
+                13 ->
+                    openMessage header model
+
+                _ ->
+                    ( model, Cmd.none )
+
+
+openMessage : MessageHeader -> Model -> ( Model, Cmd Msg )
+openMessage header model =
+    ( model
+    , Route.pushUrl model.session.key (Route.Message header.mailbox header.id)
+    )
 
 
 
@@ -121,7 +135,11 @@ view model =
 
 viewMessage : Time.Zone -> MessageHeader -> Html Msg
 viewMessage zone message =
-    tr [ Events.onClick (OpenMessage message) ]
+    tr
+        [ tabindex 0
+        , Events.onClick (OpenMessage message)
+        , onKeyUp (MessageKeyPress message)
+        ]
         [ td [] [ shortDate zone message.date ]
         , td [ class "desktop" ] [ text message.from ]
         , td [] [ text message.mailbox ]
@@ -147,3 +165,8 @@ shortDate zone date =
         zone
         date
         |> text
+
+
+onKeyUp : (Int -> msg) -> Attribute msg
+onKeyUp tagger =
+    Events.on "keyup" (D.map tagger Events.keyCode)

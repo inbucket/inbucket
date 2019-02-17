@@ -22,11 +22,11 @@ import Html.Attributes
         , type_
         , value
         )
-import Html.Events exposing (..)
+import Html.Events as Events
 import Http exposing (Error)
 import HttpUtil
-import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode
+import Json.Decode as D
+import Json.Encode as E
 import Ports
 import Route
 import Task
@@ -136,6 +136,7 @@ subscriptions model =
 type Msg
     = ListLoaded (Result HttpUtil.Error (List MessageHeader))
     | ClickMessage MessageID
+    | ListKeyPress String Int
     | OpenMessage MessageID
     | CloseMessage
     | MessageLoaded (Result HttpUtil.Error Message)
@@ -166,7 +167,7 @@ update msg model =
             )
 
         OpenMessage id ->
-            updateOpenMessage model.session model id
+            updateOpenMessage model id
 
         CloseMessage ->
             case model.state of
@@ -187,6 +188,14 @@ update msg model =
             , Cmd.none
             )
 
+        ListKeyPress id keyCode ->
+            case keyCode of
+                13 ->
+                    updateOpenMessage model id
+
+                _ ->
+                    ( model, Cmd.none )
+
         ListLoaded (Ok headers) ->
             case model.state of
                 LoadingList selection ->
@@ -198,7 +207,7 @@ update msg model =
                     in
                     case selection of
                         Just id ->
-                            updateOpenMessage model.session newModel id
+                            updateOpenMessage newModel id
 
                         Nothing ->
                             ( { newModel
@@ -459,8 +468,8 @@ updateMarkMessageSeen model message =
             ( model, Cmd.none )
 
 
-updateOpenMessage : Session -> Model -> String -> ( Model, Cmd Msg )
-updateOpenMessage session model id =
+updateOpenMessage : Model -> String -> ( Model, Cmd Msg )
+updateOpenMessage model id =
     let
         newModel =
             { model | session = Session.addRecent model.mailboxName model.session }
@@ -493,12 +502,12 @@ view model =
                 [ input
                     [ type_ "search"
                     , placeholder "search"
-                    , onInput OnSearchInput
+                    , Events.onInput OnSearchInput
                     , value model.searchInput
                     ]
                     []
                 , button
-                    [ onClick PurgeMailboxPrompt
+                    [ Events.onClick PurgeMailboxPrompt
                     , alt "Purge Mailbox"
                     ]
                     [ i [ class "fas fa-trash" ] [] ]
@@ -534,8 +543,8 @@ viewModal promptPurge =
             div []
                 [ p [] [ text "Are you sure you want to delete all messages in this mailbox?" ]
                 , div [ class "button-bar" ]
-                    [ button [ onClick PurgeMailboxConfirmed, class "danger" ] [ text "Yes" ]
-                    , button [ onClick PurgeMailboxCanceled ] [ text "Cancel" ]
+                    [ button [ Events.onClick PurgeMailboxConfirmed, class "danger" ] [ text "Yes" ]
+                    , button [ Events.onClick PurgeMailboxCanceled ] [ text "Cancel" ]
                     ]
                 ]
 
@@ -560,12 +569,14 @@ viewMessageList session model =
 messageChip : Model -> Maybe MessageID -> MessageHeader -> Html Msg
 messageChip model selected message =
     div
-        [ classList
-            [ ( "message-list-entry", True )
-            , ( "selected", selected == Just message.id )
+        [ class "message-list-entry"
+        , classList
+            [ ( "selected", selected == Just message.id )
             , ( "unseen", not message.seen )
             ]
-        , onClick (ClickMessage message.id)
+        , Events.onClick (ClickMessage message.id)
+        , onKeyUp (ListKeyPress message.id)
+        , tabindex 0
         ]
         [ div [ class "subject" ] [ text message.subject ]
         , div [ class "from" ] [ text message.from ]
@@ -592,9 +603,9 @@ viewMessage zone message bodyMode =
     in
     div []
         [ div [ class "button-bar" ]
-            [ button [ class "message-close light", onClick CloseMessage ]
+            [ button [ class "message-close light", Events.onClick CloseMessage ]
                 [ i [ class "fas fa-arrow-left" ] [] ]
-            , button [ class "danger", onClick (DeleteMessage message) ] [ text "Delete" ]
+            , button [ class "danger", Events.onClick (DeleteMessage message) ] [ text "Delete" ]
             , a [ href sourceUrl, target "_blank" ]
                 [ button [ tabindex -1 ] [ text "Source" ] ]
             , htmlButton
@@ -643,7 +654,7 @@ messageBody message bodyMode =
         bodyModeTab mode label =
             a
                 [ classList [ ( "active", bodyMode == mode ) ]
-                , onClick (MessageBody mode)
+                , Events.onClick (MessageBody mode)
                 , href "#"
                 ]
                 [ text label ]
@@ -666,10 +677,10 @@ messageBody message bodyMode =
         , article [ class "message-body" ]
             [ case bodyMode of
                 SafeHtmlBody ->
-                    Html.node "rendered-html" [ property "content" (Encode.string message.html) ] []
+                    Html.node "rendered-html" [ property "content" (E.string message.html) ] []
 
                 TextBody ->
-                    Html.node "rendered-html" [ property "content" (Encode.string message.text) ] []
+                    Html.node "rendered-html" [ property "content" (E.string message.text) ] []
             ]
         ]
 
@@ -749,3 +760,8 @@ filterMessageList list =
                     || String.contains list.searchFilter (String.toLower header.from)
         in
         List.filter matches list.headers
+
+
+onKeyUp : (Int -> msg) -> Attribute msg
+onKeyUp tagger =
+    Events.on "keyup" (D.map tagger Events.keyCode)

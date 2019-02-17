@@ -1,4 +1,4 @@
-module Layout exposing (Page(..), frame)
+module Layout exposing (Model, Msg, Page(..), frame, init, reset, update)
 
 import Data.Session as Session exposing (Session)
 import Html exposing (..)
@@ -29,44 +29,91 @@ type Page
     | Status
 
 
-type alias FrameControls msg =
-    { menuVisible : Bool
-    , toggleMenu : msg
-    , recentVisible : Bool
-    , showRecent : Bool -> msg
-    , viewMailbox : String -> msg
-    , mailboxOnInput : String -> msg
-    , mailboxValue : String
-    , recentOptions : List String
-    , recentActive : String
+type alias Model msg =
+    { mapMsg : Msg -> msg
     , clearFlash : msg
+    , viewMailbox : String -> msg
+    , menuVisible : Bool
+    , recentVisible : Bool
+    , mailboxName : String
     }
 
 
-frame : FrameControls msg -> Session -> Page -> Maybe (Html msg) -> List (Html msg) -> Html msg
-frame controls session activePage modal content =
+init : (Msg -> msg) -> msg -> (String -> msg) -> Model msg
+init mapMsg clearFlash viewMailbox =
+    { mapMsg = mapMsg
+    , clearFlash = clearFlash
+    , viewMailbox = viewMailbox
+    , menuVisible = False
+    , recentVisible = False
+    , mailboxName = ""
+    }
+
+
+{-| Resets layout state, used when navigating to a new page.
+-}
+reset : Model msg -> Model msg
+reset model =
+    { model
+        | menuVisible = False
+        , recentVisible = False
+        , mailboxName = ""
+    }
+
+
+type Msg
+    = ToggleMenu
+    | ShowRecent Bool
+    | OnMailboxNameInput String
+
+
+update : Msg -> Model msg -> Model msg
+update msg model =
+    case msg of
+        ToggleMenu ->
+            { model | menuVisible = not model.menuVisible }
+
+        ShowRecent visible ->
+            { model | recentVisible = visible }
+
+        OnMailboxNameInput name ->
+            { model | mailboxName = name }
+
+
+type alias State msg =
+    { model : Model msg
+    , session : Session
+    , activePage : Page
+    , activeMailbox : String
+    , modal : Maybe (Html msg)
+    , content : List (Html msg)
+    }
+
+
+frame : State msg -> Html msg
+frame { model, session, activePage, activeMailbox, modal, content } =
     div [ class "app" ]
         [ header []
             [ nav [ class "navbar" ]
-                [ span [ class "navbar-toggle", Events.onClick controls.toggleMenu ]
+                [ span [ class "navbar-toggle", Events.onClick (ToggleMenu |> model.mapMsg) ]
                     [ i [ class "fas fa-bars" ] [] ]
                 , span [ class "navbar-brand" ]
                     [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
-                , ul [ class "main-nav", classList [ ( "active", controls.menuVisible ) ] ]
+                , ul [ class "main-nav", classList [ ( "active", model.menuVisible ) ] ]
                     [ if session.config.monitorVisible then
                         navbarLink Monitor Route.Monitor [ text "Monitor" ] activePage
 
                       else
                         text ""
                     , navbarLink Status Route.Status [ text "Status" ] activePage
-                    , navbarRecent activePage controls
+                    , navbarRecent activePage activeMailbox model session
                     , li [ class "navbar-mailbox" ]
-                        [ form [ Events.onSubmit (controls.viewMailbox controls.mailboxValue) ]
+                        [ form [ Events.onSubmit (model.viewMailbox model.mailboxName) ]
                             [ input
                                 [ type_ "text"
                                 , placeholder "mailbox"
-                                , value controls.mailboxValue
-                                , Events.onInput controls.mailboxOnInput
+                                , value model.mailboxName
+                                , Events.onInput (OnMailboxNameInput >> model.mapMsg)
                                 ]
                                 []
                             ]
@@ -76,11 +123,11 @@ frame controls session activePage modal content =
             ]
         , div [ class "navbar-bg" ] [ text "" ]
         , frameModal modal
-        , div [ class "page" ] ([ errorFlash controls session.flash ] ++ content)
+        , div [ class "page" ] ([ errorFlash model session.flash ] ++ content)
         , footer []
             [ div [ class "footer" ]
                 [ externalLink "https://www.inbucket.org" "Inbucket"
-                , text " is an open source projected hosted at "
+                , text " is an open source project hosted on "
                 , externalLink "https://github.com/jhillyerd/inbucket" "GitHub"
                 , text "."
                 ]
@@ -100,7 +147,7 @@ frameModal maybeModal =
             text ""
 
 
-errorFlash : FrameControls msg -> Maybe Session.Flash -> Html msg
+errorFlash : Model msg -> Maybe Session.Flash -> Html msg
 errorFlash controls maybeFlash =
     let
         row ( heading, message ) =
@@ -136,8 +183,8 @@ navbarLink page route linkContent activePage =
 
 {-| Renders list of recent mailboxes, selecting the currently active mailbox.
 -}
-navbarRecent : Page -> FrameControls msg -> Html msg
-navbarRecent page controls =
+navbarRecent : Page -> String -> Model msg -> Session -> Html msg
+navbarRecent page activeMailbox model session =
     let
         -- Active means we are viewing a specific mailbox.
         active =
@@ -146,7 +193,7 @@ navbarRecent page controls =
         -- Recent tab title is the name of the current mailbox when active.
         title =
             if active then
-                controls.recentActive
+                activeMailbox
 
             else
                 "Recent Mailboxes"
@@ -154,13 +201,13 @@ navbarRecent page controls =
         -- Mailboxes to show in recent list, doesn't include active mailbox.
         recentMailboxes =
             if active then
-                List.tail controls.recentOptions |> Maybe.withDefault []
+                List.tail session.persistent.recentMailboxes |> Maybe.withDefault []
 
             else
-                controls.recentOptions
+                session.persistent.recentMailboxes
 
         dropdownExpanded =
-            if controls.recentVisible then
+            if model.recentVisible then
                 "true"
 
             else
@@ -173,15 +220,15 @@ navbarRecent page controls =
         [ class "navbar-dropdown-container"
         , classList [ ( "navbar-active", active ) ]
         , attribute "aria-haspopup" "true"
-        , ariaExpanded controls.recentVisible
-        , Events.onMouseOver (controls.showRecent True)
-        , Events.onMouseOut (controls.showRecent False)
+        , ariaExpanded model.recentVisible
+        , Events.onMouseOver (ShowRecent True |> model.mapMsg)
+        , Events.onMouseOut (ShowRecent False |> model.mapMsg)
         ]
         [ span [ class "navbar-dropdown" ]
             [ text title
             , button
                 [ class "navbar-dropdown-button"
-                , Events.onClick (controls.showRecent (not controls.recentVisible))
+                , Events.onClick (ShowRecent (not model.recentVisible) |> model.mapMsg)
                 ]
                 [ i [ class "fas fa-chevron-down" ] [] ]
             ]

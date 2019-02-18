@@ -130,11 +130,7 @@ li.navbar-active span,
 
   .navbar-mailbox {
     order: 1;
-    padding: 8px 0 !important;
-  }
-
-  .navbar-mailbox input {
-    margin-top: 1px;
+    padding: 9px 0 8px 0 !important;
   }
 
   .navbar-dropdown-container {

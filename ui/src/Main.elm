@@ -245,17 +245,6 @@ changeRouteTo route model =
             { model | layout = Layout.reset model.layout }
     in
     case route of
-        Route.Unknown path ->
-            let
-                flash =
-                    { title = "Unknown route requested"
-                    , table = [ ( "Path", path ) ]
-                    }
-            in
-            ( applyToModelSession (Session.showFlash flash) newModel
-            , Cmd.none
-            )
-
         Route.Home ->
             Home.init session
                 |> updateWith Home HomeMsg newModel
@@ -276,7 +265,7 @@ changeRouteTo route model =
             else
                 let
                     flash =
-                        { title = "Unknown route requested"
+                        { title = "Disabled route requested"
                         , table = [ ( "Error", "Monitor disabled by configuration." ) ]
                         }
                 in
@@ -287,6 +276,17 @@ changeRouteTo route model =
         Route.Status ->
             Status.init session
                 |> updateWith Status StatusMsg newModel
+
+        Route.Unknown path ->
+            -- Unknown routes display Home with an error flash.
+            let
+                flash =
+                    { title = "Unknown route requested"
+                    , table = [ ( "Path", path ) ]
+                    }
+            in
+            Home.init (Session.showFlash flash session)
+                |> updateWith Home HomeMsg newModel
 
 
 getSession : Model -> Session

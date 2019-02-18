@@ -81,10 +81,14 @@ update msg model session =
             )
 
         OpenMailbox ->
-            ( model
-            , session
-            , Route.pushUrl session.key (Route.Mailbox model.mailboxName)
-            )
+            if model.mailboxName == "" then
+                ( model, session, Cmd.none )
+
+            else
+                ( model
+                , session
+                , Route.pushUrl session.key (Route.Mailbox model.mailboxName)
+                )
 
         ShowRecent visible ->
             ( { model | recentVisible = visible }

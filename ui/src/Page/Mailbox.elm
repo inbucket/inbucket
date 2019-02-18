@@ -178,7 +178,7 @@ update msg model =
                     ( model, Cmd.none )
 
         DeleteMessage message ->
-            updateDeleteMessage model.session model message
+            updateDeleteMessage model message
 
         DeletedMessage (Ok _) ->
             ( model, Cmd.none )
@@ -280,7 +280,7 @@ update msg model =
             ( { model | promptPurge = False }, Cmd.none )
 
         PurgeMailboxConfirmed ->
-            updatePurge model.session model
+            updatePurge model
 
         PurgedMailbox (Ok _) ->
             ( model, Cmd.none )
@@ -339,12 +339,12 @@ updateMessageResult model message =
             )
 
 
-updatePurge : Session -> Model -> ( Model, Cmd Msg )
-updatePurge session model =
+updatePurge : Model -> ( Model, Cmd Msg )
+updatePurge model =
     let
         cmd =
             Cmd.batch
-                [ Route.replaceUrl session.key (Route.Mailbox model.mailboxName)
+                [ Route.replaceUrl model.session.key (Route.Mailbox model.mailboxName)
                 , Api.purgeMailbox PurgedMailbox model.mailboxName
                 ]
     in
@@ -413,8 +413,8 @@ updateSelected model id =
                     { model | state = ShowingList newList (Transitioning visible) }
 
 
-updateDeleteMessage : Session -> Model -> Message -> ( Model, Cmd Msg )
-updateDeleteMessage session model message =
+updateDeleteMessage : Model -> Message -> ( Model, Cmd Msg )
+updateDeleteMessage model message =
     let
         filter f messageList =
             { messageList | headers = List.filter f messageList.headers }
@@ -428,7 +428,7 @@ updateDeleteMessage session model message =
               }
             , Cmd.batch
                 [ Api.deleteMessage DeletedMessage message.mailbox message.id
-                , Route.replaceUrl session.key (Route.Mailbox model.mailboxName)
+                , Route.replaceUrl model.session.key (Route.Mailbox model.mailboxName)
                 ]
             )
 
@@ -512,7 +512,7 @@ view model =
                     ]
                     [ i [ class "fas fa-trash" ] [] ]
                 ]
-            , viewMessageList model.session model
+            , viewMessageList model
             , main_
                 [ class "message" ]
                 [ case model.state of
@@ -552,8 +552,8 @@ viewModal promptPurge =
         Nothing
 
 
-viewMessageList : Session -> Model -> Html Msg
-viewMessageList session model =
+viewMessageList : Model -> Html Msg
+viewMessageList model =
     aside [ class "message-list" ] <|
         case model.state of
             LoadingList _ ->

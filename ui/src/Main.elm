@@ -159,9 +159,7 @@ updateMain msg model session =
                             ( model, Cmd.none )
 
                         _ ->
-                            ( applyToModelSession Session.clearFlash model
-                            , Nav.pushUrl session.key (Url.toString url)
-                            )
+                            ( model, Nav.pushUrl session.key (Url.toString url) )
 
                 Browser.External url ->
                     ( model, Nav.load url )
@@ -241,7 +239,7 @@ changeRouteTo : Route -> Model -> ( Model, Cmd Msg )
 changeRouteTo route model =
     let
         session =
-            getSession model
+            getSession model |> Session.clearFlash
 
         newModel =
             { model | layout = Layout.reset model.layout }

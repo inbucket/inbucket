@@ -8,7 +8,7 @@ stdenv.mkDerivation rec {
     elmPackages.elm-format
     go
     golint
-    nodejs
+    nodejs-10_x
     rpm
     swaks
   ];

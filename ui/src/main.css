@@ -4,6 +4,7 @@
   --bg-color: #fff;
   --primary-color: #333;
   --low-color: #666;
+  --disabled-color: #ddd;
   --high-color: #337ab7;
   --border-color: #ddd;
   --placeholder-color: #9f9f9f;
@@ -53,6 +54,7 @@ body, button, input, table {
 
 button {
   background: none;
+  cursor: pointer;
 }
 
 h1, h2, h3, h4, h5, h6, p {

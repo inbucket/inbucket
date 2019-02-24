@@ -12,6 +12,7 @@ import Html.Attributes
         ( alt
         , class
         , classList
+        , disabled
         , download
         , href
         , id
@@ -500,12 +501,18 @@ view model =
         [ div [ class ("mailbox " ++ mode) ]
             [ aside [ class "message-list-controls" ]
                 [ input
-                    [ type_ "search"
+                    [ type_ "text"
                     , placeholder "search"
                     , Events.onInput OnSearchInput
                     , value model.searchInput
                     ]
                     []
+                , button
+                    [ Events.onClick (OnSearchInput "")
+                    , disabled (model.searchInput == "")
+                    , alt "Clear Search"
+                    ]
+                    [ i [ class "fas fa-times" ] [] ]
                 , button
                     [ Events.onClick PurgeMailboxPrompt
                     , alt "Purge Mailbox"

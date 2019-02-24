@@ -19,7 +19,7 @@
 }
 
 .message-list-controls button,
-.message-list-controls input[type="search"] {
+.message-list-controls input {
   border: 1px solid var(--border-color);
   border-radius: 3px;
 }
@@ -30,7 +30,12 @@
   padding: 0 6px;
 }
 
-.message-list-controls input[type="search"] {
+.message-list-controls button:disabled {
+  color: var(--disabled-color);
+  cursor: default;
+}
+
+.message-list-controls input {
   flex: 1 1 auto;
   padding: 2px 4px;
 }

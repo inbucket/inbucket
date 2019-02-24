@@ -10,6 +10,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `posix-millis` field to REST message and header responses for easier date
   parsing.
 
+### Changed
+- Rewrote the user interface from scratch, it's now an Elm powered single page
+  application.
+- Moved the Inbucket repository to its own GitHub organization.
+
+
+## v2.1.0
+
+No change from beta1.
+
 
 ## [v2.1.0-beta1]
 
@@ -104,7 +114,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `rest/client` types `MessageHeader` and `Message` with convenience methods;
   provides a more natural API
 - Powerful command line REST
-  [client](https://github.com/jhillyerd/inbucket/wiki/cmd-client)
+  [client](https://github.com/inbucket/inbucket/wiki/cmd-client)
 - Allow use of `latest` as a message ID in REST calls
 
 ### Changed
@@ -119,9 +129,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Storage of `To:` header in messages (likely breaks existing datastores)
 - Attachment list to [GET message
-  JSON](https://github.com/jhillyerd/inbucket/wiki/REST-GET-message)
+  JSON](https://github.com/inbucket/inbucket/wiki/REST-GET-message)
 - [Go client for REST
-  API](https://godoc.org/github.com/jhillyerd/inbucket/rest/client)
+  API](https://godoc.org/github.com/inbucket/inbucket/rest/client)
 - Monitor feature: lists messages as they arrive, regardless of their
   destination mailbox
 - Make `@inbucket` mailbox prompt configurable
@@ -184,19 +194,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Add Link button to messages, allows for directing another person to a
   specific message.
 
-[Unreleased]:  https://github.com/jhillyerd/inbucket/compare/master...develop
-[v2.1.0-beta1]: https://github.com/jhillyerd/inbucket/compare/v2.0.0...v2.1.0-beta1
-[v2.0.0]:      https://github.com/jhillyerd/inbucket/compare/v2.0.0-rc1...v2.0.0
-[v2.0.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/v1.3.1...v2.0.0-rc1
-[v1.3.1]:      https://github.com/jhillyerd/inbucket/compare/v1.3.0...v1.3.1
-[v1.3.0]:      https://github.com/jhillyerd/inbucket/compare/v1.2.0...v1.3.0
-[v1.2.0]:      https://github.com/jhillyerd/inbucket/compare/1.2.0-rc2...1.2.0
-[v1.2.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.2.0-rc1...1.2.0-rc2
-[v1.2.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.1.0...1.2.0-rc1
-[v1.1.0]:      https://github.com/jhillyerd/inbucket/compare/1.1.0-rc2...1.1.0
-[v1.1.0-rc2]:  https://github.com/jhillyerd/inbucket/compare/1.1.0-rc1...1.1.0-rc2
-[v1.1.0-rc1]:  https://github.com/jhillyerd/inbucket/compare/1.0...1.1.0-rc1
-[v1.0]:        https://github.com/jhillyerd/inbucket/compare/1.0-rc1...1.0
+[Unreleased]:  https://github.com/inbucket/inbucket/compare/master...develop
+[v2.1.0-beta1]: https://github.com/inbucket/inbucket/compare/v2.0.0...v2.1.0-beta1
+[v2.0.0]:      https://github.com/inbucket/inbucket/compare/v2.0.0-rc1...v2.0.0
+[v2.0.0-rc1]:  https://github.com/inbucket/inbucket/compare/v1.3.1...v2.0.0-rc1
+[v1.3.1]:      https://github.com/inbucket/inbucket/compare/v1.3.0...v1.3.1
+[v1.3.0]:      https://github.com/inbucket/inbucket/compare/v1.2.0...v1.3.0
+[v1.2.0]:      https://github.com/inbucket/inbucket/compare/1.2.0-rc2...1.2.0
+[v1.2.0-rc2]:  https://github.com/inbucket/inbucket/compare/1.2.0-rc1...1.2.0-rc2
+[v1.2.0-rc1]:  https://github.com/inbucket/inbucket/compare/1.1.0...1.2.0-rc1
+[v1.1.0]:      https://github.com/inbucket/inbucket/compare/1.1.0-rc2...1.1.0
+[v1.1.0-rc2]:  https://github.com/inbucket/inbucket/compare/1.1.0-rc1...1.1.0-rc2
+[v1.1.0-rc1]:  https://github.com/inbucket/inbucket/compare/1.0...1.1.0-rc1
+[v1.0]:        https://github.com/inbucket/inbucket/compare/1.0-rc1...1.0
 
 
 ## Release Checklist
@@ -209,7 +219,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 3.  Run tests
 4.  Test cross-compile: `goreleaser --snapshot`
 5.  Commit changes and merge release: `git flow release finish`
-6.  Push tags and wait for https://travis-ci.org/jhillyerd/inbucket build to
+6.  Push tags and wait for https://travis-ci.org/inbucket/inbucket build to
     complete
 7.  Update `binary_versions` option in `inbucket-site/_config.yml`
 

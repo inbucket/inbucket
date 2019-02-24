@@ -151,7 +151,7 @@ frame { model, session, activePage, activeMailbox, modal, content } =
             [ div [ class "footer" ]
                 [ externalLink "https://www.inbucket.org" "Inbucket"
                 , text " is an open source project hosted on "
-                , externalLink "https://github.com/jhillyerd/inbucket" "GitHub"
+                , externalLink "https://github.com/inbucket/inbucket" "GitHub"
                 , text "."
                 ]
             ]

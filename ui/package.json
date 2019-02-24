@@ -11,11 +11,11 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@babel/core": "^7.1.6",
-    "@babel/preset-env": "^7.1.6",
-    "@fortawesome/fontawesome-free": "^5.6.3",
+    "@babel/core": "^7.3.3",
+    "@babel/preset-env": "^7.3.1",
+    "@fortawesome/fontawesome-free": "^5.7.2",
     "@webcomponents/webcomponentsjs": "^2.2.7",
-    "babel-loader": "^8.0.4",
+    "babel-loader": "^8.0.5",
     "css-loader": "^1.0.1",
     "elm-hot-webpack-loader": "^1.0.2",
     "elm-webpack-loader": "^5.0.0",
@@ -23,8 +23,8 @@
     "html-webpack-plugin": "^3.2.0",
     "node-elm-compiler": "^5.0.1",
     "style-loader": "^0.23.1",
-    "webpack": "^4.25.1",
-    "webpack-cli": "^3.1.2",
-    "webpack-dev-server": "^3.1.10"
+    "webpack": "^4.29.5",
+    "webpack-cli": "^3.2.3",
+    "webpack-dev-server": "^3.2.0"
   }
 }

@@ -2,7 +2,7 @@ project_name: inbucket
 
 release:
   github:
-    owner: jhillyerd
+    owner: inbucket
     name: inbucket
   name_template: '{{.Tag}}'
 

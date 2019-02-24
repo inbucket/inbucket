@@ -3,7 +3,7 @@ package storage_test
 import (
 	"testing"
 
-	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/storage"
 )
 
 func TestHashLock(t *testing.T) {

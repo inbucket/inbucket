@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/message"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/message"
+	"github.com/inbucket/inbucket/pkg/msghub"
 	"github.com/rs/zerolog/log"
 )
 

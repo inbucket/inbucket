@@ -5,8 +5,8 @@ import (
 	"expvar"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/metric"
+	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/metric"
 	"github.com/rs/zerolog/log"
 )
 

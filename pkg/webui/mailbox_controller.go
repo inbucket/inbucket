@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/jhillyerd/inbucket/pkg/server/web"
-	"github.com/jhillyerd/inbucket/pkg/storage"
-	"github.com/jhillyerd/inbucket/pkg/stringutil"
-	"github.com/jhillyerd/inbucket/pkg/webui/sanitize"
+	"github.com/inbucket/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/pkg/webui/sanitize"
 	"github.com/rs/zerolog/log"
 )
 

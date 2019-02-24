@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/gorilla/mux"
-	"github.com/jhillyerd/inbucket/pkg/rest/client"
+	"github.com/inbucket/inbucket/pkg/rest/client"
 )
 
 // Example demonstrates basic usage for the Inbucket REST client.

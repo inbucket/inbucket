@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/inbucket/inbucket/pkg/message"
+	"github.com/inbucket/inbucket/pkg/test"
 	"github.com/jhillyerd/enmime"
-	"github.com/jhillyerd/inbucket/pkg/message"
-	"github.com/jhillyerd/inbucket/pkg/test"
 )
 
 const (

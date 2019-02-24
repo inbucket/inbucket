@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/message"
-	"github.com/jhillyerd/inbucket/pkg/storage"
-	"github.com/jhillyerd/inbucket/pkg/test"
+	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/message"
+	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/rest/model"
+	"github.com/inbucket/inbucket/pkg/rest/model"
 )
 
 // Client accesses the Inbucket REST API v1

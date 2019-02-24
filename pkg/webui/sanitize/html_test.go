@@ -3,7 +3,7 @@ package sanitize_test
 import (
 	"testing"
 
-	"github.com/jhillyerd/inbucket/pkg/webui/sanitize"
+	"github.com/inbucket/inbucket/pkg/webui/sanitize"
 )
 
 // TestHTMLPlainStrings test plain text passthrough

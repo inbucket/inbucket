@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inbucket/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/policy"
+	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/jhillyerd/enmime"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/policy"
-	"github.com/jhillyerd/inbucket/pkg/storage"
-	"github.com/jhillyerd/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog/log"
 )
 

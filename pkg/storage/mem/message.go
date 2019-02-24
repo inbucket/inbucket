@@ -8,7 +8,7 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/storage"
 )
 
 // Message is a memory store message.

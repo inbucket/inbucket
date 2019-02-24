@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/rest/model"
-	"github.com/jhillyerd/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/rest/model"
+	"github.com/inbucket/inbucket/pkg/server/web"
 	"github.com/rs/zerolog/log"
 )
 

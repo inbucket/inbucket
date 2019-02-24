@@ -1,4 +1,4 @@
-module github.com/jhillyerd/inbucket
+module github.com/inbucket/inbucket
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

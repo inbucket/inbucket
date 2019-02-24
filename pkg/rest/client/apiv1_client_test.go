@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/rest/client"
+	"github.com/inbucket/inbucket/pkg/rest/client"
 )
 
 func TestClientV1ListMailbox(t *testing.T) {

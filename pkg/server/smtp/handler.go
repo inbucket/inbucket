@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/policy"
+	"github.com/inbucket/inbucket/pkg/policy"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

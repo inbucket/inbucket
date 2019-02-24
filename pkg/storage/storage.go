@@ -8,7 +8,7 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/config"
 )
 
 var (

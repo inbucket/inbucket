@@ -4,7 +4,7 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [v3.0.0-beta1]
 
 ### Added
 - `posix-millis` field to REST message and header responses for easier date
@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Rewrote the user interface from scratch, it's now an Elm powered single page
   application.
 - Moved the Inbucket repository to its own GitHub organization.
+- Update to enmime v0.5.0
 
 
 ## v2.1.0
@@ -195,6 +196,7 @@ No change from beta1.
   specific message.
 
 [Unreleased]:  https://github.com/inbucket/inbucket/compare/master...develop
+[v3.0.0-beta1]: https://github.com/inbucket/inbucket/compare/v2.1.0...v3.0.0-beta1
 [v2.1.0-beta1]: https://github.com/inbucket/inbucket/compare/v2.0.0...v2.1.0-beta1
 [v2.0.0]:      https://github.com/inbucket/inbucket/compare/v2.0.0-rc1...v2.0.0
 [v2.0.0-rc1]:  https://github.com/inbucket/inbucket/compare/v1.3.1...v2.0.0-rc1

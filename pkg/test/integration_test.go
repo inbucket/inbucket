@@ -11,18 +11,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/message"
+	"github.com/inbucket/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/policy"
+	"github.com/inbucket/inbucket/pkg/rest"
+	"github.com/inbucket/inbucket/pkg/rest/client"
+	"github.com/inbucket/inbucket/pkg/server/smtp"
+	"github.com/inbucket/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/storage/mem"
+	"github.com/inbucket/inbucket/pkg/webui"
 	"github.com/jhillyerd/goldiff"
-	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/message"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/policy"
-	"github.com/jhillyerd/inbucket/pkg/rest"
-	"github.com/jhillyerd/inbucket/pkg/rest/client"
-	"github.com/jhillyerd/inbucket/pkg/server/smtp"
-	"github.com/jhillyerd/inbucket/pkg/server/web"
-	"github.com/jhillyerd/inbucket/pkg/storage"
-	"github.com/jhillyerd/inbucket/pkg/storage/mem"
-	"github.com/jhillyerd/inbucket/pkg/webui"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -35,8 +37,7 @@ func TestSuite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = stopServer
-	// defer stopServer()
+	defer stopServer()
 
 	testCases := []struct {
 		name string
@@ -152,6 +153,7 @@ func formatMessage(m *client.Message) []byte {
 
 func startServer() (func(), error) {
 	// TODO Refactor inbucket/main.go so we don't need to repeat all this here.
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
 	storage.Constructors["memory"] = mem.New
 	os.Clearenv()
 	conf, err := config.Process()
@@ -169,9 +171,9 @@ func startServer() (func(), error) {
 	addrPolicy := &policy.Addressing{Config: conf}
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
 	// Start HTTP server.
-	web.Initialize(conf, shutdownChan, mmanager, msgHub)
+	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
-	webui.SetupRoutes(web.Router)
+	web.Initialize(conf, shutdownChan, mmanager, msgHub)
 	go web.Start(rootCtx)
 	// Start SMTP server.
 	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)

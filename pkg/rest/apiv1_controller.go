@@ -10,10 +10,10 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/jhillyerd/inbucket/pkg/rest/model"
-	"github.com/jhillyerd/inbucket/pkg/server/web"
-	"github.com/jhillyerd/inbucket/pkg/storage"
-	"github.com/jhillyerd/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/pkg/rest/model"
+	"github.com/inbucket/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/stringutil"
 )
 
 // MailboxListV1 renders a list of messages in a mailbox
@@ -31,14 +31,15 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	jmessages := make([]*model.JSONMessageHeaderV1, len(messages))
 	for i, msg := range messages {
 		jmessages[i] = &model.JSONMessageHeaderV1{
-			Mailbox: name,
-			ID:      msg.ID,
-			From:    stringutil.StringAddress(msg.From),
-			To:      stringutil.StringAddressList(msg.To),
-			Subject: msg.Subject,
-			Date:    msg.Date,
-			Size:    msg.Size,
-			Seen:    msg.Seen,
+			Mailbox:     name,
+			ID:          msg.ID,
+			From:        stringutil.StringAddress(msg.From),
+			To:          stringutil.StringAddressList(msg.To),
+			Subject:     msg.Subject,
+			Date:        msg.Date,
+			PosixMillis: msg.Date.UnixNano() / 1000000,
+			Size:        msg.Size,
+			Seen:        msg.Seen,
 		}
 	}
 	return web.RenderJSON(w, jmessages)
@@ -77,15 +78,16 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	}
 	return web.RenderJSON(w,
 		&model.JSONMessageV1{
-			Mailbox: name,
-			ID:      msg.ID,
-			From:    stringutil.StringAddress(msg.From),
-			To:      stringutil.StringAddressList(msg.To),
-			Subject: msg.Subject,
-			Date:    msg.Date,
-			Size:    msg.Size,
-			Seen:    msg.Seen,
-			Header:  msg.Header(),
+			Mailbox:     name,
+			ID:          msg.ID,
+			From:        stringutil.StringAddress(msg.From),
+			To:          stringutil.StringAddressList(msg.To),
+			Subject:     msg.Subject,
+			Date:        msg.Date,
+			PosixMillis: msg.Date.UnixNano() / 1000000,
+			Size:        msg.Size,
+			Seen:        msg.Seen,
+			Header:      msg.Header(),
 			Body: &model.JSONMessageBodyV1{
 				Text: msg.Text(),
 				HTML: msg.HTML(),

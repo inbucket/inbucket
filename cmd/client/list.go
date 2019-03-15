@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/subcommands"
-	"github.com/jhillyerd/inbucket/pkg/rest/client"
+	"github.com/inbucket/inbucket/pkg/rest/client"
 )
 
 type listCmd struct {

@@ -1,26 +1,43 @@
-language: go
 sudo: false
-
-addons:
-  apt:
-    packages:
-      - rpm
 
 env:
   global:
     - GO111MODULE=on
-    - DEPLOY_WITH_MAJOR="1.11"
 
-before_script:
-  - go get golang.org/x/lint/golint
-  - make deps
+language: go
 
-go:
-  - "1.10.x"
-  - "1.11.x"
+install:
+  - "go get golang.org/x/lint/golint"
+  - "make deps"
 
-deploy:
-  provider: script
-  script: etc/travis-deploy.sh
-  on:
-    tags: true
+jobs:
+  include:
+    - go: "1.11.x"
+    - go: "master"
+    - language: elm
+      elm: "0.19.0"
+      install:
+        - "cd ui"
+        - "npm ci"
+      script:
+        - "elm-format --validate ."
+        - "npm run build"
+    - stage: deploy
+      go: "1.11.x"
+      before_install:
+        - "nvm install 10.13.0"
+      install:
+        - "cd ui"
+        - "npm ci"
+        - "npm run build"
+        - "cd .."
+      script: "curl -sL https://git.io/goreleaser | bash"
+      addons:
+        apt:
+          packages:
+            - rpm
+
+stages:
+  - test
+  - name: deploy
+    if: tag IS present

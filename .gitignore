@@ -25,7 +25,10 @@ _testmain.go
 *.swp
 *.swo
 
-# our binaries
+# Desktop Services Store on macOS
+.DS_Store
+
+# Inbucket binaries
 /client
 /client.exe
 /inbucket
@@ -35,3 +38,14 @@ _testmain.go
 /cmd/client/client.exe
 /cmd/inbucket/inbucket
 /cmd/inbucket/inbucket.exe
+
+# Elm UI
+# elm-package generated files
+/ui/elm-stuff
+/ui/tests/elm-stuff
+# elm-repl generated files
+repl-temp-*
+# Distribution
+/ui/dist/
+# Dependency directories
+/ui/node_modules

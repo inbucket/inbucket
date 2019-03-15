@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

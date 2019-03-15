@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/rest/model"
-	"github.com/jhillyerd/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/rest/model"
+	"github.com/inbucket/inbucket/pkg/server/web"
 	"github.com/rs/zerolog/log"
 )
 
@@ -110,13 +110,14 @@ func (ml *msgListener) WSWriter(conn *websocket.Conn) {
 				return
 			}
 			header := &model.JSONMessageHeaderV1{
-				Mailbox: msg.Mailbox,
-				ID:      msg.ID,
-				From:    msg.From,
-				To:      msg.To,
-				Subject: msg.Subject,
-				Date:    msg.Date,
-				Size:    msg.Size,
+				Mailbox:     msg.Mailbox,
+				ID:          msg.ID,
+				From:        msg.From,
+				To:          msg.To,
+				Subject:     msg.Subject,
+				Date:        msg.Date,
+				PosixMillis: msg.Date.UnixNano() / 1000000,
+				Size:        msg.Size,
 			}
 			if conn.WriteJSON(header) != nil {
 				// Write failed

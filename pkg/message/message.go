@@ -8,8 +8,8 @@ import (
 	"net/textproto"
 	"time"
 
+	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/jhillyerd/enmime"
-	"github.com/jhillyerd/inbucket/pkg/storage"
 )
 
 // Metadata holds information about a message, but not the content.

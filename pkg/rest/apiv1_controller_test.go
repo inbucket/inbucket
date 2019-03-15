@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/inbucket/inbucket/pkg/message"
+	"github.com/inbucket/inbucket/pkg/test"
 	"github.com/jhillyerd/enmime"
-	"github.com/jhillyerd/inbucket/pkg/message"
-	"github.com/jhillyerd/inbucket/pkg/test"
 )
 
 const (
@@ -112,6 +112,7 @@ func TestRestMailboxList(t *testing.T) {
 	decodedStringEquals(t, result, "[0]/to/[0]", "<to1@host>")
 	decodedStringEquals(t, result, "[0]/subject", "subject 1")
 	decodedStringEquals(t, result, "[0]/date", "2012-02-01T10:11:12.000000253-08:00")
+	decodedNumberEquals(t, result, "[0]/posix-millis", 1328119872000)
 	decodedNumberEquals(t, result, "[0]/size", 0)
 	decodedBoolEquals(t, result, "[0]/seen", false)
 	decodedStringEquals(t, result, "[1]/mailbox", "good")
@@ -120,6 +121,7 @@ func TestRestMailboxList(t *testing.T) {
 	decodedStringEquals(t, result, "[1]/to/[0]", "<to1@host>")
 	decodedStringEquals(t, result, "[1]/subject", "subject 2")
 	decodedStringEquals(t, result, "[1]/date", "2012-07-01T10:11:12.000000253-07:00")
+	decodedNumberEquals(t, result, "[1]/posix-millis", 1341162672000)
 	decodedNumberEquals(t, result, "[1]/size", 0)
 	decodedBoolEquals(t, result, "[1]/seen", false)
 
@@ -221,6 +223,7 @@ func TestRestMessage(t *testing.T) {
 	decodedStringEquals(t, result, "to/[0]", "<to1@host>")
 	decodedStringEquals(t, result, "subject", "subject 1")
 	decodedStringEquals(t, result, "date", "2012-02-01T10:11:12.000000253-08:00")
+	decodedNumberEquals(t, result, "posix-millis", 1328119872000)
 	decodedNumberEquals(t, result, "size", 0)
 	decodedBoolEquals(t, result, "seen", true)
 	decodedStringEquals(t, result, "body/text", "This is some text")

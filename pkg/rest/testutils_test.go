@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/message"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/message"
+	"github.com/inbucket/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/server/web"
 )
 
 func testRestGet(url string) (*httptest.ResponseRecorder, error) {
@@ -49,8 +49,8 @@ func setupWebServer(mm message.Manager) *bytes.Buffer {
 		},
 	}
 	shutdownChan := make(chan bool)
-	web.Initialize(cfg, shutdownChan, mm, &msghub.Hub{})
 	SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
+	web.Initialize(cfg, shutdownChan, mm, &msghub.Hub{})
 
 	return buf
 }
@@ -79,12 +79,14 @@ func decodedNumberEquals(t *testing.T, json interface{}, path string, want float
 		t.Errorf("JSON result%s", msg)
 		return
 	}
-	if got, ok := val.(float64); ok {
+	got, ok := val.(float64)
+	if ok {
 		if got == want {
 			return
 		}
 	}
-	t.Errorf("JSON result/%s == %v (%T), want: %v", path, val, val, want)
+	t.Errorf("JSON result/%s == %v (%T) %v (int64),\nwant: %v / %v",
+		path, val, val, int64(got), want, int64(want))
 }
 
 func decodedStringEquals(t *testing.T, json interface{}, path string, want string) {

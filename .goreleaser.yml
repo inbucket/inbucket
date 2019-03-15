@@ -2,7 +2,7 @@ project_name: inbucket
 
 release:
   github:
-    owner: jhillyerd
+    owner: inbucket
     name: inbucket
   name_template: '{{.Tag}}'
 
@@ -12,8 +12,14 @@ brew:
     email: goreleaser@carlosbecker.com
   install: bin.install ""
 
+before:
+  hooks:
+    - go mod download
+
 builds:
   - binary: inbucket
+    env:
+      - CGO_ENABLED=0
     goos:
       - darwin
       - freebsd
@@ -26,6 +32,8 @@ builds:
     main: ./cmd/inbucket
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   - binary: inbucket-client
+    env:
+      - CGO_ENABLED=0
     goos:
       - darwin
       - freebsd
@@ -51,7 +59,8 @@ archive:
     - README*
     - CHANGELOG*
     - etc/**/*
-    - ui/**/*
+    - ui/dist/**/*
+    - ui/greeting.html
 
 nfpm:
   vendor: inbucket.org
@@ -63,7 +72,7 @@ nfpm:
     - deb
     - rpm
   files:
-    "ui/**/*": "/usr/local/share/inbucket/ui"
+    "ui/dist/**/*": "/usr/local/share/inbucket/ui"
   config_files:
     "etc/linux/inbucket.service": "/lib/systemd/system/inbucket.service"
     "ui/greeting.html": "/etc/inbucket/greeting.html"

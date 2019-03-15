@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/google/subcommands"
-	"github.com/jhillyerd/inbucket/pkg/rest/client"
+	"github.com/inbucket/inbucket/pkg/rest/client"
 )
 
 type mboxCmd struct {

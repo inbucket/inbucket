@@ -14,18 +14,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/message"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
-	"github.com/jhillyerd/inbucket/pkg/policy"
-	"github.com/jhillyerd/inbucket/pkg/rest"
-	"github.com/jhillyerd/inbucket/pkg/server/pop3"
-	"github.com/jhillyerd/inbucket/pkg/server/smtp"
-	"github.com/jhillyerd/inbucket/pkg/server/web"
-	"github.com/jhillyerd/inbucket/pkg/storage"
-	"github.com/jhillyerd/inbucket/pkg/storage/file"
-	"github.com/jhillyerd/inbucket/pkg/storage/mem"
-	"github.com/jhillyerd/inbucket/pkg/webui"
+	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/message"
+	"github.com/inbucket/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/policy"
+	"github.com/inbucket/inbucket/pkg/rest"
+	"github.com/inbucket/inbucket/pkg/server/pop3"
+	"github.com/inbucket/inbucket/pkg/server/smtp"
+	"github.com/inbucket/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/storage/file"
+	"github.com/inbucket/inbucket/pkg/storage/mem"
+	"github.com/inbucket/inbucket/pkg/webui"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -40,10 +40,8 @@ var (
 
 func init() {
 	// Server uptime for status page.
-	startTime := time.Now()
-	expvar.Publish("uptime", expvar.Func(func() interface{} {
-		return time.Since(startTime) / time.Second
-	}))
+	startTime := expvar.NewInt("startMillis")
+	startTime.Set(time.Now().UnixNano() / 1000000)
 
 	// Goroutine count for status page.
 	expvar.Publish("goroutines", expvar.Func(func() interface{} {
@@ -124,9 +122,9 @@ func main() {
 	retentionScanner := storage.NewRetentionScanner(conf.Storage, store, shutdownChan)
 	retentionScanner.Start()
 	// Start HTTP server.
-	web.Initialize(conf, shutdownChan, mmanager, msgHub)
+	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
-	webui.SetupRoutes(web.Router)
+	web.Initialize(conf, shutdownChan, mmanager, msgHub)
 	go web.Start(rootCtx)
 	// Start POP3 server.
 	pop3Server := pop3.New(conf.POP3, shutdownChan, store)

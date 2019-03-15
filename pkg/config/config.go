@@ -8,7 +8,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -93,11 +93,8 @@ type POP3 struct {
 // Web contains the HTTP server configuration.
 type Web struct {
 	Addr           string `required:"true" default:"0.0.0.0:9000" desc:"Web server IP4 host:port"`
-	UIDir          string `required:"true" default:"ui" desc:"User interface dir"`
+	UIDir          string `required:"true" default:"ui/dist" desc:"User interface dir"`
 	GreetingFile   string `required:"true" default:"ui/greeting.html" desc:"Home page greeting HTML"`
-	TemplateCache  bool   `required:"true" default:"true" desc:"Cache templates after first use?"`
-	MailboxPrompt  string `required:"true" default:"@inbucket" desc:"Prompt next to mailbox input"`
-	CookieAuthKey  string `desc:"Session cipher key (text)"`
 	MonitorVisible bool   `required:"true" default:"true" desc:"Show monitor tab in UI?"`
 	MonitorHistory int    `required:"true" default:"30" desc:"Monitor remembered messages"`
 	PProf          bool   `required:"true" default:"false" desc:"Expose profiling tools on /debug/pprof"`

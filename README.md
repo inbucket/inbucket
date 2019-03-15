@@ -1,6 +1,6 @@
-Inbucket 
+Inbucket
 =============================================================================
-[![Build Status](https://travis-ci.org/jhillyerd/inbucket.png?branch=master)][Build Status]
+[![Build Status](https://travis-ci.org/inbucket/inbucket.png?branch=master)][Build Status]
 
 Inbucket is an email testing service; it will accept messages for any email
 address and make them available via web, REST and POP3.  Once compiled,
@@ -8,7 +8,7 @@ Inbucket does not have any external dependencies (HTTP, SMTP, POP3 and storage
 are all built in).
 
 A Go client for the REST API is available in
-`github.com/jhillyerd/inbucket/pkg/rest/client` - [Go API docs]
+`github.com/inbucket/inbucket/pkg/rest/client` - [Go API docs]
 
 Read more at the [Inbucket Website]
 
@@ -25,7 +25,7 @@ to contribute code to the project check out [CONTRIBUTING.md].
 ## Homebrew Tap
 
 (currently broken, being tracked in [issue
-#68](https://github.com/jhillyerd/inbucket/issues/68))
+#68](https://github.com/inbucket/inbucket/issues/68))
 
 Inbucket has an OS X [Homebrew] tap available as [jhillyerd/inbucket][Homebrew Tap],
 see the `README.md` there for installation instructions.
@@ -37,12 +37,12 @@ You will need a functioning [Go installation][Google Go] for this to work.
 
 Grab the Inbucket source code and compile the daemon:
 
-    go get -v github.com/jhillyerd/inbucket/cmd/inbucket
+    go get -v github.com/inbucket/inbucket/cmd/inbucket
 
 Edit etc/inbucket.conf and tailor to your environment.  It should work on most
 Unix and OS X machines as is.  Launch the daemon:
 
-    $GOPATH/bin/inbucket $GOPATH/src/github.com/jhillyerd/inbucket/etc/inbucket.conf
+    $GOPATH/bin/inbucket $GOPATH/src/github.com/inbucket/inbucket/etc/inbucket.conf
 
 By default the SMTP server will be listening on localhost port 2500 and
 the web interface will be available at [localhost:9000](http://localhost:9000/).
@@ -56,15 +56,15 @@ The Inbucket website has a more complete guide to
 Inbucket is written in [Google Go]
 
 Inbucket is open source software released under the MIT License.  The latest
-version can be found at https://github.com/jhillyerd/inbucket
+version can be found at https://github.com/inbucket/inbucket
 
-[Go API docs]:      https://godoc.org/github.com/jhillyerd/inbucket/pkg/rest/client
-[Build Status]:     https://travis-ci.org/jhillyerd/inbucket
-[Change Log]:       https://github.com/jhillyerd/inbucket/blob/master/CHANGELOG.md
-[CONTRIBUTING.md]:  https://github.com/jhillyerd/inbucket/blob/develop/CONTRIBUTING.md
+[Go API docs]:      https://godoc.org/github.com/inbucket/inbucket/pkg/rest/client
+[Build Status]:     https://travis-ci.org/inbucket/inbucket
+[Change Log]:       https://github.com/inbucket/inbucket/blob/master/CHANGELOG.md
+[CONTRIBUTING.md]:  https://github.com/inbucket/inbucket/blob/develop/CONTRIBUTING.md
 [From Source]:      http://www.inbucket.org/installation/from-source.html
 [Google Go]:        http://golang.org/
 [Homebrew]:         http://brew.sh/
-[Homebrew Tap]:     https://github.com/jhillyerd/homebrew-inbucket
+[Homebrew Tap]:     https://github.com/inbucket/homebrew-inbucket
 [Inbucket Website]: http://www.inbucket.org/
-[Issues List]:      https://github.com/jhillyerd/inbucket/issues?state=open
+[Issues List]:      https://github.com/inbucket/inbucket/issues?state=open

@@ -3,28 +3,20 @@ package web
 
 import (
 	"context"
+	"encoding/json"
 	"expvar"
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"net/url"
 	"path/filepath"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
-	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/message"
-	"github.com/jhillyerd/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/message"
+	"github.com/inbucket/inbucket/pkg/msghub"
 	"github.com/rs/zerolog/log"
-)
-
-// Handler is a function type that handles an HTTP request in Inbucket
-type Handler func(http.ResponseWriter, *http.Request, *Context) error
-
-const (
-	staticDir   = "static"
-	templateDir = "templates"
 )
 
 var (
@@ -39,7 +31,6 @@ var (
 	rootConfig     *config.Root
 	server         *http.Server
 	listener       net.Listener
-	sessionStore   sessions.Store
 	globalShutdown chan bool
 
 	// ExpWebSocketConnectsCurrent tracks the number of open WebSockets
@@ -51,7 +42,7 @@ func init() {
 	m.Set("WebSocketConnectsCurrent", ExpWebSocketConnectsCurrent)
 }
 
-// Initialize sets up things for unit tests or the Start() method
+// Initialize sets up things for unit tests or the Start() method.
 func Initialize(
 	conf *config.Root,
 	shutdownChan chan bool,
@@ -61,16 +52,13 @@ func Initialize(
 	rootConfig = conf
 	globalShutdown = shutdownChan
 
-	// NewContext() will use this DataStore for the web handlers
+	// NewContext() will use this DataStore for the web handlers.
 	msgHub = mh
 	manager = mm
 
-	// Content Paths
-	staticPath := filepath.Join(conf.Web.UIDir, staticDir)
+	// Dynamic paths.
 	log.Info().Str("module", "web").Str("phase", "startup").Str("path", conf.Web.UIDir).
 		Msg("Web UI content mapped")
-	Router.PathPrefix("/public/").Handler(http.StripPrefix("/public/",
-		http.FileServer(http.Dir(staticPath))))
 	Router.Handle("/debug/vars", expvar.Handler())
 	if conf.Web.PProf {
 		Router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -82,23 +70,32 @@ func Initialize(
 			Msg("Go pprof tools installed to /debug/pprof")
 	}
 
-	// Session cookie setup
-	if conf.Web.CookieAuthKey == "" {
-		log.Info().Str("module", "web").Str("phase", "startup").
-			Msg("Generating random cookie.auth.key")
-		sessionStore = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
-	} else {
-		log.Info().Str("module", "web").Str("phase", "startup").
-			Msg("Using configured cookie.auth.key")
-		sessionStore = sessions.NewCookieStore([]byte(conf.Web.CookieAuthKey))
-	}
+	// Static paths.
+	Router.PathPrefix("/static").Handler(
+		http.StripPrefix("/", http.FileServer(http.Dir(conf.Web.UIDir))))
+	Router.Path("/favicon.png").Handler(
+		fileHandler(filepath.Join(conf.Web.UIDir, "favicon.png")))
+
+	// SPA managed paths.
+	spaHandler := cookieHandler(appConfigCookie(conf.Web),
+		fileHandler(filepath.Join(conf.Web.UIDir, "index.html")))
+	Router.Path("/").Handler(spaHandler)
+	Router.Path("/monitor").Handler(spaHandler)
+	Router.Path("/status").Handler(spaHandler)
+	Router.PathPrefix("/m/").Handler(spaHandler)
+
+	// Error handlers.
+	Router.NotFoundHandler = noMatchHandler(
+		http.StatusNotFound, "No route matches URI path")
+	Router.MethodNotAllowedHandler = noMatchHandler(
+		http.StatusMethodNotAllowed, "Method not allowed for URI path")
 }
 
 // Start begins listening for HTTP requests
 func Start(ctx context.Context) {
 	server = &http.Server{
 		Addr:         rootConfig.Web.Addr,
-		Handler:      Router,
+		Handler:      requestLoggingWrapper(Router),
 		ReadTimeout:  60 * time.Second,
 		WriteTimeout: 60 * time.Second,
 	}
@@ -132,6 +129,22 @@ func Start(ctx context.Context) {
 	}
 }
 
+func appConfigCookie(webConfig config.Web) *http.Cookie {
+	o := &jsonAppConfig{
+		MonitorVisible: webConfig.MonitorVisible,
+	}
+	b, err := json.Marshal(o)
+	if err != nil {
+		log.Error().Str("module", "web").Str("phase", "startup").Err(err).
+			Msg("Failed to convert app-config to JSON")
+	}
+	return &http.Cookie{
+		Name:  "app-config",
+		Value: url.PathEscape(string(b)),
+		Path:  "/",
+	}
+}
+
 // serve begins serving HTTP requests
 func serve(ctx context.Context) {
 	// server.Serve blocks until we close the listener
@@ -144,29 +157,6 @@ func serve(ctx context.Context) {
 		log.Error().Str("module", "web").Str("phase", "startup").Err(err).
 			Msg("HTTP server failed")
 		emergencyShutdown()
-		return
-	}
-}
-
-// ServeHTTP builds the context and passes onto the real handler
-func (h Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// Create the context
-	ctx, err := NewContext(req)
-	if err != nil {
-		log.Error().Str("module", "web").Err(err).Msg("HTTP failed to create context")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer ctx.Close()
-
-	// Run the handler, grab the error, and report it
-	log.Debug().Str("module", "web").Str("remote", req.RemoteAddr).Str("proto", req.Proto).
-		Str("method", req.Method).Str("path", req.RequestURI).Msg("Request")
-	err = h(w, req, ctx)
-	if err != nil {
-		log.Error().Str("module", "web").Str("path", req.RequestURI).Err(err).
-			Msg("Error handling request")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

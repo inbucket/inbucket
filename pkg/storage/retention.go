@@ -3,17 +3,15 @@ package storage
 import (
 	"container/list"
 	"expvar"
-	"sync"
 	"time"
 
-	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/metric"
+	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/metric"
 	"github.com/rs/zerolog/log"
 )
 
 var (
-	retentionScanCompleted   = time.Now()
-	retentionScanCompletedMu sync.RWMutex
+	scanCompletedMillis = new(expvar.Int)
 
 	// History counters
 	expRetentionDeletesTotal = new(expvar.Int)
@@ -34,7 +32,7 @@ var (
 
 func init() {
 	rm := expvar.NewMap("retention")
-	rm.Set("SecondsSinceScanCompleted", expvar.Func(secondsSinceRetentionScanCompleted))
+	rm.Set("ScanCompletedMillis", scanCompletedMillis)
 	rm.Set("DeletesHist", expRetentionDeletesHist)
 	rm.Set("DeletesTotal", expRetentionDeletesTotal)
 	rm.Set("Period", expRetentionPeriod)
@@ -159,7 +157,7 @@ func (rs *RetentionScanner) DoScan() error {
 		return err
 	}
 	// Update metrics
-	setRetentionScanCompleted(time.Now())
+	scanCompletedMillis.Set(time.Now().UnixNano() / 1000000)
 	expRetainedCurrent.Set(int64(retained))
 	expRetainedSize.Set(storeSize)
 	return nil
@@ -170,20 +168,4 @@ func (rs *RetentionScanner) Join() {
 	if rs.retentionShutdown != nil {
 		<-rs.retentionShutdown
 	}
-}
-
-func setRetentionScanCompleted(t time.Time) {
-	retentionScanCompletedMu.Lock()
-	defer retentionScanCompletedMu.Unlock()
-	retentionScanCompleted = t
-}
-
-func getRetentionScanCompleted() time.Time {
-	retentionScanCompletedMu.RLock()
-	defer retentionScanCompletedMu.RUnlock()
-	return retentionScanCompleted
-}
-
-func secondsSinceRetentionScanCompleted() interface{} {
-	return time.Since(getRetentionScanCompleted()) / time.Second
 }

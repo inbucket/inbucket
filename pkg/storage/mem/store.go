@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/jhillyerd/inbucket/pkg/config"
-	"github.com/jhillyerd/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/storage"
 )
 
 // Store implements an in-memory message store.

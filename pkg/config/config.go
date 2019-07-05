@@ -38,6 +38,7 @@ const (
 	UnknownNaming mbNaming = iota
 	LocalNaming
 	FullNaming
+	DomainNaming
 )
 
 // Decode a naming strategy from string.
@@ -47,6 +48,8 @@ func (n *mbNaming) Decode(v string) error {
 		*n = LocalNaming
 	case "full":
 		*n = FullNaming
+        case "domain":
+		*n = DomainNaming
 	default:
 		return fmt.Errorf("Unknown MailboxNaming strategy: %q", v)
 	}

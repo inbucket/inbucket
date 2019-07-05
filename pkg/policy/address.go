@@ -29,6 +29,11 @@ func (a *Addressing) ExtractMailbox(address string) (string, error) {
 		return local, nil
 	}
 	if a.Config.MailboxNaming == config.DomainNaming {
+		// If no domain is specified,m assume this is being
+		// used for mailbox lookup via the API
+		if domain == "" {
+			return local, nil
+		}
 		return domain, nil
 	}
 	if a.Config.MailboxNaming != config.FullNaming {

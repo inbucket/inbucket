@@ -48,7 +48,7 @@ func (n *mbNaming) Decode(v string) error {
 		*n = LocalNaming
 	case "full":
 		*n = FullNaming
-        case "domain":
+	case "domain":
 		*n = DomainNaming
 	default:
 		return fmt.Errorf("Unknown MailboxNaming strategy: %q", v)

@@ -128,10 +128,10 @@ func TestExtractMailboxValid(t *testing.T) {
 	domainPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.DomainNaming}}
 
 	testTable := []struct {
-		input   string // Input to test
-		local   string // Expected output when mailbox naming = local
-		full    string // Expected output when mailbox naming = full
-		domain  string // Expected output when mailbox naming = domain
+		input  string // Input to test
+		local  string // Expected output when mailbox naming = local
+		full   string // Expected output when mailbox naming = full
+		domain string // Expected output when mailbox naming = domain
 	}{
 		{
 			input:  "mailbox",
@@ -275,7 +275,7 @@ func TestExtractMailboxValid(t *testing.T) {
 				t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.full, result)
 			}
 		}
-		if result, err := domainPolicy.ExtractMailbox(tc.input); (tc.domain != "" && err != nil) {
+		if result, err := domainPolicy.ExtractMailbox(tc.input); tc.domain != "" && err != nil {
 			t.Errorf("Error while parsing with domain naming %q: %v", tc.input, err)
 		} else {
 			if result != tc.domain {

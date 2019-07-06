@@ -326,15 +326,19 @@ func parseDomainName(domain string) (result string, err error) {
 	}
 	result = strings.ToLower(domain)
 	invalid := make([]byte, 0, 10)
+	previous_symbol := false
 	for i := 0; i < len(result); i++ {
 		c := result[i]
 		switch {
 			// Check for alpha-numerics
-			case 'a' <= c && c <= 'z':
-			case '0' <= c && c <= '9':
+			case ('0' <= c && c <= '9') || ('a' <= c && c <= 'z'):
+				previous_symbol = false
 			// Check for allowed characters, only
-			// if not the first or last character
-			case bytes.IndexByte([]byte(".-"), c) >= 0 && i > 0 && i < (len(result) - 1):
+			// if not the first or last character and
+			// is not following another symbol
+			case bytes.IndexByte([]byte(".-"), c) >= 0 && i > 0 && i < (len(result) - 1) && previous_symbol == false:
+				// Mark previous charcter as being a symbol
+				previous_symbol = true
 			default:
 				invalid = append(invalid, c)
 		}

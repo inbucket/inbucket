@@ -167,31 +167,31 @@ func TestExtractMailboxValid(t *testing.T) {
 			input:  "chars!#$%",
 			local:  "chars!#$%",
 			full:   "chars!#$%",
-			domain: "chars!#$%",
+			domain: "",
 		},
 		{
 			input:  "chars&'*-",
 			local:  "chars&'*-",
 			full:   "chars&'*-",
-			domain: "chars&'*-",
+			domain: "",
 		},
 		{
 			input:  "chars=/?^",
 			local:  "chars=/?^",
 			full:   "chars=/?^",
-			domain: "chars=/?^",
+			domain: "",
 		},
 		{
 			input:  "chars_`.{",
 			local:  "chars_`.{",
 			full:   "chars_`.{",
-			domain: "chars_`.{",
+			domain: "",
 		},
 		{
 			input:  "chars|}~",
 			local:  "chars|}~",
 			full:   "chars|}~",
-			domain: "chars|}~",
+			domain: "",
 		},
 		{
 			input:  "mailbox@domain.com",
@@ -275,7 +275,7 @@ func TestExtractMailboxValid(t *testing.T) {
 				t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.full, result)
 			}
 		}
-		if result, err := domainPolicy.ExtractMailbox(tc.input); err != nil {
+		if result, err := domainPolicy.ExtractMailbox(tc.input); (tc.domain != "" && err != nil) {
 			t.Errorf("Error while parsing with domain naming %q: %v", tc.input, err)
 		} else {
 			if result != tc.domain {
@@ -288,6 +288,7 @@ func TestExtractMailboxValid(t *testing.T) {
 func TestExtractMailboxInvalid(t *testing.T) {
 	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
 	fullPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.FullNaming}}
+	domainPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.DomainNaming}}
 	// Test local mailbox naming policy.
 	localInvalidTable := []struct {
 		input, msg string
@@ -315,6 +316,26 @@ func TestExtractMailboxInvalid(t *testing.T) {
 	for _, tt := range fullInvalidTable {
 		if _, err := fullPolicy.ExtractMailbox(tt.input); err == nil {
 			t.Errorf("Didn't get an error while parsing in full mode %q: %v", tt.input, tt.msg)
+		}
+	}
+	// Test domain mailbox naming policy.
+	domainInvalidTable := []struct {
+		input, msg string
+	}{
+		{"", "Empty mailbox name is not permitted"},
+		{"user@host@domain.com", "@ symbol not permitted"},
+		{"first.last@dom ain.com", "Space not permitted"},
+		{"first\"last@domain.com", "Double quote not permitted"},
+		{"first\nlast@domain.com", "Control chars not permitted"},
+		{"first.last@chars!#$%.com", "Invalid domain name"},
+		{"first.last@.example.com", "Domain cannot start with dot"},
+		{"first.last@-example.com", "Domain canont start with dash"},
+		{"first.last@example.com-", "Domain cannot end with dash"},
+		{"first.last@example.com.", "Domain cannot end with dot"},
+	}
+	for _, tt := range domainInvalidTable {
+		if _, err := domainPolicy.ExtractMailbox(tt.input); err == nil {
+			t.Errorf("Didn't get an error while parsing in domain mode %q: %v", tt.input, tt.msg)
 		}
 	}
 }

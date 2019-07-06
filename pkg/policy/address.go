@@ -142,8 +142,8 @@ func ValidateDomainPart(domain string) bool {
 			hasAlphaNum = true
 			labelLen++
 		case c == '-':
-			if prev == '.' {
-				// Cannot lead with hyphen.
+			if prev == '.' || prev == '-' {
+				// Cannot lead with hyphen or double hyphen.
 				return false
 			}
 		case c == '.':

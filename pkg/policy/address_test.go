@@ -125,111 +125,139 @@ func TestShouldStoreDomain(t *testing.T) {
 func TestExtractMailboxValid(t *testing.T) {
 	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
 	fullPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.FullNaming}}
+	domainPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.DomainNaming}}
 
 	testTable := []struct {
-		input string // Input to test
-		local string // Expected output when mailbox naming = local
-		full  string // Expected output when mailbox naming = full
+		input   string // Input to test
+		local   string // Expected output when mailbox naming = local
+		full    string // Expected output when mailbox naming = full
+		domain  string // Expected output when mailbox naming = domain
 	}{
 		{
-			input: "mailbox",
-			local: "mailbox",
-			full:  "mailbox",
+			input:  "mailbox",
+			local:  "mailbox",
+			full:   "mailbox",
+			domain: "mailbox",
 		},
 		{
-			input: "user123",
-			local: "user123",
-			full:  "user123",
+			input:  "user123",
+			local:  "user123",
+			full:   "user123",
+			domain: "user123",
 		},
 		{
-			input: "MailBOX",
-			local: "mailbox",
-			full:  "mailbox",
+			input:  "MailBOX",
+			local:  "mailbox",
+			full:   "mailbox",
+			domain: "mailbox",
 		},
 		{
-			input: "First.Last",
-			local: "first.last",
-			full:  "first.last",
+			input:  "First.Last",
+			local:  "first.last",
+			full:   "first.last",
+			domain: "first.last",
 		},
 		{
-			input: "user+label",
-			local: "user",
-			full:  "user",
+			input:  "user+label",
+			local:  "user",
+			full:   "user",
+			domain: "user",
 		},
 		{
-			input: "chars!#$%",
-			local: "chars!#$%",
-			full:  "chars!#$%",
+			input:  "chars!#$%",
+			local:  "chars!#$%",
+			full:   "chars!#$%",
+			domain: "chars!#$%",
 		},
 		{
-			input: "chars&'*-",
-			local: "chars&'*-",
-			full:  "chars&'*-",
+			input:  "chars&'*-",
+			local:  "chars&'*-",
+			full:   "chars&'*-",
+			domain: "chars&'*-",
 		},
 		{
-			input: "chars=/?^",
-			local: "chars=/?^",
-			full:  "chars=/?^",
+			input:  "chars=/?^",
+			local:  "chars=/?^",
+			full:   "chars=/?^",
+			domain: "chars=/?^",
 		},
 		{
-			input: "chars_`.{",
-			local: "chars_`.{",
-			full:  "chars_`.{",
+			input:  "chars_`.{",
+			local:  "chars_`.{",
+			full:   "chars_`.{",
+			domain: "chars_`.{",
 		},
 		{
-			input: "chars|}~",
-			local: "chars|}~",
-			full:  "chars|}~",
+			input:  "chars|}~",
+			local:  "chars|}~",
+			full:   "chars|}~",
+			domain: "chars|}~",
 		},
 		{
-			input: "mailbox@domain.com",
-			local: "mailbox",
-			full:  "mailbox@domain.com",
+			input:  "mailbox@domain.com",
+			local:  "mailbox",
+			full:   "mailbox@domain.com",
+			domain: "domain.com",
 		},
 		{
-			input: "user123@domain.com",
-			local: "user123",
-			full:  "user123@domain.com",
+			input:  "user123@domain.com",
+			local:  "user123",
+			full:   "user123@domain.com",
+			domain: "domain.com",
 		},
 		{
-			input: "MailBOX@domain.com",
-			local: "mailbox",
-			full:  "mailbox@domain.com",
+			input:  "MailBOX@domain.com",
+			local:  "mailbox",
+			full:   "mailbox@domain.com",
+			domain: "domain.com",
 		},
 		{
-			input: "First.Last@domain.com",
-			local: "first.last",
-			full:  "first.last@domain.com",
+			input:  "First.Last@domain.com",
+			local:  "first.last",
+			full:   "first.last@domain.com",
+			domain: "domain.com",
 		},
 		{
-			input: "user+label@domain.com",
-			local: "user",
-			full:  "user@domain.com",
+			input:  "user+label@domain.com",
+			local:  "user",
+			full:   "user@domain.com",
+			domain: "domain.com",
 		},
 		{
-			input: "chars!#$%@domain.com",
-			local: "chars!#$%",
-			full:  "chars!#$%@domain.com",
+			input:  "chars!#$%@domain.com",
+			local:  "chars!#$%",
+			full:   "chars!#$%@domain.com",
+			domain: "domain.com",
 		},
 		{
-			input: "chars&'*-@domain.com",
-			local: "chars&'*-",
-			full:  "chars&'*-@domain.com",
+			input:  "chars&'*-@domain.com",
+			local:  "chars&'*-",
+			full:   "chars&'*-@domain.com",
+			domain: "domain.com",
 		},
 		{
-			input: "chars=/?^@domain.com",
-			local: "chars=/?^",
-			full:  "chars=/?^@domain.com",
+			input:  "chars=/?^@domain.com",
+			local:  "chars=/?^",
+			full:   "chars=/?^@domain.com",
+			domain: "domain.com",
 		},
 		{
-			input: "chars_`.{@domain.com",
-			local: "chars_`.{",
-			full:  "chars_`.{@domain.com",
+			input:  "chars_`.{@domain.com",
+			local:  "chars_`.{",
+			full:   "chars_`.{@domain.com",
+			domain: "domain.com",
 		},
 		{
-			input: "chars|}~@domain.com",
-			local: "chars|}~",
-			full:  "chars|}~@domain.com",
+			input:  "chars|}~@domain.com",
+			local:  "chars|}~",
+			full:   "chars|}~@domain.com",
+			domain: "domain.com",
+		},
+		{
+			input:  "chars|}~@example.co.uk",
+			local:  "chars|}~",
+			full:   "chars|}~@example.co.uk",
+			domain: "example.co.uk",
 		},
 	}
 	for _, tc := range testTable {
@@ -245,6 +273,13 @@ func TestExtractMailboxValid(t *testing.T) {
 		} else {
 			if result != tc.full {
 				t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.full, result)
+			}
+		}
+		if result, err := domainPolicy.ExtractMailbox(tc.input); err != nil {
+			t.Errorf("Error while parsing with domain naming %q: %v", tc.input, err)
+		} else {
+			if result != tc.domain {
+				t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.domain, result)
 			}
 		}
 	}

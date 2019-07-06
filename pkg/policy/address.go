@@ -32,15 +32,13 @@ func (a *Addressing) ExtractMailbox(address string) (string, error) {
 		// If no domain is specified,m assume this is being
 		// used for mailbox lookup via the API
 		if domain == "" {
-			domain, err = parseDomainName(local)
-			if err != nil {
-				return "", err
+			if ValidateDomainPart(local) == false {
+				return "", fmt.Errorf("Domain part %q in %q failed validation", local, address)
 			}
-			return domain, nil
+			return local, nil
 		}
-		domain, err = parseDomainName(domain)
-		if err != nil {
-			return "", err
+		if ValidateDomainPart(domain) == false {
+			return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
 		}
 		return domain, nil
 	}
@@ -309,42 +307,6 @@ func parseMailboxName(localPart string) (result string, err error) {
 	}
 	if len(invalid) > 0 {
 		return "", fmt.Errorf("Mailbox name contained invalid character(s): %q", invalid)
-	}
-	if idx := strings.Index(result, "+"); idx > -1 {
-		result = result[0:idx]
-	}
-	return result, nil
-}
-
-// ParseDomainName takes a domain string (ex: "domain.com" without "user@")
-// and returns the same domain.  Returns an error if
-// domain contains invalid characters; it won't accept any that must be
-// quoted according to RFC3696.
-func parseDomainName(domain string) (result string, err error) {
-	if domain == "" {
-		return "", fmt.Errorf("Domain cannot be empty")
-	}
-	result = strings.ToLower(domain)
-	invalid := make([]byte, 0, 10)
-	previous_symbol := false
-	for i := 0; i < len(result); i++ {
-		c := result[i]
-		switch {
-			// Check for alpha-numerics
-			case ('0' <= c && c <= '9') || ('a' <= c && c <= 'z'):
-				previous_symbol = false
-			// Check for allowed characters, only
-			// if not the first or last character and
-			// is not following another symbol
-			case bytes.IndexByte([]byte(".-"), c) >= 0 && i > 0 && i < (len(result) - 1) && previous_symbol == false:
-				// Mark previous charcter as being a symbol
-				previous_symbol = true
-			default:
-				invalid = append(invalid, c)
-		}
-	}
-	if len(invalid) > 0 {
-		return "", fmt.Errorf("Domain name contained invalid character(s): %q", invalid)
 	}
 	if idx := strings.Index(result, "+"); idx > -1 {
 		result = result[0:idx]

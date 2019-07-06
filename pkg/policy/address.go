@@ -28,6 +28,20 @@ func (a *Addressing) ExtractMailbox(address string) (string, error) {
 	if a.Config.MailboxNaming == config.LocalNaming {
 		return local, nil
 	}
+	if a.Config.MailboxNaming == config.DomainNaming {
+		// If no domain is specified,m assume this is being
+		// used for mailbox lookup via the API
+		if domain == "" {
+			if ValidateDomainPart(local) == false {
+				return "", fmt.Errorf("Domain part %q in %q failed validation", local, address)
+			}
+			return local, nil
+		}
+		if ValidateDomainPart(domain) == false {
+			return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
+		}
+		return domain, nil
+	}
 	if a.Config.MailboxNaming != config.FullNaming {
 		return "", fmt.Errorf("Unknown MailboxNaming value: %v", a.Config.MailboxNaming)
 	}
@@ -128,8 +142,8 @@ func ValidateDomainPart(domain string) bool {
 			hasAlphaNum = true
 			labelLen++
 		case c == '-':
-			if prev == '.' {
-				// Cannot lead with hyphen.
+			if prev == '.' || prev == '-' {
+				// Cannot lead with hyphen or double hyphen.
 				return false
 			}
 		case c == '.':

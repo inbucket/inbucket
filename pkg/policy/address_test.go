@@ -331,7 +331,6 @@ func TestExtractMailboxInvalid(t *testing.T) {
 		{"first.last@.example.com", "Domain cannot start with dot"},
 		{"first.last@-example.com", "Domain canont start with dash"},
 		{"first.last@example.com-", "Domain cannot end with dash"},
-		{"first.last@example.com.", "Domain cannot end with dot"},
 		{"first.last@example..com", "Domain cannot contain double dots"},
 		{"first.last@example--com", "Domain cannot contain double dashes"},
 		{"first.last@example.-com", "Domain cannot contain concecutive symbols"},

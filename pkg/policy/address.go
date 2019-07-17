@@ -30,7 +30,7 @@ func (a *Addressing) ExtractMailbox(address string) (string, error) {
 	}
 	if a.Config.MailboxNaming == config.DomainNaming {
 		// If no domain is specified, assume this is being
-		// used for mailbox lookup via the API
+		// used for mailbox lookup via the API.
 		if domain == "" {
 			if ValidateDomainPart(local) == false {
 				return "", fmt.Errorf("Domain part %q in %q failed validation", local, address)

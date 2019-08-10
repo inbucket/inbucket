@@ -4,6 +4,13 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Ability to name mailboxes after domain of email recipient, set via
+  `INBUCKET_MAILBOXNAMING`, thanks MatthewJohn.
+
+
 ## [v3.0.0-beta1]
 
 ### Added

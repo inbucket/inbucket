@@ -10,6 +10,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Ability to name mailboxes after domain of email recipient, set via
   `INBUCKET_MAILBOXNAMING`, thanks MatthewJohn.
 
+### Changed
+- Updated JavaScript dependencies.
+
 
 ## [v3.0.0-beta1]
 

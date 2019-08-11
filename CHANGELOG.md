@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - Updated JavaScript dependencies.
+- Updated Go dependencies.
 
 
 ## [v3.0.0-beta1]

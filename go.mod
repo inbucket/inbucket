@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/css v1.0.0
 	github.com/gorilla/mux v1.6.2
 	github.com/gorilla/websocket v1.4.0
-	github.com/jhillyerd/enmime v0.5.0
+	github.com/jhillyerd/enmime v0.6.0
 	github.com/jhillyerd/goldiff v0.1.0
 	github.com/kelseyhightower/envconfig v1.3.0
 	github.com/microcosm-cc/bluemonday v1.0.1

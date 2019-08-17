@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Updated JavaScript dependencies.
 - Updated Go dependencies.
+- Updated Docker build: Go to 1.12, and Alpine Linux to 3.10
+
+### Fixed
+- URLs to view/download attachments from REST API, #138
 
 
 ## [v3.0.0-beta1]

@@ -1,7 +1,7 @@
 # Docker build file for Inbucket: https://www.inbucket.org/
 
 # Build
-FROM golang:1.11-alpine3.8 as builder
+FROM golang:1.12-alpine3.10 as builder
 RUN apk add --no-cache --virtual .build-deps git make npm
 WORKDIR /build
 COPY . .
@@ -16,7 +16,7 @@ RUN npm i
 RUN npm run build
 
 # Run in minimal image
-FROM alpine:3.8
+FROM alpine:3.10
 WORKDIR /opt/inbucket
 RUN mkdir bin defaults ui
 COPY --from=builder /build/inbucket bin

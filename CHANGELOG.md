@@ -4,7 +4,7 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [v3.0.0-beta2]
 
 ### Added
 - Ability to name mailboxes after domain of email recipient, set via
@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - URLs to view/download attachments from REST API, #138
+- Support for late EHLO, #141
 
 
 ## [v3.0.0-beta1]
@@ -211,6 +212,7 @@ No change from beta1.
   specific message.
 
 [Unreleased]:  https://github.com/inbucket/inbucket/compare/master...develop
+[v3.0.0-beta2]: https://github.com/inbucket/inbucket/compare/v3.0.0-beta1...v3.0.0-beta2
 [v3.0.0-beta1]: https://github.com/inbucket/inbucket/compare/v2.1.0...v3.0.0-beta1
 [v2.1.0-beta1]: https://github.com/inbucket/inbucket/compare/v2.0.0...v2.1.0-beta1
 [v2.0.0]:      https://github.com/inbucket/inbucket/compare/v2.0.0-rc1...v2.0.0

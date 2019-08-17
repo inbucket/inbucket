@@ -206,6 +206,19 @@ func TestMailState(t *testing.T) {
 		t.Error(err)
 	}
 
+	// Test late EHLO, similar to RSET
+	script = []scriptStep{
+		{"EHLO localhost", 250},
+		{"EHLO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<u1@gmail.com>", 250},
+		{"EHLO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
 	// Test RSET
 	script = []scriptStep{
 		{"HELO localhost", 250},

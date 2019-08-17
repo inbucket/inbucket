@@ -196,6 +196,10 @@ func TestRestMessage(t *testing.T) {
 					"From": []string{"noreply@inbucket.org"},
 				},
 			},
+			Attachments: []*enmime.Part{{
+				FileName:    "favicon.png",
+				ContentType: "image/png",
+			}},
 		},
 	)
 	mm.AddMessage("good", msg1)
@@ -231,6 +235,10 @@ func TestRestMessage(t *testing.T) {
 	decodedStringEquals(t, result, "header/To/[0]", "fred@fish.com")
 	decodedStringEquals(t, result, "header/To/[1]", "keyword@nsa.gov")
 	decodedStringEquals(t, result, "header/From/[0]", "noreply@inbucket.org")
+	decodedStringEquals(t, result, "attachments/[0]/filename", "favicon.png")
+	decodedStringEquals(t, result, "attachments/[0]/content-type", "image/png")
+	decodedStringEquals(t, result, "attachments/[0]/download-link", "http://localhost/serve/mailbox/good/0001/attach/0/favicon.png")
+	decodedStringEquals(t, result, "attachments/[0]/view-link", "http://localhost/serve/mailbox/good/0001/attach/0/favicon.png")
 
 	if t.Failed() {
 		// Wait for handler to finish logging

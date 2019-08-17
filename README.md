@@ -22,6 +22,13 @@ Please see the [Change Log] and [Issues List] for more details.  If you'd like
 to contribute code to the project check out [CONTRIBUTING.md].
 
 
+## Docker
+
+Inbucket has automated [Docker Image] builds via Docker Hub.  The `stable` tag
+tracks our `master` branch (releases), `latest` tracks our unstable
+`development` branch.
+
+
 ## Homebrew Tap
 
 (currently broken, being tracked in [issue
@@ -33,38 +40,52 @@ see the `README.md` there for installation instructions.
 
 ## Building from Source
 
-You will need a functioning [Go installation][Google Go] for this to work.
+You will need functioning [Go] and [Node.js] installations for this to work.
 
-Grab the Inbucket source code and compile the daemon:
+```sh
+git clone https://github.com/inbucket/inbucket.git
+cd inbucket/ui
+npm i
+npm run build
+cd ..
+go build ./cmd/inbucket
+```
 
-    go get -v github.com/inbucket/inbucket/cmd/inbucket
+_Note:_ You may also use the included Makefile to build and test the Go binaries.
 
-Edit etc/inbucket.conf and tailor to your environment.  It should work on most
-Unix and OS X machines as is.  Launch the daemon:
+Inbucket reads its configuration from environment variables, but comes with
+built in sane defaults.  It should work on most Unix and OS X machines as is.
+Launch the daemon:
 
-    $GOPATH/bin/inbucket $GOPATH/src/github.com/inbucket/inbucket/etc/inbucket.conf
+```sh
+./inbucket
+```
 
 By default the SMTP server will be listening on localhost port 2500 and
 the web interface will be available at [localhost:9000](http://localhost:9000/).
 
-The Inbucket website has a more complete guide to
-[installing from source][From Source]
+See doc/[config.md] for more information on configuring Inbucket, but you will
+likely find the [Configurator] tool easier to use.
 
 
 ## About
 
-Inbucket is written in [Google Go]
+Inbucket is written in [Go]
 
 Inbucket is open source software released under the MIT License.  The latest
 version can be found at https://github.com/inbucket/inbucket
 
-[Go API docs]:      https://godoc.org/github.com/inbucket/inbucket/pkg/rest/client
 [Build Status]:     https://travis-ci.org/inbucket/inbucket
 [Change Log]:       https://github.com/inbucket/inbucket/blob/master/CHANGELOG.md
+[config.md]:        https://github.com/inbucket/inbucket/blob/master/doc/config.md
+[Configurator]:     https://www.inbucket.org/configurator/
 [CONTRIBUTING.md]:  https://github.com/inbucket/inbucket/blob/develop/CONTRIBUTING.md
-[From Source]:      http://www.inbucket.org/installation/from-source.html
-[Google Go]:        http://golang.org/
+[Docker Image]:     https://www.inbucket.org/binaries/docker.html
+[From Source]:      https://www.inbucket.org/installation/from-source.html
+[Go]:               https://golang.org/
+[Go API docs]:      https://godoc.org/github.com/inbucket/inbucket/pkg/rest/client
 [Homebrew]:         http://brew.sh/
 [Homebrew Tap]:     https://github.com/inbucket/homebrew-inbucket
-[Inbucket Website]: http://www.inbucket.org/
+[Inbucket Website]: https://www.inbucket.org/
 [Issues List]:      https://github.com/inbucket/inbucket/issues?state=open
+[Node.js]:          https://nodejs.org/en/

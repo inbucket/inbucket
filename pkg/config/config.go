@@ -38,6 +38,7 @@ const (
 	UnknownNaming mbNaming = iota
 	LocalNaming
 	FullNaming
+	DomainNaming
 )
 
 // Decode a naming strategy from string.
@@ -47,6 +48,8 @@ func (n *mbNaming) Decode(v string) error {
 		*n = LocalNaming
 	case "full":
 		*n = FullNaming
+	case "domain":
+		*n = DomainNaming
 	default:
 		return fmt.Errorf("Unknown MailboxNaming strategy: %q", v)
 	}
@@ -56,7 +59,7 @@ func (n *mbNaming) Decode(v string) error {
 // Root contains global configuration, and structs with for specific sub-systems.
 type Root struct {
 	LogLevel      string   `required:"true" default:"info" desc:"debug, info, warn, or error"`
-	MailboxNaming mbNaming `required:"true" default:"local" desc:"Use local or full addressing"`
+	MailboxNaming mbNaming `required:"true" default:"local" desc:"Use local, full or domain addressing"`
 	SMTP          SMTP
 	POP3          POP3
 	Web           Web

@@ -76,8 +76,14 @@ Prior to the addition of the mailbox naming setting, Inbucket always operated in
 local mode.  Regardless of this setting, the `+` wildcard/extension is not
 incorporated into the mailbox name.
 
+#### `domain` ensures the local-part is removed, such that:
+
+- `james@inbucket.org` is stored in `inbucket.org`
+- `matt@inbucket.org` is stored in `inbucket.org`
+- `matt@noinbucket.com` is stored in `notinbucket.com`
+
 - Default: `local`
-- Values: one of `local` or `full`
+- Values: one of `local` or `full` or `domain`
 
 
 ## SMTP

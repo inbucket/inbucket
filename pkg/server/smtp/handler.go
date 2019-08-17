@@ -346,6 +346,11 @@ func (s *Session) readyHandler(cmd string, arg string) {
 		s.logger.Info().Msgf("Mail from: %v", from)
 		s.send(fmt.Sprintf("250 Roger, accepting mail from <%v>", from))
 		s.enterState(MAIL)
+	} else if cmd == "EHLO" {
+		// Reset session
+		s.logger.Debug().Msgf("Resetting session state on EHLO request")
+		s.reset()
+		s.send("250 Session reset")
 	} else {
 		s.ooSeq(cmd)
 	}
@@ -393,6 +398,12 @@ func (s *Session) mailHandler(cmd string, arg string) {
 			return
 		}
 		s.enterState(DATA)
+		return
+	case "EHLO":
+		// Reset session
+		s.logger.Debug().Msgf("Resetting session state on EHLO request")
+		s.reset()
+		s.send("250 Session reset")
 		return
 	}
 	s.ooSeq(cmd)

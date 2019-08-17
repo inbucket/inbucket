@@ -65,15 +65,16 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	attachments := make([]*model.JSONMessageAttachmentV1, len(attachParts))
 	for i, part := range attachParts {
 		content := part.Content
-		var checksum = md5.Sum(content)
+		// Example URL: http://localhost/serve/mailbox/swaks/0001/attach/0/favicon.png
+		link := "http://" + req.Host + "/serve/mailbox/" + name + "/" + id + "/attach/" +
+			strconv.Itoa(i) + "/" + part.FileName
+		checksum := md5.Sum(content)
 		attachments[i] = &model.JSONMessageAttachmentV1{
-			ContentType: part.ContentType,
-			FileName:    part.FileName,
-			DownloadLink: "http://" + req.Host + "/mailbox/dattach/" + name + "/" + id + "/" +
-				strconv.Itoa(i) + "/" + part.FileName,
-			ViewLink: "http://" + req.Host + "/mailbox/vattach/" + name + "/" + id + "/" +
-				strconv.Itoa(i) + "/" + part.FileName,
-			MD5: hex.EncodeToString(checksum[:]),
+			ContentType:  part.ContentType,
+			FileName:     part.FileName,
+			DownloadLink: link,
+			ViewLink:     link,
+			MD5:          hex.EncodeToString(checksum[:]),
 		}
 	}
 	return web.RenderJSON(w,

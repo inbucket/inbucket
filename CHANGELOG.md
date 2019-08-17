@@ -236,7 +236,7 @@ No change from beta1.
     - Rename *Unreleased* section to release name and date.
     - Add new GitHub `/compare` link
 3.  Run tests
-4.  Test cross-compile: `goreleaser --snapshot`
+4.  Update goreleaser, and then test cross-compile: `goreleaser --snapshot`
 5.  Commit changes and merge release: `git flow release finish`
 6.  Push tags and wait for https://travis-ci.org/inbucket/inbucket build to
     complete

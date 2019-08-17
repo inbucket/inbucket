@@ -6,18 +6,19 @@ release:
     name: inbucket
   name_template: '{{.Tag}}'
 
-brew:
-  commit_author:
-    name: goreleaserbot
-    email: goreleaser@carlosbecker.com
-  install: bin.install ""
+brews:
+  - commit_author:
+      name: goreleaserbot
+      email: goreleaser@carlosbecker.com
+    install: bin.install ""
 
 before:
   hooks:
     - go mod download
 
 builds:
-  - binary: inbucket
+  - id: inbucket
+    binary: inbucket
     env:
       - CGO_ENABLED=0
     goos:
@@ -31,7 +32,8 @@ builds:
       - "6"
     main: ./cmd/inbucket
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
-  - binary: inbucket-client
+  - id: inbucket-client
+    binary: inbucket-client
     env:
       - CGO_ENABLED=0
     goos:
@@ -46,36 +48,37 @@ builds:
     main: ./cmd/client
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
-archive:
-  format: tar.gz
-  wrap_in_directory: true
-  name_template: '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{
-    .Arm }}{{ end }}'
-  format_overrides:
-    - goos: windows
-      format: zip
-  files:
-    - LICENSE*
-    - README*
-    - CHANGELOG*
-    - etc/**/*
-    - ui/dist/**/*
-    - ui/greeting.html
+archives:
+  - id: tarball
+    format: tar.gz
+    wrap_in_directory: true
+    name_template: '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{
+      .Arm }}{{ end }}'
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE*
+      - README*
+      - CHANGELOG*
+      - etc/**/*
+      - ui/dist/**/*
+      - ui/greeting.html
 
-nfpm:
-  vendor: inbucket.org
-  homepage: https://www.inbucket.org/
-  maintainer: github@hillyerd.com
-  description: All-in-one disposable webmail service.
-  license: MIT
-  formats:
-    - deb
-    - rpm
-  files:
-    "ui/dist/**/*": "/usr/local/share/inbucket/ui"
-  config_files:
-    "etc/linux/inbucket.service": "/lib/systemd/system/inbucket.service"
-    "ui/greeting.html": "/etc/inbucket/greeting.html"
+nfpms:
+  - formats:
+      - deb
+      - rpm
+    vendor: inbucket.org
+    homepage: https://www.inbucket.org/
+    maintainer: github@hillyerd.com
+    description: All-in-one disposable webmail service.
+    license: MIT
+    files:
+      "ui/dist/**/*": "/usr/local/share/inbucket/ui"
+    config_files:
+      "etc/linux/inbucket.service": "/lib/systemd/system/inbucket.service"
+      "ui/greeting.html": "/etc/inbucket/greeting.html"
 
 snapshot:
   name_template: SNAPSHOT-{{ .Commit }}
@@ -84,6 +87,3 @@ checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
 
 dist: dist
-
-sign:
-  artifacts: none

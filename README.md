@@ -22,6 +22,13 @@ Please see the [Change Log] and [Issues List] for more details.  If you'd like
 to contribute code to the project check out [CONTRIBUTING.md].
 
 
+## Docker
+
+Inbucket has automated [Docker Image] builds via Docker Hub.  The `stable` tag
+tracks our `master` branch (releases), `latest` tracks our unstable
+`development` branch.
+
+
 ## Homebrew Tap
 
 (currently broken, being tracked in [issue
@@ -73,11 +80,12 @@ version can be found at https://github.com/inbucket/inbucket
 [config.md]:        https://github.com/inbucket/inbucket/blob/master/doc/config.md
 [Configurator]:     https://www.inbucket.org/configurator/
 [CONTRIBUTING.md]:  https://github.com/inbucket/inbucket/blob/develop/CONTRIBUTING.md
-[From Source]:      http://www.inbucket.org/installation/from-source.html
-[Go]:               http://golang.org/
+[Docker Image]:     https://www.inbucket.org/binaries/docker.html
+[From Source]:      https://www.inbucket.org/installation/from-source.html
+[Go]:               https://golang.org/
 [Go API docs]:      https://godoc.org/github.com/inbucket/inbucket/pkg/rest/client
 [Homebrew]:         http://brew.sh/
 [Homebrew Tap]:     https://github.com/inbucket/homebrew-inbucket
-[Inbucket Website]: http://www.inbucket.org/
+[Inbucket Website]: https://www.inbucket.org/
 [Issues List]:      https://github.com/inbucket/inbucket/issues?state=open
 [Node.js]:          https://nodejs.org/en/

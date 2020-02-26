@@ -36,6 +36,9 @@ ENV INBUCKET_STORAGE_PARAMS path:/storage
 ENV INBUCKET_STORAGE_RETENTIONPERIOD 72h
 ENV INBUCKET_STORAGE_MAILBOXMSGCAP 300
 
+# Healthcheck
+HEALTHCHECK --interval=5s --timeout=5s --retries=3 CMD /bin/sh -c 'wget localhost:$(echo ${INBUCKET_WEB_ADDR:-0.0.0.0:9000}|cut -d: -f2) -q -O - > /dev/null 2>&1'
+
 # Ports: SMTP, HTTP, POP3
 EXPOSE 2500 9000 1100
 

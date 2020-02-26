@@ -43,7 +43,7 @@ EXPOSE 2500 9000 1100
 VOLUME /config
 VOLUME /storage
 
-RUN addgroup -g 1000 inbucket && adduser -G inbucket -u 1000 -D inbucket && chown -R inbucket:inbucket /opt/inbucket/ && chmod 774 /opt/inbucket/ -R
+RUN addgroup -g 1000 inbucket && adduser -G inbucket -u 1000 -D inbucket && chown -R inbucket:inbucket /opt/inbucket/ && chmod 774 /opt/inbucket/ -R && chown /start-inbucket.sh && chmod +x /start-inbucket.sh
 
 USER inbucket
 

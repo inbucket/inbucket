@@ -20,8 +20,8 @@
             "ryannhg/date-format": "2.1.0"
         },
         "indirect": {
-            "elm/bytes": "1.0.3",
-            "elm/file": "1.0.1",
+            "elm/bytes": "1.0.8",
+            "elm/file": "1.0.5",
             "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.2",
             "myrho/elm-round": "1.0.4"

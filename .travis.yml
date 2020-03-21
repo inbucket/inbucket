@@ -13,7 +13,10 @@ jobs:
     - go: "1.14.x"
     - go: "master"
     - language: elm
-      elm: "0.19.0"
+      elm: "latest-0.19.1"
+      elm-format: "latest-0.19.1"
+      elm-test: "latest-0.19.1"
+      node_js: '10.19'
       install:
         - "cd ui"
         - "npm ci"
@@ -23,7 +26,7 @@ jobs:
     - stage: deploy
       go: "1.14.x"
       before_install:
-        - "nvm install 10.13.0"
+        - "nvm install 10.19.0"
       install:
         - "cd ui"
         - "npm ci"

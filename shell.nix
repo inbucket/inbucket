@@ -5,7 +5,9 @@ stdenv.mkDerivation rec {
   buildInputs = [
     dpkg
     elmPackages.elm
+    elmPackages.elm-analyse
     elmPackages.elm-format
+    elmPackages.elm-test
     go
     golint
     nodejs-10_x

@@ -126,12 +126,14 @@ a.button {
   display: none;
 }
 
-@media (min-width: 1000px) {
+@media screen and (min-width: 1000px) {
   .app {
+    grid-column-gap: 40px;
     grid-template:
       "lpad head rpad" auto
       "lpad page rpad" 1fr
-      "foot foot foot" auto / minmax(20px, auto) 1fr minmax(20px, auto);
+      "foot foot foot" auto
+      / 1fr minmax(auto, 1300px) 1fr;
     height: 100vh;
   }
 

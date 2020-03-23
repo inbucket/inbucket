@@ -116,23 +116,27 @@ a.button {
   justify-content: center;
   grid-gap: 20px;
   grid-template:
-    "lpad head rpad" auto
+    "head head head" auto
     "lpad page rpad" 1fr
-    "foot foot foot" auto / minmax(20px, auto) 1fr minmax(20px, auto);
-  height: 100vh;
+    "foot foot foot" auto / 1px 1fr 1px;
+  height: auto;
 }
 
-@media (max-width: 999px) {
+.desktop {
+  display: none;
+}
+
+@media (min-width: 1000px) {
   .app {
     grid-template:
-      "head head head" auto
+      "lpad head rpad" auto
       "lpad page rpad" 1fr
-      "foot foot foot" auto / 1px 1fr 1px;
-    height: auto;
+      "foot foot foot" auto / minmax(20px, auto) 1fr minmax(20px, auto);
+    height: 100vh;
   }
 
-  .desktop {
-    display: none;
+  td.desktop, th.desktop {
+    display: table-cell;
   }
 }
 

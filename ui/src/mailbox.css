@@ -69,7 +69,8 @@
     grid-gap: 1px 20px;
     grid:
       "ctrl mesg" auto
-      "list mesg" 1fr / minmax(200px, 300px) minmax(650px, 1000px);
+      "list mesg" 1fr
+      / minmax(200px, 300px) minmax(650px, auto);
     height: 100%;
   }
 

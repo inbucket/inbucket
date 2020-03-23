@@ -7,6 +7,7 @@ stdenv.mkDerivation rec {
     elmPackages.elm
     elmPackages.elm-analyse
     elmPackages.elm-format
+    elmPackages.elm-language-server
     elmPackages.elm-test
     go
     golint

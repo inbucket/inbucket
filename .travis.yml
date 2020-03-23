@@ -1,3 +1,5 @@
+dist: bionic
+
 env:
   global:
     - GO111MODULE=on
@@ -16,7 +18,7 @@ jobs:
       elm: "latest-0.19.1"
       elm-format: "latest-0.19.1"
       elm-test: "latest-0.19.1"
-      node_js: '10.19'
+      node_js: "10.16.0"
       install:
         - "cd ui"
         - "npm ci"

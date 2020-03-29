@@ -166,7 +166,7 @@ frame { model, session, activePage, activeMailbox, modal, content } =
             ]
         , div [ class "navbar-bg" ] [ text "" ]
         , frameModal modal
-        , div [ class "page" ] ([ errorFlash model session.flash ] ++ content)
+        , div [ class "page" ] (errorFlash model session.flash :: content)
         , footer []
             [ div [ class "footer" ]
                 [ externalLink "https://www.inbucket.org" "Inbucket"

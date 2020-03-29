@@ -37,6 +37,7 @@ import Html.Attributes
         , value
         )
 import Html.Events as Events
+import Modal
 import Route exposing (Route)
 
 
@@ -79,6 +80,8 @@ reset model =
 
 type Msg
     = ClearFlash
+    | ModalFocused Modal.Msg
+    | ModalUnfocused
     | OnMailboxNameInput String
     | OpenMailbox
     | ShowRecent Bool
@@ -93,6 +96,15 @@ update msg model session =
             , Session.clearFlash session
             , Cmd.none
             )
+
+        ModalFocused message ->
+            ( model
+            , Modal.updateSession message session
+            , Cmd.none
+            )
+
+        ModalUnfocused ->
+            ( model, session, Modal.resetFocusCmd (ModalFocused >> model.mapMsg) )
 
         OnMailboxNameInput name ->
             ( { model | mailboxName = name }
@@ -165,7 +177,7 @@ frame { model, session, activePage, activeMailbox, modal, content } =
                 ]
             ]
         , div [ class "navbar-bg" ] [ text "" ]
-        , frameModal modal
+        , Modal.view (ModalUnfocused |> model.mapMsg) modal
         , div [ class "page" ] (errorFlash model session.flash :: content)
         , footer []
             [ div [ class "footer" ]
@@ -176,18 +188,6 @@ frame { model, session, activePage, activeMailbox, modal, content } =
                 ]
             ]
         ]
-
-
-frameModal : Maybe (Html msg) -> Html msg
-frameModal maybeModal =
-    case maybeModal of
-        Just modal ->
-            div [ class "modal-mask" ]
-                [ div [ class "modal well" ] [ modal ]
-                ]
-
-        Nothing ->
-            text ""
 
 
 errorFlash : Model msg -> Maybe Session.Flash -> Html msg

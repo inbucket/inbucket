@@ -1,6 +1,7 @@
 module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, view)
 
 import Api
+import Browser.Dom as Dom
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
@@ -51,6 +52,7 @@ import Html.Events as Events
 import HttpUtil
 import Json.Decode as D
 import Json.Encode as E
+import Modal
 import Route
 import Task
 import Time exposing (Posix)
@@ -174,6 +176,7 @@ type Msg
     | PurgedMailbox (Result HttpUtil.Error ())
     | OnSearchInput String
     | Tick Posix
+    | ModalFocused Modal.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -262,6 +265,11 @@ update msg model =
         MessageBody bodyMode ->
             ( { model | bodyMode = bodyMode }, Cmd.none )
 
+        ModalFocused message ->
+            ( { model | session = Modal.updateSession message model.session }
+            , Cmd.none
+            )
+
         OnSearchInput searchInput ->
             updateSearchInput model searchInput
 
@@ -293,13 +301,13 @@ update msg model =
                     ( model, Cmd.none )
 
         PurgeMailboxPrompt ->
-            ( { model | promptPurge = True }, Cmd.none )
+            ( { model | promptPurge = True }, Modal.resetFocusCmd ModalFocused )
 
         PurgeMailboxCanceled ->
             ( { model | promptPurge = False }, Cmd.none )
 
         PurgeMailboxConfirmed ->
-            updatePurge model
+            updateTriggerPurge model
 
         PurgedMailbox (Ok _) ->
             ( model, Cmd.none )
@@ -358,8 +366,10 @@ updateMessageResult model message =
             )
 
 
-updatePurge : Model -> ( Model, Cmd Msg )
-updatePurge model =
+{-| Updates model and triggers commands to purge this mailbox.
+-}
+updateTriggerPurge : Model -> ( Model, Cmd Msg )
+updateTriggerPurge model =
     let
         cmd =
             Cmd.batch

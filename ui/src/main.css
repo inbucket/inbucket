@@ -223,6 +223,10 @@ h3 {
   padding: 10px !important;
 }
 
+.modal:focus {
+  outline: none;
+}
+
 /** BUTTONS */
 
 .button-bar {

@@ -249,13 +249,6 @@ navbarRecent page activeMailbox model session =
             else
                 session.persistent.recentMailboxes
 
-        dropdownExpanded =
-            if model.recentVisible then
-                "true"
-
-            else
-                "false"
-
         recentLink mailbox =
             a [ Route.href (Route.Mailbox mailbox) ] [ text mailbox ]
     in

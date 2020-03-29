@@ -100,7 +100,7 @@ initDataSet =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Time.every (10 * 1000) Tick
 
 
@@ -417,23 +417,6 @@ viewMetric metric =
             , text ("(" ++ String.fromInt metric.minutes ++ "min)")
             ]
         ]
-
-
-viewLiveMetric : String -> (Int -> String) -> Int -> Html a -> Html a
-viewLiveMetric label formatter value graph =
-    div [ class "metric" ]
-        [ div [ class "label" ] [ text label ]
-        , div [ class "value" ] [ text (formatter value) ]
-        , div [ class "graph" ]
-            [ graph
-            , text "(10min)"
-            ]
-        ]
-
-
-graphNull : Html a
-graphNull =
-    div [] []
 
 
 graphSize : Spark.Size

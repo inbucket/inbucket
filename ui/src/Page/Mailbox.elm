@@ -160,7 +160,6 @@ type Msg
     = ListLoaded (Result HttpUtil.Error (List MessageHeader))
     | ClickMessage MessageID
     | ListKeyPress String Int
-    | OpenMessage MessageID
     | CloseMessage
     | MessageLoaded (Result HttpUtil.Error Message)
     | MessageBody Body
@@ -188,9 +187,6 @@ update msg model =
                 , Api.getMessage MessageLoaded model.mailboxName id
                 ]
             )
-
-        OpenMessage id ->
-            updateOpenMessage model id
 
         CloseMessage ->
             case model.state of
@@ -372,7 +368,7 @@ updatePurge model =
                 ]
     in
     case model.state of
-        ShowingList list _ ->
+        ShowingList _ _ ->
             ( { model
                 | promptPurge = False
                 , session = Session.disableRouting model.session

@@ -1,14 +1,21 @@
 module Page.Status exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
-import Data.Metrics as Metrics exposing (Metrics)
-import Data.ServerConfig as ServerConfig exposing (ServerConfig)
+import Data.Metrics exposing (Metrics)
+import Data.ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
 import DateFormat.Relative as Relative
 import Filesize
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Http exposing (Error)
+import Html
+    exposing
+        ( Html
+        , div
+        , h1
+        , h2
+        , i
+        , text
+        )
+import Html.Attributes exposing (class)
 import HttpUtil
 import Sparkline as Spark
 import Svg.Attributes as SvgAttrib

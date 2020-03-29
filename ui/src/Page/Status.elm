@@ -278,18 +278,19 @@ configPanel maybeConfig =
                 , textEntry "SMTP Listener" config.smtpConfig.addr
                 , textEntry "POP3 Listener" config.pop3Listener
                 , textEntry "HTTP Listener" config.webListener
-                , textEntry "Accept Policy" (acceptPolicy config.smtpConfig)
-                , textEntry "Store Policy" (storePolicy config.smtpConfig)
+                , textEntry "Accept Policy" (acceptPolicy config)
+                , textEntry "Store Policy" (storePolicy config)
                 , textEntry "Store Type" config.storageConfig.storeType
                 , textEntry "Message Cap" (mailboxCap config)
                 , textEntry "Retention Period" (retentionPeriod config)
                 ]
 
 
+acceptPolicy : ServerConfig -> String
 acceptPolicy config =
-    if config.defaultAccept then
+    if config.smtpConfig.defaultAccept then
         "All domains"
-            ++ (case config.rejectDomains of
+            ++ (case config.smtpConfig.rejectDomains of
                     Nothing ->
                         ""
 
@@ -302,7 +303,7 @@ acceptPolicy config =
 
     else
         "No domains"
-            ++ (case config.acceptDomains of
+            ++ (case config.smtpConfig.acceptDomains of
                     Nothing ->
                         ""
 
@@ -314,10 +315,11 @@ acceptPolicy config =
                )
 
 
+storePolicy : ServerConfig -> String
 storePolicy config =
-    if config.defaultStore then
+    if config.smtpConfig.defaultStore then
         "All domains"
-            ++ (case config.discardDomains of
+            ++ (case config.smtpConfig.discardDomains of
                     Nothing ->
                         ""
 
@@ -330,7 +332,7 @@ storePolicy config =
 
     else
         "No domains"
-            ++ (case config.storeDomains of
+            ++ (case config.smtpConfig.storeDomains of
                     Nothing ->
                         ""
 

@@ -1,17 +1,37 @@
 module Layout exposing (Model, Msg, Page(..), frame, init, reset, update)
 
 import Data.Session as Session exposing (Session)
-import Html exposing (..)
+import Html
+    exposing
+        ( Attribute
+        , Html
+        , a
+        , button
+        , div
+        , footer
+        , form
+        , h2
+        , header
+        , i
+        , input
+        , li
+        , nav
+        , pre
+        , span
+        , td
+        , text
+        , th
+        , tr
+        , ul
+        )
 import Html.Attributes
     exposing
         ( attribute
         , class
         , classList
         , href
-        , id
         , placeholder
         , rel
-        , selected
         , target
         , type_
         , value

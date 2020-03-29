@@ -1,6 +1,6 @@
 module Data.Date exposing (date)
 
-import Json.Decode exposing (..)
+import Json.Decode exposing (Decoder, int, map)
 import Time exposing (Posix)
 
 

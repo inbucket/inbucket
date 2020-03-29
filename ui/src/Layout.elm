@@ -1,17 +1,37 @@
 module Layout exposing (Model, Msg, Page(..), frame, init, reset, update)
 
 import Data.Session as Session exposing (Session)
-import Html exposing (..)
+import Html
+    exposing
+        ( Attribute
+        , Html
+        , a
+        , button
+        , div
+        , footer
+        , form
+        , h2
+        , header
+        , i
+        , input
+        , li
+        , nav
+        , pre
+        , span
+        , td
+        , text
+        , th
+        , tr
+        , ul
+        )
 import Html.Attributes
     exposing
         ( attribute
         , class
         , classList
         , href
-        , id
         , placeholder
         , rel
-        , selected
         , target
         , type_
         , value
@@ -146,7 +166,7 @@ frame { model, session, activePage, activeMailbox, modal, content } =
             ]
         , div [ class "navbar-bg" ] [ text "" ]
         , frameModal modal
-        , div [ class "page" ] ([ errorFlash model session.flash ] ++ content)
+        , div [ class "page" ] (errorFlash model session.flash :: content)
         , footer []
             [ div [ class "footer" ]
                 [ externalLink "https://www.inbucket.org" "Inbucket"
@@ -228,13 +248,6 @@ navbarRecent page activeMailbox model session =
 
             else
                 session.persistent.recentMailboxes
-
-        dropdownExpanded =
-            if model.recentVisible then
-                "true"
-
-            else
-                "false"
 
         recentLink mailbox =
             a [ Route.href (Route.Mailbox mailbox) ] [ text mailbox ]

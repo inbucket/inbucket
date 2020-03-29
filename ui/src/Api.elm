@@ -40,7 +40,7 @@ apiV1Url elements =
 -}
 serveUrl : List String -> String
 serveUrl elements =
-    Url.Builder.absolute ([ "serve" ] ++ elements) []
+    Url.Builder.absolute ("serve" :: elements) []
 
 
 deleteMessage : HttpResult msg -> String -> String -> Cmd msg

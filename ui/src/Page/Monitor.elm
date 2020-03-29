@@ -3,8 +3,25 @@ module Page.Monitor exposing (Model, Msg, init, update, view)
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
 import DateFormat as DF
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html
+    exposing
+        ( Attribute
+        , Html
+        , button
+        , div
+        , em
+        , h1
+        , node
+        , span
+        , table
+        , tbody
+        , td
+        , text
+        , th
+        , thead
+        , tr
+        )
+import Html.Attributes exposing (class, tabindex)
 import Html.Events as Events
 import Json.Decode as D
 import Route

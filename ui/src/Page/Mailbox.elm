@@ -2,11 +2,36 @@ module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, vie
 
 import Api
 import Data.Message as Message exposing (Message)
-import Data.MessageHeader as MessageHeader exposing (MessageHeader)
+import Data.MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
 import DateFormat as DF
 import DateFormat.Relative as Relative
-import Html exposing (..)
+import Html
+    exposing
+        ( Attribute
+        , Html
+        , a
+        , article
+        , aside
+        , button
+        , dd
+        , div
+        , dl
+        , dt
+        , h3
+        , i
+        , input
+        , li
+        , main_
+        , nav
+        , p
+        , span
+        , table
+        , td
+        , text
+        , tr
+        , ul
+        )
 import Html.Attributes
     exposing
         ( alt
@@ -15,7 +40,6 @@ import Html.Attributes
         , disabled
         , download
         , href
-        , id
         , placeholder
         , property
         , tabindex
@@ -24,11 +48,9 @@ import Html.Attributes
         , value
         )
 import Html.Events as Events
-import Http exposing (Error)
 import HttpUtil
 import Json.Decode as D
 import Json.Encode as E
-import Ports
 import Route
 import Task
 import Time exposing (Posix)
@@ -138,7 +160,6 @@ type Msg
     = ListLoaded (Result HttpUtil.Error (List MessageHeader))
     | ClickMessage MessageID
     | ListKeyPress String Int
-    | OpenMessage MessageID
     | CloseMessage
     | MessageLoaded (Result HttpUtil.Error Message)
     | MessageBody Body
@@ -166,9 +187,6 @@ update msg model =
                 , Api.getMessage MessageLoaded model.mailboxName id
                 ]
             )
-
-        OpenMessage id ->
-            updateOpenMessage model id
 
         CloseMessage ->
             case model.state of
@@ -350,7 +368,7 @@ updatePurge model =
                 ]
     in
     case model.state of
-        ShowingList list _ ->
+        ShowingList _ _ ->
             ( { model
                 | promptPurge = False
                 , session = Session.disableRouting model.session

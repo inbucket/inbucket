@@ -16,8 +16,8 @@ jobs:
     - go: "master"
     - language: elm
       elm: "latest-0.19.1"
-      elm-format: "latest-0.19.1"
-      elm-test: "latest-0.19.1"
+      elm_format: "latest-0.19.1"
+      elm_test: "latest-0.19.1"
       node_js: "10.16.0"
       install:
         - "cd ui"

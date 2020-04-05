@@ -38,7 +38,9 @@ import Html.Attributes
         )
 import Html.Events as Events
 import Modal
+import Process
 import Route exposing (Route)
+import Task
 
 
 {-| Used to highlight current page in navbar.
@@ -52,17 +54,48 @@ type Page
 
 type alias Model msg =
     { mapMsg : Msg -> msg
-    , menuVisible : Bool
-    , recentVisible : Bool
+    , mainMenuVisible : Bool
+    , recentMenuVisible : Bool
+    , recentMenuTimer : Timer
     , mailboxName : String
     }
+
+
+type Timer
+    = New
+    | Idle Int
+    | Timer Int
+
+
+replaceTimer : Timer -> Timer
+replaceTimer previous =
+    case previous of
+        New ->
+            Timer 0
+
+        Idle index ->
+            Timer (index + 1)
+
+        Timer index ->
+            Timer (index + 1)
+
+
+cancelTimer : Timer -> Timer
+cancelTimer previous =
+    case previous of
+        Timer index ->
+            Idle (index + 1)
+
+        _ ->
+            previous
 
 
 init : (Msg -> msg) -> Model msg
 init mapMsg =
     { mapMsg = mapMsg
-    , menuVisible = False
-    , recentVisible = False
+    , mainMenuVisible = False
+    , recentMenuVisible = False
+    , recentMenuTimer = New
     , mailboxName = ""
     }
 
@@ -72,20 +105,24 @@ init mapMsg =
 reset : Model msg -> Model msg
 reset model =
     { model
-        | menuVisible = False
-        , recentVisible = False
+        | mainMenuVisible = False
+        , recentMenuVisible = False
+        , recentMenuTimer = cancelTimer model.recentMenuTimer
         , mailboxName = ""
     }
 
 
 type Msg
     = ClearFlash
+    | MainMenuToggled
     | ModalFocused Modal.Msg
     | ModalUnfocused
     | OnMailboxNameInput String
     | OpenMailbox
-    | ShowRecent Bool
-    | ToggleMenu
+    | RecentMenuMouseOver
+    | RecentMenuMouseOut
+    | RecentMenuTimeout Timer ()
+    | RecentMenuToggled
 
 
 update : Msg -> Model msg -> Session -> ( Model msg, Session, Cmd msg )
@@ -94,6 +131,12 @@ update msg model session =
         ClearFlash ->
             ( model
             , Session.clearFlash session
+            , Cmd.none
+            )
+
+        MainMenuToggled ->
+            ( { model | mainMenuVisible = not model.mainMenuVisible }
+            , session
             , Cmd.none
             )
 
@@ -122,14 +165,43 @@ update msg model session =
                 , Route.pushUrl session.key (Route.Mailbox model.mailboxName)
                 )
 
-        ShowRecent visible ->
-            ( { model | recentVisible = visible }
+        RecentMenuMouseOver ->
+            ( { model
+                | recentMenuVisible = True
+                , recentMenuTimer = cancelTimer model.recentMenuTimer
+              }
             , session
             , Cmd.none
             )
 
-        ToggleMenu ->
-            ( { model | menuVisible = not model.menuVisible }
+        RecentMenuMouseOut ->
+            let
+                newTimer =
+                    replaceTimer model.recentMenuTimer
+            in
+            ( { model
+                | recentMenuTimer = newTimer
+              }
+            , session
+            , Process.sleep 400 |> Task.perform (RecentMenuTimeout newTimer >> model.mapMsg)
+            )
+
+        RecentMenuTimeout timer _ ->
+            if timer == model.recentMenuTimer then
+                ( { model
+                    | recentMenuVisible = False
+                    , recentMenuTimer = cancelTimer timer
+                  }
+                , session
+                , Cmd.none
+                )
+
+            else
+                -- Timer was no longer valid.
+                ( model, session, Cmd.none )
+
+        RecentMenuToggled ->
+            ( { model | recentMenuVisible = not model.recentMenuVisible }
             , session
             , Cmd.none
             )
@@ -150,11 +222,11 @@ frame { model, session, activePage, activeMailbox, modal, content } =
     div [ class "app" ]
         [ header []
             [ nav [ class "navbar" ]
-                [ button [ class "navbar-toggle", Events.onClick (ToggleMenu |> model.mapMsg) ]
+                [ button [ class "navbar-toggle", Events.onClick (MainMenuToggled |> model.mapMsg) ]
                     [ i [ class "fas fa-bars" ] [] ]
                 , span [ class "navbar-brand" ]
                     [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
-                , ul [ class "main-nav", classList [ ( "active", model.menuVisible ) ] ]
+                , ul [ class "main-nav", classList [ ( "active", model.mainMenuVisible ) ] ]
                     [ if session.config.monitorVisible then
                         navbarLink Monitor Route.Monitor [ text "Monitor" ] activePage
 
@@ -256,15 +328,15 @@ navbarRecent page activeMailbox model session =
         [ class "navbar-dropdown-container"
         , classList [ ( "navbar-active", active ) ]
         , attribute "aria-haspopup" "true"
-        , ariaExpanded model.recentVisible
-        , Events.onMouseOver (ShowRecent True |> model.mapMsg)
-        , Events.onMouseOut (ShowRecent False |> model.mapMsg)
+        , ariaExpanded model.recentMenuVisible
+        , Events.onMouseOver (RecentMenuMouseOver |> model.mapMsg)
+        , Events.onMouseOut (RecentMenuMouseOut |> model.mapMsg)
         ]
         [ span [ class "navbar-dropdown" ]
             [ text title
             , button
                 [ class "navbar-dropdown-button"
-                , Events.onClick (ShowRecent (not model.recentVisible) |> model.mapMsg)
+                , Events.onClick (RecentMenuToggled |> model.mapMsg)
                 ]
                 [ i [ class "fas fa-chevron-down" ] [] ]
             ]

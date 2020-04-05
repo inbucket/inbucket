@@ -41,6 +41,7 @@ import Modal
 import Process
 import Route exposing (Route)
 import Task
+import Timer exposing (Timer)
 
 
 {-| Used to highlight current page in navbar.
@@ -61,41 +62,12 @@ type alias Model msg =
     }
 
 
-type Timer
-    = New
-    | Idle Int
-    | Timer Int
-
-
-replaceTimer : Timer -> Timer
-replaceTimer previous =
-    case previous of
-        New ->
-            Timer 0
-
-        Idle index ->
-            Timer (index + 1)
-
-        Timer index ->
-            Timer (index + 1)
-
-
-cancelTimer : Timer -> Timer
-cancelTimer previous =
-    case previous of
-        Timer index ->
-            Idle (index + 1)
-
-        _ ->
-            previous
-
-
 init : (Msg -> msg) -> Model msg
 init mapMsg =
     { mapMsg = mapMsg
     , mainMenuVisible = False
     , recentMenuVisible = False
-    , recentMenuTimer = New
+    , recentMenuTimer = Timer.empty
     , mailboxName = ""
     }
 
@@ -107,7 +79,7 @@ reset model =
     { model
         | mainMenuVisible = False
         , recentMenuVisible = False
-        , recentMenuTimer = cancelTimer model.recentMenuTimer
+        , recentMenuTimer = Timer.cancel model.recentMenuTimer
         , mailboxName = ""
     }
 
@@ -168,7 +140,7 @@ update msg model session =
         RecentMenuMouseOver ->
             ( { model
                 | recentMenuVisible = True
-                , recentMenuTimer = cancelTimer model.recentMenuTimer
+                , recentMenuTimer = Timer.cancel model.recentMenuTimer
               }
             , session
             , Cmd.none
@@ -177,7 +149,7 @@ update msg model session =
         RecentMenuMouseOut ->
             let
                 newTimer =
-                    replaceTimer model.recentMenuTimer
+                    Timer.replace model.recentMenuTimer
             in
             ( { model
                 | recentMenuTimer = newTimer
@@ -190,7 +162,7 @@ update msg model session =
             if timer == model.recentMenuTimer then
                 ( { model
                     | recentMenuVisible = False
-                    , recentMenuTimer = cancelTimer timer
+                    , recentMenuTimer = Timer.cancel timer
                   }
                 , session
                 , Cmd.none

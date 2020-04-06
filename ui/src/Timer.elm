@@ -1,9 +1,11 @@
-module Timer exposing (Timer, cancel, empty, replace)
+module Timer exposing (Timer, cancel, empty, replace, schedule)
+
+import Process
+import Task
+
 
 {-| Implements an identity to track an asynchronous timer.
 -}
-
-
 type Timer
     = Empty
     | Idle Int
@@ -13,6 +15,11 @@ type Timer
 empty : Timer
 empty =
     Empty
+
+
+schedule : (Timer -> msg) -> Timer -> Float -> Cmd msg
+schedule message timer millis =
+    Task.perform (always (message timer)) (Process.sleep millis)
 
 
 {-| Replaces the provided timer with a newly created one.

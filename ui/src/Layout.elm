@@ -93,7 +93,7 @@ type Msg
     | OpenMailbox
     | RecentMenuMouseOver
     | RecentMenuMouseOut
-    | RecentMenuTimeout Timer ()
+    | RecentMenuTimeout Timer
     | RecentMenuToggled
 
 
@@ -155,10 +155,10 @@ update msg model session =
                 | recentMenuTimer = newTimer
               }
             , session
-            , Process.sleep 400 |> Task.perform (RecentMenuTimeout newTimer >> model.mapMsg)
+            , Timer.schedule (RecentMenuTimeout >> model.mapMsg) newTimer 400
             )
 
-        RecentMenuTimeout timer _ ->
+        RecentMenuTimeout timer ->
             if timer == model.recentMenuTimer then
                 ( { model
                     | recentMenuVisible = False

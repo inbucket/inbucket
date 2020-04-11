@@ -270,17 +270,12 @@ update msg model =
             )
 
         MarkSeenTriggered timer ->
-            case model.state of
-                ShowingList _ (ShowingMessage _) ->
-                    if timer == model.markSeenTimer then
-                        -- Matching timer means we have changed messages, mark this one seen.
-                        updateMarkMessageSeen model
+            if timer == model.markSeenTimer then
+                -- Matching timer means we have changed messages, mark this one seen.
+                updateMarkMessageSeen model
 
-                    else
-                        ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+            else
+                ( model, Cmd.none )
 
         Tick now ->
             ( { model | now = now }, Cmd.none )
@@ -419,26 +414,28 @@ updateDeleteMessage model message =
             ( model, Cmd.none )
 
 
+{-| Updates both the active message, and the message list to mark the currently viewed message as seen.
+-}
 updateMarkMessageSeen : Model -> ( Model, Cmd Msg )
 updateMarkMessageSeen model =
     case model.state of
-        ShowingList list (ShowingMessage message) ->
+        ShowingList messages (ShowingMessage visibleMessage) ->
             let
-                updateSeen header =
-                    if header.id == message.id then
+                updateHeader header =
+                    if header.id == visibleMessage.id then
                         { header | seen = True }
 
                     else
                         header
 
-                map f messageList =
-                    { messageList | headers = List.map f messageList.headers }
+                newMessages =
+                    { messages | headers = List.map updateHeader messages.headers }
             in
             ( { model
                 | state =
-                    ShowingList (map updateSeen list) (ShowingMessage { message | seen = True })
+                    ShowingList newMessages (ShowingMessage { visibleMessage | seen = True })
               }
-            , Api.markMessageSeen MarkSeenLoaded message.mailbox message.id
+            , Api.markMessageSeen MarkSeenLoaded visibleMessage.mailbox visibleMessage.id
             )
 
         _ ->

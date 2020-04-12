@@ -38,9 +38,7 @@ import Html.Attributes
         )
 import Html.Events as Events
 import Modal
-import Process
 import Route exposing (Route)
-import Task
 import Timer exposing (Timer)
 
 

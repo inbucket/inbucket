@@ -23,9 +23,13 @@ type alias Router =
 {-| Returns a configured Router.
 -}
 newRouter : String -> Router
-newRouter baseUri =
-    { fromUrl = fromUrl
-    , toPath = toPath
+newRouter basePath =
+    let
+        newPath =
+            prepareBasePath basePath
+    in
+    { fromUrl = fromUrl newPath
+    , toPath = toPath newPath
     }
 
 
@@ -43,11 +47,15 @@ routes =
 
 {-| Returns the Route for a given URL.
 -}
-fromUrl : Url -> Route
-fromUrl location =
-    case Parser.parse (oneOf routes) location of
+fromUrl : String -> Url -> Route
+fromUrl basePath url =
+    let
+        relative =
+            { url | path = String.replace basePath "" url.path }
+    in
+    case Parser.parse (oneOf routes) relative of
         Nothing ->
-            Unknown location.path
+            Unknown url.path
 
         Just route ->
             route
@@ -55,8 +63,8 @@ fromUrl location =
 
 {-| Convert route to a URI.
 -}
-toPath : Route -> String
-toPath page =
+toPath : String -> Route -> String
+toPath basePath page =
     let
         pieces =
             case page of
@@ -78,4 +86,32 @@ toPath page =
                 Status ->
                     [ "status" ]
     in
-    Builder.absolute pieces []
+    basePath ++ Builder.absolute pieces []
+
+
+{-| Make sure basePath starts with a slash and does not have trailing slashes.
+
+"inbucket/" becomes "/inbucket"
+
+-}
+prepareBasePath : String -> String
+prepareBasePath path =
+    let
+        stripSlashes str =
+            if String.startsWith "/" str then
+                stripSlashes (String.dropLeft 1 str)
+
+            else if String.endsWith "/" str then
+                stripSlashes (String.dropRight 1 str)
+
+            else
+                str
+
+        newPath =
+            stripSlashes path
+    in
+    if newPath == "" then
+        ""
+
+    else
+        "/" ++ newPath

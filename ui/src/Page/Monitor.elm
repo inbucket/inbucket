@@ -1,5 +1,6 @@
 module Page.Monitor exposing (Model, Msg, init, update, view)
 
+import Browser.Navigation as Nav
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
 import DateFormat as DF
@@ -101,7 +102,9 @@ update msg model =
 openMessage : MessageHeader -> Model -> ( Model, Cmd Msg )
 openMessage header model =
     ( model
-    , Route.pushUrl model.session.key (Route.Message header.mailbox header.id)
+    , Route.Message header.mailbox header.id
+        |> model.session.router.toPath
+        |> Nav.replaceUrl model.session.key
     )
 
 

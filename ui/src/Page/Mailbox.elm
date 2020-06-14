@@ -1,6 +1,7 @@
 module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, view)
 
 import Api
+import Browser.Navigation as Nav
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
@@ -165,7 +166,9 @@ update msg model =
             ( updateSelected { model | session = Session.disableRouting model.session } id
             , Cmd.batch
                 [ -- Update browser location.
-                  Route.replaceUrl model.session.key (Route.Message model.mailboxName id)
+                  Route.Message model.mailboxName id
+                    |> model.session.router.toPath
+                    |> Nav.replaceUrl model.session.key
                 , Api.getMessage MessageLoaded model.mailboxName id
                 ]
             )
@@ -322,7 +325,9 @@ updateTriggerPurge model =
     let
         cmd =
             Cmd.batch
-                [ Route.replaceUrl model.session.key (Route.Mailbox model.mailboxName)
+                [ Route.Mailbox model.mailboxName
+                    |> model.session.router.toPath
+                    |> Nav.replaceUrl model.session.key
                 , Api.purgeMailbox PurgedMailbox model.mailboxName
                 ]
     in
@@ -406,7 +411,9 @@ updateDeleteMessage model message =
               }
             , Cmd.batch
                 [ Api.deleteMessage DeletedMessage message.mailbox message.id
-                , Route.replaceUrl model.session.key (Route.Mailbox model.mailboxName)
+                , Route.Mailbox model.mailboxName
+                    |> model.session.router.toPath
+                    |> Nav.replaceUrl model.session.key
                 ]
             )
 

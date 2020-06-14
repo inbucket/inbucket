@@ -1,8 +1,5 @@
-module Route exposing (Route(..), fromUrl, href, pushUrl, replaceUrl)
+module Route exposing (Route(..), Router, newRouter)
 
-import Browser.Navigation as Navigation exposing (Key)
-import Html exposing (Attribute)
-import Html.Attributes as Attr
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), Parser, map, oneOf, s, string, top)
@@ -17,6 +14,21 @@ type Route
     | Status
 
 
+type alias Router =
+    { fromUrl : Url -> Route
+    , toPath : Route -> String
+    }
+
+
+{-| Returns a configured Router.
+-}
+newRouter : String -> Router
+newRouter baseUri =
+    { fromUrl = fromUrl
+    , toPath = toPath
+    }
+
+
 {-| Routes our application handles.
 -}
 routes : List (Parser (Route -> a) a)
@@ -29,10 +41,22 @@ routes =
     ]
 
 
+{-| Returns the Route for a given URL.
+-}
+fromUrl : Url -> Route
+fromUrl location =
+    case Parser.parse (oneOf routes) location of
+        Nothing ->
+            Unknown location.path
+
+        Just route ->
+            route
+
+
 {-| Convert route to a URI.
 -}
-routeToPath : Route -> String
-routeToPath page =
+toPath : Route -> String
+toPath page =
     let
         pieces =
             case page of
@@ -55,34 +79,3 @@ routeToPath page =
                     [ "status" ]
     in
     Builder.absolute pieces []
-
-
-
--- PUBLIC HELPERS
-
-
-href : Route -> Attribute msg
-href route =
-    Attr.href (routeToPath route)
-
-
-replaceUrl : Key -> Route -> Cmd msg
-replaceUrl key =
-    routeToPath >> Navigation.replaceUrl key
-
-
-pushUrl : Key -> Route -> Cmd msg
-pushUrl key =
-    routeToPath >> Navigation.pushUrl key
-
-
-{-| Returns the Route for a given URL.
--}
-fromUrl : Url -> Route
-fromUrl location =
-    case Parser.parse (oneOf routes) location of
-        Nothing ->
-            Unknown location.path
-
-        Just route ->
-            route

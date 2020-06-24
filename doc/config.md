@@ -231,7 +231,7 @@ This option is only valid when INBUCKET_SMTP_TLSENABLED is enabled.
 
 ### TLS Public Certificate File
 
-`INBUCKET_SMTP_TLSPRIVKEY`
+`INBUCKET_SMTP_TLSCERT`
 
 Specify the x509 Certificate file to be used for TLS negotiation.
 This option is only valid when INBUCKET_SMTP_TLSENABLED is enabled.

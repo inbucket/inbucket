@@ -1,7 +1,6 @@
 module HttpUtil exposing (Error, RequestContext, delete, errorFlash, expectJson, expectString, patch)
 
 import Data.Session as Session
-import Html exposing (Html, div, text)
 import Http
 import Json.Decode as Decode
 

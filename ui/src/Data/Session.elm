@@ -15,11 +15,9 @@ module Data.Session exposing
 
 import Browser.Navigation as Nav
 import Data.AppConfig as AppConfig exposing (AppConfig)
-import Html exposing (Html)
 import Json.Decode as D
-import Json.Decode.Pipeline exposing (..)
+import Json.Decode.Pipeline exposing (optional)
 import Json.Encode as E
-import Ports
 import Time
 import Url exposing (Url)
 

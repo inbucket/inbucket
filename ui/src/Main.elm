@@ -4,7 +4,7 @@ import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav
 import Data.AppConfig as AppConfig exposing (AppConfig)
 import Data.Session as Session exposing (Session)
-import Html exposing (..)
+import Html exposing (Html)
 import Json.Decode as D exposing (Value)
 import Layout
 import Page.Home as Home

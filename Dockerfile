@@ -17,6 +17,7 @@ RUN npm run build
 
 # Run in minimal image
 FROM alpine:3.10
+RUN apk --no-cache add tzdata
 WORKDIR /opt/inbucket
 RUN mkdir bin defaults ui
 COPY --from=builder /build/inbucket bin

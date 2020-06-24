@@ -1,17 +1,31 @@
 <h1>Welcome to Inbucket</h1>
 
 <p>Inbucket is an email testing service; it will accept email for any email
-address and make it available to view without a password.</p>
+    address and make it available to view without a password.
+</p>
 
 <p>To view messages for a particular address, enter the username portion
-of the address into the box on the upper right and click <em>View</em>.</p>
+    of the address into the box on the upper right and click <em>View</em>.
+</p>
 
 <p>This instance of Inbucket is running inside of a <a
-  href="https://www.docker.com/" target="_blank">Docker</a> container.  It is
-configured to retain messages for a maximum of 3 days, and will enforce a limit
-of 300 messages per mailbox - the oldest messages will be deleted to stay under
-that limit.</p>
+      href="https://www.docker.com/" target="_blank">Docker</a> container.  It is
+    configured to retain messages for a maximum of 3 days, and will enforce a limit
+    of 300 messages per mailbox - the oldest messages will be deleted to stay under
+    that limit.
+</p>
 
-<p>Messages addressed to any recipient in the <code>@bitbucket.local</code>
-domain will be accepted but not written to disk.  Use this domain for load or
-soak testing your application.</p>
+<p>
+    Messages addressed to any recipient in the <code>@bitbucket.local</code>
+    domain will be accepted but not written to disk.  Use this domain for load or
+    soak testing your application.
+</p>
+
+<p> You can modify this greetings page by changing the Docker environment variable 'INBUCKET_WEB_GREETINGFILE'
+    to point to a different greetings.html. If for example you have a greetings file on your local machine and want to mount that you
+    could that file using the docker '--volume' parameter to add your local greetings.html file to the directory '/custom/greetings.html'.
+    You will then set the environment variable INBUCKET_WEB_GREETINGFILE to '/custom/greetings.html'. Your customized file will
+    then be loaded after you start the Docker container.</p>
+<p>
+    This exact greetings file can be found at https://github.com/inbucket/inbucket/blob/master/etc/docker/defaults/greeting.html.
+</p>

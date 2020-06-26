@@ -25,6 +25,7 @@ RUN npm run build
 
 # Run in minimal image
 FROM alpine:3.11
+RUN apk --no-cache add tzdata
 WORKDIR /opt/inbucket
 RUN mkdir bin defaults ui
 COPY --from=builder /build/inbucket bin
@@ -36,7 +37,7 @@ COPY etc/docker/defaults/start-inbucket.sh /
 ENV INBUCKET_SMTP_DISCARDDOMAINS bitbucket.local
 ENV INBUCKET_SMTP_TIMEOUT 30s
 ENV INBUCKET_POP3_TIMEOUT 30s
-ENV INBUCKET_WEB_GREETINGFILE /config/greeting.html
+ENV INBUCKET_WEB_GREETINGFILE /opt/inbucket/defaults/greeting.html
 ENV INBUCKET_WEB_COOKIEAUTHKEY secret-inbucket-session-cookie-key
 ENV INBUCKET_WEB_UIDIR=ui
 ENV INBUCKET_STORAGE_TYPE file
@@ -53,6 +54,10 @@ EXPOSE 2500 9000 1100
 # Persistent Volumes
 VOLUME /config
 VOLUME /storage
+
+RUN addgroup -g 1000 inbucket && adduser -G inbucket -u 1000 -D inbucket && chown -R inbucket:inbucket /opt/inbucket/ && chmod 774 /opt/inbucket/ -R && chown /start-inbucket.sh && chmod +x /start-inbucket.sh
+
+USER inbucket
 
 ENTRYPOINT ["/start-inbucket.sh"]
 CMD ["-logjson"]

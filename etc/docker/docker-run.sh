@@ -3,7 +3,7 @@
 # description: Launch Inbucket's docker image
 
 # Docker Image Tag
-IMAGE="jhillyerd/inbucket"
+IMAGE="inbucket/inbucket"
 
 # Ports exposed on host:
 PORT_HTTP=9000

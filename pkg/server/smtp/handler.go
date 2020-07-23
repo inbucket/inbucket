@@ -41,7 +41,7 @@ const (
 // accepting '>' as quoted pair and in double quoted strings (?i) makes the regex case insensitive,
 // (?:) is non-grouping sub-match
 var fromRegex = regexp.MustCompile(
-	"(?i)^FROM:\\s*<((?:\\\\>|[^>])+|\"[^\"]+\"@[^>]+)>( [\\w= ]+)?$")
+	"(?i)^FROM:\\s*<((?:(?:\\\\>|[^>])+|\"[^\"]+\"@[^>])+)?>( [\\w= ]+)?$")
 
 func (s State) String() string {
 	switch s {
@@ -314,10 +314,12 @@ func (s *Session) readyHandler(cmd string, arg string) {
 			return
 		}
 		from := m[1]
-		if _, _, err := policy.ParseEmailAddress(from); err != nil {
-			s.send("501 Bad sender address syntax")
-			s.logger.Warn().Msgf("Bad address as MAIL arg: %q, %s", from, err)
-			return
+		if "" != from {
+			if _, _, err := policy.ParseEmailAddress(from); err != nil {
+				s.send("501 Bad sender address syntax")
+				s.logger.Warn().Msgf("Bad address as MAIL arg: %q, %s", from, err)
+				return
+			}
 		}
 		// This is where the client may put BODY=8BITMIME, but we already
 		// read the DATA as bytes, so it does not effect our processing.

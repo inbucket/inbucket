@@ -6,7 +6,7 @@ require (
 	github.com/google/subcommands v1.0.1
 	github.com/gorilla/css v1.0.0
 	github.com/gorilla/mux v1.7.3
-	github.com/gorilla/websocket v1.4.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/jaytaylor/html2text v0.0.0-20190408195923-01ec452cbe43 // indirect
 	github.com/jhillyerd/enmime v0.6.0
 	github.com/jhillyerd/goldiff v0.1.0

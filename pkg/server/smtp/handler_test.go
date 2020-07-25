@@ -80,6 +80,35 @@ func TestGreetState(t *testing.T) {
 }
 
 // Test commands in READY state
+func TestEmptyEnvelope(t *testing.T) {
+	ds := test.NewStore()
+	server, logbuf, teardown := setupSMTPServer(ds)
+	defer teardown()
+
+	// Test out some empty envelope without blanks
+	script := []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<>", 250},
+	}
+	if err := playSession(t, server, script); err != nil {
+		// Dump buffered log data if there was a failure
+		_, _ = io.Copy(os.Stderr, logbuf)
+		t.Error(err)
+	}
+
+	// Test out some empty envelope with blanks
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM: <>", 250},
+	}
+	if err := playSession(t, server, script); err != nil {
+		// Dump buffered log data if there was a failure
+		_, _ = io.Copy(os.Stderr, logbuf)
+		t.Error(err)
+	}
+}
+
+// Test commands in READY state
 func TestReadyState(t *testing.T) {
 	ds := test.NewStore()
 	server, logbuf, teardown := setupSMTPServer(ds)

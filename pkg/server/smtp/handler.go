@@ -322,6 +322,7 @@ func (s *Session) readyHandler(cmd string, arg string) {
 		if from == "" {
 			from = "unspecified"
 		}
+
 		// This is where the client may put BODY=8BITMIME, but we already
 		// read the DATA as bytes, so it does not effect our processing.
 		if m[2] != "" {
@@ -436,6 +437,7 @@ func (s *Session) dataHandler() {
 			prefix := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
 				s.remoteDomain, s.remoteHost, s.config.Domain, recip.Address.Address,
 				tstamp)
+
 			// Deliver message.
 			_, err := s.manager.Deliver(
 				recip, s.from, s.recipients, prefix, mailData.Bytes())
@@ -530,12 +532,14 @@ func (s *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 		s.logger.Warn().Msgf("Mangled command: %q", line)
 		return "", "", false
 	}
+
 	// If we made it here, command is long enough to have args
 	if line[4] != ' ' {
 		// There wasn't a space after the command?
 		s.logger.Warn().Msgf("Mangled command: %q", line)
 		return "", "", false
 	}
+
 	// I'm not sure if we should trim the args or not, but we will for now
 	return strings.ToUpper(line[0:4]), strings.Trim(line[5:], " "), true
 }

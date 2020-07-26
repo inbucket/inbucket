@@ -71,6 +71,7 @@ func main() {
 		config.Usage()
 		return
 	}
+
 	// Process configuration.
 	config.Version = version
 	config.BuildDate = date
@@ -83,6 +84,7 @@ func main() {
 		conf.POP3.Debug = true
 		conf.SMTP.Debug = true
 	}
+
 	// Logger setup.
 	closeLog, err := openLog(conf.LogLevel, *logfile, *logjson)
 	if err != nil {
@@ -90,12 +92,15 @@ func main() {
 		os.Exit(1)
 	}
 	startupLog := log.With().Str("phase", "startup").Logger()
+
 	// Setup signal handler.
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
 	// Initialize logging.
 	startupLog.Info().Str("version", config.Version).Str("buildDate", config.BuildDate).
 		Msg("Inbucket starting")
+
 	// Write pidfile if requested.
 	if *pidfile != "" {
 		pidf, err := os.Create(*pidfile)
@@ -107,6 +112,7 @@ func main() {
 			startupLog.Fatal().Err(err).Str("path", *pidfile).Msg("Failed to close pidfile")
 		}
 	}
+
 	// Configure internal services.
 	rootCtx, rootCancel := context.WithCancel(context.Background())
 	shutdownChan := make(chan bool)
@@ -118,20 +124,25 @@ func main() {
 	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf}
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
+
 	// Start Retention scanner.
 	retentionScanner := storage.NewRetentionScanner(conf.Storage, store, shutdownChan)
 	retentionScanner.Start()
+
 	// Start HTTP server.
 	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
 	web.Initialize(conf, shutdownChan, mmanager, msgHub)
 	go web.Start(rootCtx)
+
 	// Start POP3 server.
 	pop3Server := pop3.New(conf.POP3, shutdownChan, store)
 	go pop3Server.Start(rootCtx)
+
 	// Start SMTP server.
 	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)
 	go smtpServer.Start(rootCtx)
+
 	// Loop forever waiting for signals or shutdown channel.
 signalLoop:
 	for {
@@ -154,6 +165,7 @@ signalLoop:
 			break signalLoop
 		}
 	}
+
 	// Wait for active connections to finish.
 	go timedExit(*pidfile)
 	smtpServer.Drain()

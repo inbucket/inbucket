@@ -1,6 +1,7 @@
 package stringutil_test
 
 import (
+	"fmt"
 	"net/mail"
 	"testing"
 
@@ -33,5 +34,45 @@ func TestStringAddressList(t *testing.T) {
 		if got != want[i] {
 			t.Errorf("Got %q, want: %q", got, want[i])
 		}
+	}
+}
+
+func TestMakePathPrefixer(t *testing.T) {
+	testCases := []struct {
+		prefix, path, want string
+	}{
+		{prefix: "", path: "", want: ""},
+		{prefix: "", path: "relative", want: "relative"},
+		{prefix: "", path: "/qualified", want: "/qualified"},
+		{prefix: "", path: "/many/path/segments", want: "/many/path/segments"},
+		{prefix: "pfx", path: "", want: "/pfx"},
+		{prefix: "pfx", path: "/", want: "/pfx/"},
+		{prefix: "pfx", path: "relative", want: "/pfxrelative"},
+		{prefix: "pfx", path: "/qualified", want: "/pfx/qualified"},
+		{prefix: "pfx", path: "/many/path/segments", want: "/pfx/many/path/segments"},
+		{prefix: "/pfx/", path: "", want: "/pfx"},
+		{prefix: "/pfx/", path: "/", want: "/pfx/"},
+		{prefix: "/pfx/", path: "relative", want: "/pfxrelative"},
+		{prefix: "/pfx/", path: "/qualified", want: "/pfx/qualified"},
+		{prefix: "/pfx/", path: "/many/path/segments", want: "/pfx/many/path/segments"},
+		{prefix: "a/b/c", path: "", want: "/a/b/c"},
+		{prefix: "a/b/c", path: "/", want: "/a/b/c/"},
+		{prefix: "a/b/c", path: "relative", want: "/a/b/crelative"},
+		{prefix: "a/b/c", path: "/qualified", want: "/a/b/c/qualified"},
+		{prefix: "a/b/c", path: "/many/path/segments", want: "/a/b/c/many/path/segments"},
+		{prefix: "/a/b/c/", path: "", want: "/a/b/c"},
+		{prefix: "/a/b/c/", path: "/", want: "/a/b/c/"},
+		{prefix: "/a/b/c/", path: "relative", want: "/a/b/crelative"},
+		{prefix: "/a/b/c/", path: "/qualified", want: "/a/b/c/qualified"},
+		{prefix: "/a/b/c/", path: "/many/path/segments", want: "/a/b/c/many/path/segments"},
+	}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("prefix %s for path %s", tc.prefix, tc.path), func(t *testing.T) {
+			prefixer := stringutil.MakePathPrefixer(tc.prefix)
+			got := prefixer(tc.path)
+			if got != tc.want {
+				t.Errorf("Got: %q, want: %q", got, tc.want)
+			}
+		})
 	}
 }

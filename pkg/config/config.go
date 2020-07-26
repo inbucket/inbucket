@@ -96,6 +96,7 @@ type POP3 struct {
 // Web contains the HTTP server configuration.
 type Web struct {
 	Addr           string `required:"true" default:"0.0.0.0:9000" desc:"Web server IP4 host:port"`
+	BasePath       string `default:"" desc:"Base path prefix for UI and API URLs"`
 	UIDir          string `required:"true" default:"ui/dist" desc:"User interface dir"`
 	GreetingFile   string `required:"true" default:"ui/greeting.html" desc:"Home page greeting HTML"`
 	MonitorVisible bool   `required:"true" default:"true" desc:"Show monitor tab in UI?"`

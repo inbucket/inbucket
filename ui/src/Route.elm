@@ -91,7 +91,7 @@ toPath basePath page =
 
 {-| Make sure basePath starts with a slash and does not have trailing slashes.
 
-"inbucket/" becomes "/inbucket"
+"inbucket/" becomes "/inbucket", "" remains ""
 
 -}
 prepareBasePath : String -> String

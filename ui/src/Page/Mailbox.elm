@@ -114,15 +114,15 @@ init session mailboxName selection =
       , markSeenTimer = Timer.empty
       , now = Time.millisToPosix 0
       }
-    , load mailboxName
+    , load session mailboxName
     )
 
 
-load : String -> Cmd Msg
-load mailboxName =
+load : Session -> String -> Cmd Msg
+load session mailboxName =
     Cmd.batch
         [ Task.perform Tick Time.now
-        , Api.getHeaderList ListLoaded mailboxName
+        , Api.getHeaderList session ListLoaded mailboxName
         ]
 
 
@@ -169,7 +169,7 @@ update msg model =
                   Route.Message model.mailboxName id
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
-                , Api.getMessage MessageLoaded model.mailboxName id
+                , Api.getMessage model.session MessageLoaded model.mailboxName id
                 ]
             )
 
@@ -328,7 +328,7 @@ updateTriggerPurge model =
                 [ Route.Mailbox model.mailboxName
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
-                , Api.purgeMailbox PurgedMailbox model.mailboxName
+                , Api.purgeMailbox model.session PurgedMailbox model.mailboxName
                 ]
     in
     case model.state of
@@ -410,7 +410,7 @@ updateDeleteMessage model message =
                     ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
               }
             , Cmd.batch
-                [ Api.deleteMessage DeletedMessage message.mailbox message.id
+                [ Api.deleteMessage model.session DeletedMessage message.mailbox message.id
                 , Route.Mailbox model.mailboxName
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
@@ -442,7 +442,7 @@ updateMarkMessageSeen model =
                 | state =
                     ShowingList newMessages (ShowingMessage { visibleMessage | seen = True })
               }
-            , Api.markMessageSeen MarkSeenLoaded visibleMessage.mailbox visibleMessage.id
+            , Api.markMessageSeen model.session MarkSeenLoaded visibleMessage.mailbox visibleMessage.id
             )
 
         _ ->
@@ -456,7 +456,7 @@ updateOpenMessage model id =
             { model | session = Session.addRecent model.mailboxName model.session }
     in
     ( updateSelected newModel id
-    , Api.getMessage MessageLoaded model.mailboxName id
+    , Api.getMessage model.session MessageLoaded model.mailboxName id
     )
 
 
@@ -510,10 +510,10 @@ view model =
                             )
 
                     ShowingList _ (ShowingMessage message) ->
-                        viewMessage model.session.zone message model.bodyMode
+                        viewMessage model.session model.session.zone message model.bodyMode
 
                     ShowingList _ (Transitioning message) ->
-                        viewMessage model.session.zone message model.bodyMode
+                        viewMessage model.session model.session.zone message model.bodyMode
 
                     _ ->
                         text ""
@@ -571,14 +571,14 @@ messageChip model selected message =
         ]
 
 
-viewMessage : Time.Zone -> Message -> Body -> Html Msg
-viewMessage zone message bodyMode =
+viewMessage : Session -> Time.Zone -> Message -> Body -> Html Msg
+viewMessage session zone message bodyMode =
     let
         htmlUrl =
-            Api.serveUrl [ "mailbox", message.mailbox, message.id, "html" ]
+            Api.serveUrl session [ "mailbox", message.mailbox, message.id, "html" ]
 
         sourceUrl =
-            Api.serveUrl [ "mailbox", message.mailbox, message.id, "source" ]
+            Api.serveUrl session [ "mailbox", message.mailbox, message.id, "source" ]
 
         htmlButton =
             if message.html == "" then
@@ -609,7 +609,7 @@ viewMessage zone message bodyMode =
             ]
         , messageErrors message
         , messageBody message bodyMode
-        , attachments message
+        , attachments session message
         ]
 
 
@@ -672,20 +672,20 @@ messageBody message bodyMode =
         ]
 
 
-attachments : Message -> Html Msg
-attachments message =
+attachments : Session -> Message -> Html Msg
+attachments session message =
     if List.isEmpty message.attachments then
         div [] []
 
     else
-        table [ class "attachments well" ] (List.map (attachmentRow message) message.attachments)
+        table [ class "attachments well" ] (List.map (attachmentRow session message) message.attachments)
 
 
-attachmentRow : Message -> Message.Attachment -> Html Msg
-attachmentRow message attach =
+attachmentRow : Session -> Message -> Message.Attachment -> Html Msg
+attachmentRow session message attach =
     let
         url =
-            Api.serveUrl
+            Api.serveUrl session
                 [ "mailbox"
                 , message.mailbox
                 , message.id

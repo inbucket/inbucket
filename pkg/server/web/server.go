@@ -75,8 +75,8 @@ func Initialize(
 
 	// Static paths.
 	Router.PathPrefix(prefix("/static")).Handler(
-		http.StripPrefix("/", http.FileServer(http.Dir(conf.Web.UIDir))))
-	Router.Path("/favicon.png").Handler(
+		http.StripPrefix(prefix("/"), http.FileServer(http.Dir(conf.Web.UIDir))))
+	Router.Path(prefix("/favicon.png")).Handler(
 		fileHandler(filepath.Join(conf.Web.UIDir, "favicon.png")))
 
 	// SPA managed paths.
@@ -134,6 +134,7 @@ func Start(ctx context.Context) {
 
 func appConfigCookie(webConfig config.Web) *http.Cookie {
 	o := &jsonAppConfig{
+		BasePath:       webConfig.BasePath,
 		MonitorVisible: webConfig.MonitorVisible,
 	}
 	b, err := json.Marshal(o)

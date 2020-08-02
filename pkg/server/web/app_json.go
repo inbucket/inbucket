@@ -1,5 +1,6 @@
 package web
 
 type jsonAppConfig struct {
-	MonitorVisible bool `json:"monitor-visible"`
+	BasePath       string `json:"base-path"`
+	MonitorVisible bool   `json:"monitor-visible"`
 }

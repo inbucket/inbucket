@@ -57,7 +57,14 @@ func Initialize(
 	msgHub = mh
 	manager = mm
 
+	// Redirect requests to / if there is a base path configured.
 	prefix := stringutil.MakePathPrefixer(conf.Web.BasePath)
+	redirectBase := prefix("/")
+	if redirectBase != "/" {
+		log.Info().Str("module", "web").Str("phase", "startup").Str("path", redirectBase).
+			Msg("Base path configured")
+		Router.Path("/").Handler(http.RedirectHandler(redirectBase, http.StatusFound))
+	}
 
 	// Dynamic paths.
 	log.Info().Str("module", "web").Str("phase", "startup").Str("path", conf.Web.UIDir).

@@ -6,6 +6,7 @@ module Api exposing
     , getServerConfig
     , getServerMetrics
     , markMessageSeen
+    , monitorUri
     , purgeMailbox
     , serveUrl
     )
@@ -120,6 +121,11 @@ markMessageSeen session msg mailboxName id =
     Encode.object [ ( "seen", Encode.bool True ) ]
         |> Http.jsonBody
         |> HttpUtil.patch msg (apiV1Url session [ "mailbox", mailboxName, id ])
+
+
+monitorUri : Session -> String
+monitorUri session =
+    apiV1Url session [ "monitor", "messages" ]
 
 
 purgeMailbox : Session -> HttpResult msg -> String -> Cmd msg

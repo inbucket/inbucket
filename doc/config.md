@@ -28,6 +28,7 @@ variables it supports:
     INBUCKET_POP3_DOMAIN                inbucket            HELLO domain
     INBUCKET_POP3_TIMEOUT               600s                Idle network timeout
     INBUCKET_WEB_ADDR                   0.0.0.0:9000        Web server IP4 host:port
+    INBUCKET_WEB_BASEPATH                                   Base path prefix for UI and API URLs
     INBUCKET_WEB_UIDIR                  ui/dist             User interface dir
     INBUCKET_WEB_GREETINGFILE           ui/greeting.html    Home page greeting HTML
     INBUCKET_WEB_MONITORVISIBLE         true                Show monitor tab in UI?
@@ -289,6 +290,24 @@ by a colon.  Some operating systems may prevent Inbucket from listening on port
 Inbucket to listen on all available network interfaces.
 
 - Default: `0.0.0.0:9000`
+
+### Base Path
+
+`INBUCKET_WEB_BASEPATH`
+
+Base path prefix for UI and API URLs.  This option is used when you wish to
+root all Inbucket URLs to a specific path when placing it behind a
+reverse-proxy.
+
+For example, setting the base path to `prefix` will move:
+- the Inbucket status page from `/status` to `/prefix/status`,
+- Bob's mailbox from `/m/bob` to `/prefix/m/bob`, and
+- the REST API from `/api/v1/*` to `/prefix/api/v1/*`.
+
+*Note:* This setting will not work correctly when running Inbucket via the npm
+development server.
+
+- Default: None
 
 ### UI Directory
 

@@ -84,7 +84,7 @@ init session =
       }
     , Cmd.batch
         [ Task.perform Tick Time.now
-        , Api.getServerConfig ServerConfigLoaded
+        , Api.getServerConfig session ServerConfigLoaded
         ]
     )
 
@@ -134,7 +134,7 @@ update msg model =
             )
 
         Tick time ->
-            ( { model | now = time }, Api.getServerMetrics MetricsReceived )
+            ( { model | now = time }, Api.getServerMetrics model.session MetricsReceived )
 
 
 {-| Update all metrics in Model; increment xCounter.

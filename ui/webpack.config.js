@@ -6,7 +6,7 @@ module.exports = (env, argv) => {
   const config = {
     output: {
       filename: 'static/[name].[hash:8].js',
-      publicPath: '/',
+      publicPath: '',
     },
     module: {
       rules: [

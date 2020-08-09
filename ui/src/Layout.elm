@@ -1,5 +1,6 @@
 module Layout exposing (Model, Msg, Page(..), frame, init, reset, update)
 
+import Browser.Navigation as Nav
 import Data.Session as Session exposing (Session)
 import Html
     exposing
@@ -132,7 +133,9 @@ update msg model session =
             else
                 ( model
                 , session
-                , Route.pushUrl session.key (Route.Mailbox model.mailboxName)
+                , Route.Mailbox model.mailboxName
+                    |> session.router.toPath
+                    |> Nav.pushUrl session.key
                 )
 
         RecentMenuMouseOver ->
@@ -195,14 +198,14 @@ frame { model, session, activePage, activeMailbox, modal, content } =
                 [ button [ class "navbar-toggle", Events.onClick (MainMenuToggled |> model.mapMsg) ]
                     [ i [ class "fas fa-bars" ] [] ]
                 , span [ class "navbar-brand" ]
-                    [ a [ Route.href Route.Home ] [ text "@ inbucket" ] ]
+                    [ a [ href <| session.router.toPath Route.Home ] [ text "@ inbucket" ] ]
                 , ul [ class "main-nav", classList [ ( "active", model.mainMenuVisible ) ] ]
                     [ if session.config.monitorVisible then
-                        navbarLink Monitor Route.Monitor [ text "Monitor" ] activePage
+                        navbarLink Monitor (session.router.toPath Route.Monitor) [ text "Monitor" ] activePage
 
                       else
                         text ""
-                    , navbarLink Status Route.Status [ text "Status" ] activePage
+                    , navbarLink Status (session.router.toPath Route.Status) [ text "Status" ] activePage
                     , navbarRecent activePage activeMailbox model session
                     , li [ class "navbar-mailbox" ]
                         [ form [ Events.onSubmit (OpenMailbox |> model.mapMsg) ]
@@ -260,10 +263,10 @@ externalLink url title =
     a [ href url, target "_blank", rel "noopener" ] [ text title ]
 
 
-navbarLink : Page -> Route -> List (Html a) -> Page -> Html a
-navbarLink page route linkContent activePage =
+navbarLink : Page -> String -> List (Html a) -> Page -> Html a
+navbarLink page url linkContent activePage =
     li [ classList [ ( "navbar-active", page == activePage ) ] ]
-        [ a [ Route.href route ] linkContent ]
+        [ a [ href url ] linkContent ]
 
 
 {-| Renders list of recent mailboxes, selecting the currently active mailbox.
@@ -292,7 +295,7 @@ navbarRecent page activeMailbox model session =
                 session.persistent.recentMailboxes
 
         recentLink mailbox =
-            a [ Route.href (Route.Mailbox mailbox) ] [ text mailbox ]
+            a [ href <| session.router.toPath <| Route.Mailbox mailbox ] [ text mailbox ]
     in
     li
         [ class "navbar-dropdown-container"

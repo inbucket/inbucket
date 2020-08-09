@@ -25,6 +25,7 @@ import (
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/inbucket/inbucket/pkg/storage/file"
 	"github.com/inbucket/inbucket/pkg/storage/mem"
+	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/inbucket/inbucket/pkg/webui"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -129,9 +130,10 @@ func main() {
 	retentionScanner := storage.NewRetentionScanner(conf.Storage, store, shutdownChan)
 	retentionScanner.Start()
 
-	// Start HTTP server.
-	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())
-	rest.SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
+	// Configure routes and start HTTP server.
+	prefix := stringutil.MakePathPrefixer(conf.Web.BasePath)
+	webui.SetupRoutes(web.Router.PathPrefix(prefix("/serve/")).Subrouter())
+	rest.SetupRoutes(web.Router.PathPrefix(prefix("/api/")).Subrouter())
 	web.Initialize(conf, shutdownChan, mmanager, msgHub)
 	go web.Start(rootCtx)
 

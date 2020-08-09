@@ -20,7 +20,7 @@ type alias Model =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session "", Api.getGreeting GreetingLoaded )
+    ( Model session "", Api.getGreeting session GreetingLoaded )
 
 
 

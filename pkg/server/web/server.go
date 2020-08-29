@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"expvar"
+	"html/template"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -86,9 +88,26 @@ func Initialize(
 	Router.Path(prefix("/favicon.png")).Handler(
 		fileHandler(filepath.Join(conf.Web.UIDir, "favicon.png")))
 
+	// Parse index.html template, allowing for configuration to be passed to the SPA.
+	indexPath := filepath.Join(conf.Web.UIDir, "index.html")
+	indexTmpl, err := template.ParseFiles(indexPath)
+	if err != nil {
+		msg := "Failed to parse HTML template"
+		cwd, _ := os.Getwd()
+		log.Error().
+			Str("module", "web").
+			Str("phase", "startup").
+			Str("path", indexPath).
+			Str("cwd", cwd).
+			Err(err).
+			Msg(msg)
+		// Create a dummy template to allow tests to pass.
+		indexTmpl, _ = template.New("index.html").Parse(msg)
+	}
+
 	// SPA managed paths.
 	spaHandler := cookieHandler(appConfigCookie(conf.Web),
-		fileHandler(filepath.Join(conf.Web.UIDir, "index.html")))
+		spaTemplateHandler(indexTmpl, prefix("/"), conf.Web))
 	Router.Path(prefix("/")).Handler(spaHandler)
 	Router.Path(prefix("/monitor")).Handler(spaHandler)
 	Router.Path(prefix("/status")).Handler(spaHandler)

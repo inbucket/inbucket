@@ -13,7 +13,7 @@ install:
 jobs:
   include:
     - go: "1.14.x"
-    - go: "master"
+    - go: "1.15.x"
     - language: elm
       elm: "latest-0.19.1"
       elm_format: "latest-0.19.1"
@@ -26,7 +26,7 @@ jobs:
         - "elm-format --validate ."
         - "npm run build"
     - stage: deploy
-      go: "1.14.x"
+      go: "1.15.x"
       before_install:
         - "nvm install 10.19.0"
       install:

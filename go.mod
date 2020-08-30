@@ -2,22 +2,24 @@ module github.com/inbucket/inbucket
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-test/deep v1.0.2 // indirect
-	github.com/google/subcommands v1.0.1
+	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28 // indirect
+	github.com/google/subcommands v1.2.0
 	github.com/gorilla/css v1.0.0
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/jaytaylor/html2text v0.0.0-20190408195923-01ec452cbe43 // indirect
-	github.com/jhillyerd/enmime v0.6.0
+	github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7 // indirect
+	github.com/jhillyerd/enmime v0.8.1
 	github.com/jhillyerd/goldiff v0.1.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/mattn/go-runewidth v0.0.4 // indirect
-	github.com/microcosm-cc/bluemonday v1.0.2
-	github.com/olekukonko/tablewriter v0.0.1 // indirect
-	github.com/rs/zerolog v1.15.0
-	github.com/stretchr/testify v1.3.0
-	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
-	golang.org/x/text v0.3.2 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/microcosm-cc/bluemonday v1.0.4
+	github.com/olekukonko/tablewriter v0.0.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/rs/zerolog v1.19.0
+	github.com/stretchr/testify v1.6.1
+	golang.org/x/net v0.0.0-20200822124328-c89045814202
+	golang.org/x/text v0.3.3 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
 
 go 1.13

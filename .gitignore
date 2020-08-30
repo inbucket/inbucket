@@ -21,9 +21,11 @@ _testmain.go
 
 *.exe
 
-# vim swp files
+# vim files
 *.swp
 *.swo
+tags
+tags.*
 
 # Desktop Services Store on macOS
 .DS_Store

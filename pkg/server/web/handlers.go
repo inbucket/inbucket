@@ -1,9 +1,11 @@
 package web
 
 import (
+	"html/template"
 	"net/http"
 	"os"
 
+	"github.com/inbucket/inbucket/pkg/config"
 	"github.com/rs/zerolog/log"
 )
 
@@ -80,5 +82,23 @@ func requestLoggingWrapper(next http.Handler) http.Handler {
 		log.Debug().Str("module", "web").Str("remote", req.RemoteAddr).Str("proto", req.Proto).
 			Str("method", req.Method).Str("path", req.RequestURI).Msg("Request")
 		next.ServeHTTP(w, req)
+	})
+}
+
+// spaTemplateHandler creates a handler to serve the index.html template for our SPA.
+func spaTemplateHandler(tmpl *template.Template, basePath string,
+	webConfig config.Web) http.Handler {
+	tmplData := struct {
+		BasePath string
+	}{
+		BasePath: basePath,
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		err := tmpl.Execute(w, tmplData)
+		if err != nil {
+			log.Error().Str("module", "web").Str("remote", req.RemoteAddr).Str("proto", req.Proto).
+				Str("method", req.Method).Str("path", req.RequestURI).Err(err).
+				Msg("Error rendering SPA index template")
+		}
 	})
 }

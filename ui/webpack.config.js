@@ -54,11 +54,18 @@ module.exports = (env, argv) => {
         template: 'public/index.html',
         favicon: 'public/favicon.png',
       }),
+      new HtmlWebpackPlugin({
+        filename: 'index-dev.html',
+        template: 'public/index-dev.html',
+        favicon: 'public/favicon.png',
+      }),
     ],
     devServer: {
+      historyApiFallback: {
+        index: '/index-dev.html',
+      },
+      index: 'index-dev.html',
       inline: true,
-      historyApiFallback: true,
-      stats: { colors: true },
       overlay: true,
       open: true,
       proxy: [{
@@ -66,6 +73,7 @@ module.exports = (env, argv) => {
         target: 'http://localhost:9000',
         ws: true,
       }],
+      stats: { colors: true },
       watchOptions: {
         ignored: /node_modules/,
       },

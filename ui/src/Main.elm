@@ -4,7 +4,7 @@ import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav
 import Data.AppConfig as AppConfig exposing (AppConfig)
 import Data.Session as Session exposing (Session)
-import Html exposing (..)
+import Html exposing (Html)
 import Json.Decode as D exposing (Value)
 import Layout
 import Page.Home as Home
@@ -66,7 +66,7 @@ init configValue location key =
             }
 
         route =
-            Route.fromUrl location
+            session.router.fromUrl location
 
         ( model, cmd ) =
             changeRouteTo route initModel
@@ -167,7 +167,7 @@ updateMain msg model session =
         UrlChanged url ->
             -- Responds to new browser URL.
             if session.routing then
-                changeRouteTo (Route.fromUrl url) model
+                changeRouteTo (session.router.fromUrl url) model
 
             else
                 -- Skip once, but re-enable routing.

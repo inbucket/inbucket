@@ -1,8 +1,8 @@
 module Data.Metrics exposing (Metrics, decodeIntList, decoder)
 
 import Data.Date exposing (date)
-import Json.Decode as Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
+import Json.Decode exposing (Decoder, int, map, string, succeed)
+import Json.Decode.Pipeline exposing (requiredAt)
 import Time exposing (Posix)
 
 

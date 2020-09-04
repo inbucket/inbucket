@@ -1,8 +1,8 @@
 module Data.Message exposing (Attachment, Message, attachmentDecoder, decoder)
 
 import Data.Date exposing (date)
-import Json.Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
+import Json.Decode exposing (Decoder, bool, int, list, string, succeed)
+import Json.Decode.Pipeline exposing (optional, required)
 import Time exposing (Posix)
 
 

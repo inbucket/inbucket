@@ -2,12 +2,10 @@ module Page.Home exposing (Model, Msg, init, update, view)
 
 import Api
 import Data.Session as Session exposing (Session)
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Http
+import Html exposing (Html)
+import Html.Attributes exposing (class, property)
 import HttpUtil
 import Json.Encode as Encode
-import Ports
 
 
 
@@ -22,7 +20,7 @@ type alias Model =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session "", Api.getGreeting GreetingLoaded )
+    ( Model session "", Api.getGreeting session GreetingLoaded )
 
 
 

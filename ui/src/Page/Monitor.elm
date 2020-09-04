@@ -1,10 +1,29 @@
 module Page.Monitor exposing (Model, Msg, init, update, view)
 
+import Api
+import Browser.Navigation as Nav
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
 import DateFormat as DF
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html
+    exposing
+        ( Attribute
+        , Html
+        , button
+        , div
+        , em
+        , h1
+        , node
+        , span
+        , table
+        , tbody
+        , td
+        , text
+        , th
+        , thead
+        , tr
+        )
+import Html.Attributes exposing (class, src, tabindex)
 import Html.Events as Events
 import Json.Decode as D
 import Route
@@ -84,7 +103,9 @@ update msg model =
 openMessage : MessageHeader -> Model -> ( Model, Cmd Msg )
 openMessage header model =
     ( model
-    , Route.pushUrl model.session.key (Route.Message header.mailbox header.id)
+    , Route.Message header.mailbox header.id
+        |> model.session.router.toPath
+        |> Nav.replaceUrl model.session.key
     )
 
 
@@ -115,8 +136,12 @@ view model =
                 [ button [ Events.onClick Clear ] [ text "Clear" ]
                 ]
             ]
+
+        -- monitor-messages maintains a websocket connection to the Inbucket daemon at the path
+        -- specified by `src`.
         , node "monitor-messages"
-            [ Events.on "connected" (D.map Connected <| D.at [ "detail" ] <| D.bool)
+            [ src (Api.monitorUri model.session)
+            , Events.on "connected" (D.map Connected <| D.at [ "detail" ] <| D.bool)
             , Events.on "message" (D.map MessageReceived D.value)
             ]
             []

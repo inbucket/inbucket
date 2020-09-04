@@ -15,11 +15,10 @@ module Data.Session exposing
 
 import Browser.Navigation as Nav
 import Data.AppConfig as AppConfig exposing (AppConfig)
-import Html exposing (Html)
 import Json.Decode as D
-import Json.Decode.Pipeline exposing (..)
+import Json.Decode.Pipeline exposing (optional)
 import Json.Encode as E
-import Ports
+import Route exposing (Router)
 import Time
 import Url exposing (Url)
 
@@ -29,6 +28,7 @@ type alias Session =
     , host : String
     , flash : Maybe Flash
     , routing : Bool
+    , router : Router
     , zone : Time.Zone
     , config : AppConfig
     , persistent : Persistent
@@ -52,6 +52,7 @@ init key location config persistent =
     , host = location.host
     , flash = Nothing
     , routing = True
+    , router = Route.newRouter config.basePath
     , zone = Time.utc
     , config = config
     , persistent = persistent
@@ -64,6 +65,7 @@ initError key location error =
     , host = location.host
     , flash = Just (Flash "Initialization failed" [ ( "Error", error ) ])
     , routing = True
+    , router = Route.newRouter ""
     , zone = Time.utc
     , config = AppConfig.default
     , persistent = Persistent []

@@ -1,8 +1,5 @@
-module Route exposing (Route(..), fromUrl, href, pushUrl, replaceUrl)
+module Route exposing (Route(..), Router, newRouter)
 
-import Browser.Navigation as Navigation exposing (Key)
-import Html exposing (Attribute)
-import Html.Attributes as Attr
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), Parser, map, oneOf, s, string, top)
@@ -17,6 +14,25 @@ type Route
     | Status
 
 
+type alias Router =
+    { fromUrl : Url -> Route
+    , toPath : Route -> String
+    }
+
+
+{-| Returns a configured Router.
+-}
+newRouter : String -> Router
+newRouter basePath =
+    let
+        newPath =
+            prepareBasePath basePath
+    in
+    { fromUrl = fromUrl newPath
+    , toPath = toPath newPath
+    }
+
+
 {-| Routes our application handles.
 -}
 routes : List (Parser (Route -> a) a)
@@ -29,10 +45,26 @@ routes =
     ]
 
 
+{-| Returns the Route for a given URL.
+-}
+fromUrl : String -> Url -> Route
+fromUrl basePath url =
+    let
+        relative =
+            { url | path = String.replace basePath "" url.path }
+    in
+    case Parser.parse (oneOf routes) relative of
+        Nothing ->
+            Unknown url.path
+
+        Just route ->
+            route
+
+
 {-| Convert route to a URI.
 -}
-routeToPath : Route -> String
-routeToPath page =
+toPath : String -> Route -> String
+toPath basePath page =
     let
         pieces =
             case page of
@@ -54,35 +86,32 @@ routeToPath page =
                 Status ->
                     [ "status" ]
     in
-    Builder.absolute pieces []
+    basePath ++ Builder.absolute pieces []
 
 
+{-| Make sure basePath starts with a slash and does not have trailing slashes.
 
--- PUBLIC HELPERS
+"inbucket/" becomes "/inbucket", "" remains ""
 
-
-href : Route -> Attribute msg
-href route =
-    Attr.href (routeToPath route)
-
-
-replaceUrl : Key -> Route -> Cmd msg
-replaceUrl key =
-    routeToPath >> Navigation.replaceUrl key
-
-
-pushUrl : Key -> Route -> Cmd msg
-pushUrl key =
-    routeToPath >> Navigation.pushUrl key
-
-
-{-| Returns the Route for a given URL.
 -}
-fromUrl : Url -> Route
-fromUrl location =
-    case Parser.parse (oneOf routes) location of
-        Nothing ->
-            Unknown location.path
+prepareBasePath : String -> String
+prepareBasePath path =
+    let
+        stripSlashes str =
+            if String.startsWith "/" str then
+                stripSlashes (String.dropLeft 1 str)
 
-        Just route ->
-            route
+            else if String.endsWith "/" str then
+                stripSlashes (String.dropRight 1 str)
+
+            else
+                str
+
+        newPath =
+            stripSlashes path
+    in
+    if newPath == "" then
+        ""
+
+    else
+        "/" ++ newPath

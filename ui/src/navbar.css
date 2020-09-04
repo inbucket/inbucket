@@ -50,6 +50,12 @@
   padding: 12px 15px;
 }
 
+.navbar-dropdown {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .navbar-dropdown-button {
   display: none;
 }
@@ -71,6 +77,9 @@ li.navbar-active span,
 .navbar-dropdown-content a {
   color: var(--navbar-color) !important;
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .navbar-dropdown-content a:hover {
@@ -139,6 +148,7 @@ li.navbar-active span,
 
   .navbar-dropdown {
     padding: 15px 19px 15px 25px;
+    max-width: 350px;
   }
 
   .navbar-dropdown-button {

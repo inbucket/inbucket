@@ -6,6 +6,7 @@ module Api exposing
     , getServerConfig
     , getServerMetrics
     , markMessageSeen
+    , monitorUri
     , purgeMailbox
     , serveUrl
     )
@@ -14,10 +15,12 @@ import Data.Message as Message exposing (Message)
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Metrics as Metrics exposing (Metrics)
 import Data.ServerConfig as ServerConfig exposing (ServerConfig)
+import Data.Session exposing (Session)
 import Http
 import HttpUtil
 import Json.Decode as Decode
 import Json.Encode as Encode
+import String
 import Url.Builder
 
 
@@ -29,31 +32,17 @@ type alias HttpResult msg =
     Result HttpUtil.Error () -> msg
 
 
-{-| Builds a public REST API URL (see wiki).
--}
-apiV1Url : List String -> String
-apiV1Url elements =
-    Url.Builder.absolute ([ "api", "v1" ] ++ elements) []
+deleteMessage : Session -> HttpResult msg -> String -> String -> Cmd msg
+deleteMessage session msg mailboxName id =
+    HttpUtil.delete msg (apiV1Url session [ "mailbox", mailboxName, id ])
 
 
-{-| Builds an internal `serve` REST API URL; only used by this UI.
--}
-serveUrl : List String -> String
-serveUrl elements =
-    Url.Builder.absolute ([ "serve" ] ++ elements) []
-
-
-deleteMessage : HttpResult msg -> String -> String -> Cmd msg
-deleteMessage msg mailboxName id =
-    HttpUtil.delete msg (apiV1Url [ "mailbox", mailboxName, id ])
-
-
-getHeaderList : DataResult msg (List MessageHeader) -> String -> Cmd msg
-getHeaderList msg mailboxName =
+getHeaderList : Session -> DataResult msg (List MessageHeader) -> String -> Cmd msg
+getHeaderList session msg mailboxName =
     let
         context =
             { method = "GET"
-            , url = apiV1Url [ "mailbox", mailboxName ]
+            , url = apiV1Url session [ "mailbox", mailboxName ]
             }
     in
     Http.get
@@ -62,12 +51,12 @@ getHeaderList msg mailboxName =
         }
 
 
-getGreeting : DataResult msg String -> Cmd msg
-getGreeting msg =
+getGreeting : Session -> DataResult msg String -> Cmd msg
+getGreeting session msg =
     let
         context =
             { method = "GET"
-            , url = serveUrl [ "greeting" ]
+            , url = serveUrl session [ "greeting" ]
             }
     in
     Http.get
@@ -76,12 +65,12 @@ getGreeting msg =
         }
 
 
-getMessage : DataResult msg Message -> String -> String -> Cmd msg
-getMessage msg mailboxName id =
+getMessage : Session -> DataResult msg Message -> String -> String -> Cmd msg
+getMessage session msg mailboxName id =
     let
         context =
             { method = "GET"
-            , url = serveUrl [ "mailbox", mailboxName, id ]
+            , url = serveUrl session [ "mailbox", mailboxName, id ]
             }
     in
     Http.get
@@ -90,12 +79,12 @@ getMessage msg mailboxName id =
         }
 
 
-getServerConfig : DataResult msg ServerConfig -> Cmd msg
-getServerConfig msg =
+getServerConfig : Session -> DataResult msg ServerConfig -> Cmd msg
+getServerConfig session msg =
     let
         context =
             { method = "GET"
-            , url = serveUrl [ "status" ]
+            , url = serveUrl session [ "status" ]
             }
     in
     Http.get
@@ -104,12 +93,19 @@ getServerConfig msg =
         }
 
 
-getServerMetrics : DataResult msg Metrics -> Cmd msg
-getServerMetrics msg =
+getServerMetrics : Session -> DataResult msg Metrics -> Cmd msg
+getServerMetrics session msg =
     let
         context =
             { method = "GET"
-            , url = Url.Builder.absolute [ "debug", "vars" ] []
+            , url =
+                Url.Builder.absolute
+                    (splitBasePath session.config.basePath
+                        ++ [ "debug"
+                           , "vars"
+                           ]
+                    )
+                    []
             }
     in
     Http.get
@@ -118,15 +114,73 @@ getServerMetrics msg =
         }
 
 
-markMessageSeen : HttpResult msg -> String -> String -> Cmd msg
-markMessageSeen msg mailboxName id =
+markMessageSeen : Session -> HttpResult msg -> String -> String -> Cmd msg
+markMessageSeen session msg mailboxName id =
     -- The URL tells the API which message ID to update, so we only need to indicate the
     -- desired change in the body.
     Encode.object [ ( "seen", Encode.bool True ) ]
         |> Http.jsonBody
-        |> HttpUtil.patch msg (apiV1Url [ "mailbox", mailboxName, id ])
+        |> HttpUtil.patch msg (apiV1Url session [ "mailbox", mailboxName, id ])
 
 
-purgeMailbox : HttpResult msg -> String -> Cmd msg
-purgeMailbox msg mailboxName =
-    HttpUtil.delete msg (apiV1Url [ "mailbox", mailboxName ])
+monitorUri : Session -> String
+monitorUri session =
+    apiV1Url session [ "monitor", "messages" ]
+
+
+purgeMailbox : Session -> HttpResult msg -> String -> Cmd msg
+purgeMailbox session msg mailboxName =
+    HttpUtil.delete msg (apiV1Url session [ "mailbox", mailboxName ])
+
+
+{-| Builds a public REST API URL (see wiki).
+-}
+apiV1Url : Session -> List String -> String
+apiV1Url session elements =
+    Url.Builder.absolute
+        (List.concat
+            [ splitBasePath session.config.basePath
+            , [ "api", "v1" ]
+            , elements
+            ]
+        )
+        []
+
+
+{-| Builds an internal `serve` REST API URL; only used by this UI.
+-}
+serveUrl : Session -> List String -> String
+serveUrl session elements =
+    Url.Builder.absolute
+        (List.concat
+            [ splitBasePath session.config.basePath
+            , [ "serve" ]
+            , elements
+            ]
+        )
+        []
+
+
+{-| Converts base path into a list of path elements.
+-}
+splitBasePath : String -> List String
+splitBasePath path =
+    if path == "" then
+        []
+
+    else
+        let
+            stripSlashes str =
+                if String.startsWith "/" str then
+                    stripSlashes (String.dropLeft 1 str)
+
+                else if String.endsWith "/" str then
+                    stripSlashes (String.dropRight 1 str)
+
+                else
+                    str
+
+            newPath =
+                stripSlashes path
+        in
+        String.split "/" newPath

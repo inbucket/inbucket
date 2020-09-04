@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"expvar"
+	"html/template"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	"github.com/inbucket/inbucket/pkg/config"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog/log"
 )
 
@@ -56,33 +59,59 @@ func Initialize(
 	msgHub = mh
 	manager = mm
 
+	// Redirect requests to / if there is a base path configured.
+	prefix := stringutil.MakePathPrefixer(conf.Web.BasePath)
+	redirectBase := prefix("/")
+	if redirectBase != "/" {
+		log.Info().Str("module", "web").Str("phase", "startup").Str("path", redirectBase).
+			Msg("Base path configured")
+		Router.Path("/").Handler(http.RedirectHandler(redirectBase, http.StatusFound))
+	}
+
 	// Dynamic paths.
 	log.Info().Str("module", "web").Str("phase", "startup").Str("path", conf.Web.UIDir).
 		Msg("Web UI content mapped")
-	Router.Handle("/debug/vars", expvar.Handler())
+	Router.Handle(prefix("/debug/vars"), expvar.Handler())
 	if conf.Web.PProf {
-		Router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-		Router.HandleFunc("/debug/pprof/profile", pprof.Profile)
-		Router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-		Router.HandleFunc("/debug/pprof/trace", pprof.Trace)
-		Router.PathPrefix("/debug/pprof/").HandlerFunc(pprof.Index)
+		Router.HandleFunc(prefix("/debug/pprof/cmdline"), pprof.Cmdline)
+		Router.HandleFunc(prefix("/debug/pprof/profile"), pprof.Profile)
+		Router.HandleFunc(prefix("/debug/pprof/symbol"), pprof.Symbol)
+		Router.HandleFunc(prefix("/debug/pprof/trace"), pprof.Trace)
+		Router.PathPrefix(prefix("/debug/pprof/")).HandlerFunc(pprof.Index)
 		log.Warn().Str("module", "web").Str("phase", "startup").
-			Msg("Go pprof tools installed to /debug/pprof")
+			Msg("Go pprof tools installed to " + prefix("/debug/pprof"))
 	}
 
 	// Static paths.
-	Router.PathPrefix("/static").Handler(
-		http.StripPrefix("/", http.FileServer(http.Dir(conf.Web.UIDir))))
-	Router.Path("/favicon.png").Handler(
+	Router.PathPrefix(prefix("/static")).Handler(
+		http.StripPrefix(prefix("/"), http.FileServer(http.Dir(conf.Web.UIDir))))
+	Router.Path(prefix("/favicon.png")).Handler(
 		fileHandler(filepath.Join(conf.Web.UIDir, "favicon.png")))
+
+	// Parse index.html template, allowing for configuration to be passed to the SPA.
+	indexPath := filepath.Join(conf.Web.UIDir, "index.html")
+	indexTmpl, err := template.ParseFiles(indexPath)
+	if err != nil {
+		msg := "Failed to parse HTML template"
+		cwd, _ := os.Getwd()
+		log.Error().
+			Str("module", "web").
+			Str("phase", "startup").
+			Str("path", indexPath).
+			Str("cwd", cwd).
+			Err(err).
+			Msg(msg)
+		// Create a dummy template to allow tests to pass.
+		indexTmpl, _ = template.New("index.html").Parse(msg)
+	}
 
 	// SPA managed paths.
 	spaHandler := cookieHandler(appConfigCookie(conf.Web),
-		fileHandler(filepath.Join(conf.Web.UIDir, "index.html")))
-	Router.Path("/").Handler(spaHandler)
-	Router.Path("/monitor").Handler(spaHandler)
-	Router.Path("/status").Handler(spaHandler)
-	Router.PathPrefix("/m/").Handler(spaHandler)
+		spaTemplateHandler(indexTmpl, prefix("/"), conf.Web))
+	Router.Path(prefix("/")).Handler(spaHandler)
+	Router.Path(prefix("/monitor")).Handler(spaHandler)
+	Router.Path(prefix("/status")).Handler(spaHandler)
+	Router.PathPrefix(prefix("/m/")).Handler(spaHandler)
 
 	// Error handlers.
 	Router.NotFoundHandler = noMatchHandler(
@@ -131,6 +160,7 @@ func Start(ctx context.Context) {
 
 func appConfigCookie(webConfig config.Web) *http.Cookie {
 	o := &jsonAppConfig{
+		BasePath:       webConfig.BasePath,
 		MonitorVisible: webConfig.MonitorVisible,
 	}
 	b, err := json.Marshal(o)

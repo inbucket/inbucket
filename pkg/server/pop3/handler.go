@@ -169,6 +169,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				}
 				break
 			}
+
 			// not an EOF
 			ssn.logger.Warn().Msgf("Connection error: %v", err)
 			if netErr, ok := err.(net.Error); ok {

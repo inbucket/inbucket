@@ -61,3 +61,16 @@ func SliceToLower(slice []string) {
 		slice[i] = strings.ToLower(s)
 	}
 }
+
+// MakePathPrefixer returns a function that will add the specified prefix (base) to URI strings.
+// The returned prefixer expects all provided paths to start with /.
+func MakePathPrefixer(prefix string) func(string) string {
+	prefix = strings.Trim(prefix, "/")
+	if prefix != "" {
+		prefix = "/" + prefix
+	}
+
+	return func(path string) string {
+		return prefix + path
+	}
+}

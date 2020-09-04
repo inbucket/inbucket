@@ -1,14 +1,21 @@
 module Page.Status exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
-import Data.Metrics as Metrics exposing (Metrics)
-import Data.ServerConfig as ServerConfig exposing (ServerConfig)
+import Data.Metrics exposing (Metrics)
+import Data.ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
 import DateFormat.Relative as Relative
 import Filesize
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Http exposing (Error)
+import Html
+    exposing
+        ( Html
+        , div
+        , h1
+        , h2
+        , i
+        , text
+        )
+import Html.Attributes exposing (class)
 import HttpUtil
 import Sparkline as Spark
 import Svg.Attributes as SvgAttrib
@@ -77,7 +84,7 @@ init session =
       }
     , Cmd.batch
         [ Task.perform Tick Time.now
-        , Api.getServerConfig ServerConfigLoaded
+        , Api.getServerConfig session ServerConfigLoaded
         ]
     )
 
@@ -93,7 +100,7 @@ initDataSet =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Time.every (10 * 1000) Tick
 
 
@@ -127,7 +134,7 @@ update msg model =
             )
 
         Tick time ->
-            ( { model | now = time }, Api.getServerMetrics MetricsReceived )
+            ( { model | now = time }, Api.getServerMetrics model.session MetricsReceived )
 
 
 {-| Update all metrics in Model; increment xCounter.
@@ -271,18 +278,19 @@ configPanel maybeConfig =
                 , textEntry "SMTP Listener" config.smtpConfig.addr
                 , textEntry "POP3 Listener" config.pop3Listener
                 , textEntry "HTTP Listener" config.webListener
-                , textEntry "Accept Policy" (acceptPolicy config.smtpConfig)
-                , textEntry "Store Policy" (storePolicy config.smtpConfig)
+                , textEntry "Accept Policy" (acceptPolicy config)
+                , textEntry "Store Policy" (storePolicy config)
                 , textEntry "Store Type" config.storageConfig.storeType
                 , textEntry "Message Cap" (mailboxCap config)
                 , textEntry "Retention Period" (retentionPeriod config)
                 ]
 
 
+acceptPolicy : ServerConfig -> String
 acceptPolicy config =
-    if config.defaultAccept then
+    if config.smtpConfig.defaultAccept then
         "All domains"
-            ++ (case config.rejectDomains of
+            ++ (case config.smtpConfig.rejectDomains of
                     Nothing ->
                         ""
 
@@ -295,7 +303,7 @@ acceptPolicy config =
 
     else
         "No domains"
-            ++ (case config.acceptDomains of
+            ++ (case config.smtpConfig.acceptDomains of
                     Nothing ->
                         ""
 
@@ -307,10 +315,11 @@ acceptPolicy config =
                )
 
 
+storePolicy : ServerConfig -> String
 storePolicy config =
-    if config.defaultStore then
+    if config.smtpConfig.defaultStore then
         "All domains"
-            ++ (case config.discardDomains of
+            ++ (case config.smtpConfig.discardDomains of
                     Nothing ->
                         ""
 
@@ -323,7 +332,7 @@ storePolicy config =
 
     else
         "No domains"
-            ++ (case config.storeDomains of
+            ++ (case config.smtpConfig.storeDomains of
                     Nothing ->
                         ""
 
@@ -410,23 +419,6 @@ viewMetric metric =
             , text ("(" ++ String.fromInt metric.minutes ++ "min)")
             ]
         ]
-
-
-viewLiveMetric : String -> (Int -> String) -> Int -> Html a -> Html a
-viewLiveMetric label formatter value graph =
-    div [ class "metric" ]
-        [ div [ class "label" ] [ text label ]
-        , div [ class "value" ] [ text (formatter value) ]
-        , div [ class "graph" ]
-            [ graph
-            , text "(10min)"
-            ]
-        ]
-
-
-graphNull : Html a
-graphNull =
-    div [] []
 
 
 graphSize : Spark.Size

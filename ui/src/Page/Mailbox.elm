@@ -1,12 +1,38 @@
 module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, view)
 
 import Api
+import Browser.Navigation as Nav
 import Data.Message as Message exposing (Message)
-import Data.MessageHeader as MessageHeader exposing (MessageHeader)
+import Data.MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
 import DateFormat as DF
 import DateFormat.Relative as Relative
-import Html exposing (..)
+import Html
+    exposing
+        ( Attribute
+        , Html
+        , a
+        , article
+        , aside
+        , button
+        , dd
+        , div
+        , dl
+        , dt
+        , h3
+        , i
+        , input
+        , li
+        , main_
+        , nav
+        , p
+        , span
+        , table
+        , td
+        , text
+        , tr
+        , ul
+        )
 import Html.Attributes
     exposing
         ( alt
@@ -15,7 +41,6 @@ import Html.Attributes
         , disabled
         , download
         , href
-        , id
         , placeholder
         , property
         , tabindex
@@ -24,14 +49,14 @@ import Html.Attributes
         , value
         )
 import Html.Events as Events
-import Http exposing (Error)
 import HttpUtil
 import Json.Decode as D
 import Json.Encode as E
-import Ports
+import Modal
 import Route
 import Task
 import Time exposing (Posix)
+import Timer exposing (Timer)
 
 
 
@@ -51,8 +76,8 @@ type State
 type MessageState
     = NoMessage
     | LoadingMessage
-    | ShowingMessage VisibleMessage
-    | Transitioning VisibleMessage
+    | ShowingMessage Message
+    | Transitioning Message
 
 
 type alias MessageID =
@@ -66,12 +91,6 @@ type alias MessageList =
     }
 
 
-type alias VisibleMessage =
-    { message : Message
-    , markSeenAt : Maybe Int
-    }
-
-
 type alias Model =
     { session : Session
     , mailboxName : String
@@ -79,6 +98,7 @@ type alias Model =
     , bodyMode : Body
     , searchInput : String
     , promptPurge : Bool
+    , markSeenTimer : Timer
     , now : Posix
     }
 
@@ -91,17 +111,18 @@ init session mailboxName selection =
       , bodyMode = SafeHtmlBody
       , searchInput = ""
       , promptPurge = False
+      , markSeenTimer = Timer.empty
       , now = Time.millisToPosix 0
       }
-    , load mailboxName
+    , load session mailboxName
     )
 
 
-load : String -> Cmd Msg
-load mailboxName =
+load : Session -> String -> Cmd Msg
+load session mailboxName =
     Cmd.batch
         [ Task.perform Tick Time.now
-        , Api.getHeaderList ListLoaded mailboxName
+        , Api.getHeaderList session ListLoaded mailboxName
         ]
 
 
@@ -110,24 +131,8 @@ load mailboxName =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
-    let
-        subSeen =
-            case model.state of
-                ShowingList _ (ShowingMessage { message }) ->
-                    if message.seen then
-                        Sub.none
-
-                    else
-                        Time.every 250 MarkSeenTick
-
-                _ ->
-                    Sub.none
-    in
-    Sub.batch
-        [ Time.every (30 * 1000) Tick
-        , subSeen
-        ]
+subscriptions _ =
+    Time.every (30 * 1000) Tick
 
 
 
@@ -138,13 +143,11 @@ type Msg
     = ListLoaded (Result HttpUtil.Error (List MessageHeader))
     | ClickMessage MessageID
     | ListKeyPress String Int
-    | OpenMessage MessageID
     | CloseMessage
     | MessageLoaded (Result HttpUtil.Error Message)
     | MessageBody Body
-    | OpenedTime Posix
-    | MarkSeenTick Posix
-    | MarkedSeen (Result HttpUtil.Error ())
+    | MarkSeenTriggered Timer
+    | MarkSeenLoaded (Result HttpUtil.Error ())
     | DeleteMessage Message
     | DeletedMessage (Result HttpUtil.Error ())
     | PurgeMailboxPrompt
@@ -153,6 +156,7 @@ type Msg
     | PurgedMailbox (Result HttpUtil.Error ())
     | OnSearchInput String
     | Tick Posix
+    | ModalFocused Modal.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -162,13 +166,12 @@ update msg model =
             ( updateSelected { model | session = Session.disableRouting model.session } id
             , Cmd.batch
                 [ -- Update browser location.
-                  Route.replaceUrl model.session.key (Route.Message model.mailboxName id)
-                , Api.getMessage MessageLoaded model.mailboxName id
+                  Route.Message model.mailboxName id
+                    |> model.session.router.toPath
+                    |> Nav.replaceUrl model.session.key
+                , Api.getMessage model.session MessageLoaded model.mailboxName id
                 ]
             )
-
-        OpenMessage id ->
-            updateOpenMessage model id
 
         CloseMessage ->
             case model.state of
@@ -225,10 +228,10 @@ update msg model =
             , Cmd.none
             )
 
-        MarkedSeen (Ok _) ->
+        MarkSeenLoaded (Ok _) ->
             ( model, Cmd.none )
 
-        MarkedSeen (Err err) ->
+        MarkSeenLoaded (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
             , Cmd.none
             )
@@ -244,44 +247,22 @@ update msg model =
         MessageBody bodyMode ->
             ( { model | bodyMode = bodyMode }, Cmd.none )
 
+        ModalFocused message ->
+            ( { model | session = Modal.updateSession message model.session }
+            , Cmd.none
+            )
+
         OnSearchInput searchInput ->
             updateSearchInput model searchInput
 
-        OpenedTime time ->
-            case model.state of
-                ShowingList list (ShowingMessage visible) ->
-                    if visible.message.seen then
-                        ( model, Cmd.none )
-
-                    else
-                        -- Set 1500ms delay before reporting message as seen to backend.
-                        let
-                            markSeenAt =
-                                Time.posixToMillis time + 1500
-                        in
-                        ( { model
-                            | state =
-                                ShowingList list
-                                    (ShowingMessage
-                                        { visible
-                                            | markSeenAt = Just markSeenAt
-                                        }
-                                    )
-                          }
-                        , Cmd.none
-                        )
-
-                _ ->
-                    ( model, Cmd.none )
-
         PurgeMailboxPrompt ->
-            ( { model | promptPurge = True }, Cmd.none )
+            ( { model | promptPurge = True }, Modal.resetFocusCmd ModalFocused )
 
         PurgeMailboxCanceled ->
             ( { model | promptPurge = False }, Cmd.none )
 
         PurgeMailboxConfirmed ->
-            updatePurge model
+            updateTriggerPurge model
 
         PurgedMailbox (Ok _) ->
             ( model, Cmd.none )
@@ -291,22 +272,13 @@ update msg model =
             , Cmd.none
             )
 
-        MarkSeenTick now ->
-            case model.state of
-                ShowingList _ (ShowingMessage { message, markSeenAt }) ->
-                    case markSeenAt of
-                        Just deadline ->
-                            if Time.posixToMillis now >= deadline then
-                                updateMarkMessageSeen model message
+        MarkSeenTriggered timer ->
+            if timer == model.markSeenTimer then
+                -- Matching timer means we have changed messages, mark this one seen.
+                updateMarkMessageSeen model
 
-                            else
-                                ( model, Cmd.none )
-
-                        Nothing ->
-                            ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+            else
+                ( model, Cmd.none )
 
         Tick now ->
             ( { model | now = now }, Cmd.none )
@@ -329,28 +301,38 @@ updateMessageResult model message =
             ( model, Cmd.none )
 
         ShowingList list _ ->
+            let
+                newTimer =
+                    Timer.replace model.markSeenTimer
+            in
             ( { model
                 | state =
                     ShowingList
                         { list | selected = Just message.id }
-                        (ShowingMessage (VisibleMessage message Nothing))
+                        (ShowingMessage message)
                 , bodyMode = bodyMode
+                , markSeenTimer = newTimer
               }
-            , Task.perform OpenedTime Time.now
+              -- Set 1500ms delay before reporting message as seen to backend.
+            , Timer.schedule MarkSeenTriggered newTimer 1500
             )
 
 
-updatePurge : Model -> ( Model, Cmd Msg )
-updatePurge model =
+{-| Updates model and triggers commands to purge this mailbox.
+-}
+updateTriggerPurge : Model -> ( Model, Cmd Msg )
+updateTriggerPurge model =
     let
         cmd =
             Cmd.batch
-                [ Route.replaceUrl model.session.key (Route.Mailbox model.mailboxName)
-                , Api.purgeMailbox PurgedMailbox model.mailboxName
+                [ Route.Mailbox model.mailboxName
+                    |> model.session.router.toPath
+                    |> Nav.replaceUrl model.session.key
+                , Api.purgeMailbox model.session PurgedMailbox model.mailboxName
                 ]
     in
     case model.state of
-        ShowingList list _ ->
+        ShowingList _ _ ->
             ( { model
                 | promptPurge = False
                 , session = Session.disableRouting model.session
@@ -428,8 +410,10 @@ updateDeleteMessage model message =
                     ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
               }
             , Cmd.batch
-                [ Api.deleteMessage DeletedMessage message.mailbox message.id
-                , Route.replaceUrl model.session.key (Route.Mailbox model.mailboxName)
+                [ Api.deleteMessage model.session DeletedMessage message.mailbox message.id
+                , Route.Mailbox model.mailboxName
+                    |> model.session.router.toPath
+                    |> Nav.replaceUrl model.session.key
                 ]
             )
 
@@ -437,32 +421,28 @@ updateDeleteMessage model message =
             ( model, Cmd.none )
 
 
-updateMarkMessageSeen : Model -> Message -> ( Model, Cmd Msg )
-updateMarkMessageSeen model message =
+{-| Updates both the active message, and the message list to mark the currently viewed message as seen.
+-}
+updateMarkMessageSeen : Model -> ( Model, Cmd Msg )
+updateMarkMessageSeen model =
     case model.state of
-        ShowingList list (ShowingMessage visible) ->
+        ShowingList messages (ShowingMessage visibleMessage) ->
             let
-                updateSeen header =
-                    if header.id == message.id then
+                updateHeader header =
+                    if header.id == visibleMessage.id then
                         { header | seen = True }
 
                     else
                         header
 
-                map f messageList =
-                    { messageList | headers = List.map f messageList.headers }
+                newMessages =
+                    { messages | headers = List.map updateHeader messages.headers }
             in
             ( { model
                 | state =
-                    ShowingList (map updateSeen list)
-                        (ShowingMessage
-                            { visible
-                                | message = { message | seen = True }
-                                , markSeenAt = Nothing
-                            }
-                        )
+                    ShowingList newMessages (ShowingMessage { visibleMessage | seen = True })
               }
-            , Api.markMessageSeen MarkedSeen message.mailbox message.id
+            , Api.markMessageSeen model.session MarkSeenLoaded visibleMessage.mailbox visibleMessage.id
             )
 
         _ ->
@@ -476,7 +456,7 @@ updateOpenMessage model id =
             { model | session = Session.addRecent model.mailboxName model.session }
     in
     ( updateSelected newModel id
-    , Api.getMessage MessageLoaded model.mailboxName id
+    , Api.getMessage model.session MessageLoaded model.mailboxName id
     )
 
 
@@ -529,11 +509,11 @@ view model =
                                 ++ " or enter a different username into the box on upper right."
                             )
 
-                    ShowingList _ (ShowingMessage { message }) ->
-                        viewMessage model.session.zone message model.bodyMode
+                    ShowingList _ (ShowingMessage message) ->
+                        viewMessage model.session model.session.zone message model.bodyMode
 
-                    ShowingList _ (Transitioning { message }) ->
-                        viewMessage model.session.zone message model.bodyMode
+                    ShowingList _ (Transitioning message) ->
+                        viewMessage model.session model.session.zone message model.bodyMode
 
                     _ ->
                         text ""
@@ -591,14 +571,14 @@ messageChip model selected message =
         ]
 
 
-viewMessage : Time.Zone -> Message -> Body -> Html Msg
-viewMessage zone message bodyMode =
+viewMessage : Session -> Time.Zone -> Message -> Body -> Html Msg
+viewMessage session zone message bodyMode =
     let
         htmlUrl =
-            Api.serveUrl [ "mailbox", message.mailbox, message.id, "html" ]
+            Api.serveUrl session [ "mailbox", message.mailbox, message.id, "html" ]
 
         sourceUrl =
-            Api.serveUrl [ "mailbox", message.mailbox, message.id, "source" ]
+            Api.serveUrl session [ "mailbox", message.mailbox, message.id, "source" ]
 
         htmlButton =
             if message.html == "" then
@@ -629,7 +609,7 @@ viewMessage zone message bodyMode =
             ]
         , messageErrors message
         , messageBody message bodyMode
-        , attachments message
+        , attachments session message
         ]
 
 
@@ -692,20 +672,20 @@ messageBody message bodyMode =
         ]
 
 
-attachments : Message -> Html Msg
-attachments message =
+attachments : Session -> Message -> Html Msg
+attachments session message =
     if List.isEmpty message.attachments then
         div [] []
 
     else
-        table [ class "attachments well" ] (List.map (attachmentRow message) message.attachments)
+        table [ class "attachments well" ] (List.map (attachmentRow session message) message.attachments)
 
 
-attachmentRow : Message -> Message.Attachment -> Html Msg
-attachmentRow message attach =
+attachmentRow : Session -> Message -> Message.Attachment -> Html Msg
+attachmentRow session message attach =
     let
         url =
-            Api.serveUrl
+            Api.serveUrl session
                 [ "mailbox"
                 , message.mailbox
                 , message.id

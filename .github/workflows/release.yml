@@ -1,4 +1,4 @@
-name: Build and release
+name: Build and Release
 on:
   push:
     # branches: [ "master", "develop" ]

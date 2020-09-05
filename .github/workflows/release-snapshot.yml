@@ -27,9 +27,15 @@ jobs:
           npm ci
           npm run build
         working-directory: ./ui
-      - name: Build snapshot release
+      - name: Build test release
         uses: goreleaser/goreleaser-action@v2
         if: "!startsWith(github.ref, 'refs/tags/')"
         with:
           version: latest
           args: release --snapshot
+      - name: Build tagged release
+        uses: goreleaser/goreleaser-action@v2
+        if: "startsWith(github.ref, 'refs/tags/')"
+        with:
+          version: latest
+          args: release --snapshot --rm-dist

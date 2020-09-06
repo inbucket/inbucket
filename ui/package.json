@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch",
-    "dev": "webpack-dev-server --mode development --host 0.0.0.0 --port 3000 --hot",
+    "dev": "webpack-dev-server --mode development --port 3000 --hot",
     "errors": "webpack --mode development --display-error-details"
   },
   "dependencies": {},

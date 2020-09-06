@@ -5,6 +5,7 @@ import Data.Metrics exposing (Metrics)
 import Data.ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
 import DateFormat.Relative as Relative
+import Effect exposing (Effect)
 import Filesize
 import Html
     exposing
@@ -60,7 +61,7 @@ type alias Metric =
     }
 
 
-init : Session -> ( Model, Cmd Msg )
+init : Session -> ( Model, Effect Msg )
 init session =
     ( { session = session
       , now = Time.millisToPosix 0
@@ -82,9 +83,9 @@ init session =
       , retainedCount = Metric "Stored Messages" 0 fmtInt graphZero initDataSet 60
       , retainedSize = Metric "Store Size" 0 Filesize.format graphZero initDataSet 60
       }
-    , Cmd.batch
-        [ Task.perform Tick Time.now
-        , Api.getServerConfig session ServerConfigLoaded
+    , Effect.batch
+        [ Task.perform Tick Time.now |> Effect.wrap
+        , Api.getServerConfig session ServerConfigLoaded |> Effect.wrap
         ]
     )
 
@@ -114,27 +115,30 @@ type Msg
     | Tick Posix
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         MetricsReceived (Ok metrics) ->
-            ( updateMetrics metrics model, Cmd.none )
+            ( updateMetrics metrics model, Effect.none )
 
         MetricsReceived (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
+            , Effect.none
             )
 
         ServerConfigLoaded (Ok config) ->
-            ( { model | config = Just config }, Cmd.none )
+            ( { model | config = Just config }, Effect.none )
 
         ServerConfigLoaded (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
+            , Effect.none
             )
 
         Tick time ->
-            ( { model | now = time }, Api.getServerMetrics model.session MetricsReceived )
+            ( { model | now = time }
+            , Api.getServerMetrics model.session MetricsReceived
+                |> Effect.wrap
+            )
 
 
 {-| Update all metrics in Model; increment xCounter.

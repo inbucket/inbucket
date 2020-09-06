@@ -7,6 +7,7 @@ import Data.MessageHeader exposing (MessageHeader)
 import Data.Session as Session exposing (Session)
 import DateFormat as DF
 import DateFormat.Relative as Relative
+import Effect exposing (Effect)
 import Html
     exposing
         ( Attribute
@@ -103,7 +104,7 @@ type alias Model =
     }
 
 
-init : Session -> String -> Maybe MessageID -> ( Model, Cmd Msg )
+init : Session -> String -> Maybe MessageID -> ( Model, Effect Msg )
 init session mailboxName selection =
     ( { session = session
       , mailboxName = mailboxName
@@ -114,7 +115,7 @@ init session mailboxName selection =
       , markSeenTimer = Timer.empty
       , now = Time.millisToPosix 0
       }
-    , load session mailboxName
+    , load session mailboxName |> Effect.wrap
     )
 
 
@@ -159,37 +160,39 @@ type Msg
     | ModalFocused Modal.Msg
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ClickMessage id ->
             ( updateSelected { model | session = Session.disableRouting model.session } id
-            , Cmd.batch
+            , Effect.batch
                 [ -- Update browser location.
                   Route.Message model.mailboxName id
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
+                    |> Effect.wrap
                 , Api.getMessage model.session MessageLoaded model.mailboxName id
+                    |> Effect.wrap
                 ]
             )
 
         CloseMessage ->
             case model.state of
                 ShowingList list _ ->
-                    ( { model | state = ShowingList list NoMessage }, Cmd.none )
+                    ( { model | state = ShowingList list NoMessage }, Effect.none )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
         DeleteMessage message ->
             updateDeleteMessage model message
 
         DeletedMessage (Ok _) ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         DeletedMessage (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
+            , Effect.none
             )
 
         ListKeyPress id keyCode ->
@@ -198,7 +201,7 @@ update msg model =
                     updateOpenMessage model id
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
         ListLoaded (Ok headers) ->
             case model.state of
@@ -217,23 +220,23 @@ update msg model =
                             ( { newModel
                                 | session = Session.addRecent model.mailboxName model.session
                               }
-                            , Cmd.none
+                            , Effect.none
                             )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
         ListLoaded (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
+            , Effect.none
             )
 
         MarkSeenLoaded (Ok _) ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         MarkSeenLoaded (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
+            , Effect.none
             )
 
         MessageLoaded (Ok message) ->
@@ -241,35 +244,35 @@ update msg model =
 
         MessageLoaded (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
+            , Effect.none
             )
 
         MessageBody bodyMode ->
-            ( { model | bodyMode = bodyMode }, Cmd.none )
+            ( { model | bodyMode = bodyMode }, Effect.none )
 
         ModalFocused message ->
             ( { model | session = Modal.updateSession message model.session }
-            , Cmd.none
+            , Effect.none
             )
 
         OnSearchInput searchInput ->
             updateSearchInput model searchInput
 
         PurgeMailboxPrompt ->
-            ( { model | promptPurge = True }, Modal.resetFocusCmd ModalFocused )
+            ( { model | promptPurge = True }, Modal.resetFocusCmd ModalFocused |> Effect.wrap )
 
         PurgeMailboxCanceled ->
-            ( { model | promptPurge = False }, Cmd.none )
+            ( { model | promptPurge = False }, Effect.none )
 
         PurgeMailboxConfirmed ->
             updateTriggerPurge model
 
         PurgedMailbox (Ok _) ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         PurgedMailbox (Err err) ->
             ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
+            , Effect.none
             )
 
         MarkSeenTriggered timer ->
@@ -278,15 +281,15 @@ update msg model =
                 updateMarkMessageSeen model
 
             else
-                ( model, Cmd.none )
+                ( model, Effect.none )
 
         Tick now ->
-            ( { model | now = now }, Cmd.none )
+            ( { model | now = now }, Effect.none )
 
 
 {-| Replace the currently displayed message.
 -}
-updateMessageResult : Model -> Message -> ( Model, Cmd Msg )
+updateMessageResult : Model -> Message -> ( Model, Effect Msg )
 updateMessageResult model message =
     let
         bodyMode =
@@ -298,7 +301,7 @@ updateMessageResult model message =
     in
     case model.state of
         LoadingList _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         ShowingList list _ ->
             let
@@ -314,21 +317,23 @@ updateMessageResult model message =
                 , markSeenTimer = newTimer
               }
               -- Set 1500ms delay before reporting message as seen to backend.
-            , Timer.schedule MarkSeenTriggered newTimer 1500
+            , Timer.schedule MarkSeenTriggered newTimer 1500 |> Effect.wrap
             )
 
 
 {-| Updates model and triggers commands to purge this mailbox.
 -}
-updateTriggerPurge : Model -> ( Model, Cmd Msg )
+updateTriggerPurge : Model -> ( Model, Effect Msg )
 updateTriggerPurge model =
     let
         cmd =
-            Cmd.batch
+            Effect.batch
                 [ Route.Mailbox model.mailboxName
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
+                    |> Effect.wrap
                 , Api.purgeMailbox model.session PurgedMailbox model.mailboxName
+                    |> Effect.wrap
                 ]
     in
     case model.state of
@@ -345,7 +350,7 @@ updateTriggerPurge model =
             ( model, cmd )
 
 
-updateSearchInput : Model -> String -> ( Model, Cmd Msg )
+updateSearchInput : Model -> String -> ( Model, Effect Msg )
 updateSearchInput model searchInput =
     let
         searchFilter =
@@ -357,14 +362,14 @@ updateSearchInput model searchInput =
     in
     case model.state of
         LoadingList _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         ShowingList list messageState ->
             ( { model
                 | searchInput = searchInput
                 , state = ShowingList { list | searchFilter = searchFilter } messageState
               }
-            , Cmd.none
+            , Effect.none
             )
 
 
@@ -396,7 +401,7 @@ updateSelected model id =
                     { model | state = ShowingList newList (Transitioning visible) }
 
 
-updateDeleteMessage : Model -> Message -> ( Model, Cmd Msg )
+updateDeleteMessage : Model -> Message -> ( Model, Effect Msg )
 updateDeleteMessage model message =
     let
         filter f messageList =
@@ -409,21 +414,23 @@ updateDeleteMessage model message =
                 , state =
                     ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
               }
-            , Cmd.batch
+            , Effect.batch
                 [ Api.deleteMessage model.session DeletedMessage message.mailbox message.id
+                    |> Effect.wrap
                 , Route.Mailbox model.mailboxName
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
+                    |> Effect.wrap
                 ]
             )
 
         _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
 {-| Updates both the active message, and the message list to mark the currently viewed message as seen.
 -}
-updateMarkMessageSeen : Model -> ( Model, Cmd Msg )
+updateMarkMessageSeen : Model -> ( Model, Effect Msg )
 updateMarkMessageSeen model =
     case model.state of
         ShowingList messages (ShowingMessage visibleMessage) ->
@@ -443,13 +450,14 @@ updateMarkMessageSeen model =
                     ShowingList newMessages (ShowingMessage { visibleMessage | seen = True })
               }
             , Api.markMessageSeen model.session MarkSeenLoaded visibleMessage.mailbox visibleMessage.id
+                |> Effect.wrap
             )
 
         _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
-updateOpenMessage : Model -> String -> ( Model, Cmd Msg )
+updateOpenMessage : Model -> String -> ( Model, Effect Msg )
 updateOpenMessage model id =
     let
         newModel =
@@ -457,6 +465,7 @@ updateOpenMessage model id =
     in
     ( updateSelected newModel id
     , Api.getMessage model.session MessageLoaded model.mailboxName id
+        |> Effect.wrap
     )
 
 

@@ -4,6 +4,7 @@ import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav
 import Data.AppConfig as AppConfig exposing (AppConfig)
 import Data.Session as Session exposing (Session)
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Json.Decode as D exposing (Value)
 import Layout
@@ -58,6 +59,8 @@ init configValue location key =
                     Session.initError key location (D.errorToString error)
 
         ( subModel, _ ) =
+            -- Home.init effect is discarded because this subModel will be immediately replaced
+            -- when we change routes to the specified location.
             Home.init session
 
         initModel =
@@ -67,11 +70,9 @@ init configValue location key =
 
         route =
             session.router.fromUrl location
-
-        ( model, cmd ) =
-            changeRouteTo route initModel
     in
-    ( model, Cmd.batch [ cmd, Task.perform TimeZoneLoaded Time.here ] )
+    changeRouteTo route initModel
+        |> Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Task.perform TimeZoneLoaded Time.here ])
 
 
 type Msg
@@ -206,12 +207,12 @@ updateMain msg model session =
             )
 
         _ ->
-            updatePage msg model
+            updatePage msg model |> performEffects
 
 
 {-| Delegate incoming messages to their respective sub-pages.
 -}
-updatePage : Msg -> Model -> ( Model, Cmd Msg )
+updatePage : Msg -> Model -> ( Model, Effect Msg )
 updatePage msg model =
     case ( msg, model.page ) of
         ( HomeMsg subMsg, Home subModel ) ->
@@ -232,61 +233,70 @@ updatePage msg model =
 
         ( _, _ ) ->
             -- Disregard messages destined for the wrong page.
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
 changeRouteTo : Route -> Model -> ( Model, Cmd Msg )
 changeRouteTo route model =
     let
         session =
-            getSession model |> Session.clearFlash
+            Session.clearFlash (getSession model)
 
         newModel =
             { model | layout = Layout.reset model.layout }
     in
-    case route of
-        Route.Home ->
-            Home.init session
-                |> updateWith Home HomeMsg newModel
+    performEffects <|
+        case route of
+            Route.Home ->
+                Home.init session
+                    |> updateWith Home HomeMsg newModel
 
-        Route.Mailbox name ->
-            Mailbox.init session name Nothing
-                |> updateWith Mailbox MailboxMsg newModel
+            Route.Mailbox name ->
+                Mailbox.init session name Nothing
+                    |> updateWith Mailbox MailboxMsg newModel
 
-        Route.Message mailbox id ->
-            Mailbox.init session mailbox (Just id)
-                |> updateWith Mailbox MailboxMsg newModel
+            Route.Message mailbox id ->
+                Mailbox.init session mailbox (Just id)
+                    |> updateWith Mailbox MailboxMsg newModel
 
-        Route.Monitor ->
-            if session.config.monitorVisible then
-                Monitor.init session
-                    |> updateWith Monitor MonitorMsg newModel
+            Route.Monitor ->
+                if session.config.monitorVisible then
+                    Monitor.init session
+                        |> updateWith Monitor MonitorMsg newModel
 
-            else
+                else
+                    let
+                        flash =
+                            { title = "Disabled route requested"
+                            , table = [ ( "Error", "Monitor disabled by configuration." ) ]
+                            }
+                    in
+                    ( applyToModelSession (Session.showFlash flash) newModel
+                    , Effect.none
+                    )
+
+            Route.Status ->
+                Status.init session
+                    |> updateWith Status StatusMsg newModel
+
+            Route.Unknown path ->
+                -- Unknown routes display Home with an error flash.
                 let
                     flash =
-                        { title = "Disabled route requested"
-                        , table = [ ( "Error", "Monitor disabled by configuration." ) ]
+                        { title = "Unknown route requested"
+                        , table = [ ( "Path", path ) ]
                         }
                 in
-                ( applyToModelSession (Session.showFlash flash) newModel
-                , Cmd.none
-                )
+                Home.init (Session.showFlash flash session)
+                    |> updateWith Home HomeMsg newModel
 
-        Route.Status ->
-            Status.init session
-                |> updateWith Status StatusMsg newModel
 
-        Route.Unknown path ->
-            -- Unknown routes display Home with an error flash.
-            let
-                flash =
-                    { title = "Unknown route requested"
-                    , table = [ ( "Path", path ) ]
-                    }
-            in
-            Home.init (Session.showFlash flash session)
-                |> updateWith Home HomeMsg newModel
+{-| Perform effects by updating model and/or producing Cmds to be executed.
+-}
+performEffects : ( Model, Effect Msg ) -> ( Model, Cmd Msg )
+performEffects ( model, effect ) =
+    Effect.perform ( getSession model, effect )
+        |> Tuple.mapFirst (\newSession -> updateSession model newSession)
 
 
 getSession : Model -> Session
@@ -332,11 +342,11 @@ updateWith :
     (subModel -> PageModel)
     -> (subMsg -> Msg)
     -> Model
-    -> ( subModel, Cmd subMsg )
-    -> ( Model, Cmd Msg )
-updateWith toPage toMsg model ( subModel, subCmd ) =
+    -> ( subModel, Effect subMsg )
+    -> ( Model, Effect Msg )
+updateWith toPage toMsg model ( subModel, subEffect ) =
     ( { model | page = toPage subModel }
-    , Cmd.map toMsg subCmd
+    , Effect.map toMsg subEffect
     )
 
 

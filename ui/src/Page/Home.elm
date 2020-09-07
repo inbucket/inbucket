@@ -1,7 +1,7 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
 import Api
-import Data.Session as Session exposing (Session)
+import Data.Session exposing (Session)
 import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class, property)
@@ -39,9 +39,7 @@ update msg model =
             ( { model | greeting = greeting }, Effect.none )
 
         GreetingLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Effect.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
 
 

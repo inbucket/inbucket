@@ -191,9 +191,7 @@ update msg model =
             ( model, Effect.none )
 
         DeletedMessage (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Effect.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         ListKeyPress id keyCode ->
             case keyCode of
@@ -227,25 +225,19 @@ update msg model =
                     ( model, Effect.none )
 
         ListLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Effect.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         MarkSeenLoaded (Ok _) ->
             ( model, Effect.none )
 
         MarkSeenLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Effect.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         MessageLoaded (Ok message) ->
             updateMessageResult model message
 
         MessageLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Effect.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         MessageBody bodyMode ->
             ( { model | bodyMode = bodyMode }, Effect.none )
@@ -271,9 +263,7 @@ update msg model =
             ( model, Effect.none )
 
         PurgedMailbox (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Effect.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         MarkSeenTriggered timer ->
             if timer == model.markSeenTimer then

@@ -3,7 +3,7 @@ module Page.Status exposing (Model, Msg, init, subscriptions, update, view)
 import Api
 import Data.Metrics exposing (Metrics)
 import Data.ServerConfig exposing (ServerConfig)
-import Data.Session as Session exposing (Session)
+import Data.Session exposing (Session)
 import DateFormat.Relative as Relative
 import Effect exposing (Effect)
 import Filesize
@@ -122,17 +122,13 @@ update msg model =
             ( updateMetrics metrics model, Effect.none )
 
         MetricsReceived (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Effect.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         ServerConfigLoaded (Ok config) ->
             ( { model | config = Just config }, Effect.none )
 
         ServerConfigLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Effect.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         Tick time ->
             ( { model | now = time }

@@ -82,9 +82,7 @@ update msg model =
                             , table = [ ( "Error", D.errorToString err ) ]
                             }
                     in
-                    ( { model | session = Session.showFlash flash model.session }
-                    , Effect.none
-                    )
+                    ( model, Effect.showFlash flash )
 
         Clear ->
             ( { model | messages = [] }, Effect.none )

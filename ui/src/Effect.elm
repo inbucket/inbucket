@@ -1,12 +1,14 @@
-module Effect exposing (Effect, batch, map, none, perform, wrap)
+module Effect exposing (Effect, batch, map, none, perform, showFlash, wrap)
 
-import Data.Session exposing (Session)
+import Data.Session as Session exposing (Session, showFlash)
 
 
 type Effect msg
     = None
     | Batch (List (Effect msg))
     | Command (Cmd msg)
+    | SessionClearFlash
+    | SessionShowFlash Session.Flash
 
 
 {-| Packs a List of Effects into a single Effect
@@ -30,17 +32,18 @@ map f effect =
         Command cmd ->
             Command <| Cmd.map f cmd
 
+        SessionClearFlash ->
+            SessionClearFlash
 
-none : Effect msg
-none =
-    None
+        SessionShowFlash flash ->
+            SessionShowFlash flash
 
 
 {-| Applies an effect by updating the session and/or producing a Cmd.
 -}
 perform : ( Session, Effect msg ) -> ( Session, Cmd msg )
 perform ( session, effect ) =
-    case effect of
+    case Debug.log "Perform" effect of
         None ->
             ( session, Cmd.none )
 
@@ -52,11 +55,25 @@ perform ( session, effect ) =
         Command cmd ->
             ( session, cmd )
 
+        SessionClearFlash ->
+            ( Session.clearFlash session, Cmd.none )
 
-batchPerform : Effect msg -> ( Session, List (Cmd msg) ) -> ( Session, List (Cmd msg) )
-batchPerform effect ( session, cmds ) =
-    perform ( session, effect )
-        |> Tuple.mapSecond (\cmd -> cmd :: cmds)
+        SessionShowFlash flash ->
+            ( Session.showFlash flash session, Cmd.none )
+
+
+
+-- EFFECT CONSTRUCTORS
+
+
+none : Effect msg
+none =
+    None
+
+
+showFlash : Session.Flash -> Effect msg
+showFlash flash =
+    SessionShowFlash flash
 
 
 {-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect
@@ -65,3 +82,13 @@ pattern.
 wrap : Cmd msg -> Effect msg
 wrap cmd =
     Command cmd
+
+
+
+-- UTILITY
+
+
+batchPerform : Effect msg -> ( Session, List (Cmd msg) ) -> ( Session, List (Cmd msg) )
+batchPerform effect ( session, cmds ) =
+    perform ( session, effect )
+        |> Tuple.mapSecond (\cmd -> cmd :: cmds)

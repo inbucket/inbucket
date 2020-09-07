@@ -164,10 +164,11 @@ update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ClickMessage id ->
-            ( updateSelected { model | session = Session.disableRouting model.session } id
+            ( updateSelected model id
             , Effect.batch
                 [ -- Update browser location.
-                  Route.Message model.mailboxName id
+                  Effect.disableRouting
+                , Route.Message model.mailboxName id
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
                     |> Effect.wrap
@@ -215,11 +216,7 @@ update msg model =
                             updateOpenMessage newModel id
 
                         Nothing ->
-                            ( { newModel
-                                | session = Session.addRecent model.mailboxName model.session
-                              }
-                            , Effect.none
-                            )
+                            ( newModel, Effect.addRecent newModel.mailboxName )
 
                 _ ->
                     ( model, Effect.none )
@@ -316,7 +313,7 @@ updateMessageResult model message =
 updateTriggerPurge : Model -> ( Model, Effect Msg )
 updateTriggerPurge model =
     let
-        cmd =
+        effects =
             Effect.batch
                 [ Route.Mailbox model.mailboxName
                     |> model.session.router.toPath
@@ -330,14 +327,13 @@ updateTriggerPurge model =
         ShowingList _ _ ->
             ( { model
                 | promptPurge = False
-                , session = Session.disableRouting model.session
                 , state = ShowingList (MessageList [] Nothing "") NoMessage
               }
-            , cmd
+            , Effect.batch [ Effect.disableRouting, effects ]
             )
 
         _ ->
-            ( model, cmd )
+            ( model, effects )
 
 
 updateSearchInput : Model -> String -> ( Model, Effect Msg )
@@ -399,14 +395,11 @@ updateDeleteMessage model message =
     in
     case model.state of
         ShowingList list _ ->
-            ( { model
-                | session = Session.disableRouting model.session
-                , state =
-                    ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
-              }
+            ( { model | state = ShowingList (filter (\x -> x.id /= message.id) list) NoMessage }
             , Effect.batch
                 [ Api.deleteMessage model.session DeletedMessage message.mailbox message.id
                     |> Effect.wrap
+                , Effect.disableRouting
                 , Route.Mailbox model.mailboxName
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
@@ -449,13 +442,12 @@ updateMarkMessageSeen model =
 
 updateOpenMessage : Model -> String -> ( Model, Effect Msg )
 updateOpenMessage model id =
-    let
-        newModel =
-            { model | session = Session.addRecent model.mailboxName model.session }
-    in
-    ( updateSelected newModel id
-    , Api.getMessage model.session MessageLoaded model.mailboxName id
-        |> Effect.wrap
+    ( updateSelected model id
+    , Effect.batch
+        [ Effect.addRecent model.mailboxName
+        , Api.getMessage model.session MessageLoaded model.mailboxName id
+            |> Effect.wrap
+        ]
     )
 
 

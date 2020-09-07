@@ -1,14 +1,28 @@
-module Effect exposing (Effect, batch, map, none, perform, showFlash, wrap)
+module Effect exposing
+    ( Effect
+    , addRecent
+    , batch
+    , disableRouting
+    , enableRouting
+    , map
+    , none
+    , perform
+    , showFlash
+    , wrap
+    )
 
-import Data.Session as Session exposing (Session, showFlash)
+import Data.Session as Session exposing (Session, disableRouting, enableRouting, showFlash)
 
 
 type Effect msg
     = None
     | Batch (List (Effect msg))
     | Command (Cmd msg)
-    | SessionClearFlash
-    | SessionShowFlash Session.Flash
+    | SessionFlashClear
+    | SessionFlashShow Session.Flash
+    | SessionRecentAdd String
+    | SessionRoutingDisable
+    | SessionRoutingEnable
 
 
 {-| Packs a List of Effects into a single Effect
@@ -32,11 +46,20 @@ map f effect =
         Command cmd ->
             Command <| Cmd.map f cmd
 
-        SessionClearFlash ->
-            SessionClearFlash
+        SessionRoutingDisable ->
+            SessionRoutingDisable
 
-        SessionShowFlash flash ->
-            SessionShowFlash flash
+        SessionRoutingEnable ->
+            SessionRoutingEnable
+
+        SessionRecentAdd mailbox ->
+            SessionRecentAdd mailbox
+
+        SessionFlashClear ->
+            SessionFlashClear
+
+        SessionFlashShow flash ->
+            SessionFlashShow flash
 
 
 {-| Applies an effect by updating the session and/or producing a Cmd.
@@ -55,11 +78,20 @@ perform ( session, effect ) =
         Command cmd ->
             ( session, cmd )
 
-        SessionClearFlash ->
+        SessionRecentAdd mailbox ->
+            ( Session.addRecent mailbox session, Cmd.none )
+
+        SessionFlashClear ->
             ( Session.clearFlash session, Cmd.none )
 
-        SessionShowFlash flash ->
+        SessionFlashShow flash ->
             ( Session.showFlash flash session, Cmd.none )
+
+        SessionRoutingDisable ->
+            ( Session.disableRouting session, Cmd.none )
+
+        SessionRoutingEnable ->
+            ( Session.enableRouting session, Cmd.none )
 
 
 
@@ -71,9 +103,26 @@ none =
     None
 
 
+{-| Adds specified mailbox to the recently viewed list
+-}
+addRecent : String -> Effect msg
+addRecent mailbox =
+    SessionRecentAdd mailbox
+
+
+disableRouting : Effect msg
+disableRouting =
+    SessionRoutingDisable
+
+
+enableRouting : Effect msg
+enableRouting =
+    SessionRoutingEnable
+
+
 showFlash : Session.Flash -> Effect msg
 showFlash flash =
-    SessionShowFlash flash
+    SessionFlashShow flash
 
 
 {-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect

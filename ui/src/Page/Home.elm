@@ -1,6 +1,5 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
-import Api
 import Data.Session exposing (Session)
 import Effect exposing (Effect)
 import Html exposing (Html)
@@ -21,7 +20,7 @@ type alias Model =
 
 init : Session -> ( Model, Effect Msg )
 init session =
-    ( Model session "", Api.getGreeting session GreetingLoaded |> Effect.wrap )
+    ( Model session "", Effect.getGreeting GreetingLoaded )
 
 
 

@@ -4,6 +4,7 @@ module Effect exposing
     , batch
     , disableRouting
     , enableRouting
+    , getGreeting
     , map
     , none
     , perform
@@ -11,14 +12,20 @@ module Effect exposing
     , wrap
     )
 
-import Data.Session as Session exposing (Session, clearFlash, disableRouting, enableRouting, showFlash)
+import Api
+import Data.Session as Session exposing (Session)
 
 
 type Effect msg
     = None
     | Batch (List (Effect msg))
     | Command (Cmd msg)
+    | ApiEffect (ApiEffect msg)
     | SessionEffect SessionEffect
+
+
+type ApiEffect msg
+    = GetGreeting (Api.DataResult msg String)
 
 
 type SessionEffect
@@ -50,8 +57,18 @@ map f effect =
         Command cmd ->
             Command <| Cmd.map f cmd
 
+        ApiEffect apiEffect ->
+            ApiEffect <| mapApi f apiEffect
+
         SessionEffect sessionEffect ->
             SessionEffect sessionEffect
+
+
+mapApi : (a -> b) -> ApiEffect a -> ApiEffect b
+mapApi f effect =
+    case effect of
+        GetGreeting result ->
+            GetGreeting <| result >> f
 
 
 {-| Applies an effect by updating the session and/or producing a Cmd.
@@ -73,6 +90,9 @@ perform ( session, effect ) =
         SessionEffect sessionEffect ->
             effectSession ( session, sessionEffect )
 
+        ApiEffect apiEffect ->
+            performApi ( session, apiEffect )
+
 
 effectSession : ( Session, SessionEffect ) -> ( Session, Cmd msg )
 effectSession ( session, effect ) =
@@ -91,6 +111,13 @@ effectSession ( session, effect ) =
 
         RoutingEnable ->
             ( Session.enableRouting session, Cmd.none )
+
+
+performApi : ( Session, ApiEffect msg ) -> ( Session, Cmd msg )
+performApi ( session, effect ) =
+    case effect of
+        GetGreeting toMsg ->
+            ( session, Api.getGreeting session toMsg )
 
 
 
@@ -127,6 +154,11 @@ clearFlash =
 showFlash : Session.Flash -> Effect msg
 showFlash flash =
     SessionEffect (FlashShow flash)
+
+
+getGreeting : Api.DataResult msg String -> Effect msg
+getGreeting toMsg =
+    ApiEffect (GetGreeting toMsg)
 
 
 {-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect

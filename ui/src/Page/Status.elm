@@ -1,6 +1,5 @@
 module Page.Status exposing (Model, Msg, init, subscriptions, update, view)
 
-import Api
 import Data.Metrics exposing (Metrics)
 import Data.ServerConfig exposing (ServerConfig)
 import Data.Session exposing (Session)
@@ -85,7 +84,7 @@ init session =
       }
     , Effect.batch
         [ Task.perform Tick Time.now |> Effect.wrap
-        , Api.getServerConfig session ServerConfigLoaded |> Effect.wrap
+        , Effect.getServerConfig ServerConfigLoaded
         ]
     )
 
@@ -132,8 +131,7 @@ update msg model =
 
         Tick time ->
             ( { model | now = time }
-            , Api.getServerMetrics model.session MetricsReceived
-                |> Effect.wrap
+            , Effect.getServerMetrics MetricsReceived
             )
 
 

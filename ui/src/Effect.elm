@@ -5,6 +5,8 @@ module Effect exposing
     , disableRouting
     , enableRouting
     , getGreeting
+    , getServerConfig
+    , getServerMetrics
     , map
     , none
     , perform
@@ -13,6 +15,8 @@ module Effect exposing
     )
 
 import Api
+import Data.Metrics exposing (Metrics)
+import Data.ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
 
 
@@ -26,6 +30,8 @@ type Effect msg
 
 type ApiEffect msg
     = GetGreeting (Api.DataResult msg String)
+    | GetServerConfig (Api.DataResult msg ServerConfig)
+    | GetServerMetrics (Api.DataResult msg Metrics)
 
 
 type SessionEffect
@@ -70,6 +76,12 @@ mapApi f effect =
         GetGreeting result ->
             GetGreeting <| result >> f
 
+        GetServerConfig result ->
+            GetServerConfig <| result >> f
+
+        GetServerMetrics result ->
+            GetServerMetrics <| result >> f
+
 
 {-| Applies an effect by updating the session and/or producing a Cmd.
 -}
@@ -87,15 +99,28 @@ perform ( session, effect ) =
         Command cmd ->
             ( session, cmd )
 
-        SessionEffect sessionEffect ->
-            effectSession ( session, sessionEffect )
-
         ApiEffect apiEffect ->
             performApi ( session, apiEffect )
 
+        SessionEffect sessionEffect ->
+            performSession ( session, sessionEffect )
 
-effectSession : ( Session, SessionEffect ) -> ( Session, Cmd msg )
-effectSession ( session, effect ) =
+
+performApi : ( Session, ApiEffect msg ) -> ( Session, Cmd msg )
+performApi ( session, effect ) =
+    case effect of
+        GetGreeting toMsg ->
+            ( session, Api.getGreeting session toMsg )
+
+        GetServerConfig toMsg ->
+            ( session, Api.getServerConfig session toMsg )
+
+        GetServerMetrics toMsg ->
+            ( session, Api.getServerMetrics session toMsg )
+
+
+performSession : ( Session, SessionEffect ) -> ( Session, Cmd msg )
+performSession ( session, effect ) =
     case effect of
         RecentAdd mailbox ->
             ( Session.addRecent mailbox session, Cmd.none )
@@ -111,13 +136,6 @@ effectSession ( session, effect ) =
 
         RoutingEnable ->
             ( Session.enableRouting session, Cmd.none )
-
-
-performApi : ( Session, ApiEffect msg ) -> ( Session, Cmd msg )
-performApi ( session, effect ) =
-    case effect of
-        GetGreeting toMsg ->
-            ( session, Api.getGreeting session toMsg )
 
 
 
@@ -159,6 +177,16 @@ showFlash flash =
 getGreeting : Api.DataResult msg String -> Effect msg
 getGreeting toMsg =
     ApiEffect (GetGreeting toMsg)
+
+
+getServerConfig : Api.DataResult msg ServerConfig -> Effect msg
+getServerConfig toMsg =
+    ApiEffect (GetServerConfig toMsg)
+
+
+getServerMetrics : Api.DataResult msg Metrics -> Effect msg
+getServerMetrics toMsg =
+    ApiEffect (GetServerMetrics toMsg)
 
 
 {-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect

@@ -14,6 +14,7 @@ module Effect exposing
     , markMessageSeen
     , none
     , perform
+    , posixTime
     , purgeMailbox
     , showFlash
     , wrap
@@ -25,12 +26,15 @@ import Data.MessageHeader exposing (MessageHeader)
 import Data.Metrics exposing (Metrics)
 import Data.ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
+import Task
+import Time
 
 
 type Effect msg
     = None
     | Batch (List (Effect msg))
     | Command (Cmd msg)
+    | PosixTime (Time.Posix -> msg)
     | ApiEffect (ApiEffect msg)
     | SessionEffect SessionEffect
 
@@ -74,6 +78,9 @@ map f effect =
 
         Command cmd ->
             Command <| Cmd.map f cmd
+
+        PosixTime toMsg ->
+            PosixTime <| toMsg >> f
 
         ApiEffect apiEffect ->
             ApiEffect <| mapApi f apiEffect
@@ -125,6 +132,9 @@ perform ( session, effect ) =
 
         Command cmd ->
             ( session, cmd )
+
+        PosixTime toMsg ->
+            ( session, Task.perform toMsg Time.now )
 
         ApiEffect apiEffect ->
             performApi ( session, apiEffect )
@@ -249,6 +259,11 @@ getMessage toMsg mailboxName id =
 markMessageSeen : HttpResult msg -> String -> String -> Effect msg
 markMessageSeen toMsg mailboxName id =
     ApiEffect (MarkMessageSeen toMsg mailboxName id)
+
+
+posixTime : (Time.Posix -> msg) -> Effect msg
+posixTime toMsg =
+    PosixTime toMsg
 
 
 purgeMailbox : HttpResult msg -> String -> Effect msg

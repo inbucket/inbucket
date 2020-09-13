@@ -83,7 +83,7 @@ init session =
       , retainedSize = Metric "Store Size" 0 Filesize.format graphZero initDataSet 60
       }
     , Effect.batch
-        [ Task.perform Tick Time.now |> Effect.wrap
+        [ Effect.posixTime Tick
         , Effect.getServerConfig ServerConfigLoaded
         ]
     )

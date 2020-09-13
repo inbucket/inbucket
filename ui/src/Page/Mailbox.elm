@@ -116,7 +116,7 @@ init session mailboxName selection =
       , now = Time.millisToPosix 0
       }
     , Effect.batch
-        [ Task.perform Tick Time.now |> Effect.wrap
+        [ Effect.posixTime Tick
         , Effect.getHeaderList ListLoaded mailboxName
         ]
     )

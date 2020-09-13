@@ -127,12 +127,11 @@ mapApi f effect =
 -}
 perform : ( Session, Effect msg ) -> ( Session, Cmd msg )
 perform ( session, effect ) =
-    case Debug.log "Perform" effect of
+    case effect of
         None ->
             ( session, Cmd.none )
 
         Batch effects ->
-            -- TODO foldl may cause us to perform Cmds in reverse order?
             List.foldl batchPerform ( session, [] ) effects
                 |> Tuple.mapSecond Cmd.batch
 

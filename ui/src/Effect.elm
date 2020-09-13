@@ -16,6 +16,7 @@ module Effect exposing
     , perform
     , posixTime
     , purgeMailbox
+    , schedule
     , showFlash
     , wrap
     )
@@ -28,6 +29,7 @@ import Data.ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
 import Task
 import Time
+import Timer exposing (Timer)
 
 
 type Effect msg
@@ -35,6 +37,7 @@ type Effect msg
     | Batch (List (Effect msg))
     | Command (Cmd msg)
     | PosixTime (Time.Posix -> msg)
+    | ScheduleTimer (Timer -> msg) Timer Float
     | ApiEffect (ApiEffect msg)
     | SessionEffect SessionEffect
 
@@ -81,6 +84,9 @@ map f effect =
 
         PosixTime toMsg ->
             PosixTime <| toMsg >> f
+
+        ScheduleTimer toMsg timer millis ->
+            ScheduleTimer (toMsg >> f) timer millis
 
         ApiEffect apiEffect ->
             ApiEffect <| mapApi f apiEffect
@@ -135,6 +141,9 @@ perform ( session, effect ) =
 
         PosixTime toMsg ->
             ( session, Task.perform toMsg Time.now )
+
+        ScheduleTimer toMsg timer millis ->
+            ( session, Timer.schedule toMsg timer millis )
 
         ApiEffect apiEffect ->
             performApi ( session, apiEffect )
@@ -269,6 +278,13 @@ posixTime toMsg =
 purgeMailbox : HttpResult msg -> String -> Effect msg
 purgeMailbox toMsg mailboxName =
     ApiEffect (PurgeMailbox toMsg mailboxName)
+
+
+{-| Schedules a Timer to fire after the specified delay.
+-}
+schedule : (Timer -> msg) -> Timer -> Float -> Effect msg
+schedule toMsg timer millis =
+    ScheduleTimer toMsg timer millis
 
 
 {-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect

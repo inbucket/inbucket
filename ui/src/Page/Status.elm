@@ -19,7 +19,6 @@ import Html.Attributes exposing (class)
 import HttpUtil
 import Sparkline as Spark
 import Svg.Attributes as SvgAttrib
-import Task
 import Time exposing (Posix)
 
 

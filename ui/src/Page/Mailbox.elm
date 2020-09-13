@@ -55,7 +55,6 @@ import Json.Decode as D
 import Json.Encode as E
 import Modal
 import Route
-import Task
 import Time exposing (Posix)
 import Timer exposing (Timer)
 
@@ -298,7 +297,7 @@ updateMessageResult model message =
                 , markSeenTimer = newTimer
               }
               -- Set 1500ms delay before reporting message as seen to backend.
-            , Timer.schedule MarkSeenTriggered newTimer 1500 |> Effect.wrap
+            , Effect.schedule MarkSeenTriggered newTimer 1500
             )
 
 

@@ -1,9 +1,8 @@
 module Page.Monitor exposing (Model, Msg, init, update, view)
 
 import Api
-import Browser.Navigation as Nav
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
-import Data.Session as Session exposing (Session)
+import Data.Session exposing (Session)
 import DateFormat as DF
 import Effect exposing (Effect)
 import Html
@@ -102,10 +101,7 @@ update msg model =
 openMessage : MessageHeader -> Model -> ( Model, Effect Msg )
 openMessage header model =
     ( model
-    , Route.Message header.mailbox header.id
-        |> model.session.router.toPath
-        |> Nav.replaceUrl model.session.key
-        |> Effect.wrap
+    , Effect.navigateRoute True (Route.Message header.mailbox header.id)
     )
 
 

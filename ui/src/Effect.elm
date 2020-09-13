@@ -12,6 +12,7 @@ module Effect exposing
     , getServerMetrics
     , map
     , markMessageSeen
+    , navigateRoute
     , none
     , perform
     , posixTime
@@ -41,7 +42,8 @@ type Effect msg
     | Command (Cmd msg)
     | PosixTime (Time.Posix -> msg)
     | ScheduleTimer (Timer -> msg) Timer Float
-    | UpdateRoute Route
+    | RouteNavigate Bool Route
+    | RouteUpdate Route
     | ApiEffect (ApiEffect msg)
     | SessionEffect SessionEffect
 
@@ -92,8 +94,11 @@ map f effect =
         ScheduleTimer toMsg timer millis ->
             ScheduleTimer (toMsg >> f) timer millis
 
-        UpdateRoute route ->
-            UpdateRoute route
+        RouteNavigate pushHistory route ->
+            RouteNavigate pushHistory route
+
+        RouteUpdate route ->
+            RouteUpdate route
 
         ApiEffect apiEffect ->
             ApiEffect <| mapApi f apiEffect
@@ -151,7 +156,21 @@ perform ( session, effect ) =
         ScheduleTimer toMsg timer millis ->
             ( session, Timer.schedule toMsg timer millis )
 
-        UpdateRoute route ->
+        RouteNavigate pushHistory route ->
+            let
+                url =
+                    -- TODO replace Session.router
+                    session.router.toPath route
+            in
+            ( Session.enableRouting session
+            , if pushHistory then
+                Nav.pushUrl session.key url
+
+              else
+                Nav.replaceUrl session.key url
+            )
+
+        RouteUpdate route ->
             ( Session.disableRouting session
             , -- TODO replace Session.router
               session.router.toPath route
@@ -300,12 +319,20 @@ schedule toMsg timer millis =
     ScheduleTimer toMsg timer millis
 
 
+{-| Updates the browsers displayed URL to the specified route, and triggers the route to be
+handled by the frontend.
+-}
+navigateRoute : Bool -> Route -> Effect msg
+navigateRoute pushHistory route =
+    RouteNavigate pushHistory route
+
+
 {-| Updates the browsers displayed URL to the specified route. Does not trigger our own route
 handling.
 -}
 updateRoute : Route -> Effect msg
 updateRoute route =
-    UpdateRoute route
+    RouteUpdate route
 
 
 {-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect

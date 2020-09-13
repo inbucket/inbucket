@@ -21,7 +21,6 @@ module Effect exposing
     , schedule
     , showFlash
     , updateRoute
-    , wrap
     )
 
 import Api exposing (DataResult, HttpResult)
@@ -42,7 +41,6 @@ type Effect msg
     = None
     | ApiEffect (ApiEffect msg)
     | Batch (List (Effect msg))
-    | Command (Cmd msg)
     | ModalFocus (Modal.Msg -> msg)
     | PosixTime (Time.Posix -> msg)
     | RouteNavigate Bool Route
@@ -87,9 +85,6 @@ map f effect =
 
         Batch effects ->
             Batch <| List.map (map f) effects
-
-        Command cmd ->
-            Command <| Cmd.map f cmd
 
         ModalFocus toMsg ->
             ModalFocus <| toMsg >> f
@@ -152,9 +147,6 @@ perform ( session, effect ) =
         Batch effects ->
             List.foldl batchPerform ( session, [] ) effects
                 |> Tuple.mapSecond Cmd.batch
-
-        Command cmd ->
-            ( session, cmd )
 
         ModalFocus toMsg ->
             ( session, Modal.resetFocusCmd toMsg )
@@ -349,14 +341,6 @@ handling.
 updateRoute : Route -> Effect msg
 updateRoute route =
     RouteUpdate route
-
-
-{-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect
-pattern.
--}
-wrap : Cmd msg -> Effect msg
-wrap cmd =
-    Command cmd
 
 
 

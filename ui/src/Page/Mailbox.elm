@@ -236,7 +236,7 @@ update msg model =
             updateSearchInput model searchInput
 
         PurgeMailboxPrompt ->
-            ( { model | promptPurge = True }, Modal.resetFocusCmd ModalFocused |> Effect.wrap )
+            ( { model | promptPurge = True }, Effect.focusModal ModalFocused )
 
         PurgeMailboxCanceled ->
             ( { model | promptPurge = False }, Effect.none )

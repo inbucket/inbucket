@@ -5,6 +5,7 @@ module Effect exposing
     , deleteMessage
     , disableRouting
     , enableRouting
+    , focusModal
     , getGreeting
     , getHeaderList
     , getMessage
@@ -30,6 +31,7 @@ import Data.MessageHeader exposing (MessageHeader)
 import Data.Metrics exposing (Metrics)
 import Data.ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
+import Modal
 import Route exposing (Route)
 import Task
 import Time
@@ -38,13 +40,14 @@ import Timer exposing (Timer)
 
 type Effect msg
     = None
+    | ApiEffect (ApiEffect msg)
     | Batch (List (Effect msg))
     | Command (Cmd msg)
+    | ModalFocus (Modal.Msg -> msg)
     | PosixTime (Time.Posix -> msg)
-    | ScheduleTimer (Timer -> msg) Timer Float
     | RouteNavigate Bool Route
     | RouteUpdate Route
-    | ApiEffect (ApiEffect msg)
+    | ScheduleTimer (Timer -> msg) Timer Float
     | SessionEffect SessionEffect
 
 
@@ -87,6 +90,9 @@ map f effect =
 
         Command cmd ->
             Command <| Cmd.map f cmd
+
+        ModalFocus toMsg ->
+            ModalFocus <| toMsg >> f
 
         PosixTime toMsg ->
             PosixTime <| toMsg >> f
@@ -149,6 +155,9 @@ perform ( session, effect ) =
 
         Command cmd ->
             ( session, cmd )
+
+        ModalFocus toMsg ->
+            ( session, Modal.resetFocusCmd toMsg )
 
         PosixTime toMsg ->
             ( session, Task.perform toMsg Time.now )
@@ -265,6 +274,13 @@ clearFlash =
 showFlash : Session.Flash -> Effect msg
 showFlash flash =
     SessionEffect (FlashShow flash)
+
+
+{-| Locks focus to the `modal-dialog` dom ID.
+-}
+focusModal : (Modal.Msg -> msg) -> Effect msg
+focusModal toMsg =
+    ModalFocus toMsg
 
 
 deleteMessage : HttpResult msg -> String -> String -> Effect msg

@@ -18,15 +18,18 @@ module Effect exposing
     , purgeMailbox
     , schedule
     , showFlash
+    , updateRoute
     , wrap
     )
 
 import Api exposing (DataResult, HttpResult)
+import Browser.Navigation as Nav
 import Data.Message exposing (Message)
 import Data.MessageHeader exposing (MessageHeader)
 import Data.Metrics exposing (Metrics)
 import Data.ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
+import Route exposing (Route)
 import Task
 import Time
 import Timer exposing (Timer)
@@ -38,6 +41,7 @@ type Effect msg
     | Command (Cmd msg)
     | PosixTime (Time.Posix -> msg)
     | ScheduleTimer (Timer -> msg) Timer Float
+    | UpdateRoute Route
     | ApiEffect (ApiEffect msg)
     | SessionEffect SessionEffect
 
@@ -87,6 +91,9 @@ map f effect =
 
         ScheduleTimer toMsg timer millis ->
             ScheduleTimer (toMsg >> f) timer millis
+
+        UpdateRoute route ->
+            UpdateRoute route
 
         ApiEffect apiEffect ->
             ApiEffect <| mapApi f apiEffect
@@ -143,6 +150,13 @@ perform ( session, effect ) =
 
         ScheduleTimer toMsg timer millis ->
             ( session, Timer.schedule toMsg timer millis )
+
+        UpdateRoute route ->
+            ( Session.disableRouting session
+            , -- TODO replace Session.router
+              session.router.toPath route
+                |> Nav.replaceUrl session.key
+            )
 
         ApiEffect apiEffect ->
             performApi ( session, apiEffect )
@@ -284,6 +298,14 @@ purgeMailbox toMsg mailboxName =
 schedule : (Timer -> msg) -> Timer -> Float -> Effect msg
 schedule toMsg timer millis =
     ScheduleTimer toMsg timer millis
+
+
+{-| Updates the browsers displayed URL to the specified route. Does not trigger our own route
+handling.
+-}
+updateRoute : Route -> Effect msg
+updateRoute route =
+    UpdateRoute route
 
 
 {-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect

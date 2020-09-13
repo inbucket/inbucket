@@ -1,10 +1,10 @@
-module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, view)
+module Page.Mailbox exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
 import Browser.Navigation as Nav
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader exposing (MessageHeader)
-import Data.Session as Session exposing (Session)
+import Data.Session exposing (Session)
 import DateFormat as DF
 import DateFormat.Relative as Relative
 import Effect exposing (Effect)
@@ -115,16 +115,11 @@ init session mailboxName selection =
       , markSeenTimer = Timer.empty
       , now = Time.millisToPosix 0
       }
-    , load session mailboxName |> Effect.wrap
-    )
-
-
-load : Session -> String -> Cmd Msg
-load session mailboxName =
-    Cmd.batch
-        [ Task.perform Tick Time.now
-        , Api.getHeaderList session ListLoaded mailboxName
+    , Effect.batch
+        [ Task.perform Tick Time.now |> Effect.wrap
+        , Effect.getHeaderList ListLoaded mailboxName
         ]
+    )
 
 
 
@@ -172,8 +167,7 @@ update msg model =
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
                     |> Effect.wrap
-                , Api.getMessage model.session MessageLoaded model.mailboxName id
-                    |> Effect.wrap
+                , Effect.getMessage MessageLoaded model.mailboxName id
                 ]
             )
 
@@ -432,8 +426,7 @@ updateMarkMessageSeen model =
                 | state =
                     ShowingList newMessages (ShowingMessage { visibleMessage | seen = True })
               }
-            , Api.markMessageSeen model.session MarkSeenLoaded visibleMessage.mailbox visibleMessage.id
-                |> Effect.wrap
+            , Effect.markMessageSeen MarkSeenLoaded visibleMessage.mailbox visibleMessage.id
             )
 
         _ ->

@@ -49,6 +49,8 @@ cancel previous =
             previous
 
 
+{-| Increments the timer identity, preventing integer overflow.
+-}
 next : Int -> Int
 next index =
     if index > 2 ^ 30 then

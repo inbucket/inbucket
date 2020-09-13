@@ -1,7 +1,7 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
-import Api
-import Data.Session as Session exposing (Session)
+import Data.Session exposing (Session)
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class, property)
 import HttpUtil
@@ -18,9 +18,9 @@ type alias Model =
     }
 
 
-init : Session -> ( Model, Cmd Msg )
+init : Session -> ( Model, Effect Msg )
 init session =
-    ( Model session "", Api.getGreeting session GreetingLoaded )
+    ( Model session "", Effect.getGreeting GreetingLoaded )
 
 
 
@@ -31,16 +31,14 @@ type Msg
     = GreetingLoaded (Result HttpUtil.Error String)
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         GreetingLoaded (Ok greeting) ->
-            ( { model | greeting = greeting }, Cmd.none )
+            ( { model | greeting = greeting }, Effect.none )
 
         GreetingLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
 
 

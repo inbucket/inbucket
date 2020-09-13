@@ -1,5 +1,7 @@
 module Api exposing
-    ( deleteMessage
+    ( DataResult
+    , HttpResult
+    , deleteMessage
     , getGreeting
     , getHeaderList
     , getMessage

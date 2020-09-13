@@ -4,6 +4,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "clean": "rm -rf dist elm-stuff",
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch",
     "dev": "webpack-dev-server --mode development --port 3000 --hot --watch",

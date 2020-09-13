@@ -2,6 +2,7 @@ module Effect exposing
     ( Effect
     , addRecent
     , batch
+    , deleteMessage
     , disableRouting
     , enableRouting
     , getGreeting
@@ -13,6 +14,7 @@ module Effect exposing
     , markMessageSeen
     , none
     , perform
+    , purgeMailbox
     , showFlash
     , wrap
     )
@@ -34,12 +36,14 @@ type Effect msg
 
 
 type ApiEffect msg
-    = GetGreeting (DataResult msg String)
+    = DeleteMessage (HttpResult msg) String String
+    | GetGreeting (DataResult msg String)
     | GetServerConfig (DataResult msg ServerConfig)
     | GetServerMetrics (DataResult msg Metrics)
     | GetHeaderList (DataResult msg (List MessageHeader)) String
     | GetMessage (DataResult msg Message) String String
     | MarkMessageSeen (HttpResult msg) String String
+    | PurgeMailbox (HttpResult msg) String
 
 
 type SessionEffect
@@ -81,14 +85,17 @@ map f effect =
 mapApi : (a -> b) -> ApiEffect a -> ApiEffect b
 mapApi f effect =
     case effect of
+        DeleteMessage result mailbox id ->
+            DeleteMessage (result >> f) mailbox id
+
         GetGreeting result ->
-            GetGreeting <| result >> f
+            GetGreeting (result >> f)
 
         GetServerConfig result ->
-            GetServerConfig <| result >> f
+            GetServerConfig (result >> f)
 
         GetServerMetrics result ->
-            GetServerMetrics <| result >> f
+            GetServerMetrics (result >> f)
 
         GetHeaderList result mailbox ->
             GetHeaderList (result >> f) mailbox
@@ -98,6 +105,9 @@ mapApi f effect =
 
         MarkMessageSeen result mailbox id ->
             MarkMessageSeen (result >> f) mailbox id
+
+        PurgeMailbox result mailbox ->
+            PurgeMailbox (result >> f) mailbox
 
 
 {-| Applies an effect by updating the session and/or producing a Cmd.
@@ -126,6 +136,9 @@ perform ( session, effect ) =
 performApi : ( Session, ApiEffect msg ) -> ( Session, Cmd msg )
 performApi ( session, effect ) =
     case effect of
+        DeleteMessage toMsg mailbox id ->
+            ( session, Api.deleteMessage session toMsg mailbox id )
+
         GetGreeting toMsg ->
             ( session, Api.getGreeting session toMsg )
 
@@ -143,6 +156,9 @@ performApi ( session, effect ) =
 
         MarkMessageSeen toMsg mailbox id ->
             ( session, Api.markMessageSeen session toMsg mailbox id )
+
+        PurgeMailbox toMsg mailbox ->
+            ( session, Api.purgeMailbox session toMsg mailbox )
 
 
 performSession : ( Session, SessionEffect ) -> ( Session, Cmd msg )
@@ -200,6 +216,11 @@ showFlash flash =
     SessionEffect (FlashShow flash)
 
 
+deleteMessage : HttpResult msg -> String -> String -> Effect msg
+deleteMessage toMsg mailboxName id =
+    ApiEffect (DeleteMessage toMsg mailboxName id)
+
+
 getGreeting : DataResult msg String -> Effect msg
 getGreeting toMsg =
     ApiEffect (GetGreeting toMsg)
@@ -230,18 +251,9 @@ markMessageSeen toMsg mailboxName id =
     ApiEffect (MarkMessageSeen toMsg mailboxName id)
 
 
-
-------
-
-
-deleteMessage : HttpResult msg -> String -> String -> Effect msg
-deleteMessage msg mailboxName id =
-    None
-
-
 purgeMailbox : HttpResult msg -> String -> Effect msg
-purgeMailbox msg mailboxName =
-    None
+purgeMailbox toMsg mailboxName =
+    ApiEffect (PurgeMailbox toMsg mailboxName)
 
 
 {-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect

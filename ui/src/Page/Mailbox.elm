@@ -313,8 +313,7 @@ updateTriggerPurge model =
                     |> model.session.router.toPath
                     |> Nav.replaceUrl model.session.key
                     |> Effect.wrap
-                , Api.purgeMailbox model.session PurgedMailbox model.mailboxName
-                    |> Effect.wrap
+                , Effect.purgeMailbox PurgedMailbox model.mailboxName
                 ]
     in
     case model.state of
@@ -391,8 +390,7 @@ updateDeleteMessage model message =
         ShowingList list _ ->
             ( { model | state = ShowingList (filter (\x -> x.id /= message.id) list) NoMessage }
             , Effect.batch
-                [ Api.deleteMessage model.session DeletedMessage message.mailbox message.id
-                    |> Effect.wrap
+                [ Effect.deleteMessage DeletedMessage message.mailbox message.id
                 , Effect.disableRouting
                 , Route.Mailbox model.mailboxName
                     |> model.session.router.toPath
@@ -438,8 +436,7 @@ updateOpenMessage model id =
     ( updateSelected model id
     , Effect.batch
         [ Effect.addRecent model.mailboxName
-        , Api.getMessage model.session MessageLoaded model.mailboxName id
-            |> Effect.wrap
+        , Effect.getMessage MessageLoaded model.mailboxName id
         ]
     )
 

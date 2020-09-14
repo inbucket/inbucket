@@ -5,6 +5,7 @@ module Effect exposing
     , deleteMessage
     , disableRouting
     , enableRouting
+    , focusModal
     , getGreeting
     , getHeaderList
     , getMessage
@@ -12,21 +13,25 @@ module Effect exposing
     , getServerMetrics
     , map
     , markMessageSeen
+    , navigateRoute
     , none
     , perform
     , posixTime
     , purgeMailbox
     , schedule
     , showFlash
-    , wrap
+    , updateRoute
     )
 
 import Api exposing (DataResult, HttpResult)
+import Browser.Navigation as Nav
 import Data.Message exposing (Message)
 import Data.MessageHeader exposing (MessageHeader)
 import Data.Metrics exposing (Metrics)
 import Data.ServerConfig exposing (ServerConfig)
 import Data.Session as Session exposing (Session)
+import Modal
+import Route exposing (Route)
 import Task
 import Time
 import Timer exposing (Timer)
@@ -34,11 +39,13 @@ import Timer exposing (Timer)
 
 type Effect msg
     = None
-    | Batch (List (Effect msg))
-    | Command (Cmd msg)
-    | PosixTime (Time.Posix -> msg)
-    | ScheduleTimer (Timer -> msg) Timer Float
     | ApiEffect (ApiEffect msg)
+    | Batch (List (Effect msg))
+    | ModalFocus (Modal.Msg -> msg)
+    | PosixTime (Time.Posix -> msg)
+    | RouteNavigate Bool Route
+    | RouteUpdate Route
+    | ScheduleTimer (Timer -> msg) Timer Float
     | SessionEffect SessionEffect
 
 
@@ -79,14 +86,20 @@ map f effect =
         Batch effects ->
             Batch <| List.map (map f) effects
 
-        Command cmd ->
-            Command <| Cmd.map f cmd
+        ModalFocus toMsg ->
+            ModalFocus <| toMsg >> f
 
         PosixTime toMsg ->
             PosixTime <| toMsg >> f
 
         ScheduleTimer toMsg timer millis ->
             ScheduleTimer (toMsg >> f) timer millis
+
+        RouteNavigate pushHistory route ->
+            RouteNavigate pushHistory route
+
+        RouteUpdate route ->
+            RouteUpdate route
 
         ApiEffect apiEffect ->
             ApiEffect <| mapApi f apiEffect
@@ -135,14 +148,35 @@ perform ( session, effect ) =
             List.foldl batchPerform ( session, [] ) effects
                 |> Tuple.mapSecond Cmd.batch
 
-        Command cmd ->
-            ( session, cmd )
+        ModalFocus toMsg ->
+            ( session, Modal.resetFocusCmd toMsg )
 
         PosixTime toMsg ->
             ( session, Task.perform toMsg Time.now )
 
         ScheduleTimer toMsg timer millis ->
             ( session, Timer.schedule toMsg timer millis )
+
+        RouteNavigate pushHistory route ->
+            let
+                url =
+                    -- TODO replace Session.router
+                    session.router.toPath route
+            in
+            ( Session.enableRouting session
+            , if pushHistory then
+                Nav.pushUrl session.key url
+
+              else
+                Nav.replaceUrl session.key url
+            )
+
+        RouteUpdate route ->
+            ( Session.disableRouting session
+            , -- TODO replace Session.router
+              session.router.toPath route
+                |> Nav.replaceUrl session.key
+            )
 
         ApiEffect apiEffect ->
             performApi ( session, apiEffect )
@@ -234,6 +268,13 @@ showFlash flash =
     SessionEffect (FlashShow flash)
 
 
+{-| Locks focus to the `modal-dialog` dom ID.
+-}
+focusModal : (Modal.Msg -> msg) -> Effect msg
+focusModal toMsg =
+    ModalFocus toMsg
+
+
 deleteMessage : HttpResult msg -> String -> String -> Effect msg
 deleteMessage toMsg mailboxName id =
     ApiEffect (DeleteMessage toMsg mailboxName id)
@@ -286,12 +327,20 @@ schedule toMsg timer millis =
     ScheduleTimer toMsg timer millis
 
 
-{-| Wrap a Cmd into an Effect. This is a temporary function to aid in the transition to the effect
-pattern.
+{-| Updates the browsers displayed URL to the specified route, and triggers the route to be
+handled by the frontend.
 -}
-wrap : Cmd msg -> Effect msg
-wrap cmd =
-    Command cmd
+navigateRoute : Bool -> Route -> Effect msg
+navigateRoute pushHistory route =
+    RouteNavigate pushHistory route
+
+
+{-| Updates the browsers displayed URL to the specified route. Does not trigger our own route
+handling.
+-}
+updateRoute : Route -> Effect msg
+updateRoute route =
+    RouteUpdate route
 
 
 

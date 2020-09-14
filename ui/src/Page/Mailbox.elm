@@ -1,7 +1,6 @@
 module Page.Mailbox exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
-import Browser.Navigation as Nav
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader exposing (MessageHeader)
 import Data.Session exposing (Session)
@@ -161,11 +160,7 @@ update msg model =
             ( updateSelected model id
             , Effect.batch
                 [ -- Update browser location.
-                  Effect.disableRouting
-                , Route.Message model.mailboxName id
-                    |> model.session.router.toPath
-                    |> Nav.replaceUrl model.session.key
-                    |> Effect.wrap
+                  Effect.updateRoute (Route.Message model.mailboxName id)
                 , Effect.getMessage MessageLoaded model.mailboxName id
                 ]
             )
@@ -241,7 +236,7 @@ update msg model =
             updateSearchInput model searchInput
 
         PurgeMailboxPrompt ->
-            ( { model | promptPurge = True }, Modal.resetFocusCmd ModalFocused |> Effect.wrap )
+            ( { model | promptPurge = True }, Effect.focusModal ModalFocused )
 
         PurgeMailboxCanceled ->
             ( { model | promptPurge = False }, Effect.none )
@@ -305,27 +300,15 @@ updateMessageResult model message =
 -}
 updateTriggerPurge : Model -> ( Model, Effect Msg )
 updateTriggerPurge model =
-    let
-        effects =
-            Effect.batch
-                [ Route.Mailbox model.mailboxName
-                    |> model.session.router.toPath
-                    |> Nav.replaceUrl model.session.key
-                    |> Effect.wrap
-                , Effect.purgeMailbox PurgedMailbox model.mailboxName
-                ]
-    in
-    case model.state of
-        ShowingList _ _ ->
-            ( { model
-                | promptPurge = False
-                , state = ShowingList (MessageList [] Nothing "") NoMessage
-              }
-            , Effect.batch [ Effect.disableRouting, effects ]
-            )
-
-        _ ->
-            ( model, effects )
+    ( { model
+        | promptPurge = False
+        , state = ShowingList (MessageList [] Nothing "") NoMessage
+      }
+    , Effect.batch
+        [ Effect.updateRoute (Route.Mailbox model.mailboxName)
+        , Effect.purgeMailbox PurgedMailbox model.mailboxName
+        ]
+    )
 
 
 updateSearchInput : Model -> String -> ( Model, Effect Msg )
@@ -390,11 +373,7 @@ updateDeleteMessage model message =
             ( { model | state = ShowingList (filter (\x -> x.id /= message.id) list) NoMessage }
             , Effect.batch
                 [ Effect.deleteMessage DeletedMessage message.mailbox message.id
-                , Effect.disableRouting
-                , Route.Mailbox model.mailboxName
-                    |> model.session.router.toPath
-                    |> Nav.replaceUrl model.session.key
-                    |> Effect.wrap
+                , Effect.updateRoute (Route.Mailbox model.mailboxName)
                 ]
             )
 

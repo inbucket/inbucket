@@ -10,7 +10,9 @@
     "dev": "webpack-dev-server --mode development --port 3000 --hot --watch",
     "errors": "webpack --mode development --display-error-details"
   },
-  "dependencies": {},
+  "dependencies": {
+    "opensans-npm-webfont": "^1.0.0"
+  },
   "devDependencies": {
     "@babel/core": "^7.11.4",
     "@babel/preset-env": "^7.11.0",

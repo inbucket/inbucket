@@ -35,12 +35,10 @@ module.exports = (env, argv) => {
           ],
         },
         {
-          include: [/\/src/, /\/node_modules\/@fortawesome\/fontawesome-free\/css/],
           test: /\.css$/,
           loader: ['style-loader', 'css-loader'],
         },
         {
-          include: [/\/node_modules\/@fortawesome\/fontawesome-free\/webfonts/],
           test: /\.(eot|svg|ttf|woff|woff2)$/,
           loader: 'file-loader',
           options: {

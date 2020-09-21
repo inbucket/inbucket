@@ -4,6 +4,13 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- The UI now includes the Open Sans webfont instead of relying on browser/OS
+  fonts
+
+
 ## [v3.0.0-beta3]
 
 ### Added

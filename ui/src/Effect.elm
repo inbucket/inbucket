@@ -1,6 +1,7 @@
 module Effect exposing
     ( Effect
     , addRecent
+    , append
     , batch
     , deleteMessage
     , disableRouting
@@ -66,6 +67,13 @@ type SessionEffect
     | RecentAdd String
     | RoutingDisable
     | RoutingEnable
+
+
+{-| Appends a new effect to a model/effect tuple.
+-}
+append : Effect msg -> ( a, Effect msg ) -> ( a, Effect msg )
+append e ( model, effect ) =
+    ( model, batch [ effect, e ] )
 
 
 {-| Packs a List of Effects into a single Effect

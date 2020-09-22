@@ -354,3 +354,9 @@ h3 {
   background-color: var(--selected-color);
   cursor: pointer;
 }
+
+.monitor tr:focus {
+  color: var(--focused-color);
+  background-color: var(--focused-bg-color);
+  outline: none;
+}

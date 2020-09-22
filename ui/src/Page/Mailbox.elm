@@ -94,6 +94,7 @@ type alias Model =
     { session : Session
     , mailboxName : String
     , state : State
+    , socketConnected : Bool
     , bodyMode : Body
     , searchInput : String
     , promptPurge : Bool
@@ -107,6 +108,7 @@ init session mailboxName selection =
     ( { session = session
       , mailboxName = mailboxName
       , state = LoadingList selection
+      , socketConnected = False
       , bodyMode = SafeHtmlBody
       , searchInput = ""
       , promptPurge = False
@@ -136,6 +138,7 @@ subscriptions _ =
 type Msg
     = ListLoaded (Result HttpUtil.Error (List MessageHeader))
     | ClickMessage MessageID
+    | ClickRefresh
     | ListKeyPress String Int
     | CloseMessage
     | MessageLoaded (Result HttpUtil.Error Message)
@@ -165,6 +168,21 @@ update msg model =
                 ]
             )
 
+        ClickRefresh ->
+            let
+                selection =
+                    case model.state of
+                        ShowingList _ (ShowingMessage message) ->
+                            Just message.id
+
+                        _ ->
+                            Nothing
+            in
+            -- Reset to loading state, preserving the current message selection.
+            ( { model | state = LoadingList selection }
+            , Effect.getHeaderList ListLoaded model.mailboxName
+            )
+
         CloseMessage ->
             case model.state of
                 ShowingList list _ ->
@@ -191,23 +209,7 @@ update msg model =
                     ( model, Effect.none )
 
         ListLoaded (Ok headers) ->
-            case model.state of
-                LoadingList selection ->
-                    let
-                        newModel =
-                            { model
-                                | state = ShowingList (MessageList headers Nothing "") NoMessage
-                            }
-                    in
-                    case selection of
-                        Just id ->
-                            updateOpenMessage newModel id
-
-                        Nothing ->
-                            ( newModel, Effect.addRecent newModel.mailboxName )
-
-                _ ->
-                    ( model, Effect.none )
+            updateListLoaded model headers
 
         ListLoaded (Err err) ->
             ( model, Effect.showFlash (HttpUtil.errorFlash err) )
@@ -260,6 +262,33 @@ update msg model =
 
         Tick now ->
             ( { model | now = now }, Effect.none )
+
+
+updateListLoaded : Model -> List MessageHeader -> ( Model, Effect Msg )
+updateListLoaded model headers =
+    case model.state of
+        LoadingList selection ->
+            let
+                newModel =
+                    { model
+                        | state = ShowingList (MessageList headers Nothing "") NoMessage
+                    }
+            in
+            Effect.append (Effect.addRecent newModel.mailboxName) <|
+                case selection of
+                    Just id ->
+                        -- Don't try to load selected message if not present in headers.
+                        if List.any (\header -> Just header.id == selection) headers then
+                            updateOpenMessage newModel id
+
+                        else
+                            ( newModel, Effect.updateRoute (Route.Mailbox model.mailboxName) )
+
+                    Nothing ->
+                        ( newModel, Effect.none )
+
+        _ ->
+            ( model, Effect.none )
 
 
 {-| Replace the currently displayed message.
@@ -412,10 +441,7 @@ updateMarkMessageSeen model =
 updateOpenMessage : Model -> String -> ( Model, Effect Msg )
 updateOpenMessage model id =
     ( updateSelected model id
-    , Effect.batch
-        [ Effect.addRecent model.mailboxName
-        , Effect.getMessage MessageLoaded model.mailboxName id
-        ]
+    , Effect.getMessage MessageLoaded model.mailboxName id
     )
 
 
@@ -438,26 +464,7 @@ view model =
     , modal = viewModal model.promptPurge
     , content =
         [ div [ class ("mailbox " ++ mode) ]
-            [ aside [ class "message-list-controls" ]
-                [ input
-                    [ type_ "text"
-                    , placeholder "search"
-                    , Events.onInput OnSearchInput
-                    , value model.searchInput
-                    ]
-                    []
-                , button
-                    [ Events.onClick (OnSearchInput "")
-                    , disabled (model.searchInput == "")
-                    , alt "Clear Search"
-                    ]
-                    [ i [ class "fas fa-times" ] [] ]
-                , button
-                    [ Events.onClick PurgeMailboxPrompt
-                    , alt "Purge Mailbox"
-                    ]
-                    [ i [ class "fas fa-trash" ] [] ]
-                ]
+            [ viewMessageListControls model
             , viewMessageList model
             , main_
                 [ class "message" ]
@@ -496,6 +503,53 @@ viewModal promptPurge =
 
     else
         Nothing
+
+
+viewMessageListControls : Model -> Html Msg
+viewMessageListControls model =
+    let
+        clearButton =
+            Just <|
+                button
+                    [ Events.onClick (OnSearchInput "")
+                    , disabled (model.searchInput == "")
+                    , alt "Clear Search"
+                    ]
+                    [ i [ class "fas fa-times" ] [] ]
+
+        purgeButton =
+            Just <|
+                button
+                    [ Events.onClick PurgeMailboxPrompt
+                    , alt "Purge Mailbox"
+                    ]
+                    [ i [ class "fas fa-trash" ] [] ]
+
+        refreshButton =
+            if model.socketConnected then
+                Nothing
+
+            else
+                Just <|
+                    button
+                        [ Events.onClick ClickRefresh
+                        , alt "Refresh Mailbox"
+                        ]
+                        [ i [ class "fas fa-sync" ] [] ]
+
+        searchInput =
+            Just <|
+                input
+                    [ type_ "text"
+                    , placeholder "search"
+                    , Events.onInput OnSearchInput
+                    , value model.searchInput
+                    ]
+                    []
+    in
+    [ searchInput, clearButton, refreshButton, purgeButton ]
+        |> List.filterMap identity
+        |> aside [ class "message-list-controls" ]
 
 
 viewMessageList : Model -> Html Msg

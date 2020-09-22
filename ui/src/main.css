@@ -9,6 +9,8 @@
   --border-color: #ddd;
   --placeholder-color: #9f9f9f;
   --selected-color: #eee;
+  --focused-color: #fff;
+  --focused-bg-color: #337ab7;
 }
 
 html, body, div, span, applet, object, iframe,

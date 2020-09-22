@@ -98,7 +98,12 @@
   border-width: 1px;
   border-style: none solid solid solid;
   cursor: pointer;
+  outline: none;
   padding: 5px 8px;
+}
+
+.message-list-entry:focus {
+  background-color: var(--focused-bg-color) !important;
 }
 
 .message-list-entry.selected {
@@ -109,12 +114,22 @@
   border-style: solid;
 }
 
+.message-list-entry:focus .subject {
+  color: var(--focused-color);
+}
+
 .message-list-entry .subject {
   color: var(--high-color);
 }
 
 .message-list-entry.unseen .subject {
   font-weight: bold;
+}
+
+.message-list-entry:focus .from,
+.message-list-entry:focus .date {
+  color: var(--focused-color);
+  opacity: 0.8;
 }
 
 .message-list-entry .from,

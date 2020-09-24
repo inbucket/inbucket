@@ -3,10 +3,12 @@ module Effect exposing
     , addRecent
     , append
     , batch
+    , clearFlash
     , deleteMessage
     , disableRouting
     , enableRouting
     , focusModal
+    , focusModalResult
     , getGreeting
     , getHeaderList
     , getMessage
@@ -64,6 +66,7 @@ type ApiEffect msg
 type SessionEffect
     = FlashClear
     | FlashShow Session.Flash
+    | ModalFocusResult Modal.Msg
     | RecentAdd String
     | RoutingDisable
     | RoutingEnable
@@ -233,6 +236,9 @@ performSession ( session, effect ) =
         FlashShow flash ->
             ( Session.showFlash flash session, Cmd.none )
 
+        ModalFocusResult result ->
+            ( Modal.updateSession result session, Cmd.none )
+
         RoutingDisable ->
             ( Session.disableRouting session, Cmd.none )
 
@@ -281,6 +287,11 @@ showFlash flash =
 focusModal : (Modal.Msg -> msg) -> Effect msg
 focusModal toMsg =
     ModalFocus toMsg
+
+
+focusModalResult : Modal.Msg -> Effect msg
+focusModalResult msg =
+    SessionEffect (ModalFocusResult msg)
 
 
 deleteMessage : HttpResult msg -> String -> String -> Effect msg

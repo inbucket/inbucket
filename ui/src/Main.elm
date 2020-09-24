@@ -199,12 +199,10 @@ updateMain msg model session =
 
         LayoutMsg subMsg ->
             let
-                ( layout, newSession, cmd ) =
-                    Layout.update subMsg model.layout session
+                ( layout, effect ) =
+                    Layout.update subMsg model.layout
             in
-            ( updateSession { model | layout = layout } newSession
-            , cmd
-            )
+            ( { model | layout = layout }, effect ) |> performEffects
 
         _ ->
             updatePage msg model |> performEffects

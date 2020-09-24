@@ -1,7 +1,7 @@
 module Layout exposing (Model, Msg, Page(..), frame, init, reset, update)
 
-import Browser.Navigation as Nav
 import Data.Session as Session exposing (Session)
+import Effect exposing (Effect)
 import Html
     exposing
         ( Attribute
@@ -39,7 +39,7 @@ import Html.Attributes
         )
 import Html.Events as Events
 import Modal
-import Route exposing (Route)
+import Route
 import Timer exposing (Timer)
 
 
@@ -96,46 +96,31 @@ type Msg
     | RecentMenuToggled
 
 
-update : Msg -> Model msg -> Session -> ( Model msg, Session, Cmd msg )
-update msg model session =
+update : Msg -> Model msg -> ( Model msg, Effect msg )
+update msg model =
     case msg of
         ClearFlash ->
-            ( model
-            , Session.clearFlash session
-            , Cmd.none
-            )
+            ( model, Effect.clearFlash )
 
         MainMenuToggled ->
-            ( { model | mainMenuVisible = not model.mainMenuVisible }
-            , session
-            , Cmd.none
-            )
+            ( { model | mainMenuVisible = not model.mainMenuVisible }, Effect.none )
 
         ModalFocused message ->
-            ( model
-            , Modal.updateSession message session
-            , Cmd.none
-            )
+            ( model, Effect.focusModalResult message )
 
         ModalUnfocused ->
-            ( model, session, Modal.resetFocusCmd (ModalFocused >> model.mapMsg) )
+            ( model, Effect.focusModal (ModalFocused >> model.mapMsg) )
 
         OnMailboxNameInput name ->
-            ( { model | mailboxName = name }
-            , session
-            , Cmd.none
-            )
+            ( { model | mailboxName = name }, Effect.none )
 
         OpenMailbox ->
             if model.mailboxName == "" then
-                ( model, session, Cmd.none )
+                ( model, Effect.none )
 
             else
                 ( model
-                , session
-                , Route.Mailbox model.mailboxName
-                    |> session.router.toPath
-                    |> Nav.pushUrl session.key
+                , Effect.navigateRoute True (Route.Mailbox model.mailboxName)
                 )
 
         RecentMenuMouseOver ->
@@ -143,20 +128,19 @@ update msg model session =
                 | recentMenuVisible = True
                 , recentMenuTimer = Timer.cancel model.recentMenuTimer
               }
-            , session
-            , Cmd.none
+            , Effect.none
             )
 
         RecentMenuMouseOut ->
             let
+                -- Keep the recent menu open for a moment even if the mouse leaves it.
                 newTimer =
                     Timer.replace model.recentMenuTimer
             in
             ( { model
                 | recentMenuTimer = newTimer
               }
-            , session
-            , Timer.schedule (RecentMenuTimeout >> model.mapMsg) newTimer 400
+            , Effect.schedule (RecentMenuTimeout >> model.mapMsg) newTimer 400
             )
 
         RecentMenuTimeout timer ->
@@ -165,18 +149,16 @@ update msg model session =
                     | recentMenuVisible = False
                     , recentMenuTimer = Timer.cancel timer
                   }
-                , session
-                , Cmd.none
+                , Effect.none
                 )
 
             else
                 -- Timer was no longer valid.
-                ( model, session, Cmd.none )
+                ( model, Effect.none )
 
         RecentMenuToggled ->
             ( { model | recentMenuVisible = not model.recentMenuVisible }
-            , session
-            , Cmd.none
+            , Effect.none
             )
 
 

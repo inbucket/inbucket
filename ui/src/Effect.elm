@@ -171,7 +171,6 @@ perform ( session, effect ) =
         RouteNavigate pushHistory route ->
             let
                 url =
-                    -- TODO replace Session.router
                     session.router.toPath route
             in
             ( Session.enableRouting session
@@ -184,8 +183,7 @@ perform ( session, effect ) =
 
         RouteUpdate route ->
             ( Session.disableRouting session
-            , -- TODO replace Session.router
-              session.router.toPath route
+            , session.router.toPath route
                 |> Nav.replaceUrl session.key
             )
 

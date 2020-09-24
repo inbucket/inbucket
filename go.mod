@@ -15,9 +15,9 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rs/zerolog v1.19.0
+	github.com/rs/zerolog v1.20.0
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/net v0.0.0-20200822124328-c89045814202
+	golang.org/x/net v0.0.0-20200923182212-328152dc79b1
 	golang.org/x/text v0.3.3 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )

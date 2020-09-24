@@ -14,19 +14,19 @@
     "opensans-npm-webfont": "^1.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.11.4",
-    "@babel/preset-env": "^7.11.0",
+    "@babel/core": "^7.11.6",
+    "@babel/preset-env": "^7.11.5",
     "@fortawesome/fontawesome-free": "^5.14.0",
     "@webcomponents/webcomponentsjs": "^2.4.4",
     "babel-loader": "^8.1.0",
-    "css-loader": "^4.2.2",
+    "css-loader": "^4.3.0",
     "elm-hot-webpack-loader": "^1.1.7",
     "elm-webpack-loader": "^7.0.1",
-    "file-loader": "^6.0.0",
-    "html-webpack-plugin": "^4.4.1",
+    "file-loader": "^6.1.0",
+    "html-webpack-plugin": "^4.5.0",
     "node-elm-compiler": "^5.0.5",
     "style-loader": "^1.2.1",
-    "webpack": "^4.44.1",
+    "webpack": "^4.44.2",
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
   }

@@ -103,6 +103,10 @@ type alias Model =
     }
 
 
+type alias ServeUrl =
+    List String -> String
+
+
 init : Session -> String -> Maybe MessageID -> ( Model, Effect Msg )
 init session mailboxName selection =
     ( { session = session
@@ -230,9 +234,7 @@ update msg model =
             ( { model | bodyMode = bodyMode }, Effect.none )
 
         ModalFocused message ->
-            ( { model | session = Modal.updateSession message model.session }
-            , Effect.none
-            )
+            ( model, Effect.focusModalResult message )
 
         OnSearchInput searchInput ->
             updateSearchInput model searchInput
@@ -452,6 +454,10 @@ updateOpenMessage model id =
 view : Model -> { title : String, modal : Maybe (Html Msg), content : List (Html Msg) }
 view model =
     let
+        serveUrl : ServeUrl
+        serveUrl =
+            Api.serveUrl model.session
+
         mode =
             case model.state of
                 ShowingList _ (ShowingMessage _) ->
@@ -476,10 +482,10 @@ view model =
                             )
 
                     ShowingList _ (ShowingMessage message) ->
-                        viewMessage model.session model.session.zone message model.bodyMode
+                        viewMessage serveUrl model.session.zone message model.bodyMode
 
                     ShowingList _ (Transitioning message) ->
-                        viewMessage model.session model.session.zone message model.bodyMode
+                        viewMessage serveUrl model.session.zone message model.bodyMode
 
                     _ ->
                         text ""
@@ -584,14 +590,14 @@ messageChip model selected message =
         ]
 
 
-viewMessage : Session -> Time.Zone -> Message -> Body -> Html Msg
-viewMessage session zone message bodyMode =
+viewMessage : ServeUrl -> Time.Zone -> Message -> Body -> Html Msg
+viewMessage serveUrl zone message bodyMode =
     let
         htmlUrl =
-            Api.serveUrl session [ "mailbox", message.mailbox, message.id, "html" ]
+            serveUrl [ "mailbox", message.mailbox, message.id, "html" ]
 
         sourceUrl =
-            Api.serveUrl session [ "mailbox", message.mailbox, message.id, "source" ]
+            serveUrl [ "mailbox", message.mailbox, message.id, "source" ]
 
         htmlButton =
             if message.html == "" then
@@ -622,7 +628,7 @@ viewMessage session zone message bodyMode =
             ]
         , messageErrors message
         , messageBody message bodyMode
-        , attachments session message
+        , attachments serveUrl message
         ]
 
 
@@ -685,20 +691,22 @@ messageBody message bodyMode =
         ]
 
 
-attachments : Session -> Message -> Html Msg
-attachments session message =
+attachments : ServeUrl -> Message -> Html Msg
+attachments serveUrl message =
     if List.isEmpty message.attachments then
-        div [] []
+        text ""
 
     else
-        table [ class "attachments well" ] (List.map (attachmentRow session message) message.attachments)
+        message.attachments
+            |> List.map (attachmentRow serveUrl message)
+            |> table [ class "attachments well" ]
 
 
-attachmentRow : Session -> Message -> Message.Attachment -> Html Msg
-attachmentRow session message attach =
+attachmentRow : ServeUrl -> Message -> Message.Attachment -> Html Msg
+attachmentRow serveUrl message attach =
     let
         url =
-            Api.serveUrl session
+            serveUrl
                 [ "mailbox"
                 , message.mailbox
                 , message.id

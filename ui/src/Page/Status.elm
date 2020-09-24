@@ -413,7 +413,7 @@ viewMetric metric =
         , div [ class "value" ] [ text (metric.formatter metric.value) ]
         , div [ class "graph" ]
             [ metric.graph metric.history
-            , text ("(" ++ String.fromInt metric.minutes ++ "min)")
+            , text (" (" ++ String.fromInt metric.minutes ++ "min)")
             ]
         ]
 

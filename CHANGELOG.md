@@ -6,6 +6,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Refresh button to reload mailbox contents
+- Improved keyboard (tab) focus highlights
+
 ### Changed
 - The UI now includes the Open Sans webfont instead of relying on browser/OS
   fonts

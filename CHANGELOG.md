@@ -4,6 +4,17 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v3.0.0-rc1]
+
+### Added
+- Refresh button to reload mailbox contents
+- Improved keyboard (tab) focus highlights
+
+### Changed
+- The UI now includes the Open Sans webfont instead of relying on browser/OS
+  fonts
+
+
 ## [v3.0.0-beta3]
 
 ### Added
@@ -228,6 +239,7 @@ No change from beta1.
   specific message.
 
 [Unreleased]:  https://github.com/inbucket/inbucket/compare/master...develop
+[v3.0.0-rc1]: https://github.com/inbucket/inbucket/compare/v3.0.0-beta3...v3.0.0-rc1
 [v3.0.0-beta3]: https://github.com/inbucket/inbucket/compare/v3.0.0-beta2...v3.0.0-beta3
 [v3.0.0-beta2]: https://github.com/inbucket/inbucket/compare/v3.0.0-beta1...v3.0.0-beta2
 [v3.0.0-beta1]: https://github.com/inbucket/inbucket/compare/v2.1.0...v3.0.0-beta1

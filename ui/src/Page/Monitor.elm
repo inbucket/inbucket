@@ -1,10 +1,10 @@
 module Page.Monitor exposing (Model, Msg, init, update, view)
 
 import Api
-import Browser.Navigation as Nav
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
-import Data.Session as Session exposing (Session)
+import Data.Session exposing (Session)
 import DateFormat as DF
+import Effect exposing (Effect)
 import Html
     exposing
         ( Attribute
@@ -41,9 +41,9 @@ type alias Model =
     }
 
 
-init : Session -> ( Model, Cmd Msg )
+init : Session -> ( Model, Effect Msg )
 init session =
-    ( Model session False [], Cmd.none )
+    ( Model session False [], Effect.none )
 
 
 
@@ -58,20 +58,20 @@ type Msg
     | MessageKeyPress MessageHeader Int
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         Connected True ->
-            ( { model | connected = True, messages = [] }, Cmd.none )
+            ( { model | connected = True, messages = [] }, Effect.none )
 
         Connected False ->
-            ( { model | connected = False }, Cmd.none )
+            ( { model | connected = False }, Effect.none )
 
         MessageReceived value ->
             case D.decodeValue (MessageHeader.decoder |> D.at [ "detail" ]) value of
                 Ok header ->
                     ( { model | messages = header :: List.take 500 model.messages }
-                    , Cmd.none
+                    , Effect.none
                     )
 
                 Err err ->
@@ -81,12 +81,10 @@ update msg model =
                             , table = [ ( "Error", D.errorToString err ) ]
                             }
                     in
-                    ( { model | session = Session.showFlash flash model.session }
-                    , Cmd.none
-                    )
+                    ( model, Effect.showFlash flash )
 
         Clear ->
-            ( { model | messages = [] }, Cmd.none )
+            ( { model | messages = [] }, Effect.none )
 
         OpenMessage header ->
             openMessage header model
@@ -97,15 +95,13 @@ update msg model =
                     openMessage header model
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
 
-openMessage : MessageHeader -> Model -> ( Model, Cmd Msg )
+openMessage : MessageHeader -> Model -> ( Model, Effect Msg )
 openMessage header model =
     ( model
-    , Route.Message header.mailbox header.id
-        |> model.session.router.toPath
-        |> Nav.replaceUrl model.session.key
+    , Effect.navigateRoute True (Route.Message header.mailbox header.id)
     )
 
 

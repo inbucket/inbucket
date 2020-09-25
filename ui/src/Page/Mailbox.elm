@@ -1,12 +1,12 @@
-module Page.Mailbox exposing (Model, Msg, init, load, subscriptions, update, view)
+module Page.Mailbox exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
-import Browser.Navigation as Nav
 import Data.Message as Message exposing (Message)
 import Data.MessageHeader exposing (MessageHeader)
-import Data.Session as Session exposing (Session)
+import Data.Session exposing (Session)
 import DateFormat as DF
 import DateFormat.Relative as Relative
+import Effect exposing (Effect)
 import Html
     exposing
         ( Attribute
@@ -54,7 +54,6 @@ import Json.Decode as D
 import Json.Encode as E
 import Modal
 import Route
-import Task
 import Time exposing (Posix)
 import Timer exposing (Timer)
 
@@ -95,6 +94,7 @@ type alias Model =
     { session : Session
     , mailboxName : String
     , state : State
+    , socketConnected : Bool
     , bodyMode : Body
     , searchInput : String
     , promptPurge : Bool
@@ -103,27 +103,27 @@ type alias Model =
     }
 
 
-init : Session -> String -> Maybe MessageID -> ( Model, Cmd Msg )
+type alias ServeUrl =
+    List String -> String
+
+
+init : Session -> String -> Maybe MessageID -> ( Model, Effect Msg )
 init session mailboxName selection =
     ( { session = session
       , mailboxName = mailboxName
       , state = LoadingList selection
+      , socketConnected = False
       , bodyMode = SafeHtmlBody
       , searchInput = ""
       , promptPurge = False
       , markSeenTimer = Timer.empty
       , now = Time.millisToPosix 0
       }
-    , load session mailboxName
-    )
-
-
-load : Session -> String -> Cmd Msg
-load session mailboxName =
-    Cmd.batch
-        [ Task.perform Tick Time.now
-        , Api.getHeaderList session ListLoaded mailboxName
+    , Effect.batch
+        [ Effect.posixTime Tick
+        , Effect.getHeaderList ListLoaded mailboxName
         ]
+    )
 
 
 
@@ -142,6 +142,7 @@ subscriptions _ =
 type Msg
     = ListLoaded (Result HttpUtil.Error (List MessageHeader))
     | ClickMessage MessageID
+    | ClickRefresh
     | ListKeyPress String Int
     | CloseMessage
     | MessageLoaded (Result HttpUtil.Error Message)
@@ -159,38 +160,49 @@ type Msg
     | ModalFocused Modal.Msg
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ClickMessage id ->
-            ( updateSelected { model | session = Session.disableRouting model.session } id
-            , Cmd.batch
+            ( updateSelected model id
+            , Effect.batch
                 [ -- Update browser location.
-                  Route.Message model.mailboxName id
-                    |> model.session.router.toPath
-                    |> Nav.replaceUrl model.session.key
-                , Api.getMessage model.session MessageLoaded model.mailboxName id
+                  Effect.updateRoute (Route.Message model.mailboxName id)
+                , Effect.getMessage MessageLoaded model.mailboxName id
                 ]
+            )
+
+        ClickRefresh ->
+            let
+                selection =
+                    case model.state of
+                        ShowingList _ (ShowingMessage message) ->
+                            Just message.id
+
+                        _ ->
+                            Nothing
+            in
+            -- Reset to loading state, preserving the current message selection.
+            ( { model | state = LoadingList selection }
+            , Effect.getHeaderList ListLoaded model.mailboxName
             )
 
         CloseMessage ->
             case model.state of
                 ShowingList list _ ->
-                    ( { model | state = ShowingList list NoMessage }, Cmd.none )
+                    ( { model | state = ShowingList list NoMessage }, Effect.none )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
         DeleteMessage message ->
             updateDeleteMessage model message
 
         DeletedMessage (Ok _) ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         DeletedMessage (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         ListKeyPress id keyCode ->
             case keyCode of
@@ -198,79 +210,49 @@ update msg model =
                     updateOpenMessage model id
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
         ListLoaded (Ok headers) ->
-            case model.state of
-                LoadingList selection ->
-                    let
-                        newModel =
-                            { model
-                                | state = ShowingList (MessageList headers Nothing "") NoMessage
-                            }
-                    in
-                    case selection of
-                        Just id ->
-                            updateOpenMessage newModel id
-
-                        Nothing ->
-                            ( { newModel
-                                | session = Session.addRecent model.mailboxName model.session
-                              }
-                            , Cmd.none
-                            )
-
-                _ ->
-                    ( model, Cmd.none )
+            updateListLoaded model headers
 
         ListLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         MarkSeenLoaded (Ok _) ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         MarkSeenLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         MessageLoaded (Ok message) ->
             updateMessageResult model message
 
         MessageLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         MessageBody bodyMode ->
-            ( { model | bodyMode = bodyMode }, Cmd.none )
+            ( { model | bodyMode = bodyMode }, Effect.none )
 
         ModalFocused message ->
-            ( { model | session = Modal.updateSession message model.session }
-            , Cmd.none
-            )
+            ( model, Effect.focusModalResult message )
 
         OnSearchInput searchInput ->
             updateSearchInput model searchInput
 
         PurgeMailboxPrompt ->
-            ( { model | promptPurge = True }, Modal.resetFocusCmd ModalFocused )
+            ( { model | promptPurge = True }, Effect.focusModal ModalFocused )
 
         PurgeMailboxCanceled ->
-            ( { model | promptPurge = False }, Cmd.none )
+            ( { model | promptPurge = False }, Effect.none )
 
         PurgeMailboxConfirmed ->
             updateTriggerPurge model
 
         PurgedMailbox (Ok _) ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         PurgedMailbox (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         MarkSeenTriggered timer ->
             if timer == model.markSeenTimer then
@@ -278,15 +260,42 @@ update msg model =
                 updateMarkMessageSeen model
 
             else
-                ( model, Cmd.none )
+                ( model, Effect.none )
 
         Tick now ->
-            ( { model | now = now }, Cmd.none )
+            ( { model | now = now }, Effect.none )
+
+
+updateListLoaded : Model -> List MessageHeader -> ( Model, Effect Msg )
+updateListLoaded model headers =
+    case model.state of
+        LoadingList selection ->
+            let
+                newModel =
+                    { model
+                        | state = ShowingList (MessageList headers Nothing "") NoMessage
+                    }
+            in
+            Effect.append (Effect.addRecent newModel.mailboxName) <|
+                case selection of
+                    Just id ->
+                        -- Don't try to load selected message if not present in headers.
+                        if List.any (\header -> Just header.id == selection) headers then
+                            updateOpenMessage newModel id
+
+                        else
+                            ( newModel, Effect.updateRoute (Route.Mailbox model.mailboxName) )
+
+                    Nothing ->
+                        ( newModel, Effect.none )
+
+        _ ->
+            ( model, Effect.none )
 
 
 {-| Replace the currently displayed message.
 -}
-updateMessageResult : Model -> Message -> ( Model, Cmd Msg )
+updateMessageResult : Model -> Message -> ( Model, Effect Msg )
 updateMessageResult model message =
     let
         bodyMode =
@@ -298,7 +307,7 @@ updateMessageResult model message =
     in
     case model.state of
         LoadingList _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         ShowingList list _ ->
             let
@@ -314,38 +323,26 @@ updateMessageResult model message =
                 , markSeenTimer = newTimer
               }
               -- Set 1500ms delay before reporting message as seen to backend.
-            , Timer.schedule MarkSeenTriggered newTimer 1500
+            , Effect.schedule MarkSeenTriggered newTimer 1500
             )
 
 
 {-| Updates model and triggers commands to purge this mailbox.
 -}
-updateTriggerPurge : Model -> ( Model, Cmd Msg )
+updateTriggerPurge : Model -> ( Model, Effect Msg )
 updateTriggerPurge model =
-    let
-        cmd =
-            Cmd.batch
-                [ Route.Mailbox model.mailboxName
-                    |> model.session.router.toPath
-                    |> Nav.replaceUrl model.session.key
-                , Api.purgeMailbox model.session PurgedMailbox model.mailboxName
-                ]
-    in
-    case model.state of
-        ShowingList _ _ ->
-            ( { model
-                | promptPurge = False
-                , session = Session.disableRouting model.session
-                , state = ShowingList (MessageList [] Nothing "") NoMessage
-              }
-            , cmd
-            )
-
-        _ ->
-            ( model, cmd )
+    ( { model
+        | promptPurge = False
+        , state = ShowingList (MessageList [] Nothing "") NoMessage
+      }
+    , Effect.batch
+        [ Effect.updateRoute (Route.Mailbox model.mailboxName)
+        , Effect.purgeMailbox PurgedMailbox model.mailboxName
+        ]
+    )
 
 
-updateSearchInput : Model -> String -> ( Model, Cmd Msg )
+updateSearchInput : Model -> String -> ( Model, Effect Msg )
 updateSearchInput model searchInput =
     let
         searchFilter =
@@ -357,14 +354,14 @@ updateSearchInput model searchInput =
     in
     case model.state of
         LoadingList _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         ShowingList list messageState ->
             ( { model
                 | searchInput = searchInput
                 , state = ShowingList { list | searchFilter = searchFilter } messageState
               }
-            , Cmd.none
+            , Effect.none
             )
 
 
@@ -396,7 +393,7 @@ updateSelected model id =
                     { model | state = ShowingList newList (Transitioning visible) }
 
 
-updateDeleteMessage : Model -> Message -> ( Model, Cmd Msg )
+updateDeleteMessage : Model -> Message -> ( Model, Effect Msg )
 updateDeleteMessage model message =
     let
         filter f messageList =
@@ -404,26 +401,20 @@ updateDeleteMessage model message =
     in
     case model.state of
         ShowingList list _ ->
-            ( { model
-                | session = Session.disableRouting model.session
-                , state =
-                    ShowingList (filter (\x -> x.id /= message.id) list) NoMessage
-              }
-            , Cmd.batch
-                [ Api.deleteMessage model.session DeletedMessage message.mailbox message.id
-                , Route.Mailbox model.mailboxName
-                    |> model.session.router.toPath
-                    |> Nav.replaceUrl model.session.key
+            ( { model | state = ShowingList (filter (\x -> x.id /= message.id) list) NoMessage }
+            , Effect.batch
+                [ Effect.deleteMessage DeletedMessage message.mailbox message.id
+                , Effect.updateRoute (Route.Mailbox model.mailboxName)
                 ]
             )
 
         _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
 {-| Updates both the active message, and the message list to mark the currently viewed message as seen.
 -}
-updateMarkMessageSeen : Model -> ( Model, Cmd Msg )
+updateMarkMessageSeen : Model -> ( Model, Effect Msg )
 updateMarkMessageSeen model =
     case model.state of
         ShowingList messages (ShowingMessage visibleMessage) ->
@@ -442,21 +433,17 @@ updateMarkMessageSeen model =
                 | state =
                     ShowingList newMessages (ShowingMessage { visibleMessage | seen = True })
               }
-            , Api.markMessageSeen model.session MarkSeenLoaded visibleMessage.mailbox visibleMessage.id
+            , Effect.markMessageSeen MarkSeenLoaded visibleMessage.mailbox visibleMessage.id
             )
 
         _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
-updateOpenMessage : Model -> String -> ( Model, Cmd Msg )
+updateOpenMessage : Model -> String -> ( Model, Effect Msg )
 updateOpenMessage model id =
-    let
-        newModel =
-            { model | session = Session.addRecent model.mailboxName model.session }
-    in
-    ( updateSelected newModel id
-    , Api.getMessage model.session MessageLoaded model.mailboxName id
+    ( updateSelected model id
+    , Effect.getMessage MessageLoaded model.mailboxName id
     )
 
 
@@ -467,6 +454,10 @@ updateOpenMessage model id =
 view : Model -> { title : String, modal : Maybe (Html Msg), content : List (Html Msg) }
 view model =
     let
+        serveUrl : ServeUrl
+        serveUrl =
+            Api.serveUrl model.session
+
         mode =
             case model.state of
                 ShowingList _ (ShowingMessage _) ->
@@ -479,26 +470,7 @@ view model =
     , modal = viewModal model.promptPurge
     , content =
         [ div [ class ("mailbox " ++ mode) ]
-            [ aside [ class "message-list-controls" ]
-                [ input
-                    [ type_ "text"
-                    , placeholder "search"
-                    , Events.onInput OnSearchInput
-                    , value model.searchInput
-                    ]
-                    []
-                , button
-                    [ Events.onClick (OnSearchInput "")
-                    , disabled (model.searchInput == "")
-                    , alt "Clear Search"
-                    ]
-                    [ i [ class "fas fa-times" ] [] ]
-                , button
-                    [ Events.onClick PurgeMailboxPrompt
-                    , alt "Purge Mailbox"
-                    ]
-                    [ i [ class "fas fa-trash" ] [] ]
-                ]
+            [ viewMessageListControls model
             , viewMessageList model
             , main_
                 [ class "message" ]
@@ -510,10 +482,10 @@ view model =
                             )
 
                     ShowingList _ (ShowingMessage message) ->
-                        viewMessage model.session model.session.zone message model.bodyMode
+                        viewMessage serveUrl model.session.zone message model.bodyMode
 
                     ShowingList _ (Transitioning message) ->
-                        viewMessage model.session model.session.zone message model.bodyMode
+                        viewMessage serveUrl model.session.zone message model.bodyMode
 
                     _ ->
                         text ""
@@ -537,6 +509,53 @@ viewModal promptPurge =
 
     else
         Nothing
+
+
+viewMessageListControls : Model -> Html Msg
+viewMessageListControls model =
+    let
+        clearButton =
+            Just <|
+                button
+                    [ Events.onClick (OnSearchInput "")
+                    , disabled (model.searchInput == "")
+                    , alt "Clear Search"
+                    ]
+                    [ i [ class "fas fa-times" ] [] ]
+
+        purgeButton =
+            Just <|
+                button
+                    [ Events.onClick PurgeMailboxPrompt
+                    , alt "Purge Mailbox"
+                    ]
+                    [ i [ class "fas fa-trash" ] [] ]
+
+        refreshButton =
+            if model.socketConnected then
+                Nothing
+
+            else
+                Just <|
+                    button
+                        [ Events.onClick ClickRefresh
+                        , alt "Refresh Mailbox"
+                        ]
+                        [ i [ class "fas fa-sync" ] [] ]
+
+        searchInput =
+            Just <|
+                input
+                    [ type_ "text"
+                    , placeholder "search"
+                    , Events.onInput OnSearchInput
+                    , value model.searchInput
+                    ]
+                    []
+    in
+    [ searchInput, clearButton, refreshButton, purgeButton ]
+        |> List.filterMap identity
+        |> aside [ class "message-list-controls" ]
 
 
 viewMessageList : Model -> Html Msg
@@ -571,14 +590,14 @@ messageChip model selected message =
         ]
 
 
-viewMessage : Session -> Time.Zone -> Message -> Body -> Html Msg
-viewMessage session zone message bodyMode =
+viewMessage : ServeUrl -> Time.Zone -> Message -> Body -> Html Msg
+viewMessage serveUrl zone message bodyMode =
     let
         htmlUrl =
-            Api.serveUrl session [ "mailbox", message.mailbox, message.id, "html" ]
+            serveUrl [ "mailbox", message.mailbox, message.id, "html" ]
 
         sourceUrl =
-            Api.serveUrl session [ "mailbox", message.mailbox, message.id, "source" ]
+            serveUrl [ "mailbox", message.mailbox, message.id, "source" ]
 
         htmlButton =
             if message.html == "" then
@@ -609,7 +628,7 @@ viewMessage session zone message bodyMode =
             ]
         , messageErrors message
         , messageBody message bodyMode
-        , attachments session message
+        , attachments serveUrl message
         ]
 
 
@@ -672,20 +691,22 @@ messageBody message bodyMode =
         ]
 
 
-attachments : Session -> Message -> Html Msg
-attachments session message =
+attachments : ServeUrl -> Message -> Html Msg
+attachments serveUrl message =
     if List.isEmpty message.attachments then
-        div [] []
+        text ""
 
     else
-        table [ class "attachments well" ] (List.map (attachmentRow session message) message.attachments)
+        message.attachments
+            |> List.map (attachmentRow serveUrl message)
+            |> table [ class "attachments well" ]
 
 
-attachmentRow : Session -> Message -> Message.Attachment -> Html Msg
-attachmentRow session message attach =
+attachmentRow : ServeUrl -> Message -> Message.Attachment -> Html Msg
+attachmentRow serveUrl message attach =
     let
         url =
-            Api.serveUrl session
+            serveUrl
                 [ "mailbox"
                 , message.mailbox
                 , message.id

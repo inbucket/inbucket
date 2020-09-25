@@ -9,6 +9,8 @@
   --border-color: #ddd;
   --placeholder-color: #9f9f9f;
   --selected-color: #eee;
+  --focused-color: #fff;
+  --focused-bg-color: #337ab7;
 }
 
 html, body, div, span, applet, object, iframe,
@@ -46,8 +48,9 @@ body {
 }
 
 body, button, input, table {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Open Sans", Helvetica, Arial, sans-serif;
   font-size: 14px;
+  font-weight: 400;
   line-height: 1.43;
   color: var(--primary-color);
 }
@@ -73,7 +76,7 @@ a.button {
   font-size: 11px;
   font-style: normal;
   margin: 4px;
-  padding: 3px 8px;
+  padding: 3px 8px 4px;
   text-decoration: none;
   text-shadow: 0 -1px 0 rgba(0,0,0,0.2);
 }
@@ -245,7 +248,7 @@ h3 {
   font-weight: 400;
   height: 30px;
   margin: 0;
-  padding: 5px 10px;
+  padding: 5px 10px 6px;
   text-align: center;
   text-decoration: none;
   text-shadow: 0 -1px 0 rgba(0,0,0,0.2);
@@ -350,4 +353,10 @@ h3 {
 .monitor tr:hover {
   background-color: var(--selected-color);
   cursor: pointer;
+}
+
+.monitor tr:focus {
+  color: var(--focused-color);
+  background-color: var(--focused-bg-color);
+  outline: none;
 }

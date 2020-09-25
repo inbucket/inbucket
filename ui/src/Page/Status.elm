@@ -1,10 +1,10 @@
 module Page.Status exposing (Model, Msg, init, subscriptions, update, view)
 
-import Api
 import Data.Metrics exposing (Metrics)
 import Data.ServerConfig exposing (ServerConfig)
-import Data.Session as Session exposing (Session)
+import Data.Session exposing (Session)
 import DateFormat.Relative as Relative
+import Effect exposing (Effect)
 import Filesize
 import Html
     exposing
@@ -19,7 +19,6 @@ import Html.Attributes exposing (class)
 import HttpUtil
 import Sparkline as Spark
 import Svg.Attributes as SvgAttrib
-import Task
 import Time exposing (Posix)
 
 
@@ -60,7 +59,7 @@ type alias Metric =
     }
 
 
-init : Session -> ( Model, Cmd Msg )
+init : Session -> ( Model, Effect Msg )
 init session =
     ( { session = session
       , now = Time.millisToPosix 0
@@ -82,9 +81,9 @@ init session =
       , retainedCount = Metric "Stored Messages" 0 fmtInt graphZero initDataSet 60
       , retainedSize = Metric "Store Size" 0 Filesize.format graphZero initDataSet 60
       }
-    , Cmd.batch
-        [ Task.perform Tick Time.now
-        , Api.getServerConfig session ServerConfigLoaded
+    , Effect.batch
+        [ Effect.posixTime Tick
+        , Effect.getServerConfig ServerConfigLoaded
         ]
     )
 
@@ -114,27 +113,25 @@ type Msg
     | Tick Posix
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         MetricsReceived (Ok metrics) ->
-            ( updateMetrics metrics model, Cmd.none )
+            ( updateMetrics metrics model, Effect.none )
 
         MetricsReceived (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         ServerConfigLoaded (Ok config) ->
-            ( { model | config = Just config }, Cmd.none )
+            ( { model | config = Just config }, Effect.none )
 
         ServerConfigLoaded (Err err) ->
-            ( { model | session = Session.showFlash (HttpUtil.errorFlash err) model.session }
-            , Cmd.none
-            )
+            ( model, Effect.showFlash (HttpUtil.errorFlash err) )
 
         Tick time ->
-            ( { model | now = time }, Api.getServerMetrics model.session MetricsReceived )
+            ( { model | now = time }
+            , Effect.getServerMetrics MetricsReceived
+            )
 
 
 {-| Update all metrics in Model; increment xCounter.
@@ -416,7 +413,7 @@ viewMetric metric =
         , div [ class "value" ] [ text (metric.formatter metric.value) ]
         , div [ class "graph" ]
             [ metric.graph metric.history
-            , text ("(" ++ String.fromInt metric.minutes ++ "min)")
+            , text (" (" ++ String.fromInt metric.minutes ++ "min)")
             ]
         ]
 

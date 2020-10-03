@@ -20,6 +20,7 @@ require (
 	golang.org/x/net v0.0.0-20200923182212-328152dc79b1
 	golang.org/x/text v0.3.3 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
+	github.com/anisse/proxylistener v0.0.0-20201003094630-2f384fe4d406
 )
 
 go 1.13

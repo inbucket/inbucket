@@ -70,6 +70,7 @@ type Root struct {
 type SMTP struct {
 	Addr            string        `required:"true" default:"0.0.0.0:2500" desc:"SMTP server IP4 host:port"`
 	Domain          string        `required:"true" default:"inbucket" desc:"HELO domain"`
+	ProxyHosts      []string      `desc:"Accept network connection from PROXY host(s)"`
 	MaxRecipients   int           `required:"true" default:"200" desc:"Maximum RCPT TO per message"`
 	MaxMessageBytes int           `required:"true" default:"10240000" desc:"Maximum message size"`
 	DefaultAccept   bool          `required:"true" default:"true" desc:"Accept all mail by default?"`
@@ -122,6 +123,7 @@ func Process() (*Root, error) {
 	stringutil.SliceToLower(c.SMTP.RejectDomains)
 	stringutil.SliceToLower(c.SMTP.StoreDomains)
 	stringutil.SliceToLower(c.SMTP.DiscardDomains)
+	stringutil.SliceToLower(c.SMTP.ProxyHosts)
 	return c, err
 }
 

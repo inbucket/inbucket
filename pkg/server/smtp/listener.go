@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/anisse/proxylistener"
 	"github.com/inbucket/inbucket/pkg/config"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/metric"
@@ -109,7 +110,11 @@ func (s *Server) Start(ctx context.Context) {
 		return
 	}
 	slog.Info().Str("addr", addr.String()).Msg("SMTP listening on tcp4")
-	s.listener, err = net.ListenTCP("tcp4", addr)
+	if len(s.config.ProxyHosts) > 0 {
+		s.listener, err = proxylistener.ListenTCP("tcp4", addr)
+	} else {
+		s.listener, err = net.ListenTCP("tcp4", addr)
+	}
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to start tcp4 listener")
 		s.emergencyShutdown()

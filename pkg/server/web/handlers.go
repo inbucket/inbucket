@@ -94,6 +94,8 @@ func spaTemplateHandler(tmpl *template.Template, basePath string,
 		BasePath: basePath,
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// ensure we do now allow click jacking
+		w.Header().Set("X-Frame-Options", "SameOrigin")
 		err := tmpl.Execute(w, tmplData)
 		if err != nil {
 			log.Error().Str("module", "web").Str("remote", req.RemoteAddr).Str("proto", req.Proto).

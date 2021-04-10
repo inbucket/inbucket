@@ -108,6 +108,46 @@ func TestEmptyEnvelope(t *testing.T) {
 	}
 }
 
+// Test AUTH
+func TestAuth(t *testing.T) {
+	ds := test.NewStore()
+	server, logbuf, teardown := setupSMTPServer(ds)
+	defer teardown()
+
+	//PLAIN AUTH
+	script := []scriptStep{
+		{"EHLO localhost", 250},
+		{"AUTH PLAIN aW5idWNrZXQ6cGFzc3dvcmQK", 235},
+		{"RSET", 250},
+		{"AUTH GSSAPI aW5idWNrZXQ6cGFzc3dvcmQK", 500},
+		{"RSET", 250},
+		{"AUTH PLAIN", 500},
+		{"RSET", 250},
+		{"AUTH PLAIN aW5idWNrZXQ6cG Fzc3dvcmQK", 500},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	//LOGIN AUTH
+	script = []scriptStep{
+		{"EHLO localhost", 250},
+		{"AUTH LOGIN", 334},
+		{"USERNAME", 334},
+		{"PASSWORD", 235},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure
+		_, _ = io.Copy(os.Stderr, logbuf)
+	}
+}
+
 // Test commands in READY state
 func TestReadyState(t *testing.T) {
 	ds := test.NewStore()

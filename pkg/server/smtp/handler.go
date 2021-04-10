@@ -29,6 +29,10 @@ const (
 	GREET State = iota
 	// READY State: Got HELO, waiting for MAIL
 	READY
+	// LOGIN State: Got AUTH LOGIN command, expecting Username
+	LOGIN
+	// PASSWORD State: Got Username, expecting password
+	PASSWORD
 	// MAIL State: Got MAIL, accepting RCPTs
 	MAIL
 	// DATA State: Got DATA, waiting for "."
@@ -76,7 +80,13 @@ var commands = map[string]bool{
 	"QUIT":     true,
 	"TURN":     true,
 	"STARTTLS": true,
+	"AUTH":     true,
 }
+
+const (
+	usernameChallenge = "VXNlciBOYW1lAA=="
+	passwordChallenge = "UGFzc3dvcmQA"
+)
 
 // Session holds the state of an SMTP session
 type Session struct {
@@ -153,6 +163,16 @@ func (s *Server) startSession(id int, conn net.Conn) {
 		}
 		line, err := ssn.readLine()
 		if err == nil {
+			//Handle LOGIN/PASSWORD states here, because they don't expect a command
+			switch ssn.state {
+			case LOGIN:
+				ssn.loginHandler(line)
+				continue
+			case PASSWORD:
+				ssn.passwordHandler(line)
+				continue
+			}
+
 			if cmd, arg, ok := ssn.parseCmd(line); ok {
 				// Check against valid SMTP commands
 				if cmd == "" {
@@ -260,6 +280,7 @@ func (s *Session) greetHandler(cmd string, arg string) {
 		// features before SIZE per RFC
 		s.send("250-" + readyBanner)
 		s.send("250-8BITMIME")
+		s.send("250-AUTH PLAIN LOGIN")
 		if s.Server.config.TLSEnabled && s.Server.tlsConfig != nil && s.tlsState == nil {
 			s.send("250-STARTTLS")
 		}
@@ -281,7 +302,28 @@ func parseHelloArgument(arg string) (string, error) {
 	return domain, nil
 }
 
+func (s *Session) loginHandler(line string) {
+	if len(line) == 0 {
+		s.send("500 invalid Username")
+		s.enterState(READY)
+		return
+	}
+	s.send(fmt.Sprintf("334 %v", passwordChallenge))
+	s.enterState(PASSWORD)
+}
+
+func (s *Session) passwordHandler(line string) {
+	if len(line) == 0 {
+		s.send("500 invalid Password")
+		s.enterState(READY)
+		return
+	}
+	s.send("235 Authentication successful")
+	s.enterState(READY)
+}
+
 // READY state -> waiting for MAIL
+// AUTH can change
 func (s *Session) readyHandler(cmd string, arg string) {
 	if cmd == "STARTTLS" {
 		if !s.Server.config.TLSEnabled {
@@ -305,6 +347,33 @@ func (s *Session) readyHandler(cmd string, arg string) {
 		s.tlsState = new(tls.ConnectionState)
 		*s.tlsState = tlsConn.ConnectionState()
 		s.enterState(GREET)
+	} else if cmd == "AUTH" {
+		args := strings.SplitN(arg, " ", 3)
+		authMethod := args[0]
+		switch authMethod {
+		case "PLAIN":
+			{
+				if len(args) != 2 {
+					s.send("500 Bad auth arguments")
+					s.logger.Warn().Msgf("Bad auth attempt: %q", arg)
+					return
+				}
+				s.logger.Info().Msgf("Accepting credentials: %q", args[1])
+				s.send("235 2.7.0 Authentication successful")
+				return
+			}
+		case "LOGIN":
+			{
+				s.send(fmt.Sprintf("334 %v", usernameChallenge))
+				s.enterState(LOGIN)
+				return
+			}
+		default:
+			{
+				s.send(fmt.Sprintf("500 Unsupported AUTH method: %v", authMethod))
+				return
+			}
+		}
 	} else if cmd == "MAIL" {
 		// Capture group 1: from address.  2: optional params.
 		m := fromRegex.FindStringSubmatch(arg)

@@ -39,6 +39,15 @@ const (
 	DATA
 	// QUIT State: Client requested end of session
 	QUIT
+
+	// Messages sent to user during LOGIN auth procedure
+	// Can vary, but values are taken directly from spec
+	// https://tools.ietf.org/html/draft-murchison-sasl-login-00
+
+	//usernameChallenge sent when inviting user to provide username. Is base64 encoded string `User Name`
+	usernameChallenge = "VXNlciBOYW1lAA=="
+	//passwordChallenge sent when inviting user to provide password. Is base64 encoded string `Password`
+	passwordChallenge = "UGFzc3dvcmQA"
 )
 
 // fromRegex captures the from address and optional BODY=8BITMIME clause.  Matches FROM, while
@@ -82,11 +91,6 @@ var commands = map[string]bool{
 	"STARTTLS": true,
 	"AUTH":     true,
 }
-
-const (
-	usernameChallenge = "VXNlciBOYW1lAA=="
-	passwordChallenge = "UGFzc3dvcmQA"
-)
 
 // Session holds the state of an SMTP session
 type Session struct {

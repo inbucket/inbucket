@@ -11,7 +11,7 @@ stdenv.mkDerivation rec {
     elmPackages.elm-test
     go
     golint
-    nodejs-10_x
+    nodejs-14_x
     rpm
     swaks
   ];

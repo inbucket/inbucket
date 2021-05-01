@@ -2,7 +2,7 @@ name: Build and Test
 on:
   pull_request:
 jobs:
-  build:
+  go-build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -16,9 +16,9 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
-      - name: Build and Test
+      - name: Build and test
         run: |
-          go build
+          go build ./...
           go test -race -coverprofile=profile.cov ./...
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
@@ -27,7 +27,7 @@ jobs:
           flag-name: Go-${{ matrix.go }}
           parallel: true
   coverage:
-    needs: build
+    needs: go-build
     name: Test Coverage
     runs-on: ubuntu-latest
     steps:

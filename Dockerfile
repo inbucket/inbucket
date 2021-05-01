@@ -1,7 +1,7 @@
 # Docker build file for Inbucket: https://www.inbucket.org/
 
 # Install build-time dependencies
-FROM golang:1.15-alpine3.12 as builder
+FROM golang:1.16-alpine3.13 as builder
 RUN apk add --no-cache --virtual .build-deps g++ git make npm python3
 WORKDIR /build
 COPY . .
@@ -24,7 +24,7 @@ WORKDIR /build/ui
 RUN npm run build
 
 # Run in minimal image
-FROM alpine:3.12
+FROM alpine:3.13
 RUN apk --no-cache add tzdata
 WORKDIR /opt/inbucket
 RUN mkdir bin defaults ui

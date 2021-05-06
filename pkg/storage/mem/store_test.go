@@ -65,7 +65,7 @@ func TestMaxSize(t *testing.T) {
 		go func(mailbox string) {
 			err := s.PurgeMessages(mailbox)
 			if err != nil {
-				t.Fatal(err)
+				panic(err) // Cannot call t.Fatal from non-test goroutine.
 			}
 			wg.Done()
 		}(mailbox)

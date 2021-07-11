@@ -205,6 +205,15 @@ func TestReadyState(t *testing.T) {
 		t.Error(err)
 	}
 
+	// Test Start TLS parsing.
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"STARTTLS", 454}, // TLS unconfigured.
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
 	if t.Failed() {
 		// Wait for handler to finish logging
 		time.Sleep(2 * time.Second)

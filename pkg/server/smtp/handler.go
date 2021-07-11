@@ -331,20 +331,21 @@ func (s *Session) passwordHandler(line string) {
 func (s *Session) readyHandler(cmd string, arg string) {
 	if cmd == "STARTTLS" {
 		if !s.Server.config.TLSEnabled {
-			// invalid command since unconfigured
+			// Invalid command since TLS unconfigured.
 			s.logger.Debug().Msgf("454 TLS unavailable on the server")
 			s.send("454 TLS unavailable on the server")
 			return
 		}
 		if s.tlsState != nil {
-			// tls state previously valid
+			// TLS state previously valid.
 			s.logger.Debug().Msg("454 A TLS session already agreed upon.")
 			s.send("454 A TLS session already agreed upon.")
 			return
 		}
 		s.logger.Debug().Msg("Initiating TLS context.")
+
+		// Start TLS connection handshake.
 		s.send("220 STARTTLS")
-		// start tls connection handshake
 		tlsConn := tls.Server(s.conn, s.Server.tlsConfig)
 		s.conn = tlsConn
 		s.text = textproto.NewConn(s.conn)

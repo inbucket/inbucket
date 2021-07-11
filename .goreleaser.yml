@@ -74,11 +74,15 @@ nfpms:
     maintainer: github@hillyerd.com
     description: All-in-one disposable webmail service.
     license: MIT
-    files:
-      "ui/dist/**/*": "/usr/local/share/inbucket/ui"
-    config_files:
-      "etc/linux/inbucket.service": "/lib/systemd/system/inbucket.service"
-      "ui/greeting.html": "/etc/inbucket/greeting.html"
+    contents:
+      - src: "ui/dist/**/*"
+        dst: "/usr/local/share/inbucket/ui"
+      - src: "etc/linux/inbucket.service"
+        dst: "/lib/systemd/system/inbucket.service"
+        type: config|noreplace
+      - src: "ui/greeting.html"
+        dst: "/etc/inbucket/greeting.html"
+        type: config|noreplace
 
 snapshot:
   name_template: SNAPSHOT-{{ .Commit }}

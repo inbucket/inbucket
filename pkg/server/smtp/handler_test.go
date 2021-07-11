@@ -56,6 +56,9 @@ func TestGreetState(t *testing.T) {
 	if err := playSession(t, server, []scriptStep{{"helo 127.0.0.1", 250}}); err != nil {
 		t.Error(err)
 	}
+	if err := playSession(t, server, []scriptStep{{"HELO ABC", 250}}); err != nil {
+		t.Error(err)
+	}
 
 	// Valid EHLOs
 	if err := playSession(t, server, []scriptStep{{"EHLO mydomain", 250}}); err != nil {
@@ -68,6 +71,9 @@ func TestGreetState(t *testing.T) {
 		t.Error(err)
 	}
 	if err := playSession(t, server, []scriptStep{{"ehlo 127.0.0.1", 250}}); err != nil {
+		t.Error(err)
+	}
+	if err := playSession(t, server, []scriptStep{{"EHLO a", 250}}); err != nil {
 		t.Error(err)
 	}
 

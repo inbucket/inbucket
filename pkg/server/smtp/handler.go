@@ -243,7 +243,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				}
 				break
 			}
-			// not an EOF
+			// Not an EOF
 			ssn.logger.Warn().Msgf("Connection error: %v", err)
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
@@ -281,7 +281,7 @@ func (s *Session) greetHandler(cmd string, arg string) {
 			return
 		}
 		s.remoteDomain = domain
-		// features before SIZE per RFC
+		// Features before SIZE per RFC
 		s.send("250-" + readyBanner)
 		s.send("250-8BITMIME")
 		s.send("250-AUTH PLAIN LOGIN")
@@ -591,30 +591,28 @@ func (s *Session) readLine() (line string, err error) {
 
 func (s *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 	line = strings.TrimRight(line, "\r\n")
-	l := len(line)
+
+	// Find length of command or entire line.
+	hasArg := true
+	l := strings.IndexByte(line, ' ')
+	if l == -1 {
+		hasArg = false
+		l = len(line)
+	}
+
 	switch {
 	case l == 0:
 		return "", "", true
 	case l < 4:
 		s.logger.Warn().Msgf("Command too short: %q", line)
 		return "", "", false
-	case l == 4 || l == 8:
-		return strings.ToUpper(line), "", true
-	case l == 5:
-		// Too long to be only command, too short to have args
-		s.logger.Warn().Msgf("Mangled command: %q", line)
-		return "", "", false
 	}
 
-	// If we made it here, command is long enough to have args
-	if line[4] != ' ' {
-		// There wasn't a space after the command?
-		s.logger.Warn().Msgf("Mangled command: %q", line)
-		return "", "", false
+	if hasArg {
+		return strings.ToUpper(line[0:l]), strings.Trim(line[l+1:], " "), true
 	}
 
-	// I'm not sure if we should trim the args or not, but we will for now
-	return strings.ToUpper(line[0:4]), strings.Trim(line[5:], " "), true
+	return strings.ToUpper(line), "", true
 }
 
 // parseArgs takes the arguments proceeding a command and files them

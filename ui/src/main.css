@@ -11,6 +11,50 @@
   --selected-color: #eee;
   --focused-color: #fff;
   --focused-bg-color: #337ab7;
+
+  --input-bg: inherit;
+  --input-bg-active: inherit;
+
+  --btn-default-bg-color: #337ab7;
+  --btn-default-bg-image: linear-gradient(to bottom, #337ab7 0, #265a88 100%);
+  --btn-default-color: #ffffff;
+  --btn-danger-bg-color: #d9534f;
+  --btn-danger-bg-image: linear-gradient(to bottom, #d9534f 0, #c12e2a 100%);
+  --btn-light-bg-color: #eee;
+  --btn-light-bg-image: linear-gradient(to bottom, #f0f0f0 0, #e0e0e0 100%);
+
+  --monitor-header-bg: #e8e8e8;
+
+  --well-bg-color: #f5f5f5;
+  --well-bg-image: linear-gradient(to bottom, #e8e8e8 0, #f5f5f5 100%);
+  --well-border: #e8e8e8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #202124;
+    --primary-color: #bdc1c6;
+    --high-color: #8ab4f8;
+    --border-color: #5f6368;
+    --selected-color: #303134;
+
+    --input-bg: var(--bg-color);
+    --input-bg-active: rgb(48, 49, 52);
+
+    --btn-default-bg-color: #303134;
+    --btn-default-bg-image: none;
+    --btn-default-color: #e8eaed;
+    /*--btn-danger-bg-color: #d9534f;*/
+    --btn-danger-bg-image: none;
+    /*--btn-light-bg-color: #eee;*/
+    --btn-light-bg-image: none;
+
+    --monitor-header-bg: var(--selected-color);
+
+    --well-bg-color: var(--low-color);
+    --well-bg-image: none;
+    --well-border: var(--border-color);
+  }
 }
 
 html, body, div, span, applet, object, iframe,
@@ -39,7 +83,7 @@ time, mark, audio, video {
 }
 
 a {
-    color: #337ab7;
+    color: var(--high-color);
     text-decoration: none;
 }
 
@@ -67,8 +111,8 @@ h1, h2, h3, h4, h5, h6, p {
 /** SHARED */
 
 a.button {
-  background-color: #337ab7;
-  background-image: linear-gradient(to bottom, #337ab7 0, #265a88 100%);
+  background-color: var(--btn-default-bg-color);
+  background-image: var(--btn-default-bg-image);
   border: none;
   border-radius: 4px;
   color: #fff;
@@ -82,11 +126,9 @@ a.button {
 }
 
 .well {
-  --light: #f5f5f5;
-  --dark: #e8e8e8;
-  background-color: var(--light);
-  background-image: linear-gradient(to bottom, var(--dark) 0, var(--light) 100%);
-  border: 1px solid var(--dark);
+  background-color: var(--well-bg-color);
+  background-image: var(--well-bg-image);
+  border: 1px solid var(--well-border);
   border-radius: 4px;
   box-shadow: 0 1px 2px rgba(0,0,0,.05);
   padding: 6px 10px;
@@ -110,6 +152,17 @@ a.button {
 .well-warn {
   --light: #fff8cf;
   --dark: #fff899;
+}
+
+input {
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
+}
+
+input:focus-visible, input:hover {
+  outline: none;
+  border: 1px solid var(--input-bg-active);
+  background-color: var(--input-bg-active);
 }
 
 /** APP */
@@ -237,11 +290,11 @@ h3 {
 }
 
 .button-bar button {
-  background-color: #337ab7;
-  background-image: linear-gradient(to bottom, #337ab7 0, #265a88 100%);
+  background-color: var(--btn-default-bg-color);
+  background-image: var(--btn-default-bg-image);
   border: none;
   border-radius: 4px;
-  color: #fff;
+  color: var(--btn-default-color);
   display: inline-block;
   font-size: 12px;
   font-style: normal;
@@ -254,18 +307,22 @@ h3 {
   text-shadow: 0 -1px 0 rgba(0,0,0,0.2);
 }
 
+.button-bar button:hover {
+    border: 1px solid var(--border-color);
+}
+
 .button-bar *:not(:last-child) {
   margin-right: 4px;
 }
 
 .button-bar button.danger {
-  background-color: #d9534f;
-  background-image: linear-gradient(to bottom, #d9534f 0, #c12e2a 100%);
+  background-color: var(--btn-danger-bg-color);
+  background-image: var(--btn-danger-bg-image);
 }
 
 .button-bar button.light {
-  background-color: #eee;
-  background-image: linear-gradient(to bottom, #f0f0f0 0, #e0e0e0 100%);
+  background-color: var(--btn-light-bg-color);
+  background-image: var(--btn-light-bg-image);
   color: #000;
 }
 
@@ -285,7 +342,7 @@ h3 {
 }
 
 .metric-panel h2 {
-  background-image: linear-gradient(to bottom, #f5f5f5 0, #e8e8e8 100%);
+  background-color: var(--monitor-header-bg);
   font-size: 16px;
   font-weight: 500;
   padding: 10px;

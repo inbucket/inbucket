@@ -2,16 +2,34 @@
 
 :root {
   --navbar-color: #9d9d9d;
+  --navbar-color-active: var(--navbar-color);
   --navbar-bg: #222;
+  --navbar-bg-active: #080808;
+  --navbar-bg-border-active: none;
   --navbar-image: linear-gradient(to bottom, #3c3c3c 0, #222 100%);
   --navbar-height: 50px;
+  --navbar-border-bottom: none;
 }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --navbar-color: #969ba1;
+    --navbar-color-active: #8ab4f8;
+    --navbar-bg: var(--bg-color);
+    --navbar-bg-active: none;
+    --navbar-bg-border-active: 3px solid var(--navbar-color-active);
+    --navbar-image: none;
+    --navbar-border-bottom: 1px solid var(--border-color);
+  }
+}
+
 
 .navbar {
   background-color: var(--navbar-bg);
   background-image: var(--navbar-image);
   text-shadow: 0 -1px 0 rgba(0,0,0,0.2);
   min-height: var(--navbar-height);
+  border-bottom: var(--navbar-border-bottom);
 }
 
 .main-nav {
@@ -66,7 +84,9 @@
 }
 
 li.navbar-active > *:first-child {
-  background-color: #080808;
+  background-color: var(--navbar-bg-active);
+  color: var(--navbar-color-active);
+  border-bottom: var(--navbar-bg-border-active);
 }
 
 li.navbar-active a,
@@ -92,7 +112,6 @@ li.navbar-active span,
 }
 
 .navbar-mailbox input {
-  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 5px 10px;
   width: 250px;

@@ -12,8 +12,8 @@
   --focused-color: #fff;
   --focused-bg-color: #337ab7;
 
-  --input-bg: inherit;
-  --input-bg-active: inherit;
+  --input-bg: white;
+  --input-bg-active: white;
 
   --btn-default-bg-color: #337ab7;
   --btn-default-bg-image: linear-gradient(to bottom, #337ab7 0, #265a88 100%);
@@ -27,6 +27,15 @@
 
   --well-bg-color: #f5f5f5;
   --well-bg-image: linear-gradient(to bottom, #e8e8e8 0, #f5f5f5 100%);
+
+  --well-warn-bg-color: #fff8cf;
+  --well-warn-bg-image: linear-gradient(to bottom, #fff899 0, #fff8cf 100%);
+  --well-warn-color: inherit;
+
+  --well-error-bg-color: #f58080;
+  --well-error-bg-image: linear-gradient(to bottom, #e86060 0, #f58080 100%);
+  --well-error-color: inherit;
+
   --well-border: #e8e8e8;
 }
 
@@ -53,6 +62,15 @@
 
     --well-bg-color: var(--low-color);
     --well-bg-image: none;
+
+    --well-warn-bg-color: #c3c099;
+    --well-warn-bg-image: none;
+    --well-warn-color: var(--bg-color);
+
+    --well-error-bg-color: #e86060;
+    --well-error-bg-image: none;
+    --well-error-color: var(--bg-color);
+
     --well-border: var(--border-color);
   }
 }
@@ -140,8 +158,9 @@ a.button {
 }
 
 .well-error {
-  --light: #f58080;
-  --dark: #e86060;
+  background-color: var(--well-error-bg-color);
+  background-image: var(--well-error-bg-image);
+  color: var(--well-error-color);
 }
 
 .well-error a {
@@ -150,8 +169,9 @@ a.button {
 }
 
 .well-warn {
-  --light: #fff8cf;
-  --dark: #fff899;
+  background-color: var(--well-warn-bg-color);
+  background-image: var(--well-warn-bg-image);
+  color: var(--well-warn-color);
 }
 
 input {
@@ -159,10 +179,12 @@ input {
   background-color: var(--input-bg);
 }
 
-input:focus-visible, input:hover {
-  outline: none;
-  border: 1px solid var(--input-bg-active);
-  background-color: var(--input-bg-active);
+@media (prefers-color-scheme: dark) {
+  input:focus-visible, input:hover {
+    outline: none;
+    border: 1px solid var(--input-bg-active);
+    background-color: var(--input-bg-active);
+  }
 }
 
 /** APP */

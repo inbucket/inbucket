@@ -311,21 +311,13 @@ func parseHelloArgument(arg string) (string, error) {
 }
 
 func (s *Session) loginHandler(line string) {
-	if len(line) == 0 {
-		s.send("500 Invalid username")
-		s.enterState(READY)
-		return
-	}
+	// Content and length of username is ignored.
 	s.send(fmt.Sprintf("334 %v", passwordChallenge))
 	s.enterState(PASSWORD)
 }
 
 func (s *Session) passwordHandler(line string) {
-	if len(line) == 0 {
-		s.send("500 Invalid password")
-		s.enterState(READY)
-		return
-	}
+	// Content and length of password is ignored.
 	s.send("235 Authentication successful")
 	s.enterState(READY)
 }

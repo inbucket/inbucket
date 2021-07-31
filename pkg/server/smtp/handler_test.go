@@ -138,9 +138,13 @@ func TestAuth(t *testing.T) {
 	// LOGIN AUTH
 	script = []scriptStep{
 		{"EHLO localhost", 250},
-		{"AUTH LOGIN", 334},
-		{"USERNAME", 334},
-		{"PASSWORD", 235},
+		{"AUTH LOGIN", 334}, // Test with user/pass present.
+		{"username", 334},
+		{"password", 235},
+		{"RSET", 250},
+		{"AUTH LOGIN", 334}, // Test with empty user/pass.
+		{"", 334},
+		{"", 235},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)

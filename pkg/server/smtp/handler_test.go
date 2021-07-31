@@ -120,7 +120,7 @@ func TestAuth(t *testing.T) {
 	server, logbuf, teardown := setupSMTPServer(ds)
 	defer teardown()
 
-	//PLAIN AUTH
+	// PLAIN AUTH
 	script := []scriptStep{
 		{"EHLO localhost", 250},
 		{"AUTH PLAIN aW5idWNrZXQ6cGFzc3dvcmQK", 235},
@@ -135,7 +135,7 @@ func TestAuth(t *testing.T) {
 		t.Error(err)
 	}
 
-	//LOGIN AUTH
+	// LOGIN AUTH
 	script = []scriptStep{
 		{"EHLO localhost", 250},
 		{"AUTH LOGIN", 334},

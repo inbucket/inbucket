@@ -14,8 +14,8 @@
     "opensans-npm-webfont": "^1.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.14.0",
-    "@babel/preset-env": "^7.14.1",
+    "@babel/core": "^7.14.8",
+    "@babel/preset-env": "^7.14.8",
     "@fortawesome/fontawesome-free": "^5.15.3",
     "@webcomponents/webcomponentsjs": "^2.5.0",
     "babel-loader": "^8.2.2",

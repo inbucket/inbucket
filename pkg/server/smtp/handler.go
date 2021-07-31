@@ -25,6 +25,19 @@ const (
 	// timeStampFormat to use in Received header.
 	timeStampFormat = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
 
+	// Messages sent to user during LOGIN auth procedure. Can vary, but values are taken directly
+	// from spec https://tools.ietf.org/html/draft-murchison-sasl-login-00
+
+	// usernameChallenge sent when inviting user to provide username. Is base64 encoded string
+	// `User Name`
+	usernameChallenge = "VXNlciBOYW1lAA=="
+
+	// passwordChallenge sent when inviting user to provide password. Is base64 encoded string
+	// `Password`
+	passwordChallenge = "UGFzc3dvcmQA"
+)
+
+const (
 	// GREET State: Waiting for HELO
 	GREET State = iota
 	// READY State: Got HELO, waiting for MAIL
@@ -39,15 +52,6 @@ const (
 	DATA
 	// QUIT State: Client requested end of session
 	QUIT
-
-	// Messages sent to user during LOGIN auth procedure
-	// Can vary, but values are taken directly from spec
-	// https://tools.ietf.org/html/draft-murchison-sasl-login-00
-
-	//usernameChallenge sent when inviting user to provide username. Is base64 encoded string `User Name`
-	usernameChallenge = "VXNlciBOYW1lAA=="
-	//passwordChallenge sent when inviting user to provide password. Is base64 encoded string `Password`
-	passwordChallenge = "UGFzc3dvcmQA"
 )
 
 // fromRegex captures the from address and optional BODY=8BITMIME clause.  Matches FROM, while
@@ -308,7 +312,7 @@ func parseHelloArgument(arg string) (string, error) {
 
 func (s *Session) loginHandler(line string) {
 	if len(line) == 0 {
-		s.send("500 invalid Username")
+		s.send("500 Invalid username")
 		s.enterState(READY)
 		return
 	}
@@ -318,7 +322,7 @@ func (s *Session) loginHandler(line string) {
 
 func (s *Session) passwordHandler(line string) {
 	if len(line) == 0 {
-		s.send("500 invalid Password")
+		s.send("500 Invalid password")
 		s.enterState(READY)
 		return
 	}

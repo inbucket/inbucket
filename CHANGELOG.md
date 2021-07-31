@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [v3.0.0-rc2] - 2021-07-31
+
 ### Added
 - Support for SMTP AUTH (#197, thanks makarchuk)
 - Dark mode support (#218, thanks nerones)
@@ -250,23 +253,24 @@ No change from beta1.
 - Add Link button to messages, allows for directing another person to a
   specific message.
 
-[Unreleased]:  https://github.com/inbucket/inbucket/compare/master...develop
-[v3.0.0-rc1]: https://github.com/inbucket/inbucket/compare/v3.0.0-beta3...v3.0.0-rc1
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/master...develop
+[v3.0.0-rc2]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc1...v3.0.0-rc2
+[v3.0.0-rc1]:   https://github.com/inbucket/inbucket/compare/v3.0.0-beta3...v3.0.0-rc1
 [v3.0.0-beta3]: https://github.com/inbucket/inbucket/compare/v3.0.0-beta2...v3.0.0-beta3
 [v3.0.0-beta2]: https://github.com/inbucket/inbucket/compare/v3.0.0-beta1...v3.0.0-beta2
 [v3.0.0-beta1]: https://github.com/inbucket/inbucket/compare/v2.1.0...v3.0.0-beta1
 [v2.1.0-beta1]: https://github.com/inbucket/inbucket/compare/v2.0.0...v2.1.0-beta1
-[v2.0.0]:      https://github.com/inbucket/inbucket/compare/v2.0.0-rc1...v2.0.0
-[v2.0.0-rc1]:  https://github.com/inbucket/inbucket/compare/v1.3.1...v2.0.0-rc1
-[v1.3.1]:      https://github.com/inbucket/inbucket/compare/v1.3.0...v1.3.1
-[v1.3.0]:      https://github.com/inbucket/inbucket/compare/v1.2.0...v1.3.0
-[v1.2.0]:      https://github.com/inbucket/inbucket/compare/1.2.0-rc2...1.2.0
-[v1.2.0-rc2]:  https://github.com/inbucket/inbucket/compare/1.2.0-rc1...1.2.0-rc2
-[v1.2.0-rc1]:  https://github.com/inbucket/inbucket/compare/1.1.0...1.2.0-rc1
-[v1.1.0]:      https://github.com/inbucket/inbucket/compare/1.1.0-rc2...1.1.0
-[v1.1.0-rc2]:  https://github.com/inbucket/inbucket/compare/1.1.0-rc1...1.1.0-rc2
-[v1.1.0-rc1]:  https://github.com/inbucket/inbucket/compare/1.0...1.1.0-rc1
-[v1.0]:        https://github.com/inbucket/inbucket/compare/1.0-rc1...1.0
+[v2.0.0]:       https://github.com/inbucket/inbucket/compare/v2.0.0-rc1...v2.0.0
+[v2.0.0-rc1]:   https://github.com/inbucket/inbucket/compare/v1.3.1...v2.0.0-rc1
+[v1.3.1]:       https://github.com/inbucket/inbucket/compare/v1.3.0...v1.3.1
+[v1.3.0]:       https://github.com/inbucket/inbucket/compare/v1.2.0...v1.3.0
+[v1.2.0]:       https://github.com/inbucket/inbucket/compare/1.2.0-rc2...1.2.0
+[v1.2.0-rc2]:   https://github.com/inbucket/inbucket/compare/1.2.0-rc1...1.2.0-rc2
+[v1.2.0-rc1]:   https://github.com/inbucket/inbucket/compare/1.1.0...1.2.0-rc1
+[v1.1.0]:       https://github.com/inbucket/inbucket/compare/1.1.0-rc2...1.1.0
+[v1.1.0-rc2]:   https://github.com/inbucket/inbucket/compare/1.1.0-rc1...1.1.0-rc2
+[v1.1.0-rc1]:   https://github.com/inbucket/inbucket/compare/1.0...1.1.0-rc1
+[v1.0]:         https://github.com/inbucket/inbucket/compare/1.0-rc1...1.0
 
 
 ## Release Checklist

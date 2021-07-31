@@ -56,6 +56,9 @@ func TestGreetState(t *testing.T) {
 	if err := playSession(t, server, []scriptStep{{"helo 127.0.0.1", 250}}); err != nil {
 		t.Error(err)
 	}
+	if err := playSession(t, server, []scriptStep{{"HELO ABC", 250}}); err != nil {
+		t.Error(err)
+	}
 
 	// Valid EHLOs
 	if err := playSession(t, server, []scriptStep{{"EHLO mydomain", 250}}); err != nil {
@@ -68,6 +71,9 @@ func TestGreetState(t *testing.T) {
 		t.Error(err)
 	}
 	if err := playSession(t, server, []scriptStep{{"ehlo 127.0.0.1", 250}}); err != nil {
+		t.Error(err)
+	}
+	if err := playSession(t, server, []scriptStep{{"EHLO a", 250}}); err != nil {
 		t.Error(err)
 	}
 
@@ -105,6 +111,50 @@ func TestEmptyEnvelope(t *testing.T) {
 		// Dump buffered log data if there was a failure
 		_, _ = io.Copy(os.Stderr, logbuf)
 		t.Error(err)
+	}
+}
+
+// Test AUTH
+func TestAuth(t *testing.T) {
+	ds := test.NewStore()
+	server, logbuf, teardown := setupSMTPServer(ds)
+	defer teardown()
+
+	// PLAIN AUTH
+	script := []scriptStep{
+		{"EHLO localhost", 250},
+		{"AUTH PLAIN aW5idWNrZXQ6cGFzc3dvcmQK", 235},
+		{"RSET", 250},
+		{"AUTH GSSAPI aW5idWNrZXQ6cGFzc3dvcmQK", 500},
+		{"RSET", 250},
+		{"AUTH PLAIN", 500},
+		{"RSET", 250},
+		{"AUTH PLAIN aW5idWNrZXQ6cG Fzc3dvcmQK", 500},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	// LOGIN AUTH
+	script = []scriptStep{
+		{"EHLO localhost", 250},
+		{"AUTH LOGIN", 334}, // Test with user/pass present.
+		{"username", 334},
+		{"password", 235},
+		{"RSET", 250},
+		{"AUTH LOGIN", 334}, // Test with empty user/pass.
+		{"", 334},
+		{"", 235},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	if t.Failed() {
+		// Wait for handler to finish logging
+		time.Sleep(2 * time.Second)
+		// Dump buffered log data if there was a failure
+		_, _ = io.Copy(os.Stderr, logbuf)
 	}
 }
 
@@ -154,6 +204,15 @@ func TestReadyState(t *testing.T) {
 		{"MAIL FROM:<\"user>name\"@host.com>", 250},
 		{"RSET", 250},
 		{"MAIL FROM:<\"user@internal\"@external.com>", 250},
+	}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	// Test Start TLS parsing.
+	script = []scriptStep{
+		{"HELO localhost", 250},
+		{"STARTTLS", 454}, // TLS unconfigured.
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)

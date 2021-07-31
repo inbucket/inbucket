@@ -7,11 +7,12 @@ stdenv.mkDerivation rec {
     elmPackages.elm
     elmPackages.elm-analyse
     elmPackages.elm-format
+    elmPackages.elm-json
     elmPackages.elm-language-server
     elmPackages.elm-test
     go
     golint
-    nodejs-10_x
+    nodejs-14_x
     rpm
     swaks
   ];

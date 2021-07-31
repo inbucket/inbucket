@@ -25,10 +25,27 @@ const (
 	// timeStampFormat to use in Received header.
 	timeStampFormat = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
 
+	// Messages sent to user during LOGIN auth procedure. Can vary, but values are taken directly
+	// from spec https://tools.ietf.org/html/draft-murchison-sasl-login-00
+
+	// usernameChallenge sent when inviting user to provide username. Is base64 encoded string
+	// `User Name`
+	usernameChallenge = "VXNlciBOYW1lAA=="
+
+	// passwordChallenge sent when inviting user to provide password. Is base64 encoded string
+	// `Password`
+	passwordChallenge = "UGFzc3dvcmQA"
+)
+
+const (
 	// GREET State: Waiting for HELO
 	GREET State = iota
 	// READY State: Got HELO, waiting for MAIL
 	READY
+	// LOGIN State: Got AUTH LOGIN command, expecting Username
+	LOGIN
+	// PASSWORD State: Got Username, expecting password
+	PASSWORD
 	// MAIL State: Got MAIL, accepting RCPTs
 	MAIL
 	// DATA State: Got DATA, waiting for "."
@@ -76,6 +93,7 @@ var commands = map[string]bool{
 	"QUIT":     true,
 	"TURN":     true,
 	"STARTTLS": true,
+	"AUTH":     true,
 }
 
 // Session holds the state of an SMTP session
@@ -153,6 +171,16 @@ func (s *Server) startSession(id int, conn net.Conn) {
 		}
 		line, err := ssn.readLine()
 		if err == nil {
+			//Handle LOGIN/PASSWORD states here, because they don't expect a command
+			switch ssn.state {
+			case LOGIN:
+				ssn.loginHandler(line)
+				continue
+			case PASSWORD:
+				ssn.passwordHandler(line)
+				continue
+			}
+
 			if cmd, arg, ok := ssn.parseCmd(line); ok {
 				// Check against valid SMTP commands
 				if cmd == "" {
@@ -219,7 +247,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 				}
 				break
 			}
-			// not an EOF
+			// Not an EOF
 			ssn.logger.Warn().Msgf("Connection error: %v", err)
 			if netErr, ok := err.(net.Error); ok {
 				if netErr.Timeout() {
@@ -257,9 +285,10 @@ func (s *Session) greetHandler(cmd string, arg string) {
 			return
 		}
 		s.remoteDomain = domain
-		// features before SIZE per RFC
+		// Features before SIZE per RFC
 		s.send("250-" + readyBanner)
 		s.send("250-8BITMIME")
+		s.send("250-AUTH PLAIN LOGIN")
 		if s.Server.config.TLSEnabled && s.Server.tlsConfig != nil && s.tlsState == nil {
 			s.send("250-STARTTLS")
 		}
@@ -281,30 +310,71 @@ func parseHelloArgument(arg string) (string, error) {
 	return domain, nil
 }
 
+func (s *Session) loginHandler(line string) {
+	// Content and length of username is ignored.
+	s.send(fmt.Sprintf("334 %v", passwordChallenge))
+	s.enterState(PASSWORD)
+}
+
+func (s *Session) passwordHandler(line string) {
+	// Content and length of password is ignored.
+	s.send("235 Authentication successful")
+	s.enterState(READY)
+}
+
 // READY state -> waiting for MAIL
+// AUTH can change
 func (s *Session) readyHandler(cmd string, arg string) {
 	if cmd == "STARTTLS" {
 		if !s.Server.config.TLSEnabled {
-			// invalid command since unconfigured
+			// Invalid command since TLS unconfigured.
 			s.logger.Debug().Msgf("454 TLS unavailable on the server")
 			s.send("454 TLS unavailable on the server")
 			return
 		}
 		if s.tlsState != nil {
-			// tls state previously valid
+			// TLS state previously valid.
 			s.logger.Debug().Msg("454 A TLS session already agreed upon.")
 			s.send("454 A TLS session already agreed upon.")
 			return
 		}
 		s.logger.Debug().Msg("Initiating TLS context.")
+
+		// Start TLS connection handshake.
 		s.send("220 STARTTLS")
-		// start tls connection handshake
 		tlsConn := tls.Server(s.conn, s.Server.tlsConfig)
 		s.conn = tlsConn
 		s.text = textproto.NewConn(s.conn)
 		s.tlsState = new(tls.ConnectionState)
 		*s.tlsState = tlsConn.ConnectionState()
 		s.enterState(GREET)
+	} else if cmd == "AUTH" {
+		args := strings.SplitN(arg, " ", 3)
+		authMethod := args[0]
+		switch authMethod {
+		case "PLAIN":
+			{
+				if len(args) != 2 {
+					s.send("500 Bad auth arguments")
+					s.logger.Warn().Msgf("Bad auth attempt: %q", arg)
+					return
+				}
+				s.logger.Info().Msgf("Accepting credentials: %q", args[1])
+				s.send("235 2.7.0 Authentication successful")
+				return
+			}
+		case "LOGIN":
+			{
+				s.send(fmt.Sprintf("334 %v", usernameChallenge))
+				s.enterState(LOGIN)
+				return
+			}
+		default:
+			{
+				s.send(fmt.Sprintf("500 Unsupported AUTH method: %v", authMethod))
+				return
+			}
+		}
 	} else if cmd == "MAIL" {
 		// Capture group 1: from address.  2: optional params.
 		m := fromRegex.FindStringSubmatch(arg)
@@ -518,30 +588,28 @@ func (s *Session) readLine() (line string, err error) {
 
 func (s *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 	line = strings.TrimRight(line, "\r\n")
-	l := len(line)
+
+	// Find length of command or entire line.
+	hasArg := true
+	l := strings.IndexByte(line, ' ')
+	if l == -1 {
+		hasArg = false
+		l = len(line)
+	}
+
 	switch {
 	case l == 0:
 		return "", "", true
 	case l < 4:
 		s.logger.Warn().Msgf("Command too short: %q", line)
 		return "", "", false
-	case l == 4 || l == 8:
-		return strings.ToUpper(line), "", true
-	case l == 5:
-		// Too long to be only command, too short to have args
-		s.logger.Warn().Msgf("Mangled command: %q", line)
-		return "", "", false
 	}
 
-	// If we made it here, command is long enough to have args
-	if line[4] != ' ' {
-		// There wasn't a space after the command?
-		s.logger.Warn().Msgf("Mangled command: %q", line)
-		return "", "", false
+	if hasArg {
+		return strings.ToUpper(line[0:l]), strings.Trim(line[l+1:], " "), true
 	}
 
-	// I'm not sure if we should trim the args or not, but we will for now
-	return strings.ToUpper(line[0:4]), strings.Trim(line[5:], " "), true
+	return strings.ToUpper(line), "", true
 }
 
 // parseArgs takes the arguments proceeding a command and files them

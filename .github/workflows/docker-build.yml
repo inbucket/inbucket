@@ -15,6 +15,7 @@ jobs:
         with:
           images: |
             inbucket/inbucket
+            ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr

@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## v3.0.0-rc3 - 2021-08-01
+
+Unchanaged from 3.0.0-rc2.  This release is to update our build automation and
+tags for Docker Hub and ghcr.io.
+
+
 ## [v3.0.0-rc2] - 2021-07-31
 
 ### Added

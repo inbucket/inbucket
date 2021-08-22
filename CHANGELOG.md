@@ -7,6 +7,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [v3.0.0-rc4] - 2021-08-22
+
+### Fixed
+- Various MIME header decoding improvements
+
+### Changed
+- Bump Go version to 1.17 (#233)
+
+
 ## v3.0.0-rc3 - 2021-08-01
 
 Unchanaged from 3.0.0-rc2.  This release is to update our build automation and
@@ -260,6 +269,7 @@ No change from beta1.
   specific message.
 
 [Unreleased]:   https://github.com/inbucket/inbucket/compare/master...develop
+[v3.0.0-rc4]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc2...v3.0.0-rc4
 [v3.0.0-rc2]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc1...v3.0.0-rc2
 [v3.0.0-rc1]:   https://github.com/inbucket/inbucket/compare/v3.0.0-beta3...v3.0.0-rc1
 [v3.0.0-beta3]: https://github.com/inbucket/inbucket/compare/v3.0.0-beta2...v3.0.0-beta3

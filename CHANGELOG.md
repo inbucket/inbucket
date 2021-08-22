@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Bump Go version to 1.17 (#233)
+
 
 ## v3.0.0-rc3 - 2021-08-01
 

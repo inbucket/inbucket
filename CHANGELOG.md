@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Various MIME header decoding improvements
+
 ### Changed
 - Bump Go version to 1.17 (#233)
 

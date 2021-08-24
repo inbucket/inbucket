@@ -20,6 +20,7 @@
     "@webcomponents/webcomponentsjs": "^2.5.0",
     "babel-loader": "^8.2.2",
     "css-loader": "^4.3.0",
+    "elm": "^0.19.1-5",
     "elm-hot-webpack-loader": "^1.1.8",
     "elm-webpack-loader": "^7.0.1",
     "file-loader": "^6.2.0",

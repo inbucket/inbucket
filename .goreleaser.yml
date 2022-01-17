@@ -6,12 +6,6 @@ release:
     name: inbucket
   name_template: '{{.Tag}}'
 
-brews:
-  - commit_author:
-      name: goreleaserbot
-      email: goreleaser@carlosbecker.com
-    install: bin.install ""
-
 before:
   hooks:
     - go mod download
@@ -61,8 +55,8 @@ archives:
       - LICENSE*
       - README*
       - CHANGELOG*
-      - etc/**/*
-      - ui/dist/**/*
+      - etc/**
+      - ui/dist/**
       - ui/greeting.html
 
 nfpms:
@@ -75,7 +69,7 @@ nfpms:
     description: All-in-one disposable webmail service.
     license: MIT
     contents:
-      - src: "ui/dist/**/*"
+      - src: "ui/dist/**"
         dst: "/usr/local/share/inbucket/ui"
       - src: "etc/linux/inbucket.service"
         dst: "/lib/systemd/system/inbucket.service"

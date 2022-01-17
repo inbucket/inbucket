@@ -6,12 +6,6 @@ release:
     name: inbucket
   name_template: '{{.Tag}}'
 
-brews:
-  - commit_author:
-      name: goreleaserbot
-      email: goreleaser@carlosbecker.com
-    install: bin.install ""
-
 before:
   hooks:
     - go mod download

@@ -1,7 +1,7 @@
-Inbucket
-=============================================================================
-[![Build Status](https://travis-ci.org/inbucket/inbucket.png?branch=master)][Build Status]
-[![Docker Image](https://github.com/inbucket/inbucket/workflows/Docker%20Image/badge.svg)][Docker Image]
+![Build Status](https://github.com/inbucket/inbucket/actions/workflows/build-and-test.yml/badge.svg)
+![Docker Image](https://github.com/inbucket/inbucket/actions/workflows/docker-build.yml/badge.svg)
+
+# Inbucket
 
 Inbucket is an email testing service; it will accept messages for any email
 address and make them available via web, REST and POP3 interfaces.  Once

@@ -1,7 +1,7 @@
 name: Build and Release
 on:
   push:
-    branches: [ "master", "develop" ]
+    branches: [ "main" ]
     tags: [ "v*" ]
   pull_request:
 jobs:

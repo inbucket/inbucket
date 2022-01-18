@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Abandoned git-flow process, the `master` branch renamed to `main`
+
 
 ## [v3.0.1-rc1] - 2022-01-17
 
@@ -283,7 +286,8 @@ No change from beta1.
 - Add Link button to messages, allows for directing another person to a
   specific message.
 
-[Unreleased]:   https://github.com/inbucket/inbucket/compare/master...develop
+
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.0.1-rc1...main
 [v3.0.1-rc1]:   https://github.com/inbucket/inbucket/compare/v3.0.0...v3.0.1-rc1
 [v3.0.0]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc4...v3.0.0
 [v3.0.0-rc4]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc2...v3.0.0-rc4
@@ -308,16 +312,17 @@ No change from beta1.
 
 ## Release Checklist
 
-1.  Create release branch: `git flow release start 1.x.0`
+1.  Create a release branch
 2.  Update CHANGELOG.md:
     - Ensure *Unreleased* section is up to date
-    - Rename *Unreleased* section to release name and date.
+    - Rename *Unreleased* section to release name and date
     - Add new GitHub `/compare` link
+    - Update previous tag version for *Unreleased* 
 3.  Run tests
 4.  Update goreleaser, and then test cross-compile: `goreleaser --snapshot`
-5.  Commit changes and merge release: `git flow release finish`
-6.  Push tags and wait for https://travis-ci.org/inbucket/inbucket build to
-    complete
+5.  Commit changes and merge release into main, tag `vX.Y.Z`
+6.  Push tags and wait for
+    [GitHub actions](https://github.com/inbucket/inbucket/actions) to complete
 7.  Update `binary_versions` option in `inbucket-site/_config.yml`
 
 See http://keepachangelog.com/ for additional instructions on how to update this file.

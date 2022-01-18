@@ -1,10 +1,7 @@
-How to Contribute
-=================
+# How to Contribute
 
 Inbucket encourages third-party patches. It's valuable to know how other
 developers are using the product.
-
-**tl;dr:** File pull requests against the `develop` branch, not `master`!
 
 
 ## Getting Started
@@ -17,28 +14,18 @@ to provide validation and/or guidance on your suggested approach.
 
 ## Making Changes
 
-Inbucket uses [git-flow] with default options.  If you have git-flow installed,
-you can run `git flow feature start <topic branch name>`.
-
-Without git-flow, create a topic branch from where you want to base your work:
-  - This is usually the `develop` branch, example command:
-    `git checkout origin/develop -b <topic branch name>`
-  - Only target the `master` branch if the issue is already resolved in
-    `develop`.
+Inbucket follows the regular GitHub pattern. Create a topic branch from where
+you want to base your work:
 
 Once you are on your topic branch:
 
 1. Make commits of logical units.
 2. Add unit tests to exercise your changes.
-3. Run the updated code through `go fmt` and `go vet`.
-4. Ensure the code builds and tests with the following commands:
-  - `go clean ./...`
-  - `go build ./...`
-  - `go test ./...`
+3. Run `make` to test, vet and confirm your code is formatted correctly.
+   If you do not have Make installed, please perform these steps manually,
+   otherwise your PR will not pass our checks.
 
 
 ## Thanks
 
 Thank you for contributing to Inbucket!
-
-[git-flow]: https://github.com/nvie/gitflow

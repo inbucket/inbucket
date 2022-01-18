@@ -1,7 +1,7 @@
 name: Docker Image
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "main" ]
     tags: [ "v*" ]
   pull_request:
 jobs:
@@ -22,7 +22,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=sha
-            type=edge,branch=develop
+            type=edge,branch=main
           flavor: |
             latest=auto
       - name: Set up Docker Buildx

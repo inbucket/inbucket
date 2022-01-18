@@ -1,7 +1,7 @@
-Inbucket
-=============================================================================
-[![Build Status](https://travis-ci.org/inbucket/inbucket.png?branch=master)][Build Status]
-[![Docker Image](https://github.com/inbucket/inbucket/workflows/Docker%20Image/badge.svg)][Docker Image]
+![Build Status](https://github.com/inbucket/inbucket/actions/workflows/build-and-test.yml/badge.svg)
+![Docker Image](https://github.com/inbucket/inbucket/actions/workflows/docker-build.yml/badge.svg)
+
+# Inbucket
 
 Inbucket is an email testing service; it will accept messages for any email
 address and make them available via web, REST and POP3 interfaces.  Once
@@ -26,14 +26,15 @@ to contribute code to the project check out [CONTRIBUTING.md].
 
 ## Docker
 
-Inbucket has automated [Docker Image] builds via Docker Hub.  The `stable` tag
-tracks our `master` branch (releases), `latest` tracks our unstable
-`development` branch.
+Inbucket has automated [Docker Image] builds via Docker Hub.  The `latest` tag
+tracks our tagged releases, and `edge` tracks our potentially unstable
+`main` branch.
 
 
 ## Building from Source
 
-You will need functioning [Go] and [Node.js] installations for this to work.
+You will need functioning [Go], [Elm] and [Node.js] installations for this to
+work.
 
 ```sh
 git clone https://github.com/inbucket/inbucket.git
@@ -72,10 +73,10 @@ Inbucket is open source software released under the MIT License.  The latest
 version can be found at https://github.com/inbucket/inbucket
 
 [Build Status]:           https://travis-ci.org/inbucket/inbucket
-[Change Log]:             https://github.com/inbucket/inbucket/blob/master/CHANGELOG.md
-[config.md]:              https://github.com/inbucket/inbucket/blob/master/doc/config.md
+[Change Log]:             https://github.com/inbucket/inbucket/blob/main/CHANGELOG.md
+[config.md]:              https://github.com/inbucket/inbucket/blob/main/doc/config.md
 [Configurator]:           https://www.inbucket.org/configurator/
-[CONTRIBUTING.md]:        https://github.com/inbucket/inbucket/blob/develop/CONTRIBUTING.md
+[CONTRIBUTING.md]:        https://github.com/inbucket/inbucket/blob/main/CONTRIBUTING.md
 [Development Quickstart]: https://github.com/inbucket/inbucket/wiki/Development-Quickstart
 [Docker Image]:           https://www.inbucket.org/binaries/docker.html
 [Elm]:                    https://elm-lang.org/

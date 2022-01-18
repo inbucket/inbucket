@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Abandoned git-flow process, the `master` branch renamed to `main`
+
 
 ## [v3.0.1-rc1] - 2022-01-17
 

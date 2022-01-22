@@ -25,7 +25,7 @@ builds:
       - arm
       - arm64
     goarm:
-      - "6"
+      - "7"
     main: ./cmd/inbucket
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   - id: inbucket-client
@@ -39,8 +39,10 @@ builds:
       - windows
     goarch:
       - amd64
+      - arm
+      - arm64
     goarm:
-      - "6"
+      - "7"
     main: ./cmd/client
     ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 

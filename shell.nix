@@ -14,6 +14,7 @@ stdenv.mkDerivation rec {
     go
     golint
     nodejs-14_x
+    nodePackages.yarn
     rpm
     swaks
   ];

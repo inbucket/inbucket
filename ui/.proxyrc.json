@@ -1,0 +1,12 @@
+{
+  "/api": {
+    "target": "http://localhost:9000",
+    "ws": true
+  },
+  "/debug": {
+    "target": "http://localhost:9000"
+  },
+  "/serve": {
+    "target": "http://localhost:9000"
+  }
+}

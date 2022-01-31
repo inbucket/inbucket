@@ -4,9 +4,17 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "build": "parcel build",
     "start": "parcel --hmr-port 1235 src/index-dev.html",
     "clean": "rm -rf dist elm-stuff"
   },
+  "source": "src/index.html",
+  "parcel-namer-rewrite": {
+    "rules": {
+      "(.*)\\.(css|js|eot|svg|ttf|woff|woff2)": "static/$1{.hash}.$2"
+    }
+  },
+  "browserslist": "defaults",
   "dependencies": {
     "opensans-npm-webfont": "^1.0.0"
   },
@@ -15,6 +23,7 @@
     "@parcel/transformer-elm": "^2.2.1",
     "@webcomponents/webcomponentsjs": "^2.5.0",
     "elm": "^0.19.1-5",
-    "parcel": "^2.2.1"
+    "parcel": "^2.2.1",
+    "parcel-namer-rewrite": "^2.0.0-rc.2"
   }
 }

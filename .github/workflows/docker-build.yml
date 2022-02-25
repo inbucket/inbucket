@@ -26,7 +26,7 @@ jobs:
           flavor: |
             latest=auto
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@master
+        uses: docker/setup-qemu-action@v1
         with:
           platforms: all
       - name: Set up Docker Buildx

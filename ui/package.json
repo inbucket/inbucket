@@ -6,7 +6,7 @@
   "scripts": {
     "build": "parcel build",
     "start": "parcel --hmr-port 1235 src/index-dev.html",
-    "clean": "rm -rf dist elm-stuff"
+    "clean": "rm -rf .parcel-cache dist elm-stuff"
   },
   "source": "src/index.html",
   "parcel-namer-rewrite": {
@@ -15,15 +15,14 @@
     }
   },
   "browserslist": "defaults",
-  "dependencies": {
-    "opensans-npm-webfont": "^1.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@fortawesome/fontawesome-free": "^5.15.3",
     "@parcel/transformer-elm": "^2.2.1",
     "@webcomponents/webcomponentsjs": "^2.5.0",
     "elm": "^0.19.1-5",
-    "parcel": "^2.2.1",
+    "opensans-npm-webfont": "^1.0.0",
+    "parcel": "^2.4.1",
     "parcel-namer-rewrite": "^2.0.0-rc.2"
   }
 }

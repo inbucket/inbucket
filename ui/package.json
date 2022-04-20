@@ -11,7 +11,8 @@
   "source": "src/index.html",
   "parcel-namer-rewrite": {
     "rules": {
-      "(.*)\\.(css|js|eot|png|svg|ttf|woff|woff2)": "static/$1{.hash}.$2"
+      "(.*)\\.(css|js|json|eot|png|svg|ttf|webmanifest|woff|woff2)":
+        "static/$1{.hash}.$2"
     }
   },
   "browserslist": "defaults",

@@ -20,11 +20,7 @@ jobs:
         with:
           node-version: '16.x'
           cache: 'yarn'
-          cache-dependency-path: ui
-      - name: Setup Elm
-        uses: jorelali/setup-elm@v2
-        with:
-          elm-version: 0.19.1
+          cache-dependency-path: ui/yarn.lock
       - name: Build frontend
         run: |
           yarn install --frozen-lockfile --non-interactive

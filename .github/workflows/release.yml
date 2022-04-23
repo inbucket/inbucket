@@ -16,17 +16,19 @@ jobs:
         with:
           go-version: 1.17
       - name: Setup Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
-          node-version: '14.x'
+          node-version: '16.x'
+          cache: 'yarn'
+          cache-dependency-path: ui
       - name: Setup Elm
         uses: jorelali/setup-elm@v2
         with:
           elm-version: 0.19.1
       - name: Build frontend
         run: |
-          npm ci
-          npm run build
+          yarn install --frozen-lockfile --non-interactive
+          yarn run build
         working-directory: ./ui
       - name: Test build release
         uses: goreleaser/goreleaser-action@v2

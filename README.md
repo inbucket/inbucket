@@ -33,14 +33,13 @@ tracks our tagged releases, and `edge` tracks our potentially unstable
 
 ## Building from Source
 
-You will need functioning [Go], [Elm] and [Node.js] installations for this to
-work.
+You will need functioning [Go] and [Node.js] installations for this to work.
 
 ```sh
 git clone https://github.com/inbucket/inbucket.git
 cd inbucket/ui
-npm ci
-npm run build
+yarn install
+yarn build
 cd ..
 go build ./cmd/inbucket
 ```

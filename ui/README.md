@@ -11,9 +11,8 @@ One time setup (assuming [Node.js] is already installed):
 
 ```
 cd $INBUCKET/ui
-npm i elm -g
-npm i
-npm run build
+yarn install
+yarn build
 ```
 
 This will the create `node_modules`, `elm-stuff`, and `dist` directories.
@@ -30,15 +29,16 @@ Inbucket will start, with HTTP listening on port 9000.  You may verify the web
 UI is functional if this is your first time building Inbucket, but your dev/test
 cycle should favor the development server below.
 
-### Terminal 2: webpack development server
+### Terminal 2: parcel development server
 
 ```
 cd $INBUCKET/ui
-npm run dev
+yarn start
 ```
 
-npm will start a development HTTP server listening on port 3000.  You should use
-this server for UI development, as it features hot reload and the Elm debugger.
+yarn will start a development HTTP server listening on port 1234.  You should
+use this server for UI development, as it features hot reload and the Elm
+debugger.
 
 [Elm]:            https://elm-lang.org
 [Node.js]:        https://nodejs.org

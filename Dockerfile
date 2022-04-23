@@ -1,35 +1,35 @@
 # Docker build file for Inbucket: https://www.inbucket.org/
 
-# Install build-time dependencies
-FROM golang:1.17-alpine3.14 as builder
-RUN apk add --no-cache --virtual .build-deps g++ git make npm python3
+### Build frontend
+# Due to no official elm compiler for arm; build frontend with amd64.
+FROM --platform=linux/amd64 node:14 as frontend
 WORKDIR /build
 COPY . .
-ENV CGO_ENABLED 0
-RUN make clean deps
 WORKDIR /build/ui
 RUN rm -rf dist elm-stuff node_modules
 RUN npm ci
 ADD https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz elm.gz
 RUN gunzip elm.gz && chmod 755 elm && mv elm /usr/bin/
+RUN npm run build
 
-# Build server
+### Build backend
+FROM golang:1.17-alpine3.14 as backend
+RUN apk add --no-cache --virtual .build-deps g++ git make
 WORKDIR /build
+COPY . .
+ENV CGO_ENABLED 0
+RUN make clean deps
 RUN go build -o inbucket \
   -ldflags "-X 'main.version=$(git describe --tags --always)' -X 'main.date=$(date -Iseconds)'" \
   -v ./cmd/inbucket
 
-# Build frontend
-WORKDIR /build/ui
-RUN npm run build
-
-# Run in minimal image
+### Run in minimal image
 FROM alpine:3.14
 RUN apk --no-cache add tzdata
 WORKDIR /opt/inbucket
 RUN mkdir bin defaults ui
-COPY --from=builder /build/inbucket bin
-COPY --from=builder /build/ui/dist ui
+COPY --from=backend /build/inbucket bin
+COPY --from=frontend /build/ui/dist ui
 COPY etc/docker/defaults/greeting.html defaults
 COPY etc/docker/defaults/start-inbucket.sh /
 

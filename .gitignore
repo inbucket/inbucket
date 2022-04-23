@@ -52,3 +52,4 @@ repl-temp-*
 /ui/dist/
 # Dependency directories
 /ui/node_modules
+/ui/.parcel-cache

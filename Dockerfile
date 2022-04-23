@@ -2,15 +2,13 @@
 
 ### Build frontend
 # Due to no official elm compiler for arm; build frontend with amd64.
-FROM --platform=linux/amd64 node:14 as frontend
+FROM --platform=linux/amd64 node:16 as frontend
 WORKDIR /build
 COPY . .
 WORKDIR /build/ui
-RUN rm -rf dist elm-stuff node_modules
-RUN npm ci
-ADD https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz elm.gz
-RUN gunzip elm.gz && chmod 755 elm && mv elm /usr/bin/
-RUN npm run build
+RUN rm -rf .parcel-cache dist elm-stuff node_modules
+RUN yarn install --frozen-lockfile --non-interactive
+RUN yarn run build
 
 ### Build backend
 FROM golang:1.17-alpine3.14 as backend

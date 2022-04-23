@@ -6,6 +6,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- arm Docker builds now rely on amd64 frontend build stage
+- Frontend build migrated from npm+webpack to yarn+parcel, node 16
+
 
 ## [v3.0.1-rc2] - 2022-01-23
 

@@ -22,9 +22,11 @@
     "@parcel/transformer-elm": "^2.2.1",
     "@parcel/transformer-webmanifest": "2.4.1",
     "@webcomponents/webcomponentsjs": "^2.5.0",
-    "elm": "^0.19.1-5",
     "opensans-npm-webfont": "^1.0.0",
     "parcel": "^2.4.1",
     "parcel-namer-rewrite": "^2.0.0-rc.2"
+  },
+  "optionalDependencies": {
+    "elm": "^0.19.1-5"
   }
 }

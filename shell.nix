@@ -13,7 +13,7 @@ stdenv.mkDerivation rec {
     elmPackages.elm-test
     go
     golint
-    nodejs-14_x
+    nodejs-16_x
     nodePackages.yarn
     rpm
     swaks

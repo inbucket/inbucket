@@ -24,7 +24,7 @@ case "$1" in
     ;;
 esac
 
-export SWAKS_OPT_server="127.0.0.1:2500"
+export SWAKS_OPT_server="${SWAKS_OPT_server:-'127.0.0.1:2500'}"
 export SWAKS_OPT_to="$to@inbucket.local"
 
 # Basic test

@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [v3.0.1] - 2022-05-22
+
+Unchanged from rc2.
+
+
 ## [v3.0.1-rc2] - 2022-01-23
 
 ### Added
@@ -293,10 +298,11 @@ No change from beta1.
   specific message.
 
 
-[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.0.1-rc2...main
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.0.1...main
+[v3.0.1]:       https://github.com/inbucket/inbucket/compare/v3.0.1-rc2...v3.0.1
 [v3.0.1-rc2]:   https://github.com/inbucket/inbucket/compare/v3.0.1-rc1...v3.0.1-rc2
 [v3.0.1-rc1]:   https://github.com/inbucket/inbucket/compare/v3.0.0...v3.0.1-rc1
-[v3.0.0]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc4...v3.0.0
+[v3.0.0]:       https://github.com/inbucket/inbucket/compare/v3.0.0-rc4...v3.0.0
 [v3.0.0-rc4]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc2...v3.0.0-rc4
 [v3.0.0-rc2]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc1...v3.0.0-rc2
 [v3.0.0-rc1]:   https://github.com/inbucket/inbucket/compare/v3.0.0-beta3...v3.0.0-rc1

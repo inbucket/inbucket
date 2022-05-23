@@ -1,6 +1,3 @@
-import './main.css'
-import './mailbox.css'
-import './navbar.css'
 import '@fortawesome/fontawesome-free/css/all.css'
 import '@webcomponents/webcomponentsjs/webcomponents-bundle'
 import 'opensans-npm-webfont'

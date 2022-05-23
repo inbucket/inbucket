@@ -4,7 +4,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "parcel build",
+    "build": "parcel build --public-url ./",
     "start": "parcel --hmr-port 1235 src/index-dev.html",
     "clean": "rm -rf .parcel-cache dist elm-stuff"
   },

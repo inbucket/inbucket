@@ -6,6 +6,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v3.0.2] - 2022-07-04
+
+Note: We had to abandon the 3.0.1 release, see the blog post [What happened to
+3.0?](https://www.inbucket.org/news/2022/05/whathappenedtothree.html) for
+details.
+
 ### Changed
 - arm Docker builds now rely on amd64 frontend build stage
 - Frontend build migrated from npm+webpack to yarn+parcel, node 16
@@ -297,10 +303,11 @@ No change from beta1.
   specific message.
 
 
-[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.0.1-rc2...main
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.0.2...main
+[v3.0.2]:       https://github.com/inbucket/inbucket/compare/v3.0.1-rc2...v3.0.2
 [v3.0.1-rc2]:   https://github.com/inbucket/inbucket/compare/v3.0.1-rc1...v3.0.1-rc2
 [v3.0.1-rc1]:   https://github.com/inbucket/inbucket/compare/v3.0.0...v3.0.1-rc1
-[v3.0.0]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc4...v3.0.0
+[v3.0.0]:       https://github.com/inbucket/inbucket/compare/v3.0.0-rc4...v3.0.0
 [v3.0.0-rc4]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc2...v3.0.0-rc4
 [v3.0.0-rc2]:   https://github.com/inbucket/inbucket/compare/v3.0.0-rc1...v3.0.0-rc2
 [v3.0.0-rc1]:   https://github.com/inbucket/inbucket/compare/v3.0.0-beta3...v3.0.0-rc1

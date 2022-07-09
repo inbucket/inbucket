@@ -67,7 +67,7 @@ type Server struct {
 	tlsConfig      *tls.Config
 }
 
-// NewServer creates a new Server instance with the specificed config.
+// NewServer creates a new, unstarted, SMTP server instance with the specificed config.
 func NewServer(
 	smtpConfig config.SMTP,
 	globalShutdown chan bool,

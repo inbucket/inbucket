@@ -20,8 +20,8 @@ type Server struct {
 	wg             *sync.WaitGroup // Waitgroup tracking sessions.
 }
 
-// New creates a new Server struct.
-func New(pop3Config config.POP3, shutdownChan chan bool, store storage.Store) *Server {
+// NewServer creates a new, unstarted, POP3 server.
+func NewServer(pop3Config config.POP3, shutdownChan chan bool, store storage.Store) *Server {
 	return &Server{
 		config:         pop3Config,
 		store:          store,

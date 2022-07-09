@@ -48,7 +48,7 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 	go web.Start(rootCtx)
 
 	// Start POP3 server.
-	pop3Server := pop3.New(conf.POP3, shutdownChan, store)
+	pop3Server := pop3.NewServer(conf.POP3, shutdownChan, store)
 	go pop3Server.Start(rootCtx)
 
 	// Start SMTP server.

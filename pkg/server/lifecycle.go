@@ -22,6 +22,7 @@ type Services struct {
 	POP3Server       *pop3.Server
 	RetentionScanner *storage.RetentionScanner
 	SMTPServer       *smtp.Server
+	notify           chan error
 }
 
 // Prod wires up the production Inbucket environment.
@@ -61,4 +62,21 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 		POP3Server:       pop3Server,
 		SMTPServer:       smtpServer,
 	}, nil
+}
+
+// Notify merges the error notification channels of all services, allowing the process to be
+// shutdown if any fail.
+func (s *Services) Notify() <-chan error {
+	c := make(chan error, 1)
+	go func() {
+		// TODO: What level to log failure.
+		select {
+		case err := <-s.POP3Server.Notify():
+			c <- err
+		case err := <-s.SMTPServer.Notify():
+			c <- err
+		}
+	}()
+
+	return c
 }

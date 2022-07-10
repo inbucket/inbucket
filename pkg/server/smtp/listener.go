@@ -64,7 +64,8 @@ type Server struct {
 	manager        message.Manager    // Used to deliver messages.
 	listener       net.Listener       // Incoming network connections.
 	wg             *sync.WaitGroup    // Waitgroup tracks individual sessions.
-	tlsConfig      *tls.Config
+	tlsConfig      *tls.Config        // TLS encryption configuration.
+	notify         chan error         // Notify on fatal error.
 }
 
 // NewServer creates a new, unstarted, SMTP server instance with the specificed config.
@@ -96,6 +97,7 @@ func NewServer(
 		addrPolicy:     apolicy,
 		wg:             new(sync.WaitGroup),
 		tlsConfig:      tlsConfig,
+		notify:         make(chan error, 1),
 	}
 }
 
@@ -156,6 +158,8 @@ func (s *Server) serve(ctx context.Context) {
 					return
 				default:
 					// Something went wrong.
+					s.notify <- err
+					close(s.notify)
 					s.emergencyShutdown()
 					return
 				}
@@ -183,4 +187,9 @@ func (s *Server) Drain() {
 	// Wait for sessions to close.
 	s.wg.Wait()
 	log.Debug().Str("module", "smtp").Str("phase", "shutdown").Msg("SMTP connections have drained")
+}
+
+// Notify allows the running SMTP server to be monitored for a fatal error.
+func (s *Server) Notify() <-chan error {
+	return s.notify
 }

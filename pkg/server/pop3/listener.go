@@ -18,6 +18,7 @@ type Server struct {
 	listener       net.Listener    // TCP listener.
 	globalShutdown chan bool       // Inbucket shutdown signal.
 	wg             *sync.WaitGroup // Waitgroup tracking sessions.
+	notify         chan error      // Notify on fatal error.
 }
 
 // NewServer creates a new, unstarted, POP3 server.
@@ -27,6 +28,7 @@ func NewServer(pop3Config config.POP3, shutdownChan chan bool, store storage.Sto
 		store:          store,
 		globalShutdown: shutdownChan,
 		wg:             new(sync.WaitGroup),
+		notify:         make(chan error, 1),
 	}
 }
 
@@ -88,6 +90,8 @@ func (s *Server) serve(ctx context.Context) {
 					return
 				default:
 					// Something went wrong.
+					s.notify <- err
+					close(s.notify)
 					s.emergencyShutdown()
 					return
 				}
@@ -114,4 +118,9 @@ func (s *Server) Drain() {
 	// Wait for sessions to close
 	s.wg.Wait()
 	log.Debug().Str("module", "pop3").Str("phase", "shutdown").Msg("POP3 connections have drained")
+}
+
+// Notify allows the running POP3 server to be monitored for a fatal error.
+func (s *Server) Notify() <-chan error {
+	return s.notify
 }

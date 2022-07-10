@@ -132,6 +132,10 @@ signalLoop:
 					Msg("Received SIGTERM, shutting down")
 				close(shutdownChan)
 			}
+		case <-services.Notify():
+			log.Info().Str("phase", "shutdown").Msg("Shutting down due to service failure")
+			rootCancel()
+			break signalLoop
 		case <-shutdownChan:
 			rootCancel()
 			break signalLoop

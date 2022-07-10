@@ -45,12 +45,18 @@ func init() {
 	m.Set("WebSocketConnectsCurrent", ExpWebSocketConnectsCurrent)
 }
 
-// Initialize sets up things for unit tests or the Start() method.
-func Initialize(
+// Server defines an instance of the Web server.
+type Server struct {
+	// TODO Migrate global vars here.
+	notify chan error // Notify on fatal error.
+}
+
+// NewServer sets up things for unit tests or the Start() method.
+func NewServer(
 	conf *config.Root,
 	shutdownChan chan bool,
 	mm message.Manager,
-	mh *msghub.Hub) {
+	mh *msghub.Hub) *Server {
 
 	rootConfig = conf
 	globalShutdown = shutdownChan
@@ -118,10 +124,16 @@ func Initialize(
 		http.StatusNotFound, "No route matches URI path")
 	Router.MethodNotAllowedHandler = noMatchHandler(
 		http.StatusMethodNotAllowed, "Method not allowed for URI path")
+
+	s := &Server{
+		notify: make(chan error, 1),
+	}
+
+	return s
 }
 
 // Start begins listening for HTTP requests
-func Start(ctx context.Context) {
+func (s *Server) Start(ctx context.Context) {
 	server = &http.Server{
 		Addr:         rootConfig.Web.Addr,
 		Handler:      requestLoggingWrapper(Router),
@@ -142,7 +154,7 @@ func Start(ctx context.Context) {
 	}
 
 	// Listener go routine
-	go serve(ctx)
+	go s.serve(ctx)
 
 	// Wait for shutdown
 	select {
@@ -176,7 +188,7 @@ func appConfigCookie(webConfig config.Web) *http.Cookie {
 }
 
 // serve begins serving HTTP requests
-func serve(ctx context.Context) {
+func (s *Server) serve(ctx context.Context) {
 	// server.Serve blocks until we close the listener
 	err := server.Serve(listener)
 
@@ -186,9 +198,16 @@ func serve(ctx context.Context) {
 	default:
 		log.Error().Str("module", "web").Str("phase", "startup").Err(err).
 			Msg("HTTP server failed")
+		s.notify <- err
+		close(s.notify)
 		emergencyShutdown()
 		return
 	}
+}
+
+// Notify allows the running Web server to be monitored for a fatal error.
+func (s *Server) Notify() <-chan error {
+	return s.notify
 }
 
 func emergencyShutdown() {

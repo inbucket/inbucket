@@ -50,7 +50,7 @@ func setupWebServer(mm message.Manager) *bytes.Buffer {
 	}
 	shutdownChan := make(chan bool)
 	SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
-	web.Initialize(cfg, shutdownChan, mm, &msghub.Hub{})
+	web.NewServer(cfg, shutdownChan, mm, &msghub.Hub{})
 
 	return buf
 }

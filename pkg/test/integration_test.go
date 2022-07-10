@@ -235,8 +235,8 @@ func startServer() (func(), error) {
 	// Start HTTP server.
 	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
-	web.Initialize(conf, shutdownChan, mmanager, msgHub)
-	go web.Start(rootCtx)
+	webServer := web.NewServer(conf, shutdownChan, mmanager, msgHub)
+	go webServer.Start(rootCtx)
 	// Start SMTP server.
 	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)
 	go smtpServer.Start(rootCtx)

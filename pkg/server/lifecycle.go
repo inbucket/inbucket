@@ -16,12 +16,13 @@ import (
 	"github.com/inbucket/inbucket/pkg/webui"
 )
 
-// Services holds the configured and started services.
+// Services holds the configured services.
 type Services struct {
 	MsgHub           *msghub.Hub
 	POP3Server       *pop3.Server
 	RetentionScanner *storage.RetentionScanner
 	SMTPServer       *smtp.Server
+	WebServer        *web.Server
 	notify           chan error
 }
 
@@ -45,8 +46,8 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 	prefix := stringutil.MakePathPrefixer(conf.Web.BasePath)
 	webui.SetupRoutes(web.Router.PathPrefix(prefix("/serve/")).Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix(prefix("/api/")).Subrouter())
-	web.Initialize(conf, shutdownChan, mmanager, msgHub)
-	go web.Start(rootCtx)
+	webServer := web.NewServer(conf, shutdownChan, mmanager, msgHub)
+	go webServer.Start(rootCtx)
 
 	// Start POP3 server.
 	pop3Server := pop3.NewServer(conf.POP3, shutdownChan, store)
@@ -61,6 +62,7 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 		RetentionScanner: retentionScanner,
 		POP3Server:       pop3Server,
 		SMTPServer:       smtpServer,
+		WebServer:        webServer,
 	}, nil
 }
 
@@ -74,6 +76,8 @@ func (s *Services) Notify() <-chan error {
 		case err := <-s.POP3Server.Notify():
 			c <- err
 		case err := <-s.SMTPServer.Notify():
+			c <- err
+		case err := <-s.WebServer.Notify():
 			c <- err
 		}
 	}()

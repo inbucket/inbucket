@@ -114,6 +114,7 @@ func main() {
 		startupLog.Fatal().Err(err).Msg("Fatal error during startup")
 		removePIDFile(*pidfile)
 	}
+	services.Start(rootCtx)
 
 	// Loop forever waiting for signals or shutdown channel.
 signalLoop:

@@ -34,6 +34,7 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 		return nil, err
 	}
 
+	// TODO: Add Start to hub
 	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf}
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
@@ -42,20 +43,14 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 	retentionScanner := storage.NewRetentionScanner(conf.Storage, store, shutdownChan)
 	retentionScanner.Start()
 
-	// Configure routes and start HTTP server.
+	// Configure routes and build HTTP server.
 	prefix := stringutil.MakePathPrefixer(conf.Web.BasePath)
 	webui.SetupRoutes(web.Router.PathPrefix(prefix("/serve/")).Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix(prefix("/api/")).Subrouter())
 	webServer := web.NewServer(conf, shutdownChan, mmanager, msgHub)
-	go webServer.Start(rootCtx)
 
-	// Start POP3 server.
 	pop3Server := pop3.NewServer(conf.POP3, shutdownChan, store)
-	go pop3Server.Start(rootCtx)
-
-	// Start SMTP server.
 	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)
-	go smtpServer.Start(rootCtx)
 
 	return &Services{
 		MsgHub:           msgHub,
@@ -64,6 +59,13 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 		SMTPServer:       smtpServer,
 		WebServer:        webServer,
 	}, nil
+}
+
+// Start all services, returns immediately.  Callers may use Notify to detect failed services.
+func (s *Services) Start(rootCtx context.Context) {
+	go s.WebServer.Start(rootCtx)
+	go s.SMTPServer.Start(rootCtx)
+	go s.POP3Server.Start(rootCtx)
 }
 
 // Notify merges the error notification channels of all services, allowing the process to be

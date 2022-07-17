@@ -52,9 +52,7 @@ func (l *testListener) String() string {
 }
 
 func TestHubNew(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	hub := New(ctx, 5)
+	hub := New(5)
 	if hub == nil {
 		t.Fatal("New() == nil, expected a new Hub")
 	}
@@ -63,29 +61,32 @@ func TestHubNew(t *testing.T) {
 func TestHubZeroLen(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(ctx, 0)
+	hub := New(0)
+	go hub.Start(ctx)
 	m := Message{}
 	for i := 0; i < 100; i++ {
 		hub.Dispatch(m)
 	}
-	// Just making sure Hub doesn't panic
+	// Ensures Hub doesn't panic
 }
 
 func TestHubZeroListeners(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(ctx, 5)
+	hub := New(5)
+	go hub.Start(ctx)
 	m := Message{}
 	for i := 0; i < 100; i++ {
 		hub.Dispatch(m)
 	}
-	// Just making sure Hub doesn't panic
+	// Ensures Hub doesn't panic
 }
 
 func TestHubOneListener(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(ctx, 5)
+	hub := New(5)
+	go hub.Start(ctx)
 	m := Message{}
 	l := newTestListener(1)
 
@@ -103,7 +104,8 @@ func TestHubOneListener(t *testing.T) {
 func TestHubRemoveListener(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(ctx, 5)
+	hub := New(5)
+	go hub.Start(ctx)
 	m := Message{}
 	l := newTestListener(1)
 
@@ -125,7 +127,8 @@ func TestHubRemoveListener(t *testing.T) {
 func TestHubRemoveListenerOnError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(ctx, 5)
+	hub := New(5)
+	go hub.Start(ctx)
 	m := Message{}
 
 	// error after 1 means listener should receive 2 messages before being removed
@@ -151,7 +154,8 @@ func TestHubRemoveListenerOnError(t *testing.T) {
 func TestHubHistoryReplay(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(ctx, 100)
+	hub := New(100)
+	go hub.Start(ctx)
 	l1 := newTestListener(3)
 	hub.AddListener(l1)
 
@@ -194,7 +198,8 @@ func TestHubHistoryReplay(t *testing.T) {
 func TestHubHistoryReplayWrap(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(ctx, 5)
+	hub := New(5)
+	go hub.Start(ctx)
 	l1 := newTestListener(20)
 	hub.AddListener(l1)
 
@@ -236,7 +241,8 @@ func TestHubHistoryReplayWrap(t *testing.T) {
 
 func TestHubContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	hub := New(ctx, 5)
+	hub := New(5)
+	go hub.Start(ctx)
 	m := Message{}
 	l := newTestListener(1)
 

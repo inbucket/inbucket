@@ -34,8 +34,7 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 		return nil, err
 	}
 
-	// TODO: Add Start to hub
-	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
+	msgHub := msghub.New(conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf}
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
 
@@ -63,6 +62,7 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 
 // Start all services, returns immediately.  Callers may use Notify to detect failed services.
 func (s *Services) Start(rootCtx context.Context) {
+	go s.MsgHub.Start(rootCtx)
 	go s.WebServer.Start(rootCtx)
 	go s.SMTPServer.Start(rootCtx)
 	go s.POP3Server.Start(rootCtx)

@@ -229,7 +229,8 @@ func startServer() (func(), error) {
 		rootCancel()
 		return nil, err
 	}
-	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
+	// TODO: Should not pass with unstarted msghub.
+	msgHub := msghub.New(conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf}
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
 	// Start HTTP server.

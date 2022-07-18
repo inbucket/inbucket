@@ -47,8 +47,8 @@ func Prod(shutdownChan chan bool, conf *config.Root) (*Services, error) {
 	rest.SetupRoutes(web.Router.PathPrefix(prefix("/api/")).Subrouter())
 	webServer := web.NewServer(conf, mmanager, msgHub)
 
-	pop3Server := pop3.NewServer(conf.POP3, shutdownChan, store)
-	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)
+	pop3Server := pop3.NewServer(conf.POP3, store)
+	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy)
 
 	return &Services{
 		MsgHub:           msgHub,
@@ -61,6 +61,7 @@ func Prod(shutdownChan chan bool, conf *config.Root) (*Services, error) {
 
 // Start all services, returns immediately.  Callers may use Notify to detect failed services.
 func (s *Services) Start(ctx context.Context) {
+	// TODO: Try some bad listening configs to ensure startup aborts correctly.
 	go s.MsgHub.Start(ctx)
 	go s.WebServer.Start(ctx)
 	go s.SMTPServer.Start(ctx)

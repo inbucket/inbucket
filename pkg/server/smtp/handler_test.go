@@ -484,13 +484,11 @@ func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown f
 	buf = new(bytes.Buffer)
 	log.SetOutput(buf)
 	// Create a server, don't start it.
-	shutdownChan := make(chan bool)
-	teardown = func() {
-		close(shutdownChan)
-	}
+	// TODO Remove teardown.
+	teardown = func() {}
 	addrPolicy := &policy.Addressing{Config: cfg}
 	manager := &message.StoreManager{Store: ds}
-	s = NewServer(cfg.SMTP, shutdownChan, manager, addrPolicy)
+	s = NewServer(cfg.SMTP, manager, addrPolicy)
 	return s, buf, teardown
 }
 

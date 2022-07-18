@@ -13,22 +13,20 @@ import (
 
 // Server defines an instance of the POP3 server.
 type Server struct {
-	config         config.POP3     // POP3 configuration.
-	store          storage.Store   // Mail store.
-	listener       net.Listener    // TCP listener.
-	globalShutdown chan bool       // Inbucket shutdown signal.
-	wg             *sync.WaitGroup // Waitgroup tracking sessions.
-	notify         chan error      // Notify on fatal error.
+	config   config.POP3     // POP3 configuration.
+	store    storage.Store   // Mail store.
+	listener net.Listener    // TCP listener.
+	wg       *sync.WaitGroup // Waitgroup tracking sessions.
+	notify   chan error      // Notify on fatal error.
 }
 
 // NewServer creates a new, unstarted, POP3 server.
-func NewServer(pop3Config config.POP3, shutdownChan chan bool, store storage.Store) *Server {
+func NewServer(pop3Config config.POP3, store storage.Store) *Server {
 	return &Server{
-		config:         pop3Config,
-		store:          store,
-		globalShutdown: shutdownChan,
-		wg:             new(sync.WaitGroup),
-		notify:         make(chan error, 1),
+		config: pop3Config,
+		store:  store,
+		wg:     new(sync.WaitGroup),
+		notify: make(chan error, 1),
 	}
 }
 
@@ -38,14 +36,16 @@ func (s *Server) Start(ctx context.Context) {
 	addr, err := net.ResolveTCPAddr("tcp4", s.config.Addr)
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to build tcp4 address")
-		s.emergencyShutdown()
+		s.notify <- err
+		close(s.notify)
 		return
 	}
 	slog.Info().Str("addr", addr.String()).Msg("POP3 listening on tcp4")
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to start tcp4 listener")
-		s.emergencyShutdown()
+		s.notify <- err
+		close(s.notify)
 		return
 	}
 	// Listener go routine.
@@ -92,7 +92,6 @@ func (s *Server) serve(ctx context.Context) {
 					// Something went wrong.
 					s.notify <- err
 					close(s.notify)
-					s.emergencyShutdown()
 					return
 				}
 			}
@@ -101,15 +100,6 @@ func (s *Server) serve(ctx context.Context) {
 			s.wg.Add(1)
 			go s.startSession(sid, conn)
 		}
-	}
-}
-
-func (s *Server) emergencyShutdown() {
-	// Shutdown Inbucket
-	select {
-	case _ = <-s.globalShutdown:
-	default:
-		close(s.globalShutdown)
 	}
 }
 

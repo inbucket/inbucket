@@ -223,23 +223,25 @@ func startServer() (func(), error) {
 		return nil, err
 	}
 	svcCtx, svcCancel := context.WithCancel(context.Background())
-	shutdownChan := make(chan bool)
 	store, err := storage.FromConfig(conf.Storage)
 	if err != nil {
 		svcCancel()
 		return nil, err
 	}
-	// TODO: Should not pass with unstarted msghub.
+
+	// TODO Test should not pass with unstarted msghub.
 	msgHub := msghub.New(conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf}
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
+
 	// Start HTTP server.
 	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
 	webServer := web.NewServer(conf, mmanager, msgHub)
 	go webServer.Start(svcCtx)
+
 	// Start SMTP server.
-	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)
+	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy)
 	go smtpServer.Start(svcCtx)
 
 	// TODO Implmement an elegant way to determine server readiness.
@@ -247,7 +249,6 @@ func startServer() (func(), error) {
 
 	return func() {
 		// Shut everything down.
-		close(shutdownChan)
 		svcCancel()
 		smtpServer.Drain()
 	}, nil

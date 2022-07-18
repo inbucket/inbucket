@@ -58,20 +58,18 @@ func init() {
 
 // Server holds the configuration and state of our SMTP server.
 type Server struct {
-	config         config.SMTP        // SMTP configuration.
-	addrPolicy     *policy.Addressing // Address policy.
-	globalShutdown chan bool          // Shuts down Inbucket.
-	manager        message.Manager    // Used to deliver messages.
-	listener       net.Listener       // Incoming network connections.
-	wg             *sync.WaitGroup    // Waitgroup tracks individual sessions.
-	tlsConfig      *tls.Config        // TLS encryption configuration.
-	notify         chan error         // Notify on fatal error.
+	config     config.SMTP        // SMTP configuration.
+	addrPolicy *policy.Addressing // Address policy.
+	manager    message.Manager    // Used to deliver messages.
+	listener   net.Listener       // Incoming network connections.
+	wg         *sync.WaitGroup    // Waitgroup tracks individual sessions.
+	tlsConfig  *tls.Config        // TLS encryption configuration.
+	notify     chan error         // Notify on fatal error.
 }
 
 // NewServer creates a new, unstarted, SMTP server instance with the specificed config.
 func NewServer(
 	smtpConfig config.SMTP,
-	globalShutdown chan bool,
 	manager message.Manager,
 	apolicy *policy.Addressing,
 ) *Server {
@@ -91,13 +89,12 @@ func NewServer(
 	}
 
 	return &Server{
-		config:         smtpConfig,
-		globalShutdown: globalShutdown,
-		manager:        manager,
-		addrPolicy:     apolicy,
-		wg:             new(sync.WaitGroup),
-		tlsConfig:      tlsConfig,
-		notify:         make(chan error, 1),
+		config:     smtpConfig,
+		manager:    manager,
+		addrPolicy: apolicy,
+		wg:         new(sync.WaitGroup),
+		tlsConfig:  tlsConfig,
+		notify:     make(chan error, 1),
 	}
 }
 
@@ -107,14 +104,16 @@ func (s *Server) Start(ctx context.Context) {
 	addr, err := net.ResolveTCPAddr("tcp4", s.config.Addr)
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to build tcp4 address")
-		s.emergencyShutdown()
+		s.notify <- err
+		close(s.notify)
 		return
 	}
 	slog.Info().Str("addr", addr.String()).Msg("SMTP listening on tcp4")
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to start tcp4 listener")
-		s.emergencyShutdown()
+		s.notify <- err
+		close(s.notify)
 		return
 	}
 	// Listener go routine.
@@ -160,7 +159,6 @@ func (s *Server) serve(ctx context.Context) {
 					// Something went wrong.
 					s.notify <- err
 					close(s.notify)
-					s.emergencyShutdown()
 					return
 				}
 			}
@@ -170,15 +168,6 @@ func (s *Server) serve(ctx context.Context) {
 			s.wg.Add(1)
 			go s.startSession(sessionID, conn)
 		}
-	}
-}
-
-func (s *Server) emergencyShutdown() {
-	// Shutdown Inbucket.
-	select {
-	case <-s.globalShutdown:
-	default:
-		close(s.globalShutdown)
 	}
 }
 

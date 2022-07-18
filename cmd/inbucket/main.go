@@ -108,6 +108,7 @@ func main() {
 
 	// Configure internal services.
 	rootCtx, rootCancel := context.WithCancel(context.Background())
+	// TODO: remove shutdownChan in favor of ctx & Notify.
 	shutdownChan := make(chan bool)
 	services, err := server.Prod(rootCtx, shutdownChan, conf)
 	if err != nil {

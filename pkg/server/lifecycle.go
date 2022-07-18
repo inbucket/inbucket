@@ -34,13 +34,12 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 		return nil, err
 	}
 
-	msgHub := msghub.New(conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf}
+	msgHub := msghub.New(conf.Web.MonitorHistory)
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
 
 	// Start Retention scanner.
-	retentionScanner := storage.NewRetentionScanner(conf.Storage, store, shutdownChan)
-	retentionScanner.Start()
+	retentionScanner := storage.NewRetentionScanner(conf.Storage, store)
 
 	// Configure routes and build HTTP server.
 	prefix := stringutil.MakePathPrefixer(conf.Web.BasePath)
@@ -66,10 +65,11 @@ func (s *Services) Start(rootCtx context.Context) {
 	go s.WebServer.Start(rootCtx)
 	go s.SMTPServer.Start(rootCtx)
 	go s.POP3Server.Start(rootCtx)
+	go s.RetentionScanner.Start(rootCtx)
 }
 
-// Notify merges the error notification channels of all services, allowing the process to be
-// shutdown if any fail.
+// Notify merges the error notification channels of all fallible services, allowing the process to
+// be shutdown if needed.
 func (s *Services) Notify() <-chan error {
 	c := make(chan error, 1)
 	go func() {

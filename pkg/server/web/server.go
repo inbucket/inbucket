@@ -31,10 +31,9 @@ var (
 	// incoming requests to the correct handler function
 	Router = mux.NewRouter()
 
-	rootConfig     *config.Root
-	server         *http.Server
-	listener       net.Listener
-	globalShutdown chan bool
+	rootConfig *config.Root
+	server     *http.Server
+	listener   net.Listener
 
 	// ExpWebSocketConnectsCurrent tracks the number of open WebSockets
 	ExpWebSocketConnectsCurrent = new(expvar.Int)
@@ -54,12 +53,10 @@ type Server struct {
 // NewServer sets up things for unit tests or the Start() method.
 func NewServer(
 	conf *config.Root,
-	shutdownChan chan bool,
 	mm message.Manager,
 	mh *msghub.Hub) *Server {
 
 	rootConfig = conf
-	globalShutdown = shutdownChan
 
 	// NewContext() will use this DataStore for the web handlers.
 	msgHub = mh
@@ -149,7 +146,8 @@ func (s *Server) Start(ctx context.Context) {
 	if err != nil {
 		log.Error().Str("module", "web").Str("phase", "startup").Err(err).
 			Msg("HTTP failed to start TCP4 listener")
-		emergencyShutdown()
+		s.notify <- err
+		close(s.notify)
 		return
 	}
 
@@ -200,7 +198,6 @@ func (s *Server) serve(ctx context.Context) {
 			Msg("HTTP server failed")
 		s.notify <- err
 		close(s.notify)
-		emergencyShutdown()
 		return
 	}
 }
@@ -208,13 +205,4 @@ func (s *Server) serve(ctx context.Context) {
 // Notify allows the running Web server to be monitored for a fatal error.
 func (s *Server) Notify() <-chan error {
 	return s.notify
-}
-
-func emergencyShutdown() {
-	// Shutdown Inbucket
-	select {
-	case _ = <-globalShutdown:
-	default:
-		close(globalShutdown)
-	}
 }

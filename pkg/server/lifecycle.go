@@ -27,7 +27,7 @@ type Services struct {
 }
 
 // Prod wires up the production Inbucket environment.
-func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*Services, error) {
+func Prod(shutdownChan chan bool, conf *config.Root) (*Services, error) {
 	// Configure storage.
 	store, err := storage.FromConfig(conf.Storage)
 	if err != nil {
@@ -45,7 +45,7 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 	prefix := stringutil.MakePathPrefixer(conf.Web.BasePath)
 	webui.SetupRoutes(web.Router.PathPrefix(prefix("/serve/")).Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix(prefix("/api/")).Subrouter())
-	webServer := web.NewServer(conf, shutdownChan, mmanager, msgHub)
+	webServer := web.NewServer(conf, mmanager, msgHub)
 
 	pop3Server := pop3.NewServer(conf.POP3, shutdownChan, store)
 	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)
@@ -60,12 +60,12 @@ func Prod(rootCtx context.Context, shutdownChan chan bool, conf *config.Root) (*
 }
 
 // Start all services, returns immediately.  Callers may use Notify to detect failed services.
-func (s *Services) Start(rootCtx context.Context) {
-	go s.MsgHub.Start(rootCtx)
-	go s.WebServer.Start(rootCtx)
-	go s.SMTPServer.Start(rootCtx)
-	go s.POP3Server.Start(rootCtx)
-	go s.RetentionScanner.Start(rootCtx)
+func (s *Services) Start(ctx context.Context) {
+	go s.MsgHub.Start(ctx)
+	go s.WebServer.Start(ctx)
+	go s.SMTPServer.Start(ctx)
+	go s.POP3Server.Start(ctx)
+	go s.RetentionScanner.Start(ctx)
 }
 
 // Notify merges the error notification channels of all fallible services, allowing the process to

@@ -107,15 +107,15 @@ func main() {
 	}
 
 	// Configure internal services.
-	rootCtx, rootCancel := context.WithCancel(context.Background())
+	svcCtx, svcCancel := context.WithCancel(context.Background())
 	// TODO: remove shutdownChan in favor of ctx & Notify.
 	shutdownChan := make(chan bool)
-	services, err := server.Prod(rootCtx, shutdownChan, conf)
+	services, err := server.Prod(shutdownChan, conf)
 	if err != nil {
 		startupLog.Fatal().Err(err).Msg("Fatal error during startup")
 		removePIDFile(*pidfile)
 	}
-	services.Start(rootCtx)
+	services.Start(svcCtx)
 
 	// Loop forever waiting for signals or shutdown channel.
 signalLoop:
@@ -136,10 +136,10 @@ signalLoop:
 			}
 		case <-services.Notify():
 			log.Info().Str("phase", "shutdown").Msg("Shutting down due to service failure")
-			rootCancel()
+			svcCancel()
 			break signalLoop
 		case <-shutdownChan:
-			rootCancel()
+			svcCancel()
 			break signalLoop
 		}
 	}

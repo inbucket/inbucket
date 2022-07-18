@@ -108,9 +108,7 @@ func main() {
 
 	// Configure internal services.
 	svcCtx, svcCancel := context.WithCancel(context.Background())
-	// TODO: remove shutdownChan in favor of ctx & Notify.
-	shutdownChan := make(chan bool)
-	services, err := server.Prod(shutdownChan, conf)
+	services, err := server.Prod(conf)
 	if err != nil {
 		startupLog.Fatal().Err(err).Msg("Fatal error during startup")
 		removePIDFile(*pidfile)
@@ -127,18 +125,17 @@ signalLoop:
 				// Shutdown requested
 				log.Info().Str("phase", "shutdown").Str("signal", "SIGINT").
 					Msg("Received SIGINT, shutting down")
-				close(shutdownChan)
+				svcCancel()
+				break signalLoop
 			case syscall.SIGTERM:
 				// Shutdown requested
 				log.Info().Str("phase", "shutdown").Str("signal", "SIGTERM").
 					Msg("Received SIGTERM, shutting down")
-				close(shutdownChan)
+				svcCancel()
+				break signalLoop
 			}
 		case <-services.Notify():
 			log.Info().Str("phase", "shutdown").Msg("Shutting down due to service failure")
-			svcCancel()
-			break signalLoop
-		case <-shutdownChan:
 			svcCancel()
 			break signalLoop
 		}

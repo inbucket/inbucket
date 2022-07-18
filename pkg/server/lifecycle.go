@@ -27,7 +27,7 @@ type Services struct {
 }
 
 // Prod wires up the production Inbucket environment.
-func Prod(shutdownChan chan bool, conf *config.Root) (*Services, error) {
+func Prod(conf *config.Root) (*Services, error) {
 	// Configure storage.
 	store, err := storage.FromConfig(conf.Storage)
 	if err != nil {

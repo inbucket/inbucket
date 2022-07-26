@@ -130,7 +130,7 @@ func NewServer(
 }
 
 // Start begins listening for HTTP requests
-func (s *Server) Start(ctx context.Context) {
+func (s *Server) Start(ctx context.Context, readyFunc func()) {
 	server = &http.Server{
 		Addr:         rootConfig.Web.Addr,
 		Handler:      requestLoggingWrapper(Router),
@@ -151,8 +151,9 @@ func (s *Server) Start(ctx context.Context) {
 		return
 	}
 
-	// Listener go routine
+	// Start listener go routine
 	go s.serve(ctx)
+	readyFunc()
 
 	// Wait for shutdown
 	select {

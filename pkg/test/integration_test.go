@@ -214,7 +214,7 @@ func formatMessage(m *client.Message) []byte {
 }
 
 func startServer() (func(), error) {
-	// TODO Refactor inbucket/main.go so we don't need to repeat all this here.
+	// TODO Move integration setup into lifecycle.
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
 	storage.Constructors["memory"] = mem.New
 	os.Clearenv()
@@ -238,13 +238,13 @@ func startServer() (func(), error) {
 	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
 	webServer := web.NewServer(conf, mmanager, msgHub)
-	go webServer.Start(svcCtx)
+	go webServer.Start(svcCtx, func() {})
 
 	// Start SMTP server.
 	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy)
-	go smtpServer.Start(svcCtx)
+	go smtpServer.Start(svcCtx, func() {})
 
-	// TODO Implmement an elegant way to determine server readiness.
+	// TODO Use a readyFunc to determine server readiness.
 	time.Sleep(500 * time.Millisecond)
 
 	return func() {

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"sync"
 
 	"github.com/inbucket/inbucket/pkg/config"
 	"github.com/inbucket/inbucket/pkg/message"
@@ -23,7 +24,8 @@ type Services struct {
 	RetentionScanner *storage.RetentionScanner
 	SMTPServer       *smtp.Server
 	WebServer        *web.Server
-	notify           chan error
+	notify           chan error      // Combined notification for failed services.
+	ready            *sync.WaitGroup // Tracks services that have not reported ready.
 }
 
 // Prod wires up the production Inbucket environment.
@@ -56,17 +58,24 @@ func Prod(conf *config.Root) (*Services, error) {
 		POP3Server:       pop3Server,
 		SMTPServer:       smtpServer,
 		WebServer:        webServer,
+		ready:            &sync.WaitGroup{},
 	}, nil
 }
 
 // Start all services, returns immediately.  Callers may use Notify to detect failed services.
-func (s *Services) Start(ctx context.Context) {
+func (s *Services) Start(ctx context.Context, readyFunc func()) {
 	// TODO: Try some bad listening configs to ensure startup aborts correctly.
 	go s.MsgHub.Start(ctx)
-	go s.WebServer.Start(ctx)
-	go s.SMTPServer.Start(ctx)
-	go s.POP3Server.Start(ctx)
+	go s.WebServer.Start(ctx, s.makeReadyFunc())
+	go s.SMTPServer.Start(ctx, s.makeReadyFunc())
+	go s.POP3Server.Start(ctx, s.makeReadyFunc())
 	go s.RetentionScanner.Start(ctx)
+
+	// Notify when all services report ready.
+	go func() {
+		s.ready.Wait()
+		readyFunc()
+	}()
 }
 
 // Notify merges the error notification channels of all fallible services, allowing the process to
@@ -86,4 +95,12 @@ func (s *Services) Notify() <-chan error {
 	}()
 
 	return c
+}
+
+func (s *Services) makeReadyFunc() func() {
+	s.ready.Add(1)
+	var once sync.Once
+	return func() {
+		once.Do(s.ready.Done)
+	}
 }

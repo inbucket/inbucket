@@ -113,7 +113,10 @@ func main() {
 		startupLog.Fatal().Err(err).Msg("Fatal error during startup")
 		removePIDFile(*pidfile)
 	}
-	services.Start(svcCtx)
+	readyFunc := func() {
+		startupLog.Debug().Msg("All services report ready")
+	}
+	services.Start(svcCtx, readyFunc)
 
 	// Loop forever waiting for signals or shutdown channel.
 signalLoop:

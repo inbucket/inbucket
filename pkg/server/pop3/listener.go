@@ -31,7 +31,7 @@ func NewServer(pop3Config config.POP3, store storage.Store) *Server {
 }
 
 // Start the server and listen for connections
-func (s *Server) Start(ctx context.Context) {
+func (s *Server) Start(ctx context.Context, readyFunc func()) {
 	slog := log.With().Str("module", "pop3").Str("phase", "startup").Logger()
 	addr, err := net.ResolveTCPAddr("tcp4", s.config.Addr)
 	if err != nil {
@@ -48,14 +48,18 @@ func (s *Server) Start(ctx context.Context) {
 		close(s.notify)
 		return
 	}
-	// Listener go routine.
+
+	// Start listener go routine.
 	go s.serve(ctx)
+	readyFunc()
+
 	// Wait for shutdown.
 	select {
 	case _ = <-ctx.Done():
 	}
 	slog = log.With().Str("module", "pop3").Str("phase", "shutdown").Logger()
 	slog.Debug().Msg("POP3 shutdown requested, connections will be drained")
+
 	// Closing the listener will cause the serve() go routine to exit.
 	if err := s.listener.Close(); err != nil {
 		slog.Error().Err(err).Msg("Failed to close POP3 listener")

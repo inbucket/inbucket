@@ -193,6 +193,8 @@ func TestReadyState(t *testing.T) {
 		{"RSET", 250},
 		{"MAIL FROM:<john@gmail.com> SIZE=1024", 250},
 		{"RSET", 250},
+		{"MAIL FROM:<bounces@onmicrosoft.com> SIZE=38677 AUTH=<>", 250},
+		{"RSET", 250},
 		{"MAIL FROM:<host!host!user/data@foo.com>", 250},
 		{"RSET", 250},
 		{"MAIL FROM:<\"first last\"@space.com>", 250},

@@ -58,7 +58,7 @@ const (
 // accepting '>' as quoted pair and in double quoted strings (?i) makes the regex case insensitive,
 // (?:) is non-grouping sub-match
 var fromRegex = regexp.MustCompile(
-	"(?i)^FROM:\\s*<((?:(?:\\\\>|[^>])+|\"[^\"]+\"@[^>])+)?>( [\\w= ]+)?$")
+	`(?i)^FROM:\s*<((?:(?:\\>|[^>])+|"[^"]+"@[^>])+)?>( [\w= ]+)?$`)
 
 func (s State) String() string {
 	switch s {

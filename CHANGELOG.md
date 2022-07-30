@@ -6,6 +6,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Support for `AUTH=<>` FROM parameter (#284)
+
+
 ## [v3.0.2] - 2022-07-04
 
 Note: We had to abandon the 3.0.1 release, see the blog post [What happened to

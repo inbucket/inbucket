@@ -54,11 +54,11 @@ const (
 	QUIT
 )
 
-// fromRegex captures the from address and optional BODY=8BITMIME clause.  Matches FROM, while
-// accepting '>' as quoted pair and in double quoted strings (?i) makes the regex case insensitive,
-// (?:) is non-grouping sub-match
+// fromRegex captures the from address and optional parameters.  Matches FROM, while accepting '>'
+// as quoted pair and in double quoted strings (?i) makes the regex case insensitive, (?:) is
+// non-grouping sub-match.  Accepts empty angle bracket value in options for 'AUTH=<>'.
 var fromRegex = regexp.MustCompile(
-	`(?i)^FROM:\s*<((?:(?:\\>|[^>])+|"[^"]+"@[^>])+)?>( [\w= ]+)?$`)
+	`(?i)^FROM:\s*<((?:(?:\\>|[^>])+|"[^"]+"@[^>])+)?>( [\w= ]+(?:=<>)?)?$`)
 
 func (s State) String() string {
 	switch s {

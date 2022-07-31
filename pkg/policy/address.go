@@ -65,12 +65,8 @@ func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 	if err != nil {
 		return nil, err
 	}
-	ar, err := mail.ParseAddress(address)
-	if err != nil {
-		return nil, err
-	}
 	return &Recipient{
-		Address:    *ar,
+		Address:    mail.Address{Address: address},
 		addrPolicy: a,
 		LocalPart:  local,
 		Domain:     domain,
@@ -179,12 +175,23 @@ func parseEmailAddress(address string) (local string, domain string, err error) 
 	if len(address) > 320 {
 		return "", "", fmt.Errorf("address exceeds 320 characters")
 	}
+
+	// Remove forward-path routes.
 	if address[0] == '@' {
-		return "", "", fmt.Errorf("address cannot start with @ symbol")
+		end := strings.IndexRune(address, ':')
+		if end == -1 {
+			return "", "", fmt.Errorf("missing terminating ':' in route specification")
+		}
+		address = address[end+1:]
+		if address == "" {
+			return "", "", fmt.Errorf("Address empty after removing route specification")
+		}
 	}
+
 	if address[0] == '.' {
 		return "", "", fmt.Errorf("address cannot start with a period")
 	}
+
 	// Loop over address parsing out local part.
 	buf := new(bytes.Buffer)
 	prev := byte('.')

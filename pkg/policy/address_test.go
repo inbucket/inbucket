@@ -259,6 +259,18 @@ func TestExtractMailboxValid(t *testing.T) {
 			full:   "chars|}~@example.co.uk",
 			domain: "example.co.uk",
 		},
+		{
+			input:  "@host:user+label@domain.com",
+			local:  "user",
+			full:   "user@domain.com",
+			domain: "domain.com",
+		},
+		{
+			input:  "@a.com,@b.com:user+label@domain.com",
+			local:  "user",
+			full:   "user@domain.com",
+			domain: "domain.com",
+		},
 	}
 	for _, tc := range testTable {
 		if result, err := localPolicy.ExtractMailbox(tc.input); err != nil {
@@ -438,11 +450,10 @@ func TestRecipientAddress(t *testing.T) {
 		"common":        "user@example.com",
 		"with label":    "user+mailbox@example.com",
 		"special chars": "a!#$%&'*+-/=?^_`{|}~@example.com",
-		// "quoted string":   `"one two@three"@example.com`,
 		// "ipv4":            "user@[127.0.0.1]",
-		// "route host":      "@host:user@example.com",
-		// "route domain":    "@route.com:user@example.com",
-		// "multi-hop route": "@first.com,@second.com:user@example.com",
+		"route host":      "@host:user@example.com",
+		"route domain":    "@route.com:user@example.com",
+		"multi-hop route": "@first.com,@second.com:user@example.com",
 	}
 
 	apolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}

@@ -32,6 +32,8 @@ const (
 	smtpHost    = "127.0.0.1:2500"
 )
 
+// TODO: Add suites for domain and full addressing modes.
+
 func TestSuite(t *testing.T) {
 	stopServer, err := startServer()
 	if err != nil {
@@ -46,6 +48,8 @@ func TestSuite(t *testing.T) {
 		{"basic", testBasic},
 		{"fullname", testFullname},
 		{"encodedHeader", testEncodedHeader},
+		{"ipv4Recipient", testIPv4Recipient},
+		{"ipv6Recipient", testIPv6Recipient},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.test)
@@ -137,6 +141,64 @@ func testEncodedHeader(t *testing.T) {
 	// Compare to golden.
 	got := formatMessage(msg)
 	goldiff.File(t, got, "testdata", "encodedheader.golden")
+}
+
+func testIPv4Recipient(t *testing.T) {
+	client, err := client.New(restBaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	from := "fromuser@inbucket.org"
+	to := []string{"ip4recipient@[192.168.123.123]"}
+	input := readTestData("no-to.txt")
+
+	// Send mail.
+	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Confirm receipt.
+	msg, err := client.GetMessage("ip4recipient", "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if msg == nil {
+		t.Errorf("Got nil message, wanted non-nil message.")
+	}
+
+	// Compare to golden.
+	got := formatMessage(msg)
+	goldiff.File(t, got, "testdata", "no-to-ipv4.golden")
+}
+
+func testIPv6Recipient(t *testing.T) {
+	client, err := client.New(restBaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	from := "fromuser@inbucket.org"
+	to := []string{"ip6recipient@[IPv6:2001:0db8:85a3:0000:0000:8a2e:0370:7334]"}
+	input := readTestData("no-to.txt")
+
+	// Send mail.
+	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Confirm receipt.
+	msg, err := client.GetMessage("ip6recipient", "latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if msg == nil {
+		t.Errorf("Got nil message, wanted non-nil message.")
+	}
+
+	// Compare to golden.
+	got := formatMessage(msg)
+	goldiff.File(t, got, "testdata", "no-to-ipv6.golden")
 }
 
 func formatMessage(m *client.Message) []byte {

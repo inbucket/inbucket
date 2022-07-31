@@ -447,6 +447,9 @@ func TestValidateLocal(t *testing.T) {
 		{"$A12345", true, "RFC3696 test case should be valid"},
 		{"!def!xyz%abc", true, "RFC3696 test case should be valid"},
 		{"_somename", true, "RFC3696 test case should be valid"},
+		{"@host:mailbox", true, "Forward-path routes are valid"},
+		{"@a.com,@b.com:mailbox", true, "Multi-hop forward-path routes are valid"},
+		{"@a.com,mailbox", false, "Unterminated forward-path routes are invalid"},
 	}
 	for _, tt := range testTable {
 		_, _, err := policy.ParseEmailAddress(tt.input + "@domain.com")

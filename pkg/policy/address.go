@@ -54,7 +54,8 @@ func (a *Addressing) ExtractMailbox(address string) (string, error) {
 	return local + "@" + domain, nil
 }
 
-// NewRecipient parses an address into a Recipient.
+// NewRecipient parses an address into a Recipient. This is used for parsing RCPT TO arguments,
+// not To headers.
 func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 	local, domain, err := ParseEmailAddress(address)
 	if err != nil {

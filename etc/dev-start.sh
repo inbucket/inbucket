@@ -3,6 +3,7 @@
 # description: Developer friendly Inbucket configuration
 
 export INBUCKET_LOGLEVEL="debug"
+#export INBUCKET_MAILBOXNAMING="domain"
 export INBUCKET_SMTP_REJECTDOMAINS="bad-actors.local"
 #export INBUCKET_SMTP_DEFAULTACCEPT="false"
 export INBUCKET_SMTP_ACCEPTDOMAINS="good-actors.local"

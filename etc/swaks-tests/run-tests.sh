@@ -59,3 +59,6 @@ swaks $* --data nonmime-html-inlined.raw
 
 # Incorrect charset, malformed final boundary
 swaks $* --data mime-errors.raw
+
+# IPv4 RCPT domain
+swaks $* --to="swaks@[127.0.0.1]" --h-Subject: "IPv4 RCPT Address" --body text.txt

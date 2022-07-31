@@ -271,6 +271,18 @@ func TestExtractMailboxValid(t *testing.T) {
 			full:   "user@domain.com",
 			domain: "domain.com",
 		},
+		{
+			input:  "u@[127.0.0.1]",
+			local:  "u",
+			full:   "u@[127.0.0.1]",
+			domain: "[127.0.0.1]",
+		},
+		{
+			input:  "u@[IPv6:2001:db8:aaaa:1::100]",
+			local:  "u",
+			full:   "u@[IPv6:2001:db8:aaaa:1::100]",
+			domain: "[IPv6:2001:db8:aaaa:1::100]",
+		},
 	}
 	for _, tc := range testTable {
 		if result, err := localPolicy.ExtractMailbox(tc.input); err != nil {
@@ -377,6 +389,10 @@ func TestValidateDomain(t *testing.T) {
 		{strings.Repeat("a", 256), false, "Max domain length is 255"},
 		{strings.Repeat("a", 63) + ".com", true, "Should allow 63 char domain label"},
 		{strings.Repeat("a", 64) + ".com", false, "Max domain label length is 63"},
+		{"[0.0.0.0]", true, "Single digit octet IP addr is valid"},
+		{"[123.123.123.123]", true, "Multiple digit octet IP addr is valid"},
+		{"[IPv6:2001:0db8:aaaa:0001:0000:0000:0000:0200]", true, "Full IPv6 addr is valid"},
+		{"[IPv6:::1]", true, "Abbr IPv6 addr is valid"},
 	}
 	for _, tt := range testTable {
 		if policy.ValidateDomainPart(tt.input) != tt.expect {
@@ -447,10 +463,11 @@ func TestValidateLocal(t *testing.T) {
 // This function parses a RCPT TO path, not a To header. See rfc5321#section-4.1.2
 func TestRecipientAddress(t *testing.T) {
 	tests := map[string]string{
-		"common":        "user@example.com",
-		"with label":    "user+mailbox@example.com",
-		"special chars": "a!#$%&'*+-/=?^_`{|}~@example.com",
-		// "ipv4":            "user@[127.0.0.1]",
+		"common":          "user@example.com",
+		"with label":      "user+mailbox@example.com",
+		"special chars":   "a!#$%&'*+-/=?^_`{|}~@example.com",
+		"ipv4":            "user@[127.0.0.1]",
+		"ipv6":            "user@[IPv6:::1]",
 		"route host":      "@host:user@example.com",
 		"route domain":    "@route.com:user@example.com",
 		"multi-hop route": "@first.com,@second.com:user@example.com",

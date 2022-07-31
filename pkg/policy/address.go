@@ -3,6 +3,7 @@ package policy
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/mail"
 	"strings"
 
@@ -119,13 +120,24 @@ func ParseEmailAddress(address string) (local string, domain string, err error) 
 // ValidateDomainPart returns true if the domain part complies to RFC3696, RFC1035. Used by
 // ParseEmailAddress().
 func ValidateDomainPart(domain string) bool {
-	if len(domain) == 0 {
+	ln := len(domain)
+	if ln == 0 {
 		return false
 	}
-	if len(domain) > 255 {
+	if ln > 255 {
 		return false
 	}
-	if domain[len(domain)-1] != '.' {
+	if ln >= 4 && domain[0] == '[' && domain[ln-1] == ']' {
+		// Bracketed domains must contain an IP address.
+		s := 1
+		if strings.HasPrefix(domain[1:], "IPv6:") {
+			s = 6
+		}
+		ip := net.ParseIP(domain[s : ln-1])
+		return ip != nil
+	}
+
+	if domain[ln-1] != '.' {
 		domain += "."
 	}
 	prev := '.'

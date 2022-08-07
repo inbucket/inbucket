@@ -326,6 +326,7 @@ func TestExtractDomainMailboxValid(t *testing.T) {
 			domain: "[IPv6:2001:db8:aaaa:1::100]",
 		},
 	}
+
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			if result, err := domainPolicy.ExtractMailbox(tc.input); tc.domain != "" && err != nil {
@@ -343,6 +344,7 @@ func TestExtractMailboxInvalid(t *testing.T) {
 	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
 	fullPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.FullNaming}}
 	domainPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.DomainNaming}}
+
 	// Test local mailbox naming policy.
 	localInvalidTable := []struct {
 		input, msg string
@@ -357,6 +359,7 @@ func TestExtractMailboxInvalid(t *testing.T) {
 			t.Errorf("Didn't get an error while parsing in local mode %q: %v", tt.input, tt.msg)
 		}
 	}
+
 	// Test full mailbox naming policy.
 	fullInvalidTable := []struct {
 		input, msg string
@@ -372,6 +375,7 @@ func TestExtractMailboxInvalid(t *testing.T) {
 			t.Errorf("Didn't get an error while parsing in full mode %q: %v", tt.input, tt.msg)
 		}
 	}
+
 	// Test domain mailbox naming policy.
 	domainInvalidTable := []struct {
 		input, msg string
@@ -495,6 +499,8 @@ func TestValidateLocal(t *testing.T) {
 // TestRecipientAddress verifies the Recipient.Address values returned by Addressing.NewRecipient.
 // This function parses a RCPT TO path, not a To header. See rfc5321#section-4.1.2
 func TestRecipientAddress(t *testing.T) {
+	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
+
 	tests := map[string]string{
 		"common":          "user@example.com",
 		"with label":      "user+mailbox@example.com",
@@ -506,11 +512,9 @@ func TestRecipientAddress(t *testing.T) {
 		"multi-hop route": "@first.com,@second.com:user@example.com",
 	}
 
-	apolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
-
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			r, err := apolicy.NewRecipient(tc)
+			r, err := localPolicy.NewRecipient(tc)
 			if err != nil {
 				t.Fatalf("Parse of %q failed: %v", tc, err)
 			}

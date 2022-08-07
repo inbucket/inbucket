@@ -51,40 +51,6 @@ func (a *Addressing) ExtractMailbox(address string) (string, error) {
 	return local + "@" + domain, nil
 }
 
-// Extracts the mailbox name when domain addressing is enabled.
-func extractDomainMailbox(address string) (string, error) {
-	var local, domain string
-	var err error
-
-	if address != "" && address[0] == '[' && address[len(address)-1] == ']' {
-		// Likely an IP address in brackets, treat as domain only.
-		domain = address
-	} else {
-		local, domain, err = parseEmailAddress(address)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	if local != "" {
-		local, err = parseMailboxName(local)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	// If no domain is specified, assume this is being used for mailbox lookup via the API.
-	if domain == "" {
-		domain = local
-	}
-
-	if ValidateDomainPart(domain) == false {
-		return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
-	}
-
-	return domain, nil
-}
-
 // NewRecipient parses an address into a Recipient. This is used for parsing RCPT TO arguments,
 // not To headers.
 func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
@@ -205,6 +171,40 @@ func ValidateDomainPart(domain string) bool {
 		prev = c
 	}
 	return true
+}
+
+// Extracts the mailbox name when domain addressing is enabled.
+func extractDomainMailbox(address string) (string, error) {
+	var local, domain string
+	var err error
+
+	if address != "" && address[0] == '[' && address[len(address)-1] == ']' {
+		// Likely an IP address in brackets, treat as domain only.
+		domain = address
+	} else {
+		local, domain, err = parseEmailAddress(address)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if local != "" {
+		local, err = parseMailboxName(local)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// If no @domain is specified, assume this is being used for mailbox lookup via the API.
+	if domain == "" {
+		domain = local
+	}
+
+	if ValidateDomainPart(domain) == false {
+		return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
+	}
+
+	return domain, nil
 }
 
 // parseEmailAddress unescapes an email address, and splits the local part from the domain part.  An

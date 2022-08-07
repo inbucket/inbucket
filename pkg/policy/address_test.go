@@ -309,6 +309,36 @@ func TestExtractMailboxValid(t *testing.T) {
 	}
 }
 
+// Test special cases with domain addressing mode.
+func TestExtractDomainMailboxValid(t *testing.T) {
+	domainPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.DomainNaming}}
+
+	tests := map[string]struct {
+		input  string // Input to test
+		domain string // Expected output when mailbox naming = domain
+	}{
+		"ipv4": {
+			input:  "[127.0.0.1]",
+			domain: "[127.0.0.1]",
+		},
+		"medium ipv6": {
+			input:  "[IPv6:2001:db8:aaaa:1::100]",
+			domain: "[IPv6:2001:db8:aaaa:1::100]",
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			if result, err := domainPolicy.ExtractMailbox(tc.input); tc.domain != "" && err != nil {
+				t.Errorf("Error while parsing with domain naming %q: %v", tc.input, err)
+			} else {
+				if result != tc.domain {
+					t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.domain, result)
+				}
+			}
+		})
+	}
+}
+
 func TestExtractMailboxInvalid(t *testing.T) {
 	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
 	fullPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.FullNaming}}

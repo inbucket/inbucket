@@ -3,6 +3,7 @@ package policy
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/mail"
 	"strings"
 
@@ -17,44 +18,41 @@ type Addressing struct {
 
 // ExtractMailbox extracts the mailbox name from a partial email address.
 func (a *Addressing) ExtractMailbox(address string) (string, error) {
+	if a.Config.MailboxNaming == config.DomainNaming {
+		return extractDomainMailbox(address)
+	}
+
 	local, domain, err := parseEmailAddress(address)
 	if err != nil {
 		return "", err
 	}
+
 	local, err = parseMailboxName(local)
 	if err != nil {
 		return "", err
 	}
+
 	if a.Config.MailboxNaming == config.LocalNaming {
 		return local, nil
 	}
-	if a.Config.MailboxNaming == config.DomainNaming {
-		// If no domain is specified, assume this is being
-		// used for mailbox lookup via the API.
-		if domain == "" {
-			if ValidateDomainPart(local) == false {
-				return "", fmt.Errorf("Domain part %q in %q failed validation", local, address)
-			}
-			return local, nil
-		}
-		if ValidateDomainPart(domain) == false {
-			return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
-		}
-		return domain, nil
-	}
+
 	if a.Config.MailboxNaming != config.FullNaming {
 		return "", fmt.Errorf("Unknown MailboxNaming value: %v", a.Config.MailboxNaming)
 	}
+
 	if domain == "" {
 		return local, nil
 	}
+
 	if !ValidateDomainPart(domain) {
 		return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
 	}
+
 	return local + "@" + domain, nil
 }
 
-// NewRecipient parses an address into a Recipient.
+// NewRecipient parses an address into a Recipient. This is used for parsing RCPT TO arguments,
+// not To headers.
 func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 	local, domain, err := ParseEmailAddress(address)
 	if err != nil {
@@ -64,12 +62,8 @@ func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 	if err != nil {
 		return nil, err
 	}
-	ar, err := mail.ParseAddress(address)
-	if err != nil {
-		return nil, err
-	}
 	return &Recipient{
-		Address:    *ar,
+		Address:    mail.Address{Address: address},
 		addrPolicy: a,
 		LocalPart:  local,
 		Domain:     domain,
@@ -122,13 +116,24 @@ func ParseEmailAddress(address string) (local string, domain string, err error) 
 // ValidateDomainPart returns true if the domain part complies to RFC3696, RFC1035. Used by
 // ParseEmailAddress().
 func ValidateDomainPart(domain string) bool {
-	if len(domain) == 0 {
+	ln := len(domain)
+	if ln == 0 {
 		return false
 	}
-	if len(domain) > 255 {
+	if ln > 255 {
 		return false
 	}
-	if domain[len(domain)-1] != '.' {
+	if ln >= 4 && domain[0] == '[' && domain[ln-1] == ']' {
+		// Bracketed domains must contain an IP address.
+		s := 1
+		if strings.HasPrefix(domain[1:], "IPv6:") {
+			s = 6
+		}
+		ip := net.ParseIP(domain[s : ln-1])
+		return ip != nil
+	}
+
+	if domain[ln-1] != '.' {
 		domain += "."
 	}
 	prev := '.'
@@ -168,6 +173,40 @@ func ValidateDomainPart(domain string) bool {
 	return true
 }
 
+// Extracts the mailbox name when domain addressing is enabled.
+func extractDomainMailbox(address string) (string, error) {
+	var local, domain string
+	var err error
+
+	if address != "" && address[0] == '[' && address[len(address)-1] == ']' {
+		// Likely an IP address in brackets, treat as domain only.
+		domain = address
+	} else {
+		local, domain, err = parseEmailAddress(address)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if local != "" {
+		local, err = parseMailboxName(local)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// If no @domain is specified, assume this is being used for mailbox lookup via the API.
+	if domain == "" {
+		domain = local
+	}
+
+	if ValidateDomainPart(domain) == false {
+		return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
+	}
+
+	return domain, nil
+}
+
 // parseEmailAddress unescapes an email address, and splits the local part from the domain part.  An
 // error is returned if the local part fails validation following the guidelines in RFC3696. The
 // domain part is optional and not validated.
@@ -178,12 +217,23 @@ func parseEmailAddress(address string) (local string, domain string, err error) 
 	if len(address) > 320 {
 		return "", "", fmt.Errorf("address exceeds 320 characters")
 	}
+
+	// Remove forward-path routes.
 	if address[0] == '@' {
-		return "", "", fmt.Errorf("address cannot start with @ symbol")
+		end := strings.IndexRune(address, ':')
+		if end == -1 {
+			return "", "", fmt.Errorf("missing terminating ':' in route specification")
+		}
+		address = address[end+1:]
+		if address == "" {
+			return "", "", fmt.Errorf("Address empty after removing route specification")
+		}
 	}
+
 	if address[0] == '.' {
 		return "", "", fmt.Errorf("address cannot start with a period")
 	}
+
 	// Loop over address parsing out local part.
 	buf := new(bytes.Buffer)
 	prev := byte('.')

@@ -266,6 +266,8 @@ func TestMailState(t *testing.T) {
 		{"RSET", 250},
 		{"MAIL FROM:<john@gmail.com>", 250},
 		{`RCPT TO:<"first/last"@host.com`, 250},
+		{"RCPT TO:<u1@[127.0.0.1]>", 250},
+		{"RCPT TO:<u1@[IPv6:2001:db8:aaaa:1::100]>", 250},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)

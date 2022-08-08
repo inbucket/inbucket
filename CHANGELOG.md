@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [v3.0.3] - 2022-08-07
+
 ### Fixed
 - Support for `AUTH=<>` FROM parameter (#284)
 
@@ -307,7 +310,8 @@ No change from beta1.
   specific message.
 
 
-[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.0.2...main
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.0.3...main
+[v3.0.3]:       https://github.com/inbucket/inbucket/compare/v3.0.2...v3.0.3
 [v3.0.2]:       https://github.com/inbucket/inbucket/compare/v3.0.1-rc2...v3.0.2
 [v3.0.1-rc2]:   https://github.com/inbucket/inbucket/compare/v3.0.1-rc1...v3.0.1-rc2
 [v3.0.1-rc1]:   https://github.com/inbucket/inbucket/compare/v3.0.0...v3.0.1-rc1

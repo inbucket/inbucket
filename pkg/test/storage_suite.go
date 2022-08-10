@@ -168,7 +168,6 @@ func testContent(t *testing.T, store storage.Store) {
 		}
 		if errors > 5 {
 			t.Fatalf("Too many content errors, aborting test.")
-			break
 		}
 	}
 }

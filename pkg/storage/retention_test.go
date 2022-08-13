@@ -1,6 +1,7 @@
 package storage_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 
 func TestDoRetentionScan(t *testing.T) {
 	ds := test.NewStore()
+
 	// Mockup some different aged messages (num is in hours)
 	new1 := stubMessage("mb1", 0)
 	new2 := stubMessage("mb2", 1)
@@ -26,22 +28,26 @@ func TestDoRetentionScan(t *testing.T) {
 	ds.AddMessage(old3)
 	ds.AddMessage(new2)
 	ds.AddMessage(new3)
+
 	// Test 4 hour retention
 	cfg := config.Storage{
 		RetentionPeriod: 239 * time.Minute,
 		RetentionSleep:  0,
 	}
-	shutdownChan := make(chan bool)
-	rs := storage.NewRetentionScanner(cfg, ds, shutdownChan)
-	if err := rs.DoScan(); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rs := storage.NewRetentionScanner(cfg, ds)
+	if err := rs.DoScan(ctx); err != nil {
 		t.Error(err)
 	}
+
 	// Delete should not have been called on new messages
 	for _, m := range []storage.Message{new1, new2, new3} {
 		if ds.MessageDeleted(m) {
 			t.Errorf("Expected %v to be present, was deleted", m.ID())
 		}
 	}
+
 	// Delete should have been called once on old messages
 	for _, m := range []storage.Message{old1, old2, old3} {
 		if !ds.MessageDeleted(m) {

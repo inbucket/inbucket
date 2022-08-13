@@ -48,9 +48,8 @@ func setupWebServer(mm message.Manager) *bytes.Buffer {
 			UIDir: "../ui",
 		},
 	}
-	shutdownChan := make(chan bool)
 	SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
-	web.Initialize(cfg, shutdownChan, mm, &msghub.Hub{})
+	web.NewServer(cfg, mm, &msghub.Hub{})
 
 	return buf
 }

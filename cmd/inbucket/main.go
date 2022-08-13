@@ -15,18 +15,10 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/msghub"
-	"github.com/inbucket/inbucket/pkg/policy"
-	"github.com/inbucket/inbucket/pkg/rest"
-	"github.com/inbucket/inbucket/pkg/server/pop3"
-	"github.com/inbucket/inbucket/pkg/server/smtp"
-	"github.com/inbucket/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/pkg/server"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/inbucket/inbucket/pkg/storage/file"
 	"github.com/inbucket/inbucket/pkg/storage/mem"
-	"github.com/inbucket/inbucket/pkg/stringutil"
-	"github.com/inbucket/inbucket/pkg/webui"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -114,36 +106,16 @@ func main() {
 		}
 	}
 
-	// Configure internal services.
-	rootCtx, rootCancel := context.WithCancel(context.Background())
-	shutdownChan := make(chan bool)
-	store, err := storage.FromConfig(conf.Storage)
+	// Configure and start internal services.
+	svcCtx, svcCancel := context.WithCancel(context.Background())
+	services, err := server.FullAssembly(conf)
 	if err != nil {
+		startupLog.Fatal().Err(err).Msg("Fatal error during startup")
 		removePIDFile(*pidfile)
-		startupLog.Fatal().Err(err).Str("module", "storage").Msg("Fatal storage error")
 	}
-	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
-	addrPolicy := &policy.Addressing{Config: conf}
-	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
-
-	// Start Retention scanner.
-	retentionScanner := storage.NewRetentionScanner(conf.Storage, store, shutdownChan)
-	retentionScanner.Start()
-
-	// Configure routes and start HTTP server.
-	prefix := stringutil.MakePathPrefixer(conf.Web.BasePath)
-	webui.SetupRoutes(web.Router.PathPrefix(prefix("/serve/")).Subrouter())
-	rest.SetupRoutes(web.Router.PathPrefix(prefix("/api/")).Subrouter())
-	web.Initialize(conf, shutdownChan, mmanager, msgHub)
-	go web.Start(rootCtx)
-
-	// Start POP3 server.
-	pop3Server := pop3.New(conf.POP3, shutdownChan, store)
-	go pop3Server.Start(rootCtx)
-
-	// Start SMTP server.
-	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)
-	go smtpServer.Start(rootCtx)
+	services.Start(svcCtx, func() {
+		startupLog.Debug().Msg("All services report ready")
+	})
 
 	// Loop forever waiting for signals or shutdown channel.
 signalLoop:
@@ -155,24 +127,27 @@ signalLoop:
 				// Shutdown requested
 				log.Info().Str("phase", "shutdown").Str("signal", "SIGINT").
 					Msg("Received SIGINT, shutting down")
-				close(shutdownChan)
+				svcCancel()
+				break signalLoop
 			case syscall.SIGTERM:
 				// Shutdown requested
 				log.Info().Str("phase", "shutdown").Str("signal", "SIGTERM").
 					Msg("Received SIGTERM, shutting down")
-				close(shutdownChan)
+				svcCancel()
+				break signalLoop
 			}
-		case <-shutdownChan:
-			rootCancel()
+		case <-services.Notify():
+			log.Info().Str("phase", "shutdown").Msg("Shutting down due to service failure")
+			svcCancel()
 			break signalLoop
 		}
 	}
 
 	// Wait for active connections to finish.
 	go timedExit(*pidfile)
-	smtpServer.Drain()
-	pop3Server.Drain()
-	retentionScanner.Join()
+	services.SMTPServer.Drain()
+	services.POP3Server.Drain()
+	services.RetentionScanner.Join()
 	removePIDFile(*pidfile)
 	closeLog()
 }

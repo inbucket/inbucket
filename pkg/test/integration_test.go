@@ -214,7 +214,7 @@ func formatMessage(m *client.Message) []byte {
 }
 
 func startServer() (func(), error) {
-	// TODO Refactor inbucket/main.go so we don't need to repeat all this here.
+	// TODO Move integration setup into lifecycle.
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
 	storage.Constructors["memory"] = mem.New
 	os.Clearenv()
@@ -222,32 +222,34 @@ func startServer() (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	rootCtx, rootCancel := context.WithCancel(context.Background())
-	shutdownChan := make(chan bool)
+	svcCtx, svcCancel := context.WithCancel(context.Background())
 	store, err := storage.FromConfig(conf.Storage)
 	if err != nil {
-		rootCancel()
+		svcCancel()
 		return nil, err
 	}
-	msgHub := msghub.New(rootCtx, conf.Web.MonitorHistory)
+
+	// TODO Test should not pass with unstarted msghub.
+	msgHub := msghub.New(conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf}
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
+
 	// Start HTTP server.
 	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())
 	rest.SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
-	web.Initialize(conf, shutdownChan, mmanager, msgHub)
-	go web.Start(rootCtx)
-	// Start SMTP server.
-	smtpServer := smtp.NewServer(conf.SMTP, shutdownChan, mmanager, addrPolicy)
-	go smtpServer.Start(rootCtx)
+	webServer := web.NewServer(conf, mmanager, msgHub)
+	go webServer.Start(svcCtx, func() {})
 
-	// TODO Implmement an elegant way to determine server readiness.
+	// Start SMTP server.
+	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy)
+	go smtpServer.Start(svcCtx, func() {})
+
+	// TODO Use a readyFunc to determine server readiness.
 	time.Sleep(500 * time.Millisecond)
 
 	return func() {
 		// Shut everything down.
-		close(shutdownChan)
-		rootCancel()
+		svcCancel()
 		smtpServer.Drain()
 	}, nil
 }

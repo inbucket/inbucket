@@ -36,27 +36,26 @@ type Hub struct {
 // New constructs a new Hub which will cache historyLen messages in memory for playback to future
 // listeners.  A goroutine is created to handle incoming messages; it will run until the provided
 // context is canceled.
-func New(ctx context.Context, historyLen int) *Hub {
-	h := &Hub{
+func New(historyLen int) *Hub {
+	return &Hub{
 		history:   ring.New(historyLen),
 		listeners: make(map[Listener]struct{}),
 		opChan:    make(chan func(h *Hub), opChanLen),
 	}
+}
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				// Shutdown
-				close(h.opChan)
-				return
-			case op := <-h.opChan:
-				op(h)
-			}
+// Start Hub processing loop.
+func (hub *Hub) Start(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			// Shutdown
+			close(hub.opChan)
+			return
+		case op := <-hub.opChan:
+			op(hub)
 		}
-	}()
-
-	return h
+	}
 }
 
 // Dispatch queues a message for broadcast by the hub.  The message will be placed into the

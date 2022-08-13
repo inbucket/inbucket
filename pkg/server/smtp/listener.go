@@ -58,19 +58,18 @@ func init() {
 
 // Server holds the configuration and state of our SMTP server.
 type Server struct {
-	config         config.SMTP        // SMTP configuration.
-	addrPolicy     *policy.Addressing // Address policy.
-	globalShutdown chan bool          // Shuts down Inbucket.
-	manager        message.Manager    // Used to deliver messages.
-	listener       net.Listener       // Incoming network connections.
-	wg             *sync.WaitGroup    // Waitgroup tracks individual sessions.
-	tlsConfig      *tls.Config
+	config     config.SMTP        // SMTP configuration.
+	addrPolicy *policy.Addressing // Address policy.
+	manager    message.Manager    // Used to deliver messages.
+	listener   net.Listener       // Incoming network connections.
+	wg         *sync.WaitGroup    // Waitgroup tracks individual sessions.
+	tlsConfig  *tls.Config        // TLS encryption configuration.
+	notify     chan error         // Notify on fatal error.
 }
 
-// NewServer creates a new Server instance with the specificed config.
+// NewServer creates a new, unstarted, SMTP server instance with the specificed config.
 func NewServer(
 	smtpConfig config.SMTP,
-	globalShutdown chan bool,
 	manager message.Manager,
 	apolicy *policy.Addressing,
 ) *Server {
@@ -90,37 +89,43 @@ func NewServer(
 	}
 
 	return &Server{
-		config:         smtpConfig,
-		globalShutdown: globalShutdown,
-		manager:        manager,
-		addrPolicy:     apolicy,
-		wg:             new(sync.WaitGroup),
-		tlsConfig:      tlsConfig,
+		config:     smtpConfig,
+		manager:    manager,
+		addrPolicy: apolicy,
+		wg:         new(sync.WaitGroup),
+		tlsConfig:  tlsConfig,
+		notify:     make(chan error, 1),
 	}
 }
 
 // Start the listener and handle incoming connections.
-func (s *Server) Start(ctx context.Context) {
+func (s *Server) Start(ctx context.Context, readyFunc func()) {
 	slog := log.With().Str("module", "smtp").Str("phase", "startup").Logger()
 	addr, err := net.ResolveTCPAddr("tcp4", s.config.Addr)
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to build tcp4 address")
-		s.emergencyShutdown()
+		s.notify <- err
+		close(s.notify)
 		return
 	}
 	slog.Info().Str("addr", addr.String()).Msg("SMTP listening on tcp4")
 	s.listener, err = net.ListenTCP("tcp4", addr)
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to start tcp4 listener")
-		s.emergencyShutdown()
+		s.notify <- err
+		close(s.notify)
 		return
 	}
-	// Listener go routine.
+
+	// Start listener go routine.
 	go s.serve(ctx)
+	readyFunc()
+
 	// Wait for shutdown.
 	<-ctx.Done()
 	slog = log.With().Str("module", "smtp").Str("phase", "shutdown").Logger()
 	slog.Debug().Msg("SMTP shutdown requested, connections will be drained")
+
 	// Closing the listener will cause the serve() go routine to exit.
 	if err := s.listener.Close(); err != nil {
 		slog.Error().Err(err).Msg("Failed to close SMTP listener")
@@ -156,7 +161,8 @@ func (s *Server) serve(ctx context.Context) {
 					return
 				default:
 					// Something went wrong.
-					s.emergencyShutdown()
+					s.notify <- err
+					close(s.notify)
 					return
 				}
 			}
@@ -169,18 +175,14 @@ func (s *Server) serve(ctx context.Context) {
 	}
 }
 
-func (s *Server) emergencyShutdown() {
-	// Shutdown Inbucket.
-	select {
-	case <-s.globalShutdown:
-	default:
-		close(s.globalShutdown)
-	}
-}
-
 // Drain causes the caller to block until all active SMTP sessions have finished
 func (s *Server) Drain() {
 	// Wait for sessions to close.
 	s.wg.Wait()
 	log.Debug().Str("module", "smtp").Str("phase", "shutdown").Msg("SMTP connections have drained")
+}
+
+// Notify allows the running SMTP server to be monitored for a fatal error.
+func (s *Server) Notify() <-chan error {
+	return s.notify
 }

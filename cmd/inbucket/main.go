@@ -106,17 +106,16 @@ func main() {
 		}
 	}
 
-	// Configure internal services.
+	// Configure and start internal services.
 	svcCtx, svcCancel := context.WithCancel(context.Background())
-	services, err := server.Prod(conf)
+	services, err := server.FullAssembly(conf)
 	if err != nil {
 		startupLog.Fatal().Err(err).Msg("Fatal error during startup")
 		removePIDFile(*pidfile)
 	}
-	readyFunc := func() {
+	services.Start(svcCtx, func() {
 		startupLog.Debug().Msg("All services report ready")
-	}
-	services.Start(svcCtx, readyFunc)
+	})
 
 	// Loop forever waiting for signals or shutdown channel.
 signalLoop:

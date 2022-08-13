@@ -28,8 +28,8 @@ type Services struct {
 	ready            *sync.WaitGroup // Tracks services that have not reported ready.
 }
 
-// Prod wires up the production Inbucket environment.
-func Prod(conf *config.Root) (*Services, error) {
+// FullAssembly wires up a complete Inbucket environment.
+func FullAssembly(conf *config.Root) (*Services, error) {
 	// Configure storage.
 	store, err := storage.FromConfig(conf.Storage)
 	if err != nil {
@@ -64,7 +64,6 @@ func Prod(conf *config.Root) (*Services, error) {
 
 // Start all services, returns immediately.  Callers may use Notify to detect failed services.
 func (s *Services) Start(ctx context.Context, readyFunc func()) {
-	// TODO: Try some bad listening configs to ensure startup aborts correctly.
 	go s.MsgHub.Start(ctx)
 	go s.WebServer.Start(ctx, s.makeReadyFunc())
 	go s.SMTPServer.Start(ctx, s.makeReadyFunc())

@@ -1,13 +1,11 @@
 package smtp
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
 	"net"
 	"net/textproto"
-	"os"
 	"testing"
 	"time"
 
@@ -27,8 +25,7 @@ type scriptStep struct {
 // Test commands in GREET state
 func TestGreetState(t *testing.T) {
 	ds := test.NewStore()
-	server, logbuf, teardown := setupSMTPServer(ds)
-	defer teardown()
+	server := setupSMTPServer(ds)
 
 	// Test out some mangled HELOs
 	script := []scriptStep{
@@ -76,20 +73,12 @@ func TestGreetState(t *testing.T) {
 	if err := playSession(t, server, []scriptStep{{"EHLO a", 250}}); err != nil {
 		t.Error(err)
 	}
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
 }
 
 // Test commands in READY state
 func TestEmptyEnvelope(t *testing.T) {
 	ds := test.NewStore()
-	server, logbuf, teardown := setupSMTPServer(ds)
-	defer teardown()
+	server := setupSMTPServer(ds)
 
 	// Test out some empty envelope without blanks
 	script := []scriptStep{
@@ -97,8 +86,6 @@ func TestEmptyEnvelope(t *testing.T) {
 		{"MAIL FROM:<>", 250},
 	}
 	if err := playSession(t, server, script); err != nil {
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
 		t.Error(err)
 	}
 
@@ -108,8 +95,6 @@ func TestEmptyEnvelope(t *testing.T) {
 		{"MAIL FROM: <>", 250},
 	}
 	if err := playSession(t, server, script); err != nil {
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
 		t.Error(err)
 	}
 }
@@ -117,8 +102,7 @@ func TestEmptyEnvelope(t *testing.T) {
 // Test AUTH
 func TestAuth(t *testing.T) {
 	ds := test.NewStore()
-	server, logbuf, teardown := setupSMTPServer(ds)
-	defer teardown()
+	server := setupSMTPServer(ds)
 
 	// PLAIN AUTH
 	script := []scriptStep{
@@ -149,20 +133,12 @@ func TestAuth(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
 }
 
 // Test commands in READY state
 func TestReadyState(t *testing.T) {
 	ds := test.NewStore()
-	server, logbuf, teardown := setupSMTPServer(ds)
-	defer teardown()
+	server := setupSMTPServer(ds)
 
 	// Test out some mangled READY commands
 	script := []scriptStep{
@@ -221,20 +197,12 @@ func TestReadyState(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
 }
 
 // Test commands in MAIL state
 func TestMailState(t *testing.T) {
 	mds := test.NewStore()
-	server, logbuf, teardown := setupSMTPServer(mds)
-	defer teardown()
+	server := setupSMTPServer(mds)
 
 	// Test out some mangled READY commands
 	script := []scriptStep{
@@ -335,20 +303,12 @@ func TestMailState(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
 }
 
 // Test commands in DATA state
 func TestDataState(t *testing.T) {
 	mds := test.NewStore()
-	server, logbuf, teardown := setupSMTPServer(mds)
-	defer teardown()
+	server := setupSMTPServer(mds)
 
 	var script []scriptStep
 	pipe := setupSMTPSession(server)
@@ -406,13 +366,6 @@ Hi! Can you still deliver this?
 	if code, _, err := c.ReadCodeLine(250); err != nil {
 		t.Errorf("Expected a 250 greeting, got %v", code)
 	}
-
-	if t.Failed() {
-		// Wait for handler to finish logging
-		time.Sleep(2 * time.Second)
-		// Dump buffered log data if there was a failure
-		_, _ = io.Copy(os.Stderr, logbuf)
-	}
 }
 
 // playSession creates a new session, reads the greeting and then plays the script
@@ -467,7 +420,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown func()) {
+func setupSMTPServer(ds storage.Store) *Server {
 	cfg := &config.Root{
 		MailboxNaming: config.FullNaming,
 		SMTP: config.SMTP{
@@ -480,16 +433,12 @@ func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown f
 			Timeout:         5,
 		},
 	}
-	// Capture log output.
-	buf = new(bytes.Buffer)
-	// log.SetOutput(buf)
+
 	// Create a server, don't start it.
-	// TODO Remove teardown.
-	teardown = func() {}
 	addrPolicy := &policy.Addressing{Config: cfg}
 	manager := &message.StoreManager{Store: ds}
-	s = NewServer(cfg.SMTP, manager, addrPolicy)
-	return s, buf, teardown
+
+	return NewServer(cfg.SMTP, manager, addrPolicy)
 }
 
 var sessionNum int

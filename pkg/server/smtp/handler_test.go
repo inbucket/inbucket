@@ -22,14 +22,44 @@ type scriptStep struct {
 	expect int
 }
 
-// Test commands in GREET state
+// Test valid commands in GREET state.
+func TestGreetStateValidCommands(t *testing.T) {
+	ds := test.NewStore()
+	server := setupSMTPServer(ds)
+
+	tests := []scriptStep{
+		{"HELO mydomain", 250},
+		{"HELO mydom.com", 250},
+		{"HelO mydom.com", 250},
+		{"helo 127.0.0.1", 250},
+		{"HELO ABC", 250},
+		{"EHLO mydomain", 250},
+		{"EHLO mydom.com", 250},
+		{"EhlO mydom.com", 250},
+		{"ehlo 127.0.0.1", 250},
+		{"EHLO a", 250},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.send, func(t *testing.T) {
+			defer server.Drain() // Required to prevent test logging data race.
+			script := []scriptStep{
+				tc,
+				{"QUIT", 221}}
+			if err := playSession(t, server, script); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+}
+
+// Test invalid commands in GREET state.
 func TestGreetState(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds)
 	defer server.Drain() // Required to prevent test logging data race.
 
-	// Test out some mangled HELOs
-	script := []scriptStep{
+	tests := []scriptStep{
 		{"HELO", 501},
 		{"EHLO", 501},
 		{"HELLO", 500},
@@ -37,47 +67,20 @@ func TestGreetState(t *testing.T) {
 		{"hello", 500},
 		{"Outlook", 500},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
 
-	// Valid HELOs
-	if err := playSession(t, server, []scriptStep{{"HELO mydomain", 250}}); err != nil {
-		t.Error(err)
+	for _, tc := range tests {
+		t.Run(tc.send, func(t *testing.T) {
+			defer server.Drain() // Required to prevent test logging data race.
+			script := []scriptStep{
+				tc,
+				{"QUIT", 221}}
+			if err := playSession(t, server, script); err != nil {
+				t.Error(err)
+			}
+		})
 	}
-	if err := playSession(t, server, []scriptStep{{"HELO mydom.com", 250}}); err != nil {
-		t.Error(err)
-	}
-	if err := playSession(t, server, []scriptStep{{"HelO mydom.com", 250}}); err != nil {
-		t.Error(err)
-	}
-	if err := playSession(t, server, []scriptStep{{"helo 127.0.0.1", 250}}); err != nil {
-		t.Error(err)
-	}
-	if err := playSession(t, server, []scriptStep{{"HELO ABC", 250}}); err != nil {
-		t.Error(err)
-	}
-
-	// Valid EHLOs
-	if err := playSession(t, server, []scriptStep{{"EHLO mydomain", 250}}); err != nil {
-		t.Error(err)
-	}
-	if err := playSession(t, server, []scriptStep{{"EHLO mydom.com", 250}}); err != nil {
-		t.Error(err)
-	}
-	if err := playSession(t, server, []scriptStep{{"EhlO mydom.com", 250}}); err != nil {
-		t.Error(err)
-	}
-	if err := playSession(t, server, []scriptStep{{"ehlo 127.0.0.1", 250}}); err != nil {
-		t.Error(err)
-	}
-	if err := playSession(t, server, []scriptStep{{"EHLO a", 250}}); err != nil {
-		t.Error(err)
-	}
-
 }
 
-// Test commands in READY state
 func TestEmptyEnvelope(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds)
@@ -102,7 +105,7 @@ func TestEmptyEnvelope(t *testing.T) {
 	}
 }
 
-// Test AUTH
+// Test AUTH commands.
 func TestAuth(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds)
@@ -139,15 +142,64 @@ func TestAuth(t *testing.T) {
 	}
 }
 
-// Test commands in READY state
-func TestReadyState(t *testing.T) {
+// Test TLS commands.
+func TestTLS(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds)
 	defer server.Drain()
 
-	// Test out some mangled READY commands
+	// Test Start TLS parsing.
 	script := []scriptStep{
 		{"HELO localhost", 250},
+		{"STARTTLS", 454}, // TLS unconfigured.
+	}
+
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+}
+
+// Test valid commands in READY state.
+func TestReadyStateValidCommands(t *testing.T) {
+	ds := test.NewStore()
+	server := setupSMTPServer(ds)
+
+	// Test out some valid MAIL commands
+	tests := []scriptStep{
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"MAIL FROM: <john@gmail.com>", 250},
+		{"MAIL FROM: <john@gmail.com> BODY=8BITMIME", 250},
+		{"MAIL FROM:<john@gmail.com> SIZE=1024", 250},
+		{"MAIL FROM:<john@gmail.com> SIZE=1024 BODY=8BITMIME", 250},
+		{"MAIL FROM:<bounces@onmicrosoft.com> SIZE=4096 AUTH=<>", 250},
+		{"MAIL FROM:<host!host!user/data@foo.com>", 250},
+		{"MAIL FROM:<\"first last\"@space.com>", 250},
+		{"MAIL FROM:<user\\@internal@external.com>", 250},
+		{"MAIL FROM:<user\\>name@host.com>", 250},
+		{"MAIL FROM:<\"user>name\"@host.com>", 250},
+		{"MAIL FROM:<\"user@internal\"@external.com>", 250},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.send, func(t *testing.T) {
+			defer server.Drain()
+			script := []scriptStep{
+				{"HELO localhost", 250},
+				tc,
+				{"QUIT", 221}}
+			if err := playSession(t, server, script); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+}
+
+// Test invalid commands in READY state.
+func TestReadyStateInvalidCommands(t *testing.T) {
+	ds := test.NewStore()
+	server := setupSMTPServer(ds)
+
+	tests := []scriptStep{
 		{"FOOB", 500},
 		{"HELO", 503},
 		{"DATA", 503},
@@ -159,49 +211,20 @@ func TestReadyState(t *testing.T) {
 		{"MAIL FROM:<first@last@gmail.com>", 501},
 		{"MAIL FROM:<first last@gmail.com>", 501},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
+
+	for _, tc := range tests {
+		t.Run(tc.send, func(t *testing.T) {
+			defer server.Drain()
+			script := []scriptStep{
+				{"HELO localhost", 250},
+				tc,
+				{"QUIT", 221}}
+			if err := playSession(t, server, script); err != nil {
+				t.Error(err)
+			}
+		})
 	}
 
-	// Test out some valid MAIL commands
-	script = []scriptStep{
-		{"HELO localhost", 250},
-		{"MAIL FROM:<john@gmail.com>", 250},
-		{"RSET", 250},
-		{"MAIL FROM: <john@gmail.com>", 250},
-		{"RSET", 250},
-		{"MAIL FROM: <john@gmail.com> BODY=8BITMIME", 250},
-		{"RSET", 250},
-		{"MAIL FROM:<john@gmail.com> SIZE=1024", 250},
-		{"RSET", 250},
-		{"MAIL FROM:<john@gmail.com> SIZE=1024 BODY=8BITMIME", 250},
-		{"RSET", 250},
-		{"MAIL FROM:<bounces@onmicrosoft.com> SIZE=4096 AUTH=<>", 250},
-		{"RSET", 250},
-		{"MAIL FROM:<host!host!user/data@foo.com>", 250},
-		{"RSET", 250},
-		{"MAIL FROM:<\"first last\"@space.com>", 250},
-		{"RSET", 250},
-		{"MAIL FROM:<user\\@internal@external.com>", 250},
-		{"RSET", 250},
-		{"MAIL FROM:<user\\>name@host.com>", 250},
-		{"RSET", 250},
-		{"MAIL FROM:<\"user>name\"@host.com>", 250},
-		{"RSET", 250},
-		{"MAIL FROM:<\"user@internal\"@external.com>", 250},
-	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
-
-	// Test Start TLS parsing.
-	script = []scriptStep{
-		{"HELO localhost", 250},
-		{"STARTTLS", 454}, // TLS unconfigured.
-	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
 }
 
 // Test commands in MAIL state

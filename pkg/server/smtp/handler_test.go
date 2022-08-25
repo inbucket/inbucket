@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"log"
 	"net"
 	"net/textproto"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/inbucket/inbucket/pkg/policy"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/inbucket/inbucket/pkg/test"
+	"github.com/rs/zerolog/log"
 )
 
 type scriptStep struct {
@@ -482,7 +482,7 @@ func setupSMTPServer(ds storage.Store) (s *Server, buf *bytes.Buffer, teardown f
 	}
 	// Capture log output.
 	buf = new(bytes.Buffer)
-	log.SetOutput(buf)
+	// log.SetOutput(buf)
 	// Create a server, don't start it.
 	// TODO Remove teardown.
 	teardown = func() {}
@@ -500,6 +500,6 @@ func setupSMTPSession(server *Server) net.Conn {
 	// Start the session.
 	server.wg.Add(1)
 	sessionNum++
-	go server.startSession(sessionNum, &mockConn{serverConn})
+	go server.startSession(sessionNum, &mockConn{serverConn}, log.Logger)
 	return clientConn
 }

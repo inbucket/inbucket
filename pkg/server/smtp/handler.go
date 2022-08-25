@@ -15,7 +15,6 @@ import (
 
 	"github.com/inbucket/inbucket/pkg/policy"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 // State tracks the current mode of our SMTP state machine.
@@ -144,8 +143,8 @@ func (s *Session) String() string {
  *  4. If bad cmd, respond error
  *  5. Goto 2
  */
-func (s *Server) startSession(id int, conn net.Conn) {
-	logger := log.Hook(logHook{}).With().
+func (s *Server) startSession(id int, conn net.Conn, logger zerolog.Logger) {
+	logger = logger.Hook(logHook{}).With().
 		Str("module", "smtp").
 		Str("remote", conn.RemoteAddr().String()).
 		Int("session", id).Logger()

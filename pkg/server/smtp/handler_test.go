@@ -14,7 +14,7 @@ import (
 	"github.com/inbucket/inbucket/pkg/policy"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/inbucket/inbucket/pkg/test"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type scriptStep struct {
@@ -73,6 +73,8 @@ func TestGreetState(t *testing.T) {
 	if err := playSession(t, server, []scriptStep{{"EHLO a", 250}}); err != nil {
 		t.Error(err)
 	}
+
+	server.Drain() // Required to prevent test logging data race.
 }
 
 // Test commands in READY state
@@ -97,6 +99,8 @@ func TestEmptyEnvelope(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
+
+	server.Drain()
 }
 
 // Test AUTH
@@ -133,6 +137,8 @@ func TestAuth(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
+
+	server.Drain()
 }
 
 // Test commands in READY state
@@ -197,6 +203,8 @@ func TestReadyState(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
+
+	server.Drain()
 }
 
 // Test commands in MAIL state
@@ -303,6 +311,8 @@ func TestMailState(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
+
+	server.Drain()
 }
 
 // Test commands in DATA state
@@ -311,7 +321,7 @@ func TestDataState(t *testing.T) {
 	server := setupSMTPServer(mds)
 
 	var script []scriptStep
-	pipe := setupSMTPSession(server)
+	pipe := setupSMTPSession(t, server)
 	c := textproto.NewConn(pipe)
 
 	if code, _, err := c.ReadCodeLine(220); err != nil {
@@ -326,6 +336,7 @@ func TestDataState(t *testing.T) {
 	if err := playScriptAgainst(t, c, script); err != nil {
 		t.Error(err)
 	}
+
 	// Send a message
 	body := `To: u1@gmail.com
 From: john@gmail.com
@@ -339,9 +350,11 @@ Hi!
 	if code, _, err := c.ReadCodeLine(250); err != nil {
 		t.Errorf("Expected a 250 greeting, got %v", code)
 	}
+	_, _ = c.Cmd("QUIT")
+	_, _, _ = c.ReadCodeLine(221)
 
 	// Test with no useful headers.
-	pipe = setupSMTPSession(server)
+	pipe = setupSMTPSession(t, server)
 	c = textproto.NewConn(pipe)
 	if code, _, err := c.ReadCodeLine(220); err != nil {
 		t.Errorf("Expected a 220 greeting, got %v", code)
@@ -355,22 +368,27 @@ Hi!
 	if err := playScriptAgainst(t, c, script); err != nil {
 		t.Error(err)
 	}
+
 	// Send a message
 	body = `X-Useless-Header: true
 
-Hi! Can you still deliver this?
-`
+	Hi! Can you still deliver this?
+	`
 	dw = c.DotWriter()
 	_, _ = io.WriteString(dw, body)
 	_ = dw.Close()
 	if code, _, err := c.ReadCodeLine(250); err != nil {
 		t.Errorf("Expected a 250 greeting, got %v", code)
 	}
+	_, _ = c.Cmd("QUIT")
+	_, _, _ = c.ReadCodeLine(221)
+
+	server.Drain()
 }
 
 // playSession creates a new session, reads the greeting and then plays the script
 func playSession(t *testing.T, server *Server, script []scriptStep) error {
-	pipe := setupSMTPSession(server)
+	pipe := setupSMTPSession(t, server)
 	c := textproto.NewConn(pipe)
 
 	if code, _, err := c.ReadCodeLine(220); err != nil {
@@ -443,12 +461,14 @@ func setupSMTPServer(ds storage.Store) *Server {
 
 var sessionNum int
 
-func setupSMTPSession(server *Server) net.Conn {
-	// Pair of pipes to communicate.
+func setupSMTPSession(t *testing.T, server *Server) net.Conn {
+	logger := zerolog.New(zerolog.NewTestWriter(t))
 	serverConn, clientConn := net.Pipe()
+
 	// Start the session.
 	server.wg.Add(1)
 	sessionNum++
-	go server.startSession(sessionNum, &mockConn{serverConn}, log.Logger)
+	go server.startSession(sessionNum, &mockConn{serverConn}, logger)
+
 	return clientConn
 }

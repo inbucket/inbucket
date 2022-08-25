@@ -26,6 +26,7 @@ type scriptStep struct {
 func TestGreetState(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds)
+	defer server.Drain() // Required to prevent test logging data race.
 
 	// Test out some mangled HELOs
 	script := []scriptStep{
@@ -74,13 +75,13 @@ func TestGreetState(t *testing.T) {
 		t.Error(err)
 	}
 
-	server.Drain() // Required to prevent test logging data race.
 }
 
 // Test commands in READY state
 func TestEmptyEnvelope(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds)
+	defer server.Drain()
 
 	// Test out some empty envelope without blanks
 	script := []scriptStep{
@@ -99,14 +100,13 @@ func TestEmptyEnvelope(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
-
-	server.Drain()
 }
 
 // Test AUTH
 func TestAuth(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds)
+	defer server.Drain()
 
 	// PLAIN AUTH
 	script := []scriptStep{
@@ -137,14 +137,13 @@ func TestAuth(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
-
-	server.Drain()
 }
 
 // Test commands in READY state
 func TestReadyState(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds)
+	defer server.Drain()
 
 	// Test out some mangled READY commands
 	script := []scriptStep{
@@ -203,14 +202,13 @@ func TestReadyState(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
-
-	server.Drain()
 }
 
 // Test commands in MAIL state
 func TestMailState(t *testing.T) {
 	mds := test.NewStore()
 	server := setupSMTPServer(mds)
+	defer server.Drain()
 
 	// Test out some mangled READY commands
 	script := []scriptStep{
@@ -311,14 +309,13 @@ func TestMailState(t *testing.T) {
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
 	}
-
-	server.Drain()
 }
 
 // Test commands in DATA state
 func TestDataState(t *testing.T) {
 	mds := test.NewStore()
 	server := setupSMTPServer(mds)
+	defer server.Drain()
 
 	var script []scriptStep
 	pipe := setupSMTPSession(t, server)
@@ -382,8 +379,6 @@ Hi!
 	}
 	_, _ = c.Cmd("QUIT")
 	_, _, _ = c.ReadCodeLine(221)
-
-	server.Drain()
 }
 
 // playSession creates a new session, reads the greeting and then plays the script

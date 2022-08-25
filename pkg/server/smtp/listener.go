@@ -179,7 +179,6 @@ func (s *Server) serve(ctx context.Context) {
 func (s *Server) Drain() {
 	// Wait for sessions to close.
 	s.wg.Wait()
-	log.Debug().Str("module", "smtp").Str("phase", "shutdown").Msg("SMTP connections have drained")
 }
 
 // Notify allows the running SMTP server to be monitored for a fatal error.

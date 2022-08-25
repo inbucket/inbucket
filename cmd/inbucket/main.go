@@ -145,9 +145,13 @@ signalLoop:
 
 	// Wait for active connections to finish.
 	go timedExit(*pidfile)
+	log.Debug().Str("phase", "shutdown").Msg("Draining SMTP connections")
 	services.SMTPServer.Drain()
+	log.Debug().Str("phase", "shutdown").Msg("Draining POP3 connections")
 	services.POP3Server.Drain()
+	log.Debug().Str("phase", "shutdown").Msg("Checking retention scanner is stopped")
 	services.RetentionScanner.Join()
+
 	removePIDFile(*pidfile)
 	closeLog()
 }

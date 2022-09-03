@@ -172,6 +172,7 @@ func TestReadyStateValidCommands(t *testing.T) {
 		{"MAIL FROM:<john@gmail.com> SIZE=1024", 250},
 		{"MAIL FROM:<john@gmail.com> SIZE=1024 BODY=8BITMIME", 250},
 		{"MAIL FROM:<bounces@onmicrosoft.com> SIZE=4096 AUTH=<>", 250},
+		{"MAIL FROM:<b@o.com> SIZE=4096 AUTH=<> BODY=7BIT", 250},
 		{"MAIL FROM:<host!host!user/data@foo.com>", 250},
 		{"MAIL FROM:<\"first last\"@space.com>", 250},
 		{"MAIL FROM:<user\\@internal@external.com>", 250},

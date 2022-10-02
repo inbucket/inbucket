@@ -11,7 +11,7 @@ stdenv.mkDerivation rec {
     elmPackages.elm-json
     elmPackages.elm-language-server
     elmPackages.elm-test
-    go
+    go_1_18
     golint
     nodejs-16_x
     nodePackages.yarn

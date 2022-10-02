@@ -58,7 +58,7 @@ const (
 // as quoted pair and in double quoted strings (?i) makes the regex case insensitive, (?:) is
 // non-grouping sub-match.  Accepts empty angle bracket value in options for 'AUTH=<>'.
 var fromRegex = regexp.MustCompile(
-	`(?i)^FROM:\s*<((?:(?:\\>|[^>])+|"[^"]+"@[^>])+)?>( [\w= ]+(?:=<>)?)?$`)
+	`(?i)^FROM:\s*<((?:(?:\\>|[^>])+|"[^"]+"@[^>])+)?>( ([\w= ]|=<>)+)?$`)
 
 func (s State) String() string {
 	switch s {
@@ -619,7 +619,7 @@ func (s *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 // The leading space is mandatory.
 func (s *Session) parseArgs(arg string) (args map[string]string, ok bool) {
 	args = make(map[string]string)
-	re := regexp.MustCompile(` (\w+)=(\w+)`)
+	re := regexp.MustCompile(` (\w+)=(\w+|<>)`)
 	pm := re.FindAllStringSubmatch(arg, -1)
 	if pm == nil {
 		s.logger.Warn().Msgf("Failed to parse arg string: %q", arg)

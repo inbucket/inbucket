@@ -9,7 +9,7 @@ commands = client inbucket
 
 all: clean test lint build
 
-$(commands): %: cmd/%
+$(commands): %: cmd/% $(SRC)
 	go build ./$<
 
 clean:

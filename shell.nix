@@ -13,6 +13,7 @@ stdenv.mkDerivation rec {
     elmPackages.elm-test
     go_1_18
     golint
+    gopls
     nodejs-16_x
     nodePackages.yarn
     rpm

@@ -1,8 +1,18 @@
-with import <nixpkgs> {};
-stdenv.mkDerivation rec {
-  name = "env";
-  env = buildEnv { name = name; paths = buildInputs; };
-  buildInputs = [
+{ pkgs ? import <nixpkgs> { } }:
+let
+  scripts = {
+    # Quick test script.
+    qt = pkgs.writeScriptBin "qt" ''
+      # Builds & starts inbucket, then sends it some test mail.
+
+      make build test inbucket || exit
+      (sleep 3; etc/swaks-tests/run-tests.sh >/dev/null) &
+      env INBUCKET_LOGLEVEL=debug ./inbucket
+    '';
+  };
+in
+pkgs.mkShell {
+  buildInputs = with pkgs; [
     act
     dpkg
     elmPackages.elm
@@ -18,5 +28,7 @@ stdenv.mkDerivation rec {
     nodePackages.yarn
     rpm
     swaks
+
+    scripts.qt
   ];
 }

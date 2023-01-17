@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # rest-apiv1.sh
 # description: Script to access Inbucket REST API version 1
 

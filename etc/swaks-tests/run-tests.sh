@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # run-tests.sh
 # description: Generate test emails for Inbucket
 

@@ -3,26 +3,17 @@ package msghub
 import (
 	"container/ring"
 	"context"
-	"time"
+
+	"github.com/inbucket/inbucket/pkg/extension"
+	"github.com/inbucket/inbucket/pkg/extension/event"
 )
 
 // Length of msghub operation queue
 const opChanLen = 100
 
-// Message contains the basic header data for a message
-type Message struct {
-	Mailbox string
-	ID      string
-	From    string
-	To      []string
-	Subject string
-	Date    time.Time
-	Size    int64
-}
-
 // Listener receives the contents of the history buffer, followed by new messages
 type Listener interface {
-	Receive(msg Message) error
+	Receive(msg event.MessageMetadata) error
 }
 
 // Hub relays messages on to its listeners
@@ -36,12 +27,21 @@ type Hub struct {
 // New constructs a new Hub which will cache historyLen messages in memory for playback to future
 // listeners.  A goroutine is created to handle incoming messages; it will run until the provided
 // context is canceled.
-func New(historyLen int) *Hub {
-	return &Hub{
+func New(historyLen int, extHost *extension.Host) *Hub {
+	hub := &Hub{
 		history:   ring.New(historyLen),
 		listeners: make(map[Listener]struct{}),
 		opChan:    make(chan func(h *Hub), opChanLen),
 	}
+
+	// Register an extension event listener for MessageStored.
+	extHost.Events.MessageStored.AddListener("msghub",
+		func(msg event.MessageMetadata) *extension.Void {
+			hub.Dispatch(msg)
+			return nil
+		})
+
+	return hub
 }
 
 // Start Hub processing loop.
@@ -60,12 +60,13 @@ func (hub *Hub) Start(ctx context.Context) {
 
 // Dispatch queues a message for broadcast by the hub.  The message will be placed into the
 // history buffer and then relayed to all registered listeners.
-func (hub *Hub) Dispatch(msg Message) {
+func (hub *Hub) Dispatch(msg event.MessageMetadata) {
 	hub.opChan <- func(h *Hub) {
 		if h.history != nil {
 			// Add to history buffer
 			h.history.Value = msg
 			h.history = h.history.Next()
+
 			// Deliver message to all listeners, removing listeners if they return an error
 			for l := range h.listeners {
 				if err := l.Receive(msg); err != nil {
@@ -82,7 +83,7 @@ func (hub *Hub) AddListener(l Listener) {
 		// Playback log
 		h.history.Do(func(v interface{}) {
 			if v != nil {
-				l.Receive(v.(Message))
+				l.Receive(v.(event.MessageMetadata))
 			}
 		})
 

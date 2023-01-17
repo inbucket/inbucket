@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/msghub"
 	"github.com/inbucket/inbucket/pkg/rest/model"
 	"github.com/inbucket/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog/log"
 )
 
@@ -33,9 +35,9 @@ var upgrader = websocket.Upgrader{
 
 // msgListener handles messages from the msghub
 type msgListener struct {
-	hub     *msghub.Hub         // Global message hub
-	c       chan msghub.Message // Queue of messages from Receive()
-	mailbox string              // Name of mailbox to monitor, "" == all mailboxes
+	hub     *msghub.Hub                // Global message hub
+	c       chan event.MessageMetadata // Queue of messages from Receive()
+	mailbox string                     // Name of mailbox to monitor, "" == all mailboxes
 }
 
 // newMsgListener creates a listener and registers it.  Optional mailbox parameter will restrict
@@ -43,7 +45,7 @@ type msgListener struct {
 func newMsgListener(hub *msghub.Hub, mailbox string) *msgListener {
 	ml := &msgListener{
 		hub:     hub,
-		c:       make(chan msghub.Message, 100),
+		c:       make(chan event.MessageMetadata, 100),
 		mailbox: mailbox,
 	}
 	hub.AddListener(ml)
@@ -51,7 +53,7 @@ func newMsgListener(hub *msghub.Hub, mailbox string) *msgListener {
 }
 
 // Receive handles an incoming message
-func (ml *msgListener) Receive(msg msghub.Message) error {
+func (ml *msgListener) Receive(msg event.MessageMetadata) error {
 	if ml.mailbox != "" && ml.mailbox != msg.Mailbox {
 		// Did not match mailbox name
 		return nil
@@ -112,8 +114,8 @@ func (ml *msgListener) WSWriter(conn *websocket.Conn) {
 			header := &model.JSONMessageHeaderV1{
 				Mailbox:     msg.Mailbox,
 				ID:          msg.ID,
-				From:        msg.From,
-				To:          msg.To,
+				From:        stringutil.StringAddress(msg.From),
+				To:          stringutil.StringAddressList(msg.To),
 				Subject:     msg.Subject,
 				Date:        msg.Date,
 				PosixMillis: msg.Date.UnixNano() / 1000000,

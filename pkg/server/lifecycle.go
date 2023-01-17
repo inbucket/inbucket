@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/msghub"
 	"github.com/inbucket/inbucket/pkg/policy"
@@ -24,12 +25,16 @@ type Services struct {
 	RetentionScanner *storage.RetentionScanner
 	SMTPServer       *smtp.Server
 	WebServer        *web.Server
+	ExtHost          *extension.Host
 	notify           chan error      // Combined notification for failed services.
 	ready            *sync.WaitGroup // Tracks services that have not reported ready.
 }
 
 // FullAssembly wires up a complete Inbucket environment.
 func FullAssembly(conf *config.Root) (*Services, error) {
+	// Configure extensions.
+	extHost := extension.NewHost()
+
 	// Configure storage.
 	store, err := storage.FromConfig(conf.Storage)
 	if err != nil {
@@ -37,8 +42,9 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 	}
 
 	addrPolicy := &policy.Addressing{Config: conf}
-	msgHub := msghub.New(conf.Web.MonitorHistory)
-	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
+	// Configure shared components.
+	msgHub := msghub.New(conf.Web.MonitorHistory, extHost)
+	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, ExtHost: extHost}
 
 	// Start Retention scanner.
 	retentionScanner := storage.NewRetentionScanner(conf.Storage, store)
@@ -58,6 +64,7 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 		POP3Server:       pop3Server,
 		SMTPServer:       smtpServer,
 		WebServer:        webServer,
+		ExtHost:          extHost,
 		ready:            &sync.WaitGroup{},
 	}, nil
 }

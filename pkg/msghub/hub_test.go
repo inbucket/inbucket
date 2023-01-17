@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/inbucket/inbucket/pkg/extension"
+	"github.com/inbucket/inbucket/pkg/extension/event"
 )
 
 // testListener implements the Listener interface, mock for unit tests
 type testListener struct {
-	messages     []*Message // received messages
-	wantMessages int        // how many messages this listener wants to receive
-	errorAfter   int        // when != 0, messages until Receive() begins returning error
+	messages     []*event.MessageMetadata // received messages
+	wantMessages int                      // how many messages this listener wants to receive
+	errorAfter   int                      // when != 0, messages until Receive() begins returning error
 
 	done     chan struct{} // closed once we have received wantMessages
 	overflow chan struct{} // closed if we receive wantMessages+1
@@ -19,7 +22,7 @@ type testListener struct {
 
 func newTestListener(want int) *testListener {
 	l := &testListener{
-		messages:     make([]*Message, 0, want*2),
+		messages:     make([]*event.MessageMetadata, 0, want*2),
 		wantMessages: want,
 		done:         make(chan struct{}),
 		overflow:     make(chan struct{}),
@@ -32,7 +35,7 @@ func newTestListener(want int) *testListener {
 
 // Receive a Message, store it in the messages slice, close applicable channels, and return an error
 // if instructed
-func (l *testListener) Receive(msg Message) error {
+func (l *testListener) Receive(msg event.MessageMetadata) error {
 	l.messages = append(l.messages, &msg)
 	if len(l.messages) == l.wantMessages {
 		close(l.done)
@@ -52,7 +55,7 @@ func (l *testListener) String() string {
 }
 
 func TestHubNew(t *testing.T) {
-	hub := New(5)
+	hub := New(5, extension.NewHost())
 	if hub == nil {
 		t.Fatal("New() == nil, expected a new Hub")
 	}
@@ -61,9 +64,9 @@ func TestHubNew(t *testing.T) {
 func TestHubZeroLen(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(0)
+	hub := New(0, extension.NewHost())
 	go hub.Start(ctx)
-	m := Message{}
+	m := event.MessageMetadata{}
 	for i := 0; i < 100; i++ {
 		hub.Dispatch(m)
 	}
@@ -73,9 +76,9 @@ func TestHubZeroLen(t *testing.T) {
 func TestHubZeroListeners(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(5)
+	hub := New(5, extension.NewHost())
 	go hub.Start(ctx)
-	m := Message{}
+	m := event.MessageMetadata{}
 	for i := 0; i < 100; i++ {
 		hub.Dispatch(m)
 	}
@@ -85,9 +88,9 @@ func TestHubZeroListeners(t *testing.T) {
 func TestHubOneListener(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(5)
+	hub := New(5, extension.NewHost())
 	go hub.Start(ctx)
-	m := Message{}
+	m := event.MessageMetadata{}
 	l := newTestListener(1)
 
 	hub.AddListener(l)
@@ -104,9 +107,9 @@ func TestHubOneListener(t *testing.T) {
 func TestHubRemoveListener(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(5)
+	hub := New(5, extension.NewHost())
 	go hub.Start(ctx)
-	m := Message{}
+	m := event.MessageMetadata{}
 	l := newTestListener(1)
 
 	hub.AddListener(l)
@@ -127,9 +130,9 @@ func TestHubRemoveListener(t *testing.T) {
 func TestHubRemoveListenerOnError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(5)
+	hub := New(5, extension.NewHost())
 	go hub.Start(ctx)
-	m := Message{}
+	m := event.MessageMetadata{}
 
 	// error after 1 means listener should receive 2 messages before being removed
 	l := newTestListener(2)
@@ -154,15 +157,15 @@ func TestHubRemoveListenerOnError(t *testing.T) {
 func TestHubHistoryReplay(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(100)
+	hub := New(100, extension.NewHost())
 	go hub.Start(ctx)
 	l1 := newTestListener(3)
 	hub.AddListener(l1)
 
 	// Broadcast 3 messages with no listeners
-	msgs := make([]Message, 3)
+	msgs := make([]event.MessageMetadata, 3)
 	for i := 0; i < len(msgs); i++ {
-		msgs[i] = Message{
+		msgs[i] = event.MessageMetadata{
 			Subject: fmt.Sprintf("subj %v", i),
 		}
 		hub.Dispatch(msgs[i])
@@ -198,15 +201,15 @@ func TestHubHistoryReplay(t *testing.T) {
 func TestHubHistoryReplayWrap(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hub := New(5)
+	hub := New(5, extension.NewHost())
 	go hub.Start(ctx)
 	l1 := newTestListener(20)
 	hub.AddListener(l1)
 
 	// Broadcast more messages than the hub can hold
-	msgs := make([]Message, 20)
+	msgs := make([]event.MessageMetadata, 20)
 	for i := 0; i < len(msgs); i++ {
-		msgs[i] = Message{
+		msgs[i] = event.MessageMetadata{
 			Subject: fmt.Sprintf("subj %v", i),
 		}
 		hub.Dispatch(msgs[i])
@@ -241,9 +244,9 @@ func TestHubHistoryReplayWrap(t *testing.T) {
 
 func TestHubContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	hub := New(5)
+	hub := New(5, extension.NewHost())
 	go hub.Start(ctx)
-	m := Message{}
+	m := event.MessageMetadata{}
 	l := newTestListener(1)
 
 	hub.AddListener(l)

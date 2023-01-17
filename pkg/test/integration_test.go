@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/msghub"
 	"github.com/inbucket/inbucket/pkg/policy"
@@ -230,9 +231,10 @@ func startServer() (func(), error) {
 	}
 
 	// TODO Test should not pass with unstarted msghub.
-	msgHub := msghub.New(conf.Web.MonitorHistory)
 	addrPolicy := &policy.Addressing{Config: conf}
-	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, Hub: msgHub}
+	extHost := extension.NewHost()
+	msgHub := msghub.New(conf.Web.MonitorHistory, extHost)
+	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, ExtHost: extHost}
 
 	// Start HTTP server.
 	webui.SetupRoutes(web.Router.PathPrefix("/serve/").Subrouter())

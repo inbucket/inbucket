@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/pkg/extension"
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/policy"
 	"github.com/inbucket/inbucket/pkg/storage"
-	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/jhillyerd/enmime"
 	"github.com/rs/zerolog/log"
 )
@@ -37,7 +37,7 @@ type Manager interface {
 type StoreManager struct {
 	AddrPolicy *policy.Addressing
 	Store      storage.Store
-	Hub        *msghub.Hub
+	ExtHost    *extension.Host
 }
 
 // Deliver submits a new message to the store.
@@ -65,6 +65,7 @@ func (s *StoreManager) Deliver(
 			toaddr[i] = &torecip.Address
 		}
 	}
+
 	log.Debug().Str("module", "message").Str("mailbox", to.Mailbox).Msg("Delivering message")
 	delivery := &Delivery{
 		Meta: Metadata{
@@ -80,19 +81,20 @@ func (s *StoreManager) Deliver(
 	if err != nil {
 		return "", err
 	}
-	if s.Hub != nil {
-		// Broadcast message information.
-		broadcast := msghub.Message{
-			Mailbox: to.Mailbox,
-			ID:      id,
-			From:    stringutil.StringAddress(delivery.From()),
-			To:      stringutil.StringAddressList(delivery.To()),
-			Subject: delivery.Subject(),
-			Date:    delivery.Date(),
-			Size:    delivery.Size(),
-		}
-		s.Hub.Dispatch(broadcast)
+
+	// Emit message stored event.
+	event := event.MessageMetadata{
+		Mailbox: to.Mailbox,
+		ID:      id,
+		From:    delivery.From(),
+		To:      delivery.To(),
+		Subject: delivery.Subject(),
+		Date:    delivery.Date(),
+		Size:    delivery.Size(),
 	}
+	// TODO Add a unit test to make sure we send this.
+	s.ExtHost.Events.MessageStored.Emit(&event)
+
 	return id, nil
 }
 

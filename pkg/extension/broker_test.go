@@ -6,7 +6,7 @@ import (
 	"github.com/inbucket/inbucket/pkg/extension"
 )
 
-func testBrokerEmitCallsOneListener(t *testing.T) {
+func TestBrokerEmitCallsOneListener(t *testing.T) {
 	broker := &extension.EventBroker[string, bool]{}
 
 	// Setup listener.
@@ -24,7 +24,7 @@ func testBrokerEmitCallsOneListener(t *testing.T) {
 	}
 }
 
-func testBrokerEmitCallsMultipleListeners(t *testing.T) {
+func TestBrokerEmitCallsMultipleListeners(t *testing.T) {
 	broker := &extension.EventBroker[string, bool]{}
 
 	// Setup listeners.
@@ -51,7 +51,7 @@ func testBrokerEmitCallsMultipleListeners(t *testing.T) {
 	}
 }
 
-func testBrokerEmitCapturesFirstResult(t *testing.T) {
+func TestBrokerEmitCapturesFirstResult(t *testing.T) {
 	broker := &extension.EventBroker[struct{}, string]{}
 
 	// Setup listeners.
@@ -73,7 +73,7 @@ func testBrokerEmitCapturesFirstResult(t *testing.T) {
 	}
 }
 
-func testBrokerAddingDuplicateNameReplacesPrevious(t *testing.T) {
+func TestBrokerAddingDuplicateNameReplacesPrevious(t *testing.T) {
 	broker := &extension.EventBroker[string, bool]{}
 
 	// Setup listeners.
@@ -100,7 +100,7 @@ func testBrokerAddingDuplicateNameReplacesPrevious(t *testing.T) {
 	}
 }
 
-func testBrokerRemovingListenerSuccessful(t *testing.T) {
+func TestBrokerRemovingListenerSuccessful(t *testing.T) {
 	broker := &extension.EventBroker[string, bool]{}
 
 	// Setup listeners.
@@ -128,7 +128,7 @@ func testBrokerRemovingListenerSuccessful(t *testing.T) {
 	}
 }
 
-func testBrokerRemovingMissingListener(t *testing.T) {
+func TestBrokerRemovingMissingListener(t *testing.T) {
 	broker := &extension.EventBroker[string, bool]{}
 	broker.RemoveListener("doesn't crash")
 }

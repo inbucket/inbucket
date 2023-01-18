@@ -92,7 +92,6 @@ func (s *StoreManager) Deliver(
 		Date:    delivery.Date(),
 		Size:    delivery.Size(),
 	}
-	// TODO Add a unit test to make sure we send this.
 	s.ExtHost.Events.MessageStored.Emit(&event)
 
 	return id, nil

@@ -35,7 +35,7 @@ func New(historyLen int, extHost *extension.Host) *Hub {
 	}
 
 	// Register an extension event listener for MessageStored.
-	extHost.Events.MessageStored.AddListener("msghub",
+	extHost.Events.AfterMessageStored.AddListener("msghub",
 		func(msg event.MessageMetadata) *extension.Void {
 			hub.Dispatch(msg)
 			return nil

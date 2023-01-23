@@ -243,7 +243,7 @@ func startServer() (func(), error) {
 	go webServer.Start(svcCtx, func() {})
 
 	// Start SMTP server.
-	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy)
+	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy, extHost)
 	go smtpServer.Start(svcCtx, func() {})
 
 	// TODO Use a readyFunc to determine server readiness.

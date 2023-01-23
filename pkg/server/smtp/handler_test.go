@@ -10,11 +10,14 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/policy"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/inbucket/inbucket/pkg/test"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 )
 
 type scriptStep struct {
@@ -25,7 +28,7 @@ type scriptStep struct {
 // Test valid commands in GREET state.
 func TestGreetStateValidCommands(t *testing.T) {
 	ds := test.NewStore()
-	server := setupSMTPServer(ds)
+	server := setupSMTPServer(ds, extension.NewHost())
 
 	tests := []scriptStep{
 		{"HELO mydomain", 250},
@@ -56,7 +59,7 @@ func TestGreetStateValidCommands(t *testing.T) {
 // Test invalid commands in GREET state.
 func TestGreetState(t *testing.T) {
 	ds := test.NewStore()
-	server := setupSMTPServer(ds)
+	server := setupSMTPServer(ds, extension.NewHost())
 	defer server.Drain() // Required to prevent test logging data race.
 
 	tests := []scriptStep{
@@ -83,7 +86,7 @@ func TestGreetState(t *testing.T) {
 
 func TestEmptyEnvelope(t *testing.T) {
 	ds := test.NewStore()
-	server := setupSMTPServer(ds)
+	server := setupSMTPServer(ds, extension.NewHost())
 	defer server.Drain()
 
 	// Test out some empty envelope without blanks
@@ -108,7 +111,7 @@ func TestEmptyEnvelope(t *testing.T) {
 // Test AUTH commands.
 func TestAuth(t *testing.T) {
 	ds := test.NewStore()
-	server := setupSMTPServer(ds)
+	server := setupSMTPServer(ds, extension.NewHost())
 	defer server.Drain()
 
 	// PLAIN AUTH
@@ -145,7 +148,7 @@ func TestAuth(t *testing.T) {
 // Test TLS commands.
 func TestTLS(t *testing.T) {
 	ds := test.NewStore()
-	server := setupSMTPServer(ds)
+	server := setupSMTPServer(ds, extension.NewHost())
 	defer server.Drain()
 
 	// Test Start TLS parsing.
@@ -162,7 +165,7 @@ func TestTLS(t *testing.T) {
 // Test valid commands in READY state.
 func TestReadyStateValidCommands(t *testing.T) {
 	ds := test.NewStore()
-	server := setupSMTPServer(ds)
+	server := setupSMTPServer(ds, extension.NewHost())
 
 	// Test out some valid MAIL commands
 	tests := []scriptStep{
@@ -198,7 +201,7 @@ func TestReadyStateValidCommands(t *testing.T) {
 // Test invalid commands in READY state.
 func TestReadyStateInvalidCommands(t *testing.T) {
 	ds := test.NewStore()
-	server := setupSMTPServer(ds)
+	server := setupSMTPServer(ds, extension.NewHost())
 
 	tests := []scriptStep{
 		{"FOOB", 500},
@@ -231,7 +234,7 @@ func TestReadyStateInvalidCommands(t *testing.T) {
 // Test commands in MAIL state
 func TestMailState(t *testing.T) {
 	mds := test.NewStore()
-	server := setupSMTPServer(mds)
+	server := setupSMTPServer(mds, extension.NewHost())
 	defer server.Drain()
 
 	// Test out some mangled READY commands
@@ -338,7 +341,7 @@ func TestMailState(t *testing.T) {
 // Test commands in DATA state
 func TestDataState(t *testing.T) {
 	mds := test.NewStore()
-	server := setupSMTPServer(mds)
+	server := setupSMTPServer(mds, extension.NewHost())
 	defer server.Drain()
 
 	var script []scriptStep
@@ -448,6 +451,93 @@ func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) err
 	return nil
 }
 
+// Tests "MAIL FROM" emits BeforeMailAccepted event.
+func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
+	ds := test.NewStore()
+	extHost := extension.NewHost()
+	server := setupSMTPServer(ds, extHost)
+	defer server.Drain()
+
+	var got *event.AddressParts
+	extHost.Events.BeforeMailAccepted.AddListener(
+		"test",
+		func(addr event.AddressParts) *bool {
+			got = &addr
+			return nil
+		})
+
+	// Play and verify SMTP session.
+	script := []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"QUIT", 221}}
+	if err := playSession(t, server, script); err != nil {
+		t.Error(err)
+	}
+
+	assert.NotNil(t, got, "BeforeMailListener did not receive Address")
+	assert.Equal(t, "john", got.Local, "Address local part had wrong value")
+	assert.Equal(t, "gmail.com", got.Domain, "Address domain part had wrong value")
+}
+
+// Test "MAIL FROM" acts on BeforeMailAccepted event result.
+func TestBeforeMailAcceptedEventResponse(t *testing.T) {
+	ds := test.NewStore()
+	extHost := extension.NewHost()
+	server := setupSMTPServer(ds, extHost)
+	defer server.Drain()
+
+	var shouldReturn *bool
+	var gotEvent *event.AddressParts
+	extHost.Events.BeforeMailAccepted.AddListener(
+		"test",
+		func(addr event.AddressParts) *bool {
+			gotEvent = &addr
+			return shouldReturn
+		})
+
+	allowRes := true
+	denyRes := false
+	tcs := map[string]struct {
+		script   scriptStep // Command to send and SMTP code expected.
+		eventRes *bool      // Response to send from event listener.
+	}{
+		"allow": {
+			script:   scriptStep{"MAIL FROM:<john@gmail.com>", 250},
+			eventRes: &allowRes,
+		},
+		"deny": {
+			script:   scriptStep{"MAIL FROM:<john@gmail.com>", 550},
+			eventRes: &denyRes,
+		},
+		"defer": {
+			script:   scriptStep{"MAIL FROM:<john@gmail.com>", 250},
+			eventRes: nil,
+		},
+	}
+
+	for name, tc := range tcs {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			// Reset event listener.
+			shouldReturn = tc.eventRes
+			gotEvent = nil
+
+			// Play and verify SMTP session.
+			script := []scriptStep{
+				{"HELO localhost", 250},
+				tc.script,
+				{"QUIT", 221}}
+			if err := playSession(t, server, script); err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, gotEvent, "BeforeMailListener did not receive Address")
+		})
+	}
+
+}
+
 // net.Pipe does not implement deadlines
 type mockConn struct {
 	net.Conn
@@ -457,7 +547,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupSMTPServer(ds storage.Store) *Server {
+func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 	cfg := &config.Root{
 		MailboxNaming: config.FullNaming,
 		SMTP: config.SMTP{
@@ -475,7 +565,7 @@ func setupSMTPServer(ds storage.Store) *Server {
 	addrPolicy := &policy.Addressing{Config: cfg}
 	manager := &message.StoreManager{Store: ds}
 
-	return NewServer(cfg.SMTP, manager, addrPolicy)
+	return NewServer(cfg.SMTP, manager, addrPolicy, extHost)
 }
 
 var sessionNum int

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/metric"
 	"github.com/inbucket/inbucket/pkg/policy"
@@ -59,11 +60,12 @@ func init() {
 // Server holds the configuration and state of our SMTP server.
 type Server struct {
 	config     config.SMTP        // SMTP configuration.
+	tlsConfig  *tls.Config        // TLS encryption configuration.
 	addrPolicy *policy.Addressing // Address policy.
 	manager    message.Manager    // Used to deliver messages.
+	extHost    *extension.Host    // Extension event processor.
 	listener   net.Listener       // Incoming network connections.
 	wg         *sync.WaitGroup    // Waitgroup tracks individual sessions.
-	tlsConfig  *tls.Config        // TLS encryption configuration.
 	notify     chan error         // Notify on fatal error.
 }
 
@@ -72,6 +74,7 @@ func NewServer(
 	smtpConfig config.SMTP,
 	manager message.Manager,
 	apolicy *policy.Addressing,
+	extHost *extension.Host,
 ) *Server {
 	slog := log.With().Str("module", "smtp").Str("phase", "tls").Logger()
 	tlsConfig := &tls.Config{}
@@ -90,10 +93,11 @@ func NewServer(
 
 	return &Server{
 		config:     smtpConfig,
+		tlsConfig:  tlsConfig,
 		manager:    manager,
 		addrPolicy: apolicy,
+		extHost:    extHost,
 		wg:         new(sync.WaitGroup),
-		tlsConfig:  tlsConfig,
 		notify:     make(chan error, 1),
 	}
 }

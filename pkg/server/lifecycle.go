@@ -56,7 +56,7 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 	webServer := web.NewServer(conf, mmanager, msgHub)
 
 	pop3Server := pop3.NewServer(conf.POP3, store)
-	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy)
+	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy, extHost)
 
 	return &Services{
 		MsgHub:           msgHub,

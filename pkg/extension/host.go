@@ -21,6 +21,7 @@ type Host struct {
 // listener will not be called until the one before it complets.
 type Events struct {
 	AfterMessageStored EventBroker[event.MessageMetadata, Void]
+	BeforeMailAccepted EventBroker[event.AddressParts, bool]
 }
 
 // Void indicates the event emitter will ignore any value returned by listeners.

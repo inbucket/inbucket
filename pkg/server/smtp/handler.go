@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/policy"
 	"github.com/rs/zerolog"
 )
@@ -383,7 +384,8 @@ func (s *Session) readyHandler(cmd string, arg string) {
 			return
 		}
 		from := m[1]
-		if _, _, err := policy.ParseEmailAddress(from); from != "" && err != nil {
+		localpart, domain, err := policy.ParseEmailAddress(from)
+		if from != "" && err != nil {
 			s.send("501 Bad sender address syntax")
 			s.logger.Warn().Msgf("Bad address as MAIL arg: %q, %s", from, err)
 			return
@@ -415,10 +417,22 @@ func (s *Session) readyHandler(cmd string, arg string) {
 				}
 			}
 		}
-		s.from = from
-		s.logger.Info().Msgf("Mail from: %v", from)
-		s.send(fmt.Sprintf("250 Roger, accepting mail from <%v>", from))
-		s.enterState(MAIL)
+
+		// Process through extensions.
+		extResult := s.extHost.Events.BeforeMailAccepted.Emit(
+			&event.AddressParts{Local: localpart, Domain: domain})
+
+		if extResult == nil || *extResult {
+			// Permitted by extension, or none had an opinion.
+			s.from = from
+			s.logger.Info().Msgf("Mail from: %v", from)
+			s.send(fmt.Sprintf("250 Roger, accepting mail from <%v>", from))
+			s.enterState(MAIL)
+		} else {
+			s.send("550 Mail denied by policy")
+			s.logger.Warn().Msgf("Extension denied mail from <%v>", from)
+			return
+		}
 	} else if cmd == "EHLO" {
 		// Reset session
 		s.logger.Debug().Msgf("Resetting session state on EHLO request")
@@ -614,7 +628,9 @@ func (s *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 // parseArgs takes the arguments proceeding a command and files them
 // into a map[string]string after uppercasing each key.  Sample arg
 // string:
-//		" BODY=8BITMIME SIZE=1024"
+//
+//	" BODY=8BITMIME SIZE=1024"
+//
 // The leading space is mandatory.
 func (s *Session) parseArgs(arg string) (args map[string]string, ok bool) {
 	args = make(map[string]string)

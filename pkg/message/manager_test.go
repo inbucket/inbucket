@@ -2,6 +2,7 @@ package message_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/extension/event"
@@ -20,11 +21,13 @@ func TestManagerEmitsMessageStoredEvent(t *testing.T) {
 	}
 
 	// Capture message event.
-	var got *event.MessageMetadata
-	extHost.Events.MessageStored.AddListener(
+	gotc := make(chan *event.MessageMetadata)
+	defer close(gotc)
+
+	extHost.Events.AfterMessageStored.AddListener(
 		"test",
 		func(msg event.MessageMetadata) *extension.Void {
-			got = &msg
+			gotc <- &msg
 			return nil
 		})
 
@@ -39,5 +42,10 @@ func TestManagerEmitsMessageStoredEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.NotNil(t, got, "No event received, or it was nil")
+	select {
+	case got := <-gotc:
+		assert.NotNil(t, got, "No event received, or it was nil")
+	case <-time.After(time.Second * 2):
+		t.Fatal("Timeout waiting for message event")
+	}
 }

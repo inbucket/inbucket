@@ -92,7 +92,7 @@ func (s *StoreManager) Deliver(
 		Date:    delivery.Date(),
 		Size:    delivery.Size(),
 	}
-	s.ExtHost.Events.MessageStored.Emit(&event)
+	go s.ExtHost.Events.AfterMessageStored.Emit(&event)
 
 	return id, nil
 }

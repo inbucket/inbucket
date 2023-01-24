@@ -6,6 +6,7 @@ import (
 
 	"github.com/inbucket/inbucket/pkg/config"
 	"github.com/inbucket/inbucket/pkg/extension"
+	"github.com/inbucket/inbucket/pkg/extension/luahost"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/msghub"
 	"github.com/inbucket/inbucket/pkg/policy"
@@ -26,6 +27,7 @@ type Services struct {
 	SMTPServer       *smtp.Server
 	WebServer        *web.Server
 	ExtHost          *extension.Host
+	LuaHost          *luahost.Host
 	notify           chan error      // Combined notification for failed services.
 	ready            *sync.WaitGroup // Tracks services that have not reported ready.
 }
@@ -34,6 +36,10 @@ type Services struct {
 func FullAssembly(conf *config.Root) (*Services, error) {
 	// Configure extensions.
 	extHost := extension.NewHost()
+	luaHost, err := luahost.New(conf.Lua, extHost)
+	if err != nil {
+		return nil, err
+	}
 
 	// Configure storage.
 	store, err := storage.FromConfig(conf.Storage)
@@ -65,6 +71,7 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 		SMTPServer:       smtpServer,
 		WebServer:        webServer,
 		ExtHost:          extHost,
+		LuaHost:          luaHost,
 		ready:            &sync.WaitGroup{},
 	}, nil
 }

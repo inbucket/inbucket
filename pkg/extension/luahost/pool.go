@@ -29,6 +29,11 @@ func (lp *statePool) newState() (*lua.LState, error) {
 		ls.SetGlobal(name, lua.LChannel(ch))
 	}
 
+	// Register custom types.
+	registerMessageMetadataType(ls)
+	registerMailAddressType(ls)
+	registerPolicyType(ls)
+
 	// Run compiled script.
 	ls.Push(ls.NewFunctionFromProto(lp.funcProto))
 	if err := ls.PCall(0, lua.MultRet, nil); err != nil {

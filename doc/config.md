@@ -9,6 +9,7 @@ variables it supports:
 
     KEY                                 DEFAULT             DESCRIPTION
     INBUCKET_LOGLEVEL                   info                debug, info, warn, or error
+    INBUCKET_LUA_SCRIPT                 inbucket.lua        Lua script path
     INBUCKET_MAILBOXNAMING              local               Use local or full addressing
     INBUCKET_SMTP_ADDR                  0.0.0.0:2500        SMTP server IP4 host:port
     INBUCKET_SMTP_DOMAIN                inbucket            HELO domain
@@ -55,6 +56,16 @@ off with `warn` or `error`.
 
 - Default: `info`
 - Values: one of `debug`, `info`, `warn`, or `error`
+
+### Lua Script
+
+`INBUCKET_LUA_SCRIPT`
+
+This is the path to the (optional) Inbucket Lua script.  If the specified file
+is present, Inbucket will load it during startup.  Ignored if the file is not
+found, or the setting is empty.
+
+- Default: `inbucket.lua`
 
 ### Mailbox Naming
 

@@ -58,12 +58,18 @@ func (n *mbNaming) Decode(v string) error {
 
 // Root contains global configuration, and structs with for specific sub-systems.
 type Root struct {
-	LogLevel      string   `required:"true" default:"info" desc:"debug, info, warn, or error"`
+	LogLevel      string `required:"true" default:"info" desc:"debug, info, warn, or error"`
+	Lua           Lua
 	MailboxNaming mbNaming `required:"true" default:"local" desc:"Use local, full or domain addressing"`
 	SMTP          SMTP
 	POP3          POP3
 	Web           Web
 	Storage       Storage
+}
+
+// Lua contains the Lua extension host configuration.
+type Lua struct {
+	Path string `required:"false" default:"inbucket.lua" desc:"Lua script path"`
 }
 
 // SMTP contains the SMTP server configuration.

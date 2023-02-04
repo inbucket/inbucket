@@ -30,6 +30,8 @@ tags.*
 # Desktop Services Store on macOS
 .DS_Store
 
+/.direnv
+
 # Inbucket binaries
 /client
 /client.exe

@@ -35,19 +35,19 @@ func TestAfterMessageStored(t *testing.T) {
 		end
 
 		function after_message_stored(msg)
-			assert_eq(msg:mailbox(), "mb1")
-			assert_eq(msg:id(), "id1")
-			assert_eq(msg:subject(), "subj1")
-			assert_eq(msg:size(), 42)
+			assert_eq(msg.mailbox, "mb1")
+			assert_eq(msg.id, "id1")
+			assert_eq(msg.subject, "subj1")
+			assert_eq(msg.size, 42)
 
-			assert_eq(msg:from():name(), "name1")
-			assert_eq(msg:from():address(), "addr1")
+			assert_eq(msg.from.name, "name1")
+			assert_eq(msg.from.address, "addr1")
 
-			assert_eq(table.getn(msg:to()), 1)
-			assert_eq(msg:to()[1]:name(), "name2")
-			assert_eq(msg:to()[1]:address(), "addr2")
+			assert_eq(table.getn(msg.to), 1)
+			assert_eq(msg.to[1].name, "name2")
+			assert_eq(msg.to[1].address, "addr2")
 
-			assert_eq(msg:date(), 981173106)
+			assert_eq(msg.date, 981173106)
 
 			notify:send(test_ok)
 		end

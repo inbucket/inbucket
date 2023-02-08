@@ -18,17 +18,8 @@ func registerMessageMetadataType(ls *lua.LState) {
 	ls.SetField(mt, "new", ls.NewFunction(newMessageMetadata))
 
 	// Methods.
-	ls.SetField(mt, "__index", ls.SetFuncs(ls.NewTable(), messageMetadataMethods))
-}
-
-var messageMetadataMethods = map[string]lua.LGFunction{
-	"mailbox": messageMetadataGetSetMailbox,
-	"id":      messageMetadataGetSetID,
-	"from":    messageMetadataGetSetFrom,
-	"to":      messageMetadataGetSetTo,
-	"subject": messageMetadataGetSetSubject,
-	"date":    messageMetadataGetSetDate,
-	"size":    messageMetadataGetSetSize,
+	ls.SetField(mt, "__index", ls.NewFunction(messageMetadataIndex))
+	ls.SetField(mt, "__newindex", ls.NewFunction(messageMetadataNewIndex))
 }
 
 func newMessageMetadata(ls *lua.LState) int {
@@ -47,8 +38,8 @@ func wrapMessageMetadata(ls *lua.LState, val *event.MessageMetadata) *lua.LUserD
 	return ud
 }
 
-func checkMessageMetadata(ls *lua.LState) *event.MessageMetadata {
-	ud := ls.CheckUserData(1)
+func checkMessageMetadata(ls *lua.LState, pos int) *event.MessageMetadata {
+	ud := ls.CheckUserData(pos)
 	if v, ok := ud.Value.(*event.MessageMetadata); ok {
 		return v
 	}
@@ -56,51 +47,56 @@ func checkMessageMetadata(ls *lua.LState) *event.MessageMetadata {
 	return nil
 }
 
-func messageMetadataGetSetMailbox(ls *lua.LState) int {
-	val := checkMessageMetadata(ls)
-	if ls.GetTop() == 2 {
-		// Setter.
-		val.Mailbox = ls.CheckString(2)
-		return 0
+// Gets a field value from MessageMetadata user object.  This emulates a Lua table,
+// allowing `msg.subject` instead of a Lua object syntax of `msg:subject()`.
+func messageMetadataIndex(ls *lua.LState) int {
+	m := checkMessageMetadata(ls, 1)
+	field := ls.CheckString(2)
+
+	// Push the requested field's value onto the stack.
+	switch field {
+	case "mailbox":
+		ls.Push(lua.LString(m.Mailbox))
+	case "id":
+		ls.Push(lua.LString(m.ID))
+	case "from":
+		ls.Push(wrapMailAddress(ls, m.From))
+	case "to":
+		lt := &lua.LTable{}
+		for _, v := range m.To {
+			lt.Append(wrapMailAddress(ls, v))
+		}
+		ls.Push(lt)
+	case "date":
+		ls.Push(lua.LNumber(m.Date.Unix()))
+	case "subject":
+		ls.Push(lua.LString(m.Subject))
+	case "size":
+		ls.Push(lua.LNumber(m.Size))
+	default:
+		// Unknown field.
+		ls.Push(lua.LNil)
 	}
 
-	// Getter.
-	ls.Push(lua.LString(val.Mailbox))
 	return 1
 }
 
-func messageMetadataGetSetID(ls *lua.LState) int {
-	val := checkMessageMetadata(ls)
-	if ls.GetTop() == 2 {
-		// Setter.
-		val.ID = ls.CheckString(2)
-		return 0
-	}
+// Sets a field value on MessageMetadata user object.  This emulates a Lua table,
+// allowing `msg.subject = x` instead of a Lua object syntax of `msg:subject(x)`.
+func messageMetadataNewIndex(ls *lua.LState) int {
+	m := checkMessageMetadata(ls, 1)
+	index := ls.CheckString(2)
 
-	// Getter.
-	ls.Push(lua.LString(val.ID))
-	return 1
-}
-
-func messageMetadataGetSetFrom(ls *lua.LState) int {
-	val := checkMessageMetadata(ls)
-	if ls.GetTop() == 2 {
-		// Setter.
-		val.From = checkMailAddress(ls)
-		return 0
-	}
-
-	// Getter.
-	ls.Push(wrapMailAddress(ls, val.From))
-	return 1
-}
-
-func messageMetadataGetSetTo(ls *lua.LState) int {
-	val := checkMessageMetadata(ls)
-	if ls.GetTop() == 2 {
-		// Setter.
-		lt := ls.CheckTable(2)
-		to := make([]*mail.Address, lt.Len())
+	switch index {
+	case "mailbox":
+		m.Mailbox = ls.CheckString(3)
+	case "id":
+		m.ID = ls.CheckString(3)
+	case "from":
+		m.From = checkMailAddress(ls, 3)
+	case "to":
+		lt := ls.CheckTable(3)
+		to := make([]*mail.Address, 0, 16)
 		lt.ForEach(func(k, lv lua.LValue) {
 			if ud, ok := lv.(*lua.LUserData); ok {
 				if entry, ok := unwrapMailAddress(ud); ok {
@@ -108,54 +104,16 @@ func messageMetadataGetSetTo(ls *lua.LState) int {
 				}
 			}
 		})
-		val.To = to
-		return 0
+		m.To = to
+	case "date":
+		m.Date = time.Unix(ls.CheckInt64(3), 0)
+	case "subject":
+		m.Subject = ls.CheckString(3)
+	case "size":
+		m.Size = ls.CheckInt64(3)
+	default:
+		ls.RaiseError("invalid index %q", index)
 	}
 
-	// Getter.
-	lt := &lua.LTable{}
-	for _, v := range val.To {
-		lt.Append(wrapMailAddress(ls, v))
-	}
-	ls.Push(lt)
-	return 1
-}
-
-func messageMetadataGetSetSubject(ls *lua.LState) int {
-	val := checkMessageMetadata(ls)
-	if ls.GetTop() == 2 {
-		// Setter.
-		val.Subject = ls.CheckString(2)
-		return 0
-	}
-
-	// Getter.
-	ls.Push(lua.LString(val.Subject))
-	return 1
-}
-
-func messageMetadataGetSetDate(ls *lua.LState) int {
-	val := checkMessageMetadata(ls)
-	if ls.GetTop() == 2 {
-		// Setter.
-		val.Date = time.Unix(ls.CheckInt64(2), 0)
-		return 0
-	}
-
-	// Getter.
-	ls.Push(lua.LNumber(val.Date.Unix()))
-	return 1
-}
-
-func messageMetadataGetSetSize(ls *lua.LState) int {
-	val := checkMessageMetadata(ls)
-	if ls.GetTop() == 2 {
-		// Setter.
-		val.Size = ls.CheckInt64(2)
-		return 0
-	}
-
-	// Getter.
-	ls.Push(lua.LNumber(val.Size))
-	return 1
+	return 0
 }

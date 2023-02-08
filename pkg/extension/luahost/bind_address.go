@@ -48,8 +48,8 @@ func unwrapMailAddress(ud *lua.LUserData) (*mail.Address, bool) {
 	return val, ok
 }
 
-func checkMailAddress(ls *lua.LState) *mail.Address {
-	ud := ls.CheckUserData(1)
+func checkMailAddress(ls *lua.LState, pos int) *mail.Address {
+	ud := ls.CheckUserData(pos)
 	if val, ok := ud.Value.(*mail.Address); ok {
 		return val
 	}
@@ -58,7 +58,7 @@ func checkMailAddress(ls *lua.LState) *mail.Address {
 }
 
 func mailAddressGetSetAddress(ls *lua.LState) int {
-	val := checkMailAddress(ls)
+	val := checkMailAddress(ls, 1)
 	if ls.GetTop() == 2 {
 		// Setter.
 		val.Address = ls.CheckString(2)
@@ -71,7 +71,7 @@ func mailAddressGetSetAddress(ls *lua.LState) int {
 }
 
 func mailAddressGetSetName(ls *lua.LState) int {
-	val := checkMailAddress(ls)
+	val := checkMailAddress(ls, 1)
 	if ls.GetTop() == 2 {
 		// Setter.
 		val.Name = ls.CheckString(2)

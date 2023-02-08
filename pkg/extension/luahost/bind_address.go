@@ -16,12 +16,8 @@ func registerMailAddressType(ls *lua.LState) {
 	ls.SetField(mt, "new", ls.NewFunction(newMailAddress))
 
 	// Methods.
-	ls.SetField(mt, "__index", ls.SetFuncs(ls.NewTable(), mailAddressMethods))
-}
-
-var mailAddressMethods = map[string]lua.LGFunction{
-	"address": mailAddressGetSetAddress,
-	"name":    mailAddressGetSetName,
+	ls.SetField(mt, "__index", ls.NewFunction(mailAddressIndex))
+	ls.SetField(mt, "__newindex", ls.NewFunction(mailAddressNewIndex))
 }
 
 func newMailAddress(ls *lua.LState) int {
@@ -57,28 +53,40 @@ func checkMailAddress(ls *lua.LState, pos int) *mail.Address {
 	return nil
 }
 
-func mailAddressGetSetAddress(ls *lua.LState) int {
-	val := checkMailAddress(ls, 1)
-	if ls.GetTop() == 2 {
-		// Setter.
-		val.Address = ls.CheckString(2)
-		return 0
+// Gets a field value from MailAddress user object.  This emulates a Lua table,
+// allowing `msg.subject` instead of a Lua object syntax of `msg:subject()`.
+func mailAddressIndex(ls *lua.LState) int {
+	a := checkMailAddress(ls, 1)
+	field := ls.CheckString(2)
+
+	// Push the requested field's value onto the stack.
+	switch field {
+	case "name":
+		ls.Push(lua.LString(a.Name))
+	case "address":
+		ls.Push(lua.LString(a.Address))
+	default:
+		// Unknown field.
+		ls.Push(lua.LNil)
 	}
 
-	// Getter.
-	ls.Push(lua.LString(val.Address))
 	return 1
 }
 
-func mailAddressGetSetName(ls *lua.LState) int {
-	val := checkMailAddress(ls, 1)
-	if ls.GetTop() == 2 {
-		// Setter.
-		val.Name = ls.CheckString(2)
-		return 0
+// Sets a field value on MailAddress user object.  This emulates a Lua table,
+// allowing `msg.subject = x` instead of a Lua object syntax of `msg:subject(x)`.
+func mailAddressNewIndex(ls *lua.LState) int {
+	a := checkMailAddress(ls, 1)
+	index := ls.CheckString(2)
+
+	switch index {
+	case "name":
+		a.Name = ls.CheckString(3)
+	case "address":
+		a.Address = ls.CheckString(3)
+	default:
+		ls.RaiseError("invalid index %q", index)
 	}
 
-	// Getter.
-	ls.Push(lua.LString(val.Name))
-	return 1
+	return 0
 }

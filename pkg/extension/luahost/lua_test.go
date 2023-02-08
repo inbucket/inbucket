@@ -40,12 +40,12 @@ func TestAfterMessageStored(t *testing.T) {
 			assert_eq(msg.subject, "subj1")
 			assert_eq(msg.size, 42)
 
-			assert_eq(msg.from:name(), "name1")
-			assert_eq(msg.from:address(), "addr1")
+			assert_eq(msg.from.name, "name1")
+			assert_eq(msg.from.address, "addr1")
 
 			assert_eq(table.getn(msg.to), 1)
-			assert_eq(msg.to[1]:name(), "name2")
-			assert_eq(msg.to[1]:address(), "addr2")
+			assert_eq(msg.to[1].name, "name2")
+			assert_eq(msg.to[1].address, "addr2")
 
 			assert_eq(msg.date, 981173106)
 

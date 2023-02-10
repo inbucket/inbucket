@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/cjoudrey/gluahttp"
+	"github.com/inbucket/gopher-json"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -28,6 +29,7 @@ func (lp *statePool) newState() (*lua.LState, error) {
 
 	// Load supplemental native modules.
 	ls.PreloadModule("http", gluahttp.NewHttpModule(&http.Client{}).Loader)
+	ls.PreloadModule("json", json.Loader)
 
 	// Setup channels.
 	for name, ch := range lp.channels {

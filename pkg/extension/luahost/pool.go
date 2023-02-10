@@ -1,8 +1,10 @@
 package luahost
 
 import (
+	"net/http"
 	"sync"
 
+	"github.com/cjoudrey/gluahttp"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -23,6 +25,9 @@ func newStatePool(funcProto *lua.FunctionProto) *statePool {
 // newState creates a new LState and configures it. Lock must be held.
 func (lp *statePool) newState() (*lua.LState, error) {
 	ls := lua.NewState()
+
+	// Load supplemental native modules.
+	ls.PreloadModule("http", gluahttp.NewHttpModule(&http.Client{}).Loader)
 
 	// Setup channels.
 	for name, ch := range lp.channels {

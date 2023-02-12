@@ -55,3 +55,6 @@ repl-temp-*
 # Dependency directories
 /ui/node_modules
 /ui/.parcel-cache
+
+# Test lua files
+/inbucket.lua

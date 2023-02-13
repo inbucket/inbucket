@@ -10,7 +10,7 @@ variables it supports:
     KEY                                 DEFAULT             DESCRIPTION
     INBUCKET_LOGLEVEL                   info                debug, info, warn, or error
     INBUCKET_LUA_SCRIPT                 inbucket.lua        Lua script path
-    INBUCKET_MAILBOXNAMING              local               Use local or full addressing
+    INBUCKET_MAILBOXNAMING              local               Use local, full, or domain addressing
     INBUCKET_SMTP_ADDR                  0.0.0.0:2500        SMTP server IP4 host:port
     INBUCKET_SMTP_DOMAIN                inbucket            HELO domain
     INBUCKET_SMTP_MAXRECIPIENTS         200                 Maximum RCPT TO per message

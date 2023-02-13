@@ -60,7 +60,7 @@ func (n *mbNaming) Decode(v string) error {
 type Root struct {
 	LogLevel      string `required:"true" default:"info" desc:"debug, info, warn, or error"`
 	Lua           Lua
-	MailboxNaming mbNaming `required:"true" default:"local" desc:"Use local, full or domain addressing"`
+	MailboxNaming mbNaming `required:"true" default:"local" desc:"Use local, full, or domain addressing"`
 	SMTP          SMTP
 	POP3          POP3
 	Web           Web

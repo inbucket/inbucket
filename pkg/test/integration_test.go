@@ -217,6 +217,10 @@ func formatMessage(m *client.Message) []byte {
 func startServer() (func(), error) {
 	// TODO Move integration setup into lifecycle.
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
+
+	extHost := extension.NewHost()
+
+	// Storage setup.
 	storage.Constructors["memory"] = mem.New
 	os.Clearenv()
 	conf, err := config.Process()
@@ -224,7 +228,7 @@ func startServer() (func(), error) {
 		return nil, err
 	}
 	svcCtx, svcCancel := context.WithCancel(context.Background())
-	store, err := storage.FromConfig(conf.Storage)
+	store, err := storage.FromConfig(conf.Storage, extHost)
 	if err != nil {
 		svcCancel()
 		return nil, err
@@ -232,7 +236,6 @@ func startServer() (func(), error) {
 
 	// TODO Test should not pass with unstarted msghub.
 	addrPolicy := &policy.Addressing{Config: conf}
-	extHost := extension.NewHost()
 	msgHub := msghub.New(conf.Web.MonitorHistory, extHost)
 	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, ExtHost: extHost}
 

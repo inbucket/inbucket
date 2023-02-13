@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/storage"
@@ -194,17 +195,21 @@ func setupDataStore(cfg config.Storage) (*Store, *bytes.Buffer) {
 	if err != nil {
 		panic(err)
 	}
+
 	// Capture log output.
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+
+	extHost := extension.NewHost()
 	if cfg.Params == nil {
 		cfg.Params = make(map[string]string)
 	}
 	cfg.Params["path"] = path
-	s, err := New(cfg)
+	s, err := New(cfg, extHost)
 	if err != nil {
 		panic(err)
 	}
+
 	return s.(*Store), buf
 }
 

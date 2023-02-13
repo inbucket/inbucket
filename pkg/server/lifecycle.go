@@ -42,7 +42,7 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 	}
 
 	// Configure storage.
-	store, err := storage.FromConfig(conf.Storage)
+	store, err := storage.FromConfig(conf.Storage, extHost)
 	if err != nil {
 		return nil, err
 	}

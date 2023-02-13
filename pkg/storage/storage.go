@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
 )
 
 var (
@@ -19,7 +20,7 @@ var (
 	ErrNotWritable = errors.New("Message not writable")
 
 	// Constructors tracks registered storage constructors
-	Constructors = make(map[string]func(config.Storage) (Store, error))
+	Constructors = make(map[string]func(config.Storage, *extension.Host) (Store, error))
 )
 
 // Store is the interface Inbucket uses to interact with storage implementations.
@@ -48,9 +49,9 @@ type Message interface {
 }
 
 // FromConfig creates an instance of the Store based on the provided configuration.
-func FromConfig(c config.Storage) (store Store, err error) {
+func FromConfig(c config.Storage, extHost *extension.Host) (store Store, err error) {
 	if cf := Constructors[c.Type]; cf != nil {
-		return cf(c)
+		return cf(c, extHost)
 	}
 	return nil, fmt.Errorf("unknown storage type configured: %q", c.Type)
 }

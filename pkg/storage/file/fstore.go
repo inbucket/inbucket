@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog/log"
@@ -45,10 +46,11 @@ type Store struct {
 	mailPath      string
 	messageCap    int
 	bufReaderPool sync.Pool
+	extHost       *extension.Host
 }
 
 // New creates a new DataStore object using the specified path
-func New(cfg config.Storage) (storage.Store, error) {
+func New(cfg config.Storage, extHost *extension.Host) (storage.Store, error) {
 	path := cfg.Params["path"]
 	if path == "" {
 		return nil, fmt.Errorf("'path' parameter not specified")

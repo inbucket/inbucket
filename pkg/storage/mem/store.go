@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/storage"
 )
 
@@ -31,7 +32,7 @@ type mbox struct {
 var _ storage.Store = &Store{}
 
 // New returns an emtpy memory store.
-func New(cfg config.Storage) (storage.Store, error) {
+func New(cfg config.Storage, extHost *extension.Host) (storage.Store, error) {
 	s := &Store{
 		boxes: make(map[string]*mbox),
 		cap:   cfg.MailboxMsgCap,

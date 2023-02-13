@@ -24,7 +24,7 @@ type Manager interface {
 		prefix string,
 		content []byte,
 	) (id string, err error)
-	GetMetadata(mailbox string) ([]*Metadata, error)
+	GetMetadata(mailbox string) ([]*event.MessageMetadata, error)
 	GetMessage(mailbox, id string) (*Message, error)
 	MarkSeen(mailbox, id string) error
 	PurgeMessages(mailbox string) error
@@ -68,7 +68,7 @@ func (s *StoreManager) Deliver(
 
 	log.Debug().Str("module", "message").Str("mailbox", to.Mailbox).Msg("Delivering message")
 	delivery := &Delivery{
-		Meta: Metadata{
+		Meta: event.MessageMetadata{
 			Mailbox: to.Mailbox,
 			From:    fromaddr[0],
 			To:      toaddr,
@@ -83,27 +83,20 @@ func (s *StoreManager) Deliver(
 	}
 
 	// Emit message stored event.
-	event := event.MessageMetadata{
-		Mailbox: to.Mailbox,
-		ID:      id,
-		From:    delivery.From(),
-		To:      delivery.To(),
-		Subject: delivery.Subject(),
-		Date:    delivery.Date(),
-		Size:    delivery.Size(),
-	}
+	event := delivery.Meta
+	event.ID = id
 	go s.ExtHost.Events.AfterMessageStored.Emit(&event)
 
 	return id, nil
 }
 
 // GetMetadata returns a slice of metadata for the specified mailbox.
-func (s *StoreManager) GetMetadata(mailbox string) ([]*Metadata, error) {
+func (s *StoreManager) GetMetadata(mailbox string) ([]*event.MessageMetadata, error) {
 	messages, err := s.Store.GetMessages(mailbox)
 	if err != nil {
 		return nil, err
 	}
-	metas := make([]*Metadata, len(messages))
+	metas := make([]*event.MessageMetadata, len(messages))
 	for i, sm := range messages {
 		metas[i] = makeMetadata(sm)
 	}
@@ -126,7 +119,7 @@ func (s *StoreManager) GetMessage(mailbox, id string) (*Message, error) {
 	}
 	_ = r.Close()
 	header := makeMetadata(sm)
-	return &Message{Metadata: *header, env: env}, nil
+	return &Message{MessageMetadata: *header, env: env}, nil
 }
 
 // MarkSeen marks the message as having been read.
@@ -161,8 +154,8 @@ func (s *StoreManager) MailboxForAddress(mailbox string) (string, error) {
 }
 
 // makeMetadata populates Metadata from a storage.Message.
-func makeMetadata(m storage.Message) *Metadata {
-	return &Metadata{
+func makeMetadata(m storage.Message) *event.MessageMetadata {
+	return &event.MessageMetadata{
 		Mailbox: m.Mailbox(),
 		ID:      m.ID(),
 		From:    m.From(),

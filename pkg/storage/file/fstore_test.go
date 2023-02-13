@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/inbucket/inbucket/pkg/test"
@@ -211,7 +212,7 @@ func setupDataStore(cfg config.Storage) (*Store, *bytes.Buffer) {
 // the size of the generated message.
 func deliverMessage(ds *Store, mbName string, subject string, date time.Time) (string, int64) {
 	// Build message for delivery
-	meta := message.Metadata{
+	meta := event.MessageMetadata{
 		Mailbox: mbName,
 		To:      []*mail.Address{{Name: "", Address: "somebody@host"}},
 		From:    &mail.Address{Name: "", Address: "somebodyelse@host"},

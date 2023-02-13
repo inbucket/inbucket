@@ -8,33 +8,22 @@ import (
 	"net/textproto"
 	"time"
 
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/jhillyerd/enmime"
 )
 
-// Metadata holds information about a message, but not the content.
-type Metadata struct {
-	Mailbox string
-	ID      string
-	From    *mail.Address
-	To      []*mail.Address
-	Date    time.Time
-	Subject string
-	Size    int64
-	Seen    bool
-}
-
 // Message holds both the metadata and content of a message.
 type Message struct {
-	Metadata
+	event.MessageMetadata
 	env *enmime.Envelope
 }
 
 // New constructs a new Message
-func New(m Metadata, e *enmime.Envelope) *Message {
+func New(m event.MessageMetadata, e *enmime.Envelope) *Message {
 	return &Message{
-		Metadata: m,
-		env:      e,
+		MessageMetadata: m,
+		env:             e,
 	}
 }
 
@@ -65,7 +54,7 @@ func (m *Message) Text() string {
 
 // Delivery is used to add a message to storage.
 type Delivery struct {
-	Meta   Metadata
+	Meta   event.MessageMetadata
 	Reader io.Reader
 }
 

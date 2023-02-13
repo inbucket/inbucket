@@ -20,4 +20,5 @@ type MessageMetadata struct {
 	Date    time.Time
 	Subject string
 	Size    int64
+	Seen    bool
 }

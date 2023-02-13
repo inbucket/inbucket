@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/inbucket/inbucket/pkg/test"
@@ -59,7 +60,7 @@ func TestDoRetentionScan(t *testing.T) {
 // stubMessage creates a message stub of a specific age
 func stubMessage(mailbox string, ageHours int) storage.Message {
 	return &message.Delivery{
-		Meta: message.Metadata{
+		Meta: event.MessageMetadata{
 			Mailbox: mailbox,
 			ID:      fmt.Sprintf("MSG[age=%vh]", ageHours),
 			Date:    time.Now().Add(time.Duration(ageHours*-1) * time.Hour),

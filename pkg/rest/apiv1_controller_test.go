@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/test"
 	"github.com/jhillyerd/enmime"
@@ -67,7 +68,7 @@ func TestRestMailboxList(t *testing.T) {
 	// Test JSON message headers
 	tzPDT := time.FixedZone("PDT", -7*3600)
 	tzPST := time.FixedZone("PST", -8*3600)
-	meta1 := message.Metadata{
+	meta1 := event.MessageMetadata{
 		Mailbox: "good",
 		ID:      "0001",
 		From:    &mail.Address{Name: "", Address: "from1@host"},
@@ -75,7 +76,7 @@ func TestRestMailboxList(t *testing.T) {
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, tzPST),
 	}
-	meta2 := message.Metadata{
+	meta2 := event.MessageMetadata{
 		Mailbox: "good",
 		ID:      "0002",
 		From:    &mail.Address{Name: "", Address: "from2@host"},
@@ -83,8 +84,8 @@ func TestRestMailboxList(t *testing.T) {
 		Subject: "subject 2",
 		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, tzPDT),
 	}
-	mm.AddMessage("good", &message.Message{Metadata: meta1})
-	mm.AddMessage("good", &message.Message{Metadata: meta2})
+	mm.AddMessage("good", &message.Message{MessageMetadata: meta1})
+	mm.AddMessage("good", &message.Message{MessageMetadata: meta2})
 
 	// Check return code
 	w, err = testRestGet("http://localhost/api/v1/mailbox/good")
@@ -178,7 +179,7 @@ func TestRestMessage(t *testing.T) {
 	// Test JSON message headers
 	tzPST := time.FixedZone("PST", -8*3600)
 	msg1 := message.New(
-		message.Metadata{
+		event.MessageMetadata{
 			Mailbox: "good",
 			ID:      "0001",
 			From:    &mail.Address{Name: "", Address: "from1@host"},
@@ -254,7 +255,7 @@ func TestRestMarkSeen(t *testing.T) {
 	// Create some messages.
 	tzPDT := time.FixedZone("PDT", -7*3600)
 	tzPST := time.FixedZone("PST", -8*3600)
-	meta1 := message.Metadata{
+	meta1 := event.MessageMetadata{
 		Mailbox: "good",
 		ID:      "0001",
 		From:    &mail.Address{Name: "", Address: "from1@host"},
@@ -262,7 +263,7 @@ func TestRestMarkSeen(t *testing.T) {
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, tzPST),
 	}
-	meta2 := message.Metadata{
+	meta2 := event.MessageMetadata{
 		Mailbox: "good",
 		ID:      "0002",
 		From:    &mail.Address{Name: "", Address: "from2@host"},
@@ -270,8 +271,8 @@ func TestRestMarkSeen(t *testing.T) {
 		Subject: "subject 2",
 		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, tzPDT),
 	}
-	mm.AddMessage("good", &message.Message{Metadata: meta1})
-	mm.AddMessage("good", &message.Message{Metadata: meta2})
+	mm.AddMessage("good", &message.Message{MessageMetadata: meta1})
+	mm.AddMessage("good", &message.Message{MessageMetadata: meta2})
 	// Mark one read.
 	w, err := testRestPatch("http://localhost/api/v1/mailbox/good/0002", `{"seen":true}`)
 	expectCode := 200

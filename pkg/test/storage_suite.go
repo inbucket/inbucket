@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/storage"
 )
@@ -61,7 +62,7 @@ func testMetadata(t *testing.T, store storage.Store) {
 	subject := "fantastic test subject line"
 	content := "doesn't matter"
 	delivery := &message.Delivery{
-		Meta: message.Metadata{
+		Meta: event.MessageMetadata{
 			// ID and Size will be determined by the Store.
 			Mailbox: mailbox,
 			From:    from,
@@ -130,7 +131,7 @@ func testContent(t *testing.T, store storage.Store) {
 	date := time.Now()
 	subject := "fantastic test subject line"
 	delivery := &message.Delivery{
-		Meta: message.Metadata{
+		Meta: event.MessageMetadata{
 			// ID and Size will be determined by the Store.
 			Mailbox: mailbox,
 			From:    from,
@@ -408,7 +409,7 @@ func DeliverToStore(
 	date time.Time,
 ) (string, int64) {
 	t.Helper()
-	meta := message.Metadata{
+	meta := event.MessageMetadata{
 		Mailbox: mailbox,
 		To:      []*mail.Address{{Name: "Some Body", Address: "somebody@host"}},
 		From:    &mail.Address{Name: "Some B. Else", Address: "somebodyelse@host"},

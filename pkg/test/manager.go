@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/policy"
 	"github.com/inbucket/inbucket/pkg/storage"
@@ -42,14 +43,14 @@ func (m *ManagerStub) GetMessage(mailbox, id string) (*message.Message, error) {
 }
 
 // GetMetadata gets all the metadata for the specified mailbox.
-func (m *ManagerStub) GetMetadata(mailbox string) ([]*message.Metadata, error) {
+func (m *ManagerStub) GetMetadata(mailbox string) ([]*event.MessageMetadata, error) {
 	if mailbox == "messageserr" {
 		return nil, errors.New("internal error")
 	}
 	messages := m.mailboxes[mailbox]
-	metas := make([]*message.Metadata, len(messages))
+	metas := make([]*event.MessageMetadata, len(messages))
 	for i, msg := range messages {
-		metas[i] = &msg.Metadata
+		metas[i] = &msg.MessageMetadata
 	}
 	return metas, nil
 }
@@ -69,7 +70,7 @@ func (m *ManagerStub) MarkSeen(mailbox, id string) error {
 	}
 	for _, msg := range m.mailboxes[mailbox] {
 		if msg.ID == id {
-			msg.Metadata.Seen = true
+			msg.MessageMetadata.Seen = true
 			return nil
 		}
 	}

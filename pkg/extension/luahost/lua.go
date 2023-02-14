@@ -88,6 +88,7 @@ func (h *Host) CreateChannel(name string) chan lua.LValue {
 	return h.pool.createChannel(name)
 }
 
+const afterMessageDeletedFnName string = "after_message_deleted"
 const afterMessageStoredFnName string = "after_message_stored"
 const beforeMailAcceptedFnName string = "before_mail_accepted"
 
@@ -113,12 +114,34 @@ func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 	events := h.extHost.Events
 	const listenerName string = "lua"
 
+	if detectFn(afterMessageDeletedFnName) {
+		events.AfterMessageDeleted.AddListener(listenerName, h.handleAfterMessageDeleted)
+	}
 	if detectFn(afterMessageStoredFnName) {
 		events.AfterMessageStored.AddListener(listenerName, h.handleAfterMessageStored)
 	}
 	if detectFn(beforeMailAcceptedFnName) {
 		events.BeforeMailAccepted.AddListener(listenerName, h.handleBeforeMailAccepted)
 	}
+}
+
+func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) *extension.Void {
+	logger, ls, lfunc, ok := h.prepareFuncCall(afterMessageDeletedFnName)
+	if !ok {
+		return nil
+	}
+	defer h.pool.putState(ls)
+
+	// Call lua function.
+	logger.Debug().Msgf("Calling Lua function with %+v", msg)
+	if err := ls.CallByParam(
+		lua.P{Fn: lfunc, NRet: 0, Protect: true},
+		wrapMessageMetadata(ls, &msg),
+	); err != nil {
+		logger.Error().Err(err).Msg("Failed to call Lua function")
+	}
+
+	return nil
 }
 
 func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) *extension.Void {

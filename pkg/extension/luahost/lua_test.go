@@ -13,6 +13,45 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
+// LuaInit holds useful test globals.
+const LuaInit = `
+	async = false
+	test_ok = true
+
+	-- Sends marks tests failed instead of erroring when enabled.
+	function assert_async(value, message)
+		if not value then
+			if async then
+				print(message)
+				test_ok = false
+			else
+				error(message)
+			end
+		end
+	end
+
+	-- Tests plain values and list-style tables.
+	function assert_eq(got, want)
+		if type(got) == "table" and type(want) == "table" then
+			assert_async(#got == #want, string.format("got %d elements, wanted %d", #got, #want))
+
+			for i, gotv in ipairs(got) do
+				local wantv = want[i]
+				assert_eq(gotv, wantv, "got[%d] = %q, wanted %q", gotv, wantv)
+			end
+
+			return
+		end
+
+		assert_async(got == want, string.format("got %q, wanted %q", got, want))
+	end
+
+	function assert_contains(got, want)
+		assert_async(string.find(got, want),
+			string.format("got %q, wanted it to contain %q", got, want))
+	end
+`
+
 func TestEmptyScript(t *testing.T) {
 	script := ""
 	extHost := extension.NewHost()
@@ -21,39 +60,51 @@ func TestEmptyScript(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestAfterMessageStored(t *testing.T) {
+func TestAfterMessageDeleted(t *testing.T) {
 	// Register lua event listener, setup notify channel.
 	script := `
-		local test_ok = true
+		async = true
 
-		function assert_eq(got, want)
-			if got ~= want then
-				-- Incorrect value, schedule test to fail.
-				print("got '" .. got .. "', wanted '" .. want .. "'")
-				test_ok = false
-			end
-		end
-
-		function after_message_stored(msg)
+		function after_message_deleted(msg)
+			-- Full message bindings tested elsewhere.
 			assert_eq(msg.mailbox, "mb1")
 			assert_eq(msg.id, "id1")
-			assert_eq(msg.subject, "subj1")
-			assert_eq(msg.size, 42)
-
-			assert_eq(msg.from.name, "name1")
-			assert_eq(msg.from.address, "addr1")
-
-			assert_eq(table.getn(msg.to), 1)
-			assert_eq(msg.to[1].name, "name2")
-			assert_eq(msg.to[1].address, "addr2")
-
-			assert_eq(msg.date, 981173106)
-
 			notify:send(test_ok)
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(extHost, strings.NewReader(script), "test.lua")
+	luaHost, err := luahost.NewFromReader(extHost, strings.NewReader(LuaInit+script), "test.lua")
+	require.NoError(t, err)
+	notify := luaHost.CreateChannel("notify")
+
+	// Send event, check channel response is true.
+	msg := &event.MessageMetadata{
+		Mailbox: "mb1",
+		ID:      "id1",
+		From:    &mail.Address{Name: "name1", Address: "addr1"},
+		To:      []*mail.Address{{Name: "name2", Address: "addr2"}},
+		Date:    time.Date(2001, time.February, 3, 4, 5, 6, 0, time.UTC),
+		Subject: "subj1",
+		Size:    42,
+	}
+	go extHost.Events.AfterMessageDeleted.Emit(msg)
+	assertNotified(t, notify)
+}
+
+func TestAfterMessageStored(t *testing.T) {
+	// Register lua event listener, setup notify channel.
+	script := `
+		async = true
+
+		function after_message_stored(msg)
+			-- Full message bindings tested elsewhere.
+			assert_eq(msg.mailbox, "mb1")
+			assert_eq(msg.id, "id1")
+			notify:send(test_ok)
+		end
+	`
+	extHost := extension.NewHost()
+	luaHost, err := luahost.NewFromReader(extHost, strings.NewReader(LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 

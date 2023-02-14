@@ -98,7 +98,7 @@ func (s *StoreManager) GetMetadata(mailbox string) ([]*event.MessageMetadata, er
 	}
 	metas := make([]*event.MessageMetadata, len(messages))
 	for i, sm := range messages {
-		metas[i] = makeMetadata(sm)
+		metas[i] = MakeMetadata(sm)
 	}
 	return metas, nil
 }
@@ -118,7 +118,7 @@ func (s *StoreManager) GetMessage(mailbox, id string) (*Message, error) {
 		return nil, err
 	}
 	_ = r.Close()
-	header := makeMetadata(sm)
+	header := MakeMetadata(sm)
 	return &Message{MessageMetadata: *header, env: env}, nil
 }
 
@@ -153,8 +153,8 @@ func (s *StoreManager) MailboxForAddress(mailbox string) (string, error) {
 	return s.AddrPolicy.ExtractMailbox(mailbox)
 }
 
-// makeMetadata populates Metadata from a storage.Message.
-func makeMetadata(m storage.Message) *event.MessageMetadata {
+// MakeMetadata populates Metadata from a storage.Message.
+func MakeMetadata(m storage.Message) *event.MessageMetadata {
 	return &event.MessageMetadata{
 		Mailbox: m.Mailbox(),
 		ID:      m.ID(),

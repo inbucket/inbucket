@@ -10,19 +10,23 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // StoreFactory returns a new store for the test suite.
-type StoreFactory func(config.Storage) (store storage.Store, destroy func(), err error)
+type StoreFactory func(
+	config.Storage, *extension.Host) (store storage.Store, destroy func(), err error)
 
 // StoreSuite runs a set of general tests on the provided Store.
 func StoreSuite(t *testing.T, factory StoreFactory) {
 	testCases := []struct {
 		name string
-		test func(*testing.T, storage.Store)
+		test func(*testing.T, storage.Store, *extension.Host)
 		conf config.Storage
 	}{
 		{"metadata", testMetadata, config.Storage{}},
@@ -40,18 +44,19 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			store, destroy, err := factory(tc.conf)
+			extHost := extension.NewHost()
+			store, destroy, err := factory(tc.conf, extHost)
 			if err != nil {
 				t.Fatal(err)
 			}
-			tc.test(t, store)
+			tc.test(t, store, extHost)
 			destroy()
 		})
 	}
 }
 
 // testMetadata verifies message metadata is stored and retrieved correctly.
-func testMetadata(t *testing.T, store storage.Store) {
+func testMetadata(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mailbox := "testmailbox"
 	from := &mail.Address{Name: "From Person", Address: "from@person.com"}
 	to := []*mail.Address{
@@ -118,7 +123,7 @@ func testMetadata(t *testing.T, store storage.Store) {
 }
 
 // testContent generates some binary content and makes sure it is correctly retrieved.
-func testContent(t *testing.T, store storage.Store) {
+func testContent(t *testing.T, store storage.Store, extHost *extension.Host) {
 	content := make([]byte, 5000)
 	for i := 0; i < len(content); i++ {
 		content[i] = byte(i % 256)
@@ -175,7 +180,7 @@ func testContent(t *testing.T, store storage.Store) {
 
 // testDeliveryOrder delivers several messages to the same mailbox, meanwhile querying its contents
 // with a new GetMessages call each cycle.
-func testDeliveryOrder(t *testing.T, store storage.Store) {
+func testDeliveryOrder(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for i, subj := range subjects {
@@ -195,7 +200,7 @@ func testDeliveryOrder(t *testing.T, store storage.Store) {
 
 // testLatest delivers several messages to the same mailbox, and confirms the id `latest` returns
 // the last message sent.
-func testLatest(t *testing.T, store storage.Store) {
+func testLatest(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for _, subj := range subjects {
@@ -217,14 +222,14 @@ func testLatest(t *testing.T, store storage.Store) {
 }
 
 // testNaming ensures the store does not enforce local part mailbox naming.
-func testNaming(t *testing.T, store storage.Store) {
+func testNaming(t *testing.T, store storage.Store, extHost *extension.Host) {
 	DeliverToStore(t, store, "fred@fish.net", "disk #27", time.Now())
 	GetAndCountMessages(t, store, "fred", 0)
 	GetAndCountMessages(t, store, "fred@fish.net", 1)
 }
 
 // testSize verifies message content size metadata values.
-func testSize(t *testing.T, store storage.Store) {
+func testSize(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mailbox := "fred"
 	subjects := []string{"a", "br", "much longer than the others"}
 	sentIds := make([]string, len(subjects))
@@ -248,7 +253,7 @@ func testSize(t *testing.T, store storage.Store) {
 }
 
 // testSeen verifies a message can be marked as seen.
-func testSeen(t *testing.T, store storage.Store) {
+func testSeen(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mailbox := "lisa"
 	id1, _ := DeliverToStore(t, store, mailbox, "whatever", time.Now())
 	id2, _ := DeliverToStore(t, store, mailbox, "hello?", time.Now())
@@ -284,22 +289,24 @@ func testSeen(t *testing.T, store storage.Store) {
 }
 
 // testDelete creates and deletes some messages.
-func testDelete(t *testing.T, store storage.Store) {
+func testDelete(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for _, subj := range subjects {
 		DeliverToStore(t, store, mailbox, subj, time.Now())
 	}
 	msgs := GetAndCountMessages(t, store, mailbox, len(subjects))
+
+	// Subscribe to events.
+	eventListener := extHost.Events.AfterMessageDeleted.AsyncTestListener(2)
+
 	// Delete a couple messages.
-	err := store.RemoveMessage(mailbox, msgs[1].ID())
-	if err != nil {
-		t.Fatal(err)
+	deleteIDs := []string{msgs[1].ID(), msgs[3].ID()}
+	for _, id := range deleteIDs {
+		err := store.RemoveMessage(mailbox, id)
+		require.NoError(t, err)
 	}
-	err = store.RemoveMessage(mailbox, msgs[3].ID())
-	if err != nil {
-		t.Fatal(err)
-	}
+
 	// Confirm deletion.
 	subjects = []string{"alpha", "charlie", "echo"}
 	msgs = GetAndCountMessages(t, store, mailbox, len(subjects))
@@ -309,6 +316,17 @@ func testDelete(t *testing.T, store storage.Store) {
 			t.Errorf("Got subject %q, want %q", got, want)
 		}
 	}
+
+	// Capture events and check correct IDs were emitted.
+	ev1, err := eventListener()
+	require.NoError(t, err)
+	ev2, err := eventListener()
+	require.NoError(t, err)
+	eventIDs := []string{ev1.ID, ev2.ID}
+	for _, id := range deleteIDs {
+		assert.Contains(t, eventIDs, id)
+	}
+
 	// Try appending one more.
 	DeliverToStore(t, store, mailbox, "foxtrot", time.Now())
 	subjects = []string{"alpha", "charlie", "echo", "foxtrot"}
@@ -322,7 +340,7 @@ func testDelete(t *testing.T, store storage.Store) {
 }
 
 // testPurge makes sure mailboxes can be purged.
-func testPurge(t *testing.T, store storage.Store) {
+func testPurge(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for _, subj := range subjects {
@@ -338,7 +356,7 @@ func testPurge(t *testing.T, store storage.Store) {
 }
 
 // testMsgCap verifies the message cap is enforced.
-func testMsgCap(t *testing.T, store storage.Store) {
+func testMsgCap(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mbCap := 10
 	mailbox := "captain"
 	for i := 0; i < 20; i++ {
@@ -365,7 +383,7 @@ func testMsgCap(t *testing.T, store storage.Store) {
 }
 
 // testNoMsgCap verfies a cap of 0 is not enforced.
-func testNoMsgCap(t *testing.T, store storage.Store) {
+func testNoMsgCap(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mailbox := "captain"
 	for i := 0; i < 20; i++ {
 		subj := fmt.Sprintf("subject %v", i)
@@ -376,7 +394,7 @@ func testNoMsgCap(t *testing.T, store storage.Store) {
 
 // testVisitMailboxes creates some mailboxes and confirms the VisitMailboxes method visits all of
 // them.
-func testVisitMailboxes(t *testing.T, ds storage.Store) {
+func testVisitMailboxes(t *testing.T, ds storage.Store, extHost *extension.Host) {
 	boxes := []string{"abby", "bill", "christa", "donald", "evelyn"}
 	for _, name := range boxes {
 		DeliverToStore(t, ds, name, "Old Message", time.Now().Add(-24*time.Hour))

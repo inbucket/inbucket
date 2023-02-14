@@ -72,6 +72,7 @@ func New(cfg config.Storage, extHost *extension.Host) (storage.Store, error) {
 				return bufio.NewReader(nil)
 			},
 		},
+		extHost: extHost,
 	}, nil
 }
 

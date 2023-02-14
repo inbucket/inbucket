@@ -15,6 +15,7 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     act
     dpkg
+    delve
     elmPackages.elm
     elmPackages.elm-analyse
     elmPackages.elm-format

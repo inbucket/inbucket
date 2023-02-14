@@ -20,8 +20,9 @@ type Host struct {
 // processed asynchronously with respect to the rest of Inbuckets operation.  However, an event
 // listener will not be called until the one before it complets.
 type Events struct {
-	AfterMessageStored EventBroker[event.MessageMetadata, Void]
-	BeforeMailAccepted EventBroker[event.AddressParts, bool]
+	AfterMessageDeleted EventBroker[event.MessageMetadata, Void]
+	AfterMessageStored  EventBroker[event.MessageMetadata, Void]
+	BeforeMailAccepted  EventBroker[event.AddressParts, bool]
 }
 
 // Void indicates the event emitter will ignore any value returned by listeners.

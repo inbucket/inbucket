@@ -13,12 +13,12 @@ import (
 
 // TestSuite runs storage package test suite on file store.
 func TestSuite(t *testing.T) {
-	test.StoreSuite(t, func(conf config.Storage) (storage.Store, func(), error) {
-		extHost := extension.NewHost()
-		s, _ := New(conf, extHost)
-		destroy := func() {}
-		return s, destroy, nil
-	})
+	test.StoreSuite(t,
+		func(conf config.Storage, extHost *extension.Host) (storage.Store, func(), error) {
+			s, _ := New(conf, extHost)
+			destroy := func() {}
+			return s, destroy, nil
+		})
 }
 
 // TestMessageList verifies the operation of the global message list: mem.Store.messages.

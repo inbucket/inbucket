@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
+	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/storage"
 )
 
@@ -18,6 +20,7 @@ type Store struct {
 	cap      int           // Per-mailbox message cap.
 	incoming chan *msgDone // New messages for size enforcer.
 	remove   chan *msgDone // Remove deleted messages from size enforcer.
+	extHost  *extension.Host
 }
 
 type mbox struct {
@@ -31,10 +34,11 @@ type mbox struct {
 var _ storage.Store = &Store{}
 
 // New returns an emtpy memory store.
-func New(cfg config.Storage) (storage.Store, error) {
+func New(cfg config.Storage, extHost *extension.Host) (storage.Store, error) {
 	s := &Store{
-		boxes: make(map[string]*mbox),
-		cap:   cfg.MailboxMsgCap,
+		boxes:   make(map[string]*mbox),
+		cap:     cfg.MailboxMsgCap,
+		extHost: extHost,
 	}
 	if str, ok := cfg.Params["maxkb"]; ok {
 		maxKB, err := strconv.ParseInt(str, 10, 64)
@@ -163,6 +167,11 @@ func (s *Store) removeMessage(mailbox, id string) *Message {
 			delete(mb.messages, id)
 		}
 	})
+
+	if m != nil {
+		s.extHost.Events.AfterMessageDeleted.Emit(message.MakeMetadata(m))
+	}
+
 	return m
 }
 

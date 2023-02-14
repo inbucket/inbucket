@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/storage"
@@ -23,18 +24,19 @@ import (
 
 // TestSuite runs storage package test suite on file store.
 func TestSuite(t *testing.T) {
-	test.StoreSuite(t, func(conf config.Storage) (storage.Store, func(), error) {
-		ds, _ := setupDataStore(conf)
-		destroy := func() {
-			teardownDataStore(ds)
-		}
-		return ds, destroy, nil
-	})
+	test.StoreSuite(t,
+		func(conf config.Storage, extHost *extension.Host) (storage.Store, func(), error) {
+			ds, _ := setupDataStore(conf, extHost)
+			destroy := func() {
+				teardownDataStore(ds)
+			}
+			return ds, destroy, nil
+		})
 }
 
 // Test directory structure created by filestore
 func TestFSDirStructure(t *testing.T) {
-	ds, logbuf := setupDataStore(config.Storage{})
+	ds, logbuf := setupDataStore(config.Storage{}, extension.NewHost())
 	defer teardownDataStore(ds)
 	root := ds.path
 
@@ -112,7 +114,7 @@ func TestFSDirStructure(t *testing.T) {
 
 // Test missing files
 func TestFSMissing(t *testing.T) {
-	ds, logbuf := setupDataStore(config.Storage{})
+	ds, logbuf := setupDataStore(config.Storage{}, extension.NewHost())
 	defer teardownDataStore(ds)
 
 	mbName := "fred"
@@ -147,7 +149,7 @@ func TestFSMissing(t *testing.T) {
 
 // Test Get the latest message
 func TestGetLatestMessage(t *testing.T) {
-	ds, logbuf := setupDataStore(config.Storage{})
+	ds, logbuf := setupDataStore(config.Storage{}, extension.NewHost())
 	defer teardownDataStore(ds)
 
 	// james hashes to 474ba67bdb289c6263b36dfd8a7bed6c85b04943
@@ -189,22 +191,25 @@ func TestGetLatestMessage(t *testing.T) {
 }
 
 // setupDataStore creates a new FileDataStore in a temporary directory
-func setupDataStore(cfg config.Storage) (*Store, *bytes.Buffer) {
+func setupDataStore(cfg config.Storage, extHost *extension.Host) (*Store, *bytes.Buffer) {
 	path, err := ioutil.TempDir("", "inbucket")
 	if err != nil {
 		panic(err)
 	}
+
 	// Capture log output.
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+
 	if cfg.Params == nil {
 		cfg.Params = make(map[string]string)
 	}
 	cfg.Params["path"] = path
-	s, err := New(cfg)
+	s, err := New(cfg, extHost)
 	if err != nil {
 		panic(err)
 	}
+
 	return s.(*Store), buf
 }
 

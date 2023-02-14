@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/rs/zerolog/log"
 )
@@ -72,6 +73,10 @@ func (mb *mbox) removeMessage(id string) error {
 			msg = m
 			// Slice around message we are deleting
 			mb.messages = append(mb.messages[:i], mb.messages[i+1:]...)
+
+			// Emit deleted event.
+			mb.store.extHost.Events.AfterMessageDeleted.Emit(message.MakeMetadata(msg))
+
 			break
 		}
 	}

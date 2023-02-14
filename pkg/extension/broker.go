@@ -1,6 +1,10 @@
 package extension
 
-import "sync"
+import (
+	"errors"
+	"sync"
+	"time"
+)
 
 // EventBroker maintains a list of listeners interested in a specific type
 // of event.
@@ -52,6 +56,41 @@ func (eb *EventBroker[E, R]) lockedRemoveListener(name string) {
 			eb.listenerNames = append(eb.listenerNames[:i], eb.listenerNames[i+1:]...)
 			eb.listenerFuncs = append(eb.listenerFuncs[:i], eb.listenerFuncs[i+1:]...)
 			break
+		}
+	}
+}
+
+// AsyncTestListener returns a func that will wait for an event and return it, or timeout
+// with an error.
+func (eb *EventBroker[E, R]) AsyncTestListener(capacity int) func() (*E, error) {
+	const name = "asyncTestListener"
+
+	// Send event down channel.
+	events := make(chan E, capacity)
+	eb.AddListener(name,
+		func(msg E) *R {
+			events <- msg
+			return nil
+		})
+
+	count := 0
+
+	return func() (*E, error) {
+		count++
+
+		defer func() {
+			if count >= capacity {
+				eb.RemoveListener(name)
+				close(events)
+			}
+		}()
+
+		select {
+		case event := <-events:
+			return &event, nil
+
+		case <-time.After(time.Second * 2):
+			return nil, errors.New("Timeout waiting for event")
 		}
 	}
 }

@@ -52,7 +52,7 @@ func newMsgListener(hub *msghub.Hub, mailbox string) *msgListener {
 	return ml
 }
 
-// Receive handles an incoming message
+// Receive handles an incoming message.
 func (ml *msgListener) Receive(msg event.MessageMetadata) error {
 	if ml.mailbox != "" && ml.mailbox != msg.Mailbox {
 		// Did not match mailbox name
@@ -60,6 +60,17 @@ func (ml *msgListener) Receive(msg event.MessageMetadata) error {
 	}
 	ml.c <- msg
 	return nil
+}
+
+// Delete handles a deleted message.
+func (ml *msgListener) Delete(mailbox string, id string) error {
+	panic("todo")
+	// if ml.mailbox != "" && ml.mailbox != msg.Mailbox {
+	// 	// Did not match mailbox name
+	// 	return nil
+	// }
+	// ml.c <- msg
+	// return nil
 }
 
 // WSReader makes sure the websocket client is still connected, discards any messages from client
@@ -111,17 +122,20 @@ func (ml *msgListener) WSWriter(conn *websocket.Conn) {
 				conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			header := &model.JSONMessageHeaderV1{
-				Mailbox:     msg.Mailbox,
-				ID:          msg.ID,
-				From:        stringutil.StringAddress(msg.From),
-				To:          stringutil.StringAddressList(msg.To),
-				Subject:     msg.Subject,
-				Date:        msg.Date,
-				PosixMillis: msg.Date.UnixNano() / 1000000,
-				Size:        msg.Size,
+			event := &model.JSONMonitorEventV1{
+				Variant: "message-stored",
+				Header: &model.JSONMessageHeaderV1{
+					Mailbox:     msg.Mailbox,
+					ID:          msg.ID,
+					From:        stringutil.StringAddress(msg.From),
+					To:          stringutil.StringAddressList(msg.To),
+					Subject:     msg.Subject,
+					Date:        msg.Date,
+					PosixMillis: msg.Date.UnixNano() / 1000000,
+					Size:        msg.Size,
+				},
 			}
-			if conn.WriteJSON(header) != nil {
+			if conn.WriteJSON(event) != nil {
 				// Write failed
 				return
 			}

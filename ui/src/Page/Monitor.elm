@@ -2,6 +2,7 @@ module Page.Monitor exposing (Model, Msg, init, update, view)
 
 import Api
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
+import Data.MonitorEvent as MonitorEvent exposing (MonitorEvent)
 import Data.Session exposing (Session)
 import DateFormat as DF
 import Effect exposing (Effect)
@@ -68,11 +69,18 @@ update msg model =
             ( { model | connected = False }, Effect.none )
 
         MessageReceived value ->
-            case D.decodeValue (MessageHeader.decoder |> D.at [ "detail" ]) value of
-                Ok header ->
-                    ( { model | messages = header :: List.take 500 model.messages }
-                    , Effect.none
-                    )
+            case D.decodeValue (MonitorEvent.decoder |> D.at [ "detail" ]) value of
+                Ok event ->
+                    case event of
+                        MonitorEvent.MessageDeleted header ->
+                            ( { model | messages = header :: List.take 500 model.messages }
+                            , Effect.none
+                            )
+
+                        MonitorEvent.MessageStored header ->
+                            ( { model | messages = header :: List.take 500 model.messages }
+                            , Effect.none
+                            )
 
                 Err err ->
                     let

@@ -3,6 +3,7 @@ package msghub
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -12,9 +13,11 @@ import (
 
 // testListener implements the Listener interface, mock for unit tests
 type testListener struct {
-	messages     []*event.MessageMetadata // received messages
-	wantMessages int                      // how many messages this listener wants to receive
-	errorAfter   int                      // when != 0, messages until Receive() begins returning error
+	messages   []*event.MessageMetadata // received messages
+	deletes    []string                 // received deletes
+	wantEvents int                      // how many events this listener wants to receive
+	errorAfter int                      // when != 0, event count until Receive() begins returning error
+	gotEvents  int
 
 	done     chan struct{} // closed once we have received wantMessages
 	overflow chan struct{} // closed if we receive wantMessages+1
@@ -22,10 +25,11 @@ type testListener struct {
 
 func newTestListener(want int) *testListener {
 	l := &testListener{
-		messages:     make([]*event.MessageMetadata, 0, want*2),
-		wantMessages: want,
-		done:         make(chan struct{}),
-		overflow:     make(chan struct{}),
+		messages:   make([]*event.MessageMetadata, 0, want*2),
+		deletes:    make([]string, 0, want*2),
+		wantEvents: want,
+		done:       make(chan struct{}),
+		overflow:   make(chan struct{}),
 	}
 	if want == 0 {
 		close(l.done)
@@ -36,22 +40,29 @@ func newTestListener(want int) *testListener {
 // Receive a Message, store it in the messages slice, close applicable channels, and return an error
 // if instructed
 func (l *testListener) Receive(msg event.MessageMetadata) error {
+	l.gotEvents++
 	l.messages = append(l.messages, &msg)
-	if len(l.messages) == l.wantMessages {
+	if l.gotEvents == l.wantEvents {
 		close(l.done)
 	}
-	if len(l.messages) == l.wantMessages+1 {
+	if l.gotEvents == l.wantEvents+1 {
 		close(l.overflow)
 	}
-	if l.errorAfter > 0 && len(l.messages) > l.errorAfter {
+	if l.errorAfter > 0 && l.gotEvents > l.errorAfter {
 		return fmt.Errorf("Too many messages")
 	}
 	return nil
 }
 
+func (l *testListener) Delete(mailbox string, id string) error {
+	l.gotEvents++
+	l.deletes = append(l.deletes, mailbox+"/"+id)
+	return nil
+}
+
 // String formats the got vs wanted message counts
 func (l *testListener) String() string {
-	return fmt.Sprintf("got %v messages, wanted %v", len(l.messages), l.wantMessages)
+	return fmt.Sprintf("got %v messages, wanted %v", len(l.messages), l.wantEvents)
 }
 
 func TestHubNew(t *testing.T) {
@@ -194,6 +205,55 @@ func TestHubHistoryReplay(t *testing.T) {
 		want := msgs[i].Subject
 		if got != want {
 			t.Errorf("msg[%v].Subject == %q, want %q", i, got, want)
+		}
+	}
+}
+
+func TestHubHistoryDelete(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	hub := New(100, extension.NewHost())
+	go hub.Start(ctx)
+	l1 := newTestListener(3)
+	hub.AddListener(l1)
+
+	// Broadcast 3 messages with no listeners
+	msgs := make([]event.MessageMetadata, 3)
+	for i := 0; i < len(msgs); i++ {
+		msgs[i] = event.MessageMetadata{
+			Mailbox: "hub",
+			ID:      strconv.Itoa(i),
+			Subject: fmt.Sprintf("subj %v", i),
+		}
+		hub.Dispatch(msgs[i])
+	}
+
+	// Wait for messages (live)
+	select {
+	case <-l1.done:
+	case <-time.After(time.Second):
+		t.Fatal("Timeout:", l1)
+	}
+
+	hub.Remove("hub", "1") // Delete a message
+	hub.Remove("zzz", "0") // Attempt to delete non-existent mailbox message
+
+	// Add a new listener, waits for 2 messages
+	l2 := newTestListener(2)
+	hub.AddListener(l2)
+
+	// Wait for messages (history)
+	select {
+	case <-l2.done:
+	case <-time.After(time.Second):
+		t.Fatal("Timeout:", l2)
+	}
+
+	want := []string{"subj 0", "subj 2"}
+	for i := 0; i < len(want); i++ {
+		got := l2.messages[i].Subject
+		if got != want[i] {
+			t.Errorf("msg[%v].Subject == %q, want %q", i, got, want[i])
 		}
 	}
 }

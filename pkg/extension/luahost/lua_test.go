@@ -60,6 +60,37 @@ func TestEmptyScript(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestAfterMessageDeleted(t *testing.T) {
+	// Register lua event listener, setup notify channel.
+	script := `
+		async = true
+
+		function after_message_deleted(msg)
+			-- Full message bindings tested elsewhere.
+			assert_eq(msg.mailbox, "mb1")
+			assert_eq(msg.id, "id1")
+			notify:send(test_ok)
+		end
+	`
+	extHost := extension.NewHost()
+	luaHost, err := luahost.NewFromReader(extHost, strings.NewReader(LuaInit+script), "test.lua")
+	require.NoError(t, err)
+	notify := luaHost.CreateChannel("notify")
+
+	// Send event, check channel response is true.
+	msg := &event.MessageMetadata{
+		Mailbox: "mb1",
+		ID:      "id1",
+		From:    &mail.Address{Name: "name1", Address: "addr1"},
+		To:      []*mail.Address{{Name: "name2", Address: "addr2"}},
+		Date:    time.Date(2001, time.February, 3, 4, 5, 6, 0, time.UTC),
+		Subject: "subj1",
+		Size:    42,
+	}
+	go extHost.Events.AfterMessageDeleted.Emit(msg)
+	assertNotified(t, notify)
+}
+
 func TestAfterMessageStored(t *testing.T) {
 	// Register lua event listener, setup notify channel.
 	script := `

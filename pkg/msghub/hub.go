@@ -6,6 +6,7 @@ import (
 
 	"github.com/inbucket/inbucket/pkg/extension"
 	"github.com/inbucket/inbucket/pkg/extension/event"
+	"github.com/rs/zerolog/log"
 )
 
 // Length of msghub operation queue
@@ -53,7 +54,7 @@ func (hub *Hub) Start(ctx context.Context) {
 			close(hub.opChan)
 			return
 		case op := <-hub.opChan:
-			op(hub)
+			hub.runOp(op)
 		}
 	}
 }
@@ -107,4 +108,18 @@ func (hub *Hub) Sync() {
 		close(done)
 	}
 	<-done
+}
+
+func (hub *Hub) runOp(op func(*Hub)) {
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				log.Error().Str("module", "msghub").Err(err).Msg("Operation panicked")
+			} else {
+				log.Error().Str("module", "msghub").Err(err).Msgf("Operation panicked: %s", r)
+			}
+		}
+	}()
+
+	op(hub)
 }

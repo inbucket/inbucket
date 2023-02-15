@@ -235,8 +235,8 @@ func TestHubHistoryDelete(t *testing.T) {
 		t.Fatal("Timeout:", l1)
 	}
 
-	hub.Remove("hub", "1") // Delete a message
-	hub.Remove("zzz", "0") // Attempt to delete non-existent mailbox message
+	hub.Delete("hub", "1") // Delete a message
+	hub.Delete("zzz", "0") // Attempt to delete non-existent mailbox message
 
 	// Add a new listener, waits for 2 messages
 	l2 := newTestListener(2)

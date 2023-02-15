@@ -35,9 +35,9 @@ var upgrader = websocket.Upgrader{
 
 // msgListener handles messages from the msghub
 type msgListener struct {
-	hub     *msghub.Hub                    // Global message hub
-	c       chan *model.JSONMonitorEventV1 // Queue of messages from Receive()
-	mailbox string                         // Name of mailbox to monitor, "" == all mailboxes
+	hub     *msghub.Hub                    // Global message hub.
+	c       chan *model.JSONMonitorEventV1 // Queue of incoming events.
+	mailbox string                         // Name of mailbox to monitor, "" == all mailboxes.
 }
 
 // newMsgListener creates a listener and registers it.  Optional mailbox parameter will restrict
@@ -55,7 +55,7 @@ func newMsgListener(hub *msghub.Hub, mailbox string) *msgListener {
 // Receive handles an incoming message.
 func (ml *msgListener) Receive(msg event.MessageMetadata) error {
 	if ml.mailbox != "" && ml.mailbox != msg.Mailbox {
-		// Did not match watched mailbox name.
+		// Did not match the watched mailbox name.
 		return nil
 	}
 

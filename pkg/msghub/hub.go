@@ -45,7 +45,7 @@ func New(historyLen int, extHost *extension.Host) *Hub {
 
 	extHost.Events.AfterMessageDeleted.AddListener("msghub",
 		func(msg event.MessageMetadata) *extension.Void {
-			hub.Remove(msg.Mailbox, msg.ID)
+			hub.Delete(msg.Mailbox, msg.ID)
 			return nil
 		})
 
@@ -75,7 +75,7 @@ func (hub *Hub) Dispatch(msg event.MessageMetadata) {
 			h.history.Value = msg
 			h.history = h.history.Next()
 
-			// Deliver message to all listeners, removing listeners if they return an error
+			// Relay event to all listeners, removing listeners if they return an error.
 			for l := range h.listeners {
 				if err := l.Receive(msg); err != nil {
 					delete(h.listeners, l)
@@ -85,8 +85,8 @@ func (hub *Hub) Dispatch(msg event.MessageMetadata) {
 	}
 }
 
-// Remove deletes the message from the history buffer and instructs listeners to remove it as well.
-func (hub *Hub) Remove(mailbox string, id string) {
+// Delete removes the message from the history buffer and instructs listeners to do the same.
+func (hub *Hub) Delete(mailbox string, id string) {
 	hub.opChan <- func(h *Hub) {
 		if h.history == nil {
 			return
@@ -107,7 +107,7 @@ func (hub *Hub) Remove(mailbox string, id string) {
 			}
 		}
 
-		// Deliver message to all listeners, removing listeners if they return an error
+		// Relay event to all listeners, removing listeners if they return an error.
 		for l := range h.listeners {
 			if err := l.Delete(mailbox, id); err != nil {
 				delete(h.listeners, l)

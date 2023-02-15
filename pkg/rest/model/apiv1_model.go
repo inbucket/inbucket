@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// JSONMessageHeaderV1 contains the basic header data for a message
+// JSONMessageHeaderV1 contains the basic header data for a message.
 type JSONMessageHeaderV1 struct {
 	Mailbox     string    `json:"mailbox"`
 	ID          string    `json:"id"`
@@ -17,7 +17,7 @@ type JSONMessageHeaderV1 struct {
 	Seen        bool      `json:"seen"`
 }
 
-// JSONMessageV1 contains the same data as the header plus a JSONMessageBody
+// JSONMessageV1 contains the same data as the header plus a JSONMessageBody.
 type JSONMessageV1 struct {
 	Mailbox     string                     `json:"mailbox"`
 	ID          string                     `json:"id"`
@@ -33,7 +33,7 @@ type JSONMessageV1 struct {
 	Attachments []*JSONMessageAttachmentV1 `json:"attachments"`
 }
 
-// JSONMessageAttachmentV1 contains information about a MIME attachment
+// JSONMessageAttachmentV1 contains information about a MIME attachment.
 type JSONMessageAttachmentV1 struct {
 	FileName     string `json:"filename"`
 	ContentType  string `json:"content-type"`
@@ -42,8 +42,15 @@ type JSONMessageAttachmentV1 struct {
 	MD5          string `json:"md5"`
 }
 
-// JSONMessageBodyV1 contains the Text and HTML versions of the message body
+// JSONMessageBodyV1 contains the Text and HTML versions of the message body.
 type JSONMessageBodyV1 struct {
 	Text string `json:"text"`
 	HTML string `json:"html"`
+}
+
+// JSONMonitorEventV1 contains events for the Inbucket mailbox and monitor tabs.
+type JSONMonitorEventV1 struct {
+	// Event variant: `message-deleted`, `message-stored`.
+	Variant string               `json:"variant"`
+	Header  *JSONMessageHeaderV1 `json:"header"`
 }

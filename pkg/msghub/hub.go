@@ -15,6 +15,7 @@ const opChanLen = 100
 // Listener receives the contents of the history buffer, followed by new messages
 type Listener interface {
 	Receive(msg event.MessageMetadata) error
+	Delete(mailbox string, id string) error
 }
 
 // Hub relays messages on to its listeners
@@ -39,6 +40,12 @@ func New(historyLen int, extHost *extension.Host) *Hub {
 	extHost.Events.AfterMessageStored.AddListener("msghub",
 		func(msg event.MessageMetadata) *extension.Void {
 			hub.Dispatch(msg)
+			return nil
+		})
+
+	extHost.Events.AfterMessageDeleted.AddListener("msghub",
+		func(msg event.MessageMetadata) *extension.Void {
+			hub.Delete(msg.Mailbox, msg.ID)
 			return nil
 		})
 
@@ -68,11 +75,42 @@ func (hub *Hub) Dispatch(msg event.MessageMetadata) {
 			h.history.Value = msg
 			h.history = h.history.Next()
 
-			// Deliver message to all listeners, removing listeners if they return an error
+			// Relay event to all listeners, removing listeners if they return an error.
 			for l := range h.listeners {
 				if err := l.Receive(msg); err != nil {
 					delete(h.listeners, l)
 				}
+			}
+		}
+	}
+}
+
+// Delete removes the message from the history buffer and instructs listeners to do the same.
+func (hub *Hub) Delete(mailbox string, id string) {
+	hub.opChan <- func(h *Hub) {
+		if h.history == nil {
+			return
+		}
+
+		// Locate and remove history entry.
+		p := h.history
+		end := p
+		for {
+			if next, ok := p.Next().Value.(event.MessageMetadata); ok {
+				if mailbox == next.Mailbox && id == next.ID {
+					p.Unlink(1) // Remove next node.
+					break
+				}
+			}
+			if p = p.Next(); p == end {
+				break
+			}
+		}
+
+		// Relay event to all listeners, removing listeners if they return an error.
+		for l := range h.listeners {
+			if err := l.Delete(mailbox, id); err != nil {
+				delete(h.listeners, l)
 			}
 		}
 	}

@@ -35,9 +35,9 @@ var upgrader = websocket.Upgrader{
 
 // msgListener handles messages from the msghub
 type msgListener struct {
-	hub     *msghub.Hub                // Global message hub
-	c       chan event.MessageMetadata // Queue of messages from Receive()
-	mailbox string                     // Name of mailbox to monitor, "" == all mailboxes
+	hub     *msghub.Hub                    // Global message hub.
+	c       chan *model.JSONMonitorEventV1 // Queue of incoming events.
+	mailbox string                         // Name of mailbox to monitor, "" == all mailboxes.
 }
 
 // newMsgListener creates a listener and registers it.  Optional mailbox parameter will restrict
@@ -45,20 +45,45 @@ type msgListener struct {
 func newMsgListener(hub *msghub.Hub, mailbox string) *msgListener {
 	ml := &msgListener{
 		hub:     hub,
-		c:       make(chan event.MessageMetadata, 100),
+		c:       make(chan *model.JSONMonitorEventV1, 100),
 		mailbox: mailbox,
 	}
 	hub.AddListener(ml)
 	return ml
 }
 
-// Receive handles an incoming message
+// Receive handles an incoming message.
 func (ml *msgListener) Receive(msg event.MessageMetadata) error {
 	if ml.mailbox != "" && ml.mailbox != msg.Mailbox {
-		// Did not match mailbox name
+		// Did not match the watched mailbox name.
 		return nil
 	}
-	ml.c <- msg
+
+	// Enqueue for websocket.
+	ml.c <- &model.JSONMonitorEventV1{
+		Variant: "message-stored",
+		Header:  metadataToHeader(&msg),
+	}
+
+	return nil
+}
+
+// Delete handles a deleted message.
+func (ml *msgListener) Delete(mailbox string, id string) error {
+	if ml.mailbox != "" && ml.mailbox != mailbox {
+		// Did not match watched mailbox name.
+		return nil
+	}
+
+	// Enqueue for websocket.
+	ml.c <- &model.JSONMonitorEventV1{
+		Variant: "message-deleted",
+		Header: &model.JSONMessageHeaderV1{
+			Mailbox: mailbox,
+			ID:      id,
+		},
+	}
+
 	return nil
 }
 
@@ -104,24 +129,14 @@ func (ml *msgListener) WSWriter(conn *websocket.Conn) {
 	// Handle messages from hub until msgListener is closed
 	for {
 		select {
-		case msg, ok := <-ml.c:
+		case event, ok := <-ml.c:
 			conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// msgListener closed, exit
 				conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			header := &model.JSONMessageHeaderV1{
-				Mailbox:     msg.Mailbox,
-				ID:          msg.ID,
-				From:        stringutil.StringAddress(msg.From),
-				To:          stringutil.StringAddressList(msg.To),
-				Subject:     msg.Subject,
-				Date:        msg.Date,
-				PosixMillis: msg.Date.UnixNano() / 1000000,
-				Size:        msg.Size,
-			}
-			if conn.WriteJSON(header) != nil {
+			if conn.WriteJSON(event) != nil {
 				// Write failed
 				return
 			}
@@ -197,4 +212,17 @@ func MonitorMailboxMessagesV1(
 	go ml.WSWriter(conn)
 	ml.WSReader(conn)
 	return nil
+}
+
+func metadataToHeader(msg *event.MessageMetadata) *model.JSONMessageHeaderV1 {
+	return &model.JSONMessageHeaderV1{
+		Mailbox:     msg.Mailbox,
+		ID:          msg.ID,
+		From:        stringutil.StringAddress(msg.From),
+		To:          stringutil.StringAddressList(msg.To),
+		Subject:     msg.Subject,
+		Date:        msg.Date,
+		PosixMillis: msg.Date.UnixNano() / 1000000,
+		Size:        msg.Size,
+	}
 }

@@ -144,16 +144,25 @@ func (s *Store) MarkSeen(mailbox, id string) error {
 
 // PurgeMessages deletes the contents of a mailbox.
 func (s *Store) PurgeMessages(mailbox string) error {
+	// Grab lock, copy messages, clear, and drop lock.
 	var messages map[string]*Message
 	s.withMailbox(mailbox, true, func(mb *mbox) {
 		messages = mb.messages
 		mb.messages = make(map[string]*Message)
 	})
-	if len(messages) > 0 && s.remove != nil {
+
+	// Process size/quota.
+	if s.remove != nil {
 		for _, m := range messages {
 			s.enforcerRemove(m)
 		}
 	}
+
+	// Emit delete events.
+	for _, m := range messages {
+		s.extHost.Events.AfterMessageDeleted.Emit(message.MakeMetadata(m))
+	}
+
 	return nil
 }
 

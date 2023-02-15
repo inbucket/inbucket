@@ -1,13 +1,19 @@
-module Data.MonitorEvent exposing (MonitorEvent(..), decoder)
+module Data.MonitorEvent exposing (MessageID, MonitorEvent(..), decoder)
 
 import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Json.Decode exposing (Decoder, andThen, fail, field, string, succeed)
 import Json.Decode.Pipeline exposing (required)
 
 
+type alias MessageID =
+    { mailbox : String
+    , id : String
+    }
+
+
 type MonitorEvent
     = MessageStored MessageHeader
-    | MessageDeleted MessageHeader
+    | MessageDeleted MessageID
 
 
 decoder : Decoder MonitorEvent
@@ -21,7 +27,7 @@ variantDecoder variant =
     case variant of
         "message-deleted" ->
             succeed MessageDeleted
-                |> required "header" MessageHeader.decoder
+                |> required "header" messageIdDecoder
 
         "message-stored" ->
             succeed MessageStored
@@ -29,3 +35,10 @@ variantDecoder variant =
 
         unknown ->
             fail <| "Unknown variant: " ++ unknown
+
+
+messageIdDecoder : Decoder MessageID
+messageIdDecoder =
+    succeed MessageID
+        |> required "mailbox" string
+        |> required "id" string

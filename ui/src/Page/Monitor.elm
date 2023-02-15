@@ -1,8 +1,8 @@
 module Page.Monitor exposing (Model, Msg, init, update, view)
 
 import Api
-import Data.MessageHeader as MessageHeader exposing (MessageHeader)
-import Data.MonitorEvent as MonitorEvent exposing (MonitorEvent)
+import Data.MessageHeader exposing (MessageHeader)
+import Data.MonitorEvent as MonitorEvent
 import Data.Session exposing (Session)
 import DateFormat as DF
 import Effect exposing (Effect)
@@ -72,8 +72,13 @@ update msg model =
             case D.decodeValue (MonitorEvent.decoder |> D.at [ "detail" ]) value of
                 Ok event ->
                     case event of
-                        MonitorEvent.MessageDeleted header ->
-                            ( { model | messages = header :: List.take 500 model.messages }
+                        MonitorEvent.MessageDeleted deleted ->
+                            ( { model
+                                | messages =
+                                    List.filter
+                                        (\x -> x.mailbox /= deleted.mailbox || x.id /= deleted.id)
+                                        model.messages
+                              }
                             , Effect.none
                             )
 

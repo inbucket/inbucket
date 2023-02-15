@@ -11,6 +11,7 @@ import (
 
 	"github.com/inbucket/inbucket/pkg/config"
 	"github.com/inbucket/inbucket/pkg/extension"
+	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/storage"
 	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog/log"
@@ -186,6 +187,17 @@ func (fs *Store) PurgeMessages(mailbox string) error {
 	mb := fs.mbox(mailbox)
 	mb.Lock()
 	defer mb.Unlock()
+
+	// Emit delete events.
+	if !mb.indexLoaded {
+		if err := mb.readIndex(); err != nil {
+			return err
+		}
+	}
+	for _, m := range mb.messages {
+		fs.extHost.Events.AfterMessageDeleted.Emit(message.MakeMetadata(m))
+	}
+
 	return mb.purge()
 }
 

@@ -343,16 +343,33 @@ func testDelete(t *testing.T, store storage.Store, extHost *extension.Host) {
 func testPurge(t *testing.T, store storage.Store, extHost *extension.Host) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
+
+	// Subscribe to events.
+	eventListener := extHost.Events.AfterMessageDeleted.AsyncTestListener(len(subjects))
+
+	// Populate mailbox.
 	for _, subj := range subjects {
 		DeliverToStore(t, store, mailbox, subj, time.Now())
 	}
 	GetAndCountMessages(t, store, mailbox, len(subjects))
+
 	// Purge and verify.
 	err := store.PurgeMessages(mailbox)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	GetAndCountMessages(t, store, mailbox, 0)
+
+	// Confirm events emitted.
+	gotEvents := []*event.MessageMetadata{}
+	for range subjects {
+		ev, err := eventListener()
+		if err != nil {
+			t.Error(err)
+			break
+		}
+		gotEvents = append(gotEvents, ev)
+	}
+	assert.Equal(t, len(subjects), len(gotEvents),
+		"expected delete event for each message in mailbox")
 }
 
 // testMsgCap verifies the message cap is enforced.

@@ -2,14 +2,13 @@ package message_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/inbucket/inbucket/pkg/extension"
-	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/message"
 	"github.com/inbucket/inbucket/pkg/policy"
 	"github.com/inbucket/inbucket/pkg/test"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestManagerEmitsMessageStoredEvent(t *testing.T) {
@@ -20,16 +19,7 @@ func TestManagerEmitsMessageStoredEvent(t *testing.T) {
 		ExtHost:    extHost,
 	}
 
-	// Capture message event.
-	gotc := make(chan *event.MessageMetadata)
-	defer close(gotc)
-
-	extHost.Events.AfterMessageStored.AddListener(
-		"test",
-		func(msg event.MessageMetadata) *extension.Void {
-			gotc <- &msg
-			return nil
-		})
+	listener := extHost.Events.AfterMessageStored.AsyncTestListener("manager", 1)
 
 	// Attempt to deliver a message to generate event.
 	if _, err := sm.Deliver(
@@ -42,10 +32,7 @@ func TestManagerEmitsMessageStoredEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	select {
-	case got := <-gotc:
-		assert.NotNil(t, got, "No event received, or it was nil")
-	case <-time.After(time.Second * 2):
-		t.Fatal("Timeout waiting for message event")
-	}
+	got, err := listener()
+	require.NoError(t, err)
+	assert.NotNil(t, got, "No event received, or it was nil")
 }

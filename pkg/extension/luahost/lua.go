@@ -125,10 +125,10 @@ func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 	}
 }
 
-func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) *extension.Void {
+func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) {
 	logger, ls, lfunc, ok := h.prepareFuncCall(afterMessageDeletedFnName)
 	if !ok {
-		return nil
+		return
 	}
 	defer h.pool.putState(ls)
 
@@ -140,14 +140,12 @@ func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) *extension.V
 	); err != nil {
 		logger.Error().Err(err).Msg("Failed to call Lua function")
 	}
-
-	return nil
 }
 
-func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) *extension.Void {
+func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
 	logger, ls, lfunc, ok := h.prepareFuncCall(afterMessageStoredFnName)
 	if !ok {
-		return nil
+		return
 	}
 	defer h.pool.putState(ls)
 
@@ -159,8 +157,6 @@ func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) *extension.Vo
 	); err != nil {
 		logger.Error().Err(err).Msg("Failed to call Lua function")
 	}
-
-	return nil
 }
 
 func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {

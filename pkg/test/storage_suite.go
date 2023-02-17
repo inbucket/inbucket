@@ -298,7 +298,7 @@ func testDelete(t *testing.T, store storage.Store, extHost *extension.Host) {
 	msgs := GetAndCountMessages(t, store, mailbox, len(subjects))
 
 	// Subscribe to events.
-	eventListener := extHost.Events.AfterMessageDeleted.AsyncTestListener(2)
+	eventListener := extHost.Events.AfterMessageDeleted.AsyncTestListener("test", 2)
 
 	// Delete a couple messages.
 	deleteIDs := []string{msgs[1].ID(), msgs[3].ID()}
@@ -345,7 +345,7 @@ func testPurge(t *testing.T, store storage.Store, extHost *extension.Host) {
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 
 	// Subscribe to events.
-	eventListener := extHost.Events.AfterMessageDeleted.AsyncTestListener(len(subjects))
+	eventListener := extHost.Events.AfterMessageDeleted.AsyncTestListener("test", len(subjects))
 
 	// Populate mailbox.
 	for _, subj := range subjects {

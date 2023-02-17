@@ -77,7 +77,7 @@ func (ml *msgListenerV2) Delete(mailbox string, id string) error {
 	// Enqueue for websocket.
 	ml.c <- &model.JSONMonitorEventV2{
 		Variant: "message-deleted",
-		Header: &model.JSONMessageHeaderV1{
+		Identifier: &model.JSONMessageIDV2{
 			Mailbox: mailbox,
 			ID:      id,
 		},

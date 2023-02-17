@@ -96,7 +96,7 @@ func (hub *Hub) Delete(mailbox string, id string) {
 		for {
 			if next, ok := p.Next().Value.(event.MessageMetadata); ok {
 				if mailbox == next.Mailbox && id == next.ID {
-					p.Unlink(1) // Remove next node.
+					p.Next().Value = nil
 					break
 				}
 			}

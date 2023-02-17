@@ -127,7 +127,7 @@ markMessageSeen session msg mailboxName id =
 
 monitorUri : Session -> String
 monitorUri session =
-    apiV1Url session [ "monitor", "messages" ]
+    apiV2Url session [ "monitor", "messages" ]
 
 
 purgeMailbox : Session -> HttpResult msg -> String -> Cmd msg
@@ -135,14 +135,24 @@ purgeMailbox session msg mailboxName =
     HttpUtil.delete msg (apiV1Url session [ "mailbox", mailboxName ])
 
 
+apiV1Url : Session -> List String -> String
+apiV1Url =
+    apiUrl "v1"
+
+
+apiV2Url : Session -> List String -> String
+apiV2Url =
+    apiUrl "v2"
+
+
 {-| Builds a public REST API URL (see wiki).
 -}
-apiV1Url : Session -> List String -> String
-apiV1Url session elements =
+apiUrl : String -> Session -> List String -> String
+apiUrl version session elements =
     Url.Builder.absolute
         (List.concat
             [ splitBasePath session.config.basePath
-            , [ "api", "v1" ]
+            , [ "api", version ]
             , elements
             ]
         )

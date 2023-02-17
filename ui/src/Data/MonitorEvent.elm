@@ -27,7 +27,7 @@ variantDecoder variant =
     case variant of
         "message-deleted" ->
             succeed MessageDeleted
-                |> required "header" messageIdDecoder
+                |> required "identifier" messageIdDecoder
 
         "message-stored" ->
             succeed MessageStored

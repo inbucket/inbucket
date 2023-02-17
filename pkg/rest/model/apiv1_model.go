@@ -47,10 +47,3 @@ type JSONMessageBodyV1 struct {
 	Text string `json:"text"`
 	HTML string `json:"html"`
 }
-
-// JSONMonitorEventV1 contains events for the Inbucket mailbox and monitor tabs.
-type JSONMonitorEventV1 struct {
-	// Event variant: `message-deleted`, `message-stored`.
-	Variant string               `json:"variant"`
-	Header  *JSONMessageHeaderV1 `json:"header"`
-}

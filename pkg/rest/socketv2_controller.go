@@ -9,43 +9,42 @@ import (
 	"github.com/inbucket/inbucket/pkg/msghub"
 	"github.com/inbucket/inbucket/pkg/rest/model"
 	"github.com/inbucket/inbucket/pkg/server/web"
-	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog/log"
 )
 
 const (
 	// Time allowed to write a message to the peer.
-	writeWaitV1 = 10 * time.Second
+	writeWaitV2 = 10 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriodV1 = (pongWaitV1 * 9) / 10
+	pingPeriodV2 = (pongWaitV2 * 9) / 10
 
 	// Time allowed to read the next pong message from the peer.
-	pongWaitV1 = 60 * time.Second
+	pongWaitV2 = 60 * time.Second
 
 	// Maximum message size allowed from peer.
-	maxMessageSizeV1 = 512
+	maxMessageSizeV2 = 512
 )
 
 // options for gorilla connection upgrader
-var upgraderV1 = websocket.Upgrader{
+var upgraderV2 = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
-// msgListenerV1 handles messages from the msghub
-type msgListenerV1 struct {
-	hub     *msghub.Hub                // Global message hub
-	c       chan event.MessageMetadata // Queue of messages from Receive()
-	mailbox string                     // Name of mailbox to monitor, "" == all mailboxes
+// msgListenerV2 handles messages from the msghub
+type msgListenerV2 struct {
+	hub     *msghub.Hub                    // Global message hub.
+	c       chan *model.JSONMonitorEventV2 // Queue of incoming events.
+	mailbox string                         // Name of mailbox to monitor, "" == all mailboxes.
 }
 
-// newMsgListenerV1 creates a listener and registers it.  Optional mailbox parameter will restrict
+// newMsgListenerV2 creates a listener and registers it.  Optional mailbox parameter will restrict
 // messages sent to WebSocket to that mailbox only.
-func newMsgListenerV1(hub *msghub.Hub, mailbox string) *msgListenerV1 {
-	ml := &msgListenerV1{
+func newMsgListenerV2(hub *msghub.Hub, mailbox string) *msgListenerV2 {
+	ml := &msgListenerV2{
 		hub:     hub,
-		c:       make(chan event.MessageMetadata, 100),
+		c:       make(chan *model.JSONMonitorEventV2, 100),
 		mailbox: mailbox,
 	}
 	hub.AddListener(ml)
@@ -53,31 +52,50 @@ func newMsgListenerV1(hub *msghub.Hub, mailbox string) *msgListenerV1 {
 }
 
 // Receive handles an incoming message.
-func (ml *msgListenerV1) Receive(msg event.MessageMetadata) error {
+func (ml *msgListenerV2) Receive(msg event.MessageMetadata) error {
 	if ml.mailbox != "" && ml.mailbox != msg.Mailbox {
 		// Did not match the watched mailbox name.
 		return nil
 	}
-	ml.c <- msg
+
+	// Enqueue for websocket.
+	ml.c <- &model.JSONMonitorEventV2{
+		Variant: "message-stored",
+		Header:  metadataToHeader(&msg),
+	}
+
 	return nil
 }
 
 // Delete handles a deleted message.
-func (ml *msgListenerV1) Delete(mailbox string, id string) error {
-	// Deletes are ignored in socketv1 API.
+func (ml *msgListenerV2) Delete(mailbox string, id string) error {
+	if ml.mailbox != "" && ml.mailbox != mailbox {
+		// Did not match watched mailbox name.
+		return nil
+	}
+
+	// Enqueue for websocket.
+	ml.c <- &model.JSONMonitorEventV2{
+		Variant: "message-deleted",
+		Identifier: &model.JSONMessageIDV2{
+			Mailbox: mailbox,
+			ID:      id,
+		},
+	}
+
 	return nil
 }
 
 // WSReader makes sure the websocket client is still connected, discards any messages from client
-func (ml *msgListenerV1) WSReader(conn *websocket.Conn) {
+func (ml *msgListenerV2) WSReader(conn *websocket.Conn) {
 	slog := log.With().Str("module", "rest").Str("proto", "WebSocket").
 		Str("remote", conn.RemoteAddr().String()).Logger()
 	defer ml.Close()
-	conn.SetReadLimit(maxMessageSizeV1)
-	conn.SetReadDeadline(time.Now().Add(pongWaitV1))
+	conn.SetReadLimit(maxMessageSizeV2)
+	conn.SetReadDeadline(time.Now().Add(pongWaitV2))
 	conn.SetPongHandler(func(string) error {
 		slog.Debug().Msg("Got pong")
-		conn.SetReadDeadline(time.Now().Add(pongWaitV1))
+		conn.SetReadDeadline(time.Now().Add(pongWaitV2))
 		return nil
 	})
 
@@ -100,8 +118,8 @@ func (ml *msgListenerV1) WSReader(conn *websocket.Conn) {
 }
 
 // WSWriter makes sure the websocket client is still connected
-func (ml *msgListenerV1) WSWriter(conn *websocket.Conn) {
-	ticker := time.NewTicker(pingPeriodV1)
+func (ml *msgListenerV2) WSWriter(conn *websocket.Conn) {
+	ticker := time.NewTicker(pingPeriodV2)
 	defer func() {
 		ticker.Stop()
 		ml.Close()
@@ -110,20 +128,20 @@ func (ml *msgListenerV1) WSWriter(conn *websocket.Conn) {
 	// Handle messages from hub until msgListener is closed
 	for {
 		select {
-		case msg, ok := <-ml.c:
-			conn.SetWriteDeadline(time.Now().Add(writeWaitV1))
+		case event, ok := <-ml.c:
+			conn.SetWriteDeadline(time.Now().Add(writeWaitV2))
 			if !ok {
 				// msgListener closed, exit
 				conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			if conn.WriteJSON(metadataToHeader(&msg)) != nil {
+			if conn.WriteJSON(event) != nil {
 				// Write failed
 				return
 			}
 		case <-ticker.C:
 			// Send ping
-			conn.SetWriteDeadline(time.Now().Add(writeWaitV1))
+			conn.SetWriteDeadline(time.Now().Add(writeWaitV2))
 			if conn.WriteMessage(websocket.PingMessage, []byte{}) != nil {
 				// Write error
 				return
@@ -135,7 +153,7 @@ func (ml *msgListenerV1) WSWriter(conn *websocket.Conn) {
 }
 
 // Close removes the listener registration
-func (ml *msgListenerV1) Close() {
+func (ml *msgListenerV2) Close() {
 	select {
 	case <-ml.c:
 		// Already closed
@@ -145,12 +163,12 @@ func (ml *msgListenerV1) Close() {
 	}
 }
 
-// MonitorAllMessagesV1 is a web handler which upgrades the connection to a websocket and notifies
+// MonitorAllMessagesV2 is a web handler which upgrades the connection to a websocket and notifies
 // the client of all messages received.
-func MonitorAllMessagesV1(
+func MonitorAllMessagesV2(
 	w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	// Upgrade to Websocket.
-	conn, err := upgraderV1.Upgrade(w, req, nil)
+	conn, err := upgraderV2.Upgrade(w, req, nil)
 	if err != nil {
 		return err
 	}
@@ -162,22 +180,22 @@ func MonitorAllMessagesV1(
 	log.Debug().Str("module", "rest").Str("proto", "WebSocket").
 		Str("remote", conn.RemoteAddr().String()).Msg("Upgraded to WebSocket")
 	// Create, register listener; then interact with conn.
-	ml := newMsgListenerV1(ctx.MsgHub, "")
+	ml := newMsgListenerV2(ctx.MsgHub, "")
 	go ml.WSWriter(conn)
 	ml.WSReader(conn)
 	return nil
 }
 
-// MonitorMailboxMessagesV1 is a web handler which upgrades the connection to a websocket and
+// MonitorMailboxMessagesV2 is a web handler which upgrades the connection to a websocket and
 // notifies the client of messages received by a particular mailbox.
-func MonitorMailboxMessagesV1(
+func MonitorMailboxMessagesV2(
 	w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	name, err := ctx.Manager.MailboxForAddress(ctx.Vars["name"])
 	if err != nil {
 		return err
 	}
 	// Upgrade to Websocket.
-	conn, err := upgraderV1.Upgrade(w, req, nil)
+	conn, err := upgraderV2.Upgrade(w, req, nil)
 	if err != nil {
 		return err
 	}
@@ -189,21 +207,8 @@ func MonitorMailboxMessagesV1(
 	log.Debug().Str("module", "rest").Str("proto", "WebSocket").
 		Str("remote", conn.RemoteAddr().String()).Msg("Upgraded to WebSocket")
 	// Create, register listener; then interact with conn.
-	ml := newMsgListenerV1(ctx.MsgHub, name)
+	ml := newMsgListenerV2(ctx.MsgHub, name)
 	go ml.WSWriter(conn)
 	ml.WSReader(conn)
 	return nil
-}
-
-func metadataToHeader(msg *event.MessageMetadata) *model.JSONMessageHeaderV1 {
-	return &model.JSONMessageHeaderV1{
-		Mailbox:     msg.Mailbox,
-		ID:          msg.ID,
-		From:        stringutil.StringAddress(msg.From),
-		To:          stringutil.StringAddressList(msg.To),
-		Subject:     msg.Subject,
-		Date:        msg.Date,
-		PosixMillis: msg.Date.UnixNano() / 1000000,
-		Size:        msg.Size,
-	}
 }

@@ -22,4 +22,10 @@ func SetupRoutes(r *mux.Router) {
 		web.Handler(MonitorAllMessagesV1)).Name("MonitorAllMessagesV1").Methods("GET")
 	r.Path("/v1/monitor/messages/{name}").Handler(
 		web.Handler(MonitorMailboxMessagesV1)).Name("MonitorMailboxMessagesV1").Methods("GET")
+
+	// API v2
+	r.Path("/v2/monitor/messages").Handler(
+		web.Handler(MonitorAllMessagesV2)).Name("MonitorAllMessagesV2").Methods("GET")
+	r.Path("/v2/monitor/messages/{name}").Handler(
+		web.Handler(MonitorMailboxMessagesV2)).Name("MonitorMailboxMessagesV2").Methods("GET")
 }

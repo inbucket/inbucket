@@ -88,10 +88,6 @@ func (h *Host) CreateChannel(name string) chan lua.LValue {
 	return h.pool.createChannel(name)
 }
 
-const afterMessageDeletedFnName string = "after_message_deleted"
-const afterMessageStoredFnName string = "after_message_stored"
-const beforeMailAcceptedFnName string = "before_mail_accepted"
-
 // Detects global lua event listener functions and wires them up.
 func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 	detectFn := func(name string) bool {
@@ -111,17 +107,23 @@ func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 		return false
 	}
 
+	ib, err := getInbucket(ls)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to get inbucket global")
+	}
+
 	events := h.extHost.Events
 	const listenerName string = "lua"
 
 	if detectFn(afterMessageDeletedFnName) {
 		events.AfterMessageDeleted.AddListener(listenerName, h.handleAfterMessageDeleted)
 	}
-	if detectFn(afterMessageStoredFnName) {
-		events.AfterMessageStored.AddListener(listenerName, h.handleAfterMessageStored)
-	}
 	if detectFn(beforeMailAcceptedFnName) {
 		events.BeforeMailAccepted.AddListener(listenerName, h.handleBeforeMailAccepted)
+	}
+
+	if ib.After.MessageStored.Type() == lua.LTFunction {
+		events.AfterMessageStored.AddListener(listenerName, h.handleAfterMessageStored)
 	}
 }
 
@@ -143,7 +145,7 @@ func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) {
 }
 
 func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
-	logger, ls, lfunc, ok := h.prepareFuncCall(afterMessageStoredFnName)
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("after.message_stored")
 	if !ok {
 		return
 	}
@@ -152,7 +154,7 @@ func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
 	// Call lua function.
 	logger.Debug().Msgf("Calling Lua function with %+v", msg)
 	if err := ls.CallByParam(
-		lua.P{Fn: lfunc, NRet: 0, Protect: true},
+		lua.P{Fn: ib.After.MessageStored, NRet: 0, Protect: true},
 		wrapMessageMetadata(ls, &msg),
 	); err != nil {
 		logger.Error().Err(err).Msg("Failed to call Lua function")
@@ -209,4 +211,23 @@ func (h *Host) prepareFuncCall(funcName string) (logger zerolog.Logger, ls *lua.
 	}
 
 	return logger, ls, lfunc, true
+}
+
+// Common preparation for calling Lua functions.
+func (h *Host) prepareInbucketFuncCall(funcName string) (logger zerolog.Logger, ls *lua.LState, ib *Inbucket, ok bool) {
+	logger = h.logContext.Str("event", funcName).Logger()
+
+	ls, err := h.pool.getState()
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to get Lua state instance from pool")
+		return logger, nil, nil, false
+	}
+
+	ib, err = getInbucket(ls)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to obtain Lua inbucket object")
+		return logger, nil, nil, false
+	}
+
+	return logger, ls, ib, true
 }

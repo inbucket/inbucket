@@ -96,7 +96,7 @@ func TestAfterMessageStored(t *testing.T) {
 	script := `
 		async = true
 
-		function after_message_stored(msg)
+		function inbucket.after.message_stored(msg)
 			-- Full message bindings tested elsewhere.
 			assert_eq(msg.mailbox, "mb1")
 			assert_eq(msg.id, "id1")

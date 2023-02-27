@@ -37,6 +37,7 @@ func (lp *statePool) newState() (*lua.LState, error) {
 	}
 
 	// Register custom types.
+	registerInbucketTypes(ls)
 	registerMessageMetadataType(ls)
 	registerMailAddressType(ls)
 	registerPolicyType(ls)

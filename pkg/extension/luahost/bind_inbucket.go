@@ -37,6 +37,10 @@ func registerInbucketTypes(ls *lua.LState) {
 	mt := ls.NewTypeMetatable(inbucketName)
 	ls.SetField(mt, "__index", ls.NewFunction(inbucketIndex))
 
+	// inbucket global var.
+	ud := wrapInbucket(ls, &Inbucket{})
+	ls.SetGlobal(inbucketName, ud)
+
 	// inbucket.after type.
 	mt = ls.NewTypeMetatable(inbucketAfterName)
 	ls.SetField(mt, "__index", ls.NewFunction(inbucketAfterIndex))
@@ -46,12 +50,6 @@ func registerInbucketTypes(ls *lua.LState) {
 	mt = ls.NewTypeMetatable(inbucketBeforeName)
 	ls.SetField(mt, "__index", ls.NewFunction(inbucketBeforeIndex))
 	ls.SetField(mt, "__newindex", ls.NewFunction(inbucketBeforeNewIndex))
-
-	// inbucket global.
-	ud := wrapInbucket(ls, &Inbucket{
-		After: InbucketAfterFuncs{},
-	})
-	ls.SetGlobal(inbucketName, ud)
 }
 
 func wrapInbucket(ls *lua.LState, val *Inbucket) *lua.LUserData {

@@ -177,25 +177,6 @@ func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
 }
 
 // Common preparation for calling Lua functions.
-func (h *Host) prepareFuncCall(funcName string) (logger zerolog.Logger, ls *lua.LState, lfunc lua.LValue, ok bool) {
-	logger = h.logContext.Str("event", funcName).Logger()
-
-	ls, err := h.pool.getState()
-	if err != nil {
-		logger.Error().Err(err).Msg("Failed to get Lua state instance from pool")
-		return logger, nil, nil, false
-	}
-
-	lfunc = ls.GetGlobal(funcName)
-	if lfunc.Type() != lua.LTFunction {
-		logger.Error().Msgf("global %q is no longer a function", funcName)
-		return logger, nil, nil, false
-	}
-
-	return logger, ls, lfunc, true
-}
-
-// Common preparation for calling Lua functions.
 func (h *Host) prepareInbucketFuncCall(funcName string) (logger zerolog.Logger, ls *lua.LState, ib *Inbucket, ok bool) {
 	logger = h.logContext.Str("event", funcName).Logger()
 

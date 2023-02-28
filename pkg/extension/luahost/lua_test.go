@@ -125,7 +125,7 @@ func TestAfterMessageStored(t *testing.T) {
 func TestBeforeMailAccepted(t *testing.T) {
 	// Register lua event listener.
 	script := `
-		function before_mail_accepted(localpart, domain)
+		function inbucket.before.mail_accepted(localpart, domain)
 			return localpart == "from" and domain == "test"
 		end
 	`

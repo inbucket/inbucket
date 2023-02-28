@@ -7,6 +7,53 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
+func TestInbucketBeforeFuncs(t *testing.T) {
+	// This Script registers each function and calls it.  No effort is made to use the arguments
+	// that Inbucket expects, this is only to validate the inbucket.before data structure getters
+	// and setters.
+	script := `
+		assert(inbucket, "inbucket should not be nil")
+		assert(inbucket.before, "inbucket.before should not be nil")
+
+		local fns = { "mail_accepted" }
+
+		-- Verify functions start off nil.
+		for i, name in ipairs(fns) do
+			assert(inbucket.before[name] == nil, "before." .. name .. " should be nil")
+		end
+
+		-- Test function to track func calls made, ensures no crossed wires.
+		local calls = {}
+		function makeTestFunc(create_name)
+			return function(call_name)
+				calls[create_name] = call_name
+			end
+		end
+
+		-- Set before functions, verify not nil, and call them.
+		for i, name in ipairs(fns) do
+			inbucket.before[name] = makeTestFunc(name)
+			assert(inbucket.before[name], "before." .. name .. " should not be nil")
+		end
+
+		-- Call each function.  Separate loop to verify final state in 'calls'.
+		for i, name in ipairs(fns) do
+			inbucket.before[name](name)
+		end
+
+		-- Verify functions were called.
+		for i, name in ipairs(fns) do
+			assert(calls[name], "before." .. name .. " should have been called")
+			assert(calls[name] == name,
+				string.format("before.%s was called with incorrect argument %s", name, calls[name]))
+		end
+	`
+
+	ls := lua.NewState()
+	registerInbucketTypes(ls)
+	require.NoError(t, ls.DoString(script))
+}
+
 func TestInbucketAfterFuncs(t *testing.T) {
 	// This Script registers each function and calls it.  No effort is made to use the arguments
 	// that Inbucket expects, this is only to validate the inbucket.after data structure getters

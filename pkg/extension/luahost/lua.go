@@ -90,23 +90,6 @@ func (h *Host) CreateChannel(name string) chan lua.LValue {
 
 // Detects global lua event listener functions and wires them up.
 func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
-	detectFn := func(name string) bool {
-		lval := ls.GetGlobal(name)
-		switch lval.Type() {
-		case lua.LTFunction:
-			logger.Debug().Msgf("Detected %q function", name)
-			h.Functions = append(h.Functions, name)
-			return true
-		case lua.LTNil:
-			logger.Debug().Msgf("Did not detect %q function", name)
-		default:
-			logger.Fatal().Msgf("Found global named %q, but was a %v instead of a function",
-				name, lval.Type().String())
-		}
-
-		return false
-	}
-
 	ib, err := getInbucket(ls)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to get inbucket global")
@@ -115,15 +98,14 @@ func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 	events := h.extHost.Events
 	const listenerName string = "lua"
 
-	if detectFn(beforeMailAcceptedFnName) {
-		events.BeforeMailAccepted.AddListener(listenerName, h.handleBeforeMailAccepted)
-	}
-
 	if ib.After.MessageDeleted.Type() == lua.LTFunction {
 		events.AfterMessageDeleted.AddListener(listenerName, h.handleAfterMessageDeleted)
 	}
 	if ib.After.MessageStored.Type() == lua.LTFunction {
 		events.AfterMessageStored.AddListener(listenerName, h.handleAfterMessageStored)
+	}
+	if ib.Before.MailAccepted.Type() == lua.LTFunction {
+		events.BeforeMailAccepted.AddListener(listenerName, h.handleBeforeMailAccepted)
 	}
 }
 
@@ -162,7 +144,7 @@ func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
 }
 
 func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
-	logger, ls, lfunc, ok := h.prepareFuncCall(beforeMailAcceptedFnName)
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("after.message_stored")
 	if !ok {
 		return nil
 	}
@@ -170,7 +152,7 @@ func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
 
 	logger.Debug().Msgf("Calling Lua function with %+v", addr)
 	if err := ls.CallByParam(
-		lua.P{Fn: lfunc, NRet: 1, Protect: true},
+		lua.P{Fn: ib.Before.MailAccepted, NRet: 1, Protect: true},
 		lua.LString(addr.Local),
 		lua.LString(addr.Domain),
 	); err != nil {

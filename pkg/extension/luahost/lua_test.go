@@ -87,7 +87,7 @@ func TestAfterMessageDeleted(t *testing.T) {
 		Subject: "subj1",
 		Size:    42,
 	}
-	go extHost.Events.AfterMessageDeleted.Emit(msg)
+	extHost.Events.AfterMessageDeleted.Emit(msg)
 	assertNotified(t, notify)
 }
 
@@ -118,7 +118,7 @@ func TestAfterMessageStored(t *testing.T) {
 		Subject: "subj1",
 		Size:    42,
 	}
-	go extHost.Events.AfterMessageStored.Emit(msg)
+	extHost.Events.AfterMessageStored.Emit(msg)
 	assertNotified(t, notify)
 }
 

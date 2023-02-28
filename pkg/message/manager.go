@@ -85,7 +85,7 @@ func (s *StoreManager) Deliver(
 	// Emit message stored event.
 	event := delivery.Meta
 	event.ID = id
-	go s.ExtHost.Events.AfterMessageStored.Emit(&event)
+	s.ExtHost.Events.AfterMessageStored.Emit(&event)
 
 	return id, nil
 }

@@ -17,7 +17,6 @@ import (
 
 // Host of Lua extensions.
 type Host struct {
-	Functions  []string // Functions detected in lua script.
 	extHost    *extension.Host
 	pool       *statePool
 	logContext zerolog.Context
@@ -88,45 +87,29 @@ func (h *Host) CreateChannel(name string) chan lua.LValue {
 	return h.pool.createChannel(name)
 }
 
-const afterMessageDeletedFnName string = "after_message_deleted"
-const afterMessageStoredFnName string = "after_message_stored"
-const beforeMailAcceptedFnName string = "before_mail_accepted"
-
 // Detects global lua event listener functions and wires them up.
 func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
-	detectFn := func(name string) bool {
-		lval := ls.GetGlobal(name)
-		switch lval.Type() {
-		case lua.LTFunction:
-			logger.Debug().Msgf("Detected %q function", name)
-			h.Functions = append(h.Functions, name)
-			return true
-		case lua.LTNil:
-			logger.Debug().Msgf("Did not detect %q function", name)
-		default:
-			logger.Fatal().Msgf("Found global named %q, but was a %v instead of a function",
-				name, lval.Type().String())
-		}
-
-		return false
+	ib, err := getInbucket(ls)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to get inbucket global")
 	}
 
 	events := h.extHost.Events
 	const listenerName string = "lua"
 
-	if detectFn(afterMessageDeletedFnName) {
+	if ib.After.MessageDeleted != nil {
 		events.AfterMessageDeleted.AddListener(listenerName, h.handleAfterMessageDeleted)
 	}
-	if detectFn(afterMessageStoredFnName) {
+	if ib.After.MessageStored != nil {
 		events.AfterMessageStored.AddListener(listenerName, h.handleAfterMessageStored)
 	}
-	if detectFn(beforeMailAcceptedFnName) {
+	if ib.Before.MailAccepted != nil {
 		events.BeforeMailAccepted.AddListener(listenerName, h.handleBeforeMailAccepted)
 	}
 }
 
 func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) {
-	logger, ls, lfunc, ok := h.prepareFuncCall(afterMessageDeletedFnName)
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("after.message_deleted")
 	if !ok {
 		return
 	}
@@ -135,7 +118,7 @@ func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) {
 	// Call lua function.
 	logger.Debug().Msgf("Calling Lua function with %+v", msg)
 	if err := ls.CallByParam(
-		lua.P{Fn: lfunc, NRet: 0, Protect: true},
+		lua.P{Fn: ib.After.MessageDeleted, NRet: 0, Protect: true},
 		wrapMessageMetadata(ls, &msg),
 	); err != nil {
 		logger.Error().Err(err).Msg("Failed to call Lua function")
@@ -143,7 +126,7 @@ func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) {
 }
 
 func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
-	logger, ls, lfunc, ok := h.prepareFuncCall(afterMessageStoredFnName)
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("after.message_stored")
 	if !ok {
 		return
 	}
@@ -152,7 +135,7 @@ func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
 	// Call lua function.
 	logger.Debug().Msgf("Calling Lua function with %+v", msg)
 	if err := ls.CallByParam(
-		lua.P{Fn: lfunc, NRet: 0, Protect: true},
+		lua.P{Fn: ib.After.MessageStored, NRet: 0, Protect: true},
 		wrapMessageMetadata(ls, &msg),
 	); err != nil {
 		logger.Error().Err(err).Msg("Failed to call Lua function")
@@ -160,7 +143,7 @@ func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
 }
 
 func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
-	logger, ls, lfunc, ok := h.prepareFuncCall(beforeMailAcceptedFnName)
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("after.message_stored")
 	if !ok {
 		return nil
 	}
@@ -168,7 +151,7 @@ func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
 
 	logger.Debug().Msgf("Calling Lua function with %+v", addr)
 	if err := ls.CallByParam(
-		lua.P{Fn: lfunc, NRet: 1, Protect: true},
+		lua.P{Fn: ib.Before.MailAccepted, NRet: 1, Protect: true},
 		lua.LString(addr.Local),
 		lua.LString(addr.Domain),
 	); err != nil {
@@ -193,7 +176,7 @@ func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
 }
 
 // Common preparation for calling Lua functions.
-func (h *Host) prepareFuncCall(funcName string) (logger zerolog.Logger, ls *lua.LState, lfunc lua.LValue, ok bool) {
+func (h *Host) prepareInbucketFuncCall(funcName string) (logger zerolog.Logger, ls *lua.LState, ib *Inbucket, ok bool) {
 	logger = h.logContext.Str("event", funcName).Logger()
 
 	ls, err := h.pool.getState()
@@ -202,11 +185,11 @@ func (h *Host) prepareFuncCall(funcName string) (logger zerolog.Logger, ls *lua.
 		return logger, nil, nil, false
 	}
 
-	lfunc = ls.GetGlobal(funcName)
-	if lfunc.Type() != lua.LTFunction {
-		logger.Error().Msgf("global %q is no longer a function", funcName)
+	ib, err = getInbucket(ls)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to obtain Lua inbucket object")
 		return logger, nil, nil, false
 	}
 
-	return logger, ls, lfunc, true
+	return logger, ls, ib, true
 }

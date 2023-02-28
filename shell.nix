@@ -32,4 +32,7 @@ pkgs.mkShell {
 
     scripts.qt
   ];
+
+  # Prevents launch errors with delve debugger.
+  hardeningDisable = [ "fortify" ];
 }

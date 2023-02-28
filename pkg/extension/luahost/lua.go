@@ -17,7 +17,6 @@ import (
 
 // Host of Lua extensions.
 type Host struct {
-	Functions  []string // Functions detected in lua script.
 	extHost    *extension.Host
 	pool       *statePool
 	logContext zerolog.Context
@@ -98,13 +97,13 @@ func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 	events := h.extHost.Events
 	const listenerName string = "lua"
 
-	if ib.After.MessageDeleted.Type() == lua.LTFunction {
+	if ib.After.MessageDeleted != nil {
 		events.AfterMessageDeleted.AddListener(listenerName, h.handleAfterMessageDeleted)
 	}
-	if ib.After.MessageStored.Type() == lua.LTFunction {
+	if ib.After.MessageStored != nil {
 		events.AfterMessageStored.AddListener(listenerName, h.handleAfterMessageStored)
 	}
-	if ib.Before.MailAccepted.Type() == lua.LTFunction {
+	if ib.Before.MailAccepted != nil {
 		events.BeforeMailAccepted.AddListener(listenerName, h.handleBeforeMailAccepted)
 	}
 }

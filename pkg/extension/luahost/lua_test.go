@@ -65,7 +65,7 @@ func TestAfterMessageDeleted(t *testing.T) {
 	script := `
 		async = true
 
-		function after_message_deleted(msg)
+		function inbucket.after.message_deleted(msg)
 			-- Full message bindings tested elsewhere.
 			assert_eq(msg.mailbox, "mb1")
 			assert_eq(msg.id, "id1")

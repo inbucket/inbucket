@@ -115,20 +115,20 @@ func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 	events := h.extHost.Events
 	const listenerName string = "lua"
 
-	if detectFn(afterMessageDeletedFnName) {
-		events.AfterMessageDeleted.AddListener(listenerName, h.handleAfterMessageDeleted)
-	}
 	if detectFn(beforeMailAcceptedFnName) {
 		events.BeforeMailAccepted.AddListener(listenerName, h.handleBeforeMailAccepted)
 	}
 
+	if ib.After.MessageDeleted.Type() == lua.LTFunction {
+		events.AfterMessageDeleted.AddListener(listenerName, h.handleAfterMessageDeleted)
+	}
 	if ib.After.MessageStored.Type() == lua.LTFunction {
 		events.AfterMessageStored.AddListener(listenerName, h.handleAfterMessageStored)
 	}
 }
 
 func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) {
-	logger, ls, lfunc, ok := h.prepareFuncCall(afterMessageDeletedFnName)
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("after.message_deleted")
 	if !ok {
 		return
 	}
@@ -137,7 +137,7 @@ func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) {
 	// Call lua function.
 	logger.Debug().Msgf("Calling Lua function with %+v", msg)
 	if err := ls.CallByParam(
-		lua.P{Fn: lfunc, NRet: 0, Protect: true},
+		lua.P{Fn: ib.After.MessageDeleted, NRet: 0, Protect: true},
 		wrapMessageMetadata(ls, &msg),
 	); err != nil {
 		logger.Error().Err(err).Msg("Failed to call Lua function")

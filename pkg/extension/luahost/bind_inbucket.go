@@ -17,12 +17,16 @@ const (
 	beforeMailAcceptedFnName  = "before_mail_accepted"
 )
 
+// Inbucket is the primary Lua interface data structure.
 type Inbucket struct {
 	After InbucketAfterFuncs
 }
 
+// InbucketAfterFuncs holds references to Lua extension functions to be called async
+// after Inbucket handles an event.
 type InbucketAfterFuncs struct {
-	MessageStored *lua.LFunction
+	MessageDeleted *lua.LFunction
+	MessageStored  *lua.LFunction
 }
 
 func registerInbucketTypes(ls *lua.LState) {
@@ -119,6 +123,8 @@ func inbucketAfterIndex(ls *lua.LState) int {
 
 	// Push the requested field's value onto the stack.
 	switch field {
+	case "message_deleted":
+		ls.Push(funcOrNil(after.MessageDeleted))
 	case "message_stored":
 		ls.Push(funcOrNil(after.MessageStored))
 	default:
@@ -135,6 +141,8 @@ func inbucketAfterNewIndex(ls *lua.LState) int {
 	index := ls.CheckString(2)
 
 	switch index {
+	case "message_deleted":
+		m.MessageDeleted = ls.CheckFunction(3)
 	case "message_stored":
 		m.MessageStored = ls.CheckFunction(3)
 	default:

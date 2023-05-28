@@ -1,35 +1,47 @@
 name: Build and Test
+
 on:
   pull_request:
+
 jobs:
   go-build:
     runs-on: ubuntu-latest
+    name: Go ${{ matrix.go }} build
+
     strategy:
       matrix:
-        go: [ '1.20', '1.19' ]
-    name: Go ${{ matrix.go }} build
+        go:
+          - '1.20'
+          - '1.19'
+
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
+          check-latest: true
+
       - name: Build and test
         run: |
           go build ./...
           go test -race -coverprofile=profile.cov ./...
+
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
         with:
           path-to-profile: profile.cov
           flag-name: Go-${{ matrix.go }}
           parallel: true
+
   coverage:
     needs: go-build
     name: Test Coverage
     runs-on: ubuntu-latest
+
     steps:
       - uses: shogo82148/actions-goveralls@v1
         with:

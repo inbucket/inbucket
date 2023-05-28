@@ -1,5 +1,7 @@
 module github.com/inbucket/inbucket
 
+go 1.20
+
 require (
 	github.com/cjoudrey/gluahttp v0.0.0-20201111170219-25003d9adfa9
 	github.com/google/subcommands v1.2.0
@@ -38,5 +40,3 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-go 1.18

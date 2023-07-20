@@ -99,6 +99,15 @@ func (a *Addressing) ShouldStoreDomain(domain string) bool {
 	return false
 }
 
+// ShouldRejectOriginDomain indicates if Inbucket rejects mail from the specified domain.
+func (a *Addressing) ShouldRejectOriginDomain(domain string) bool {
+	domain = strings.ToLower(domain)
+	if stringutil.SliceContains(a.Config.SMTP.RejectOriginDomains, domain) {
+		return true
+	}
+	return false
+}
+
 // ParseEmailAddress unescapes an email address, and splits the local part from the domain part.
 // An error is returned if the local or domain parts fail validation following the guidelines
 // in RFC3696.

@@ -15,6 +15,7 @@ import (
 
 	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/policy"
+	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog"
 )
 
@@ -384,7 +385,16 @@ func (s *Session) readyHandler(cmd string, arg string) {
 			return
 		}
 		from := m[1]
+		s.logger.Debug().Msgf("Mail sender is %v", from)
 		localpart, domain, err := policy.ParseEmailAddress(from)
+		s.logger.Debug().Msgf("Domain sender is %v", domain)
+
+		if stringutil.SliceContains(s.Server.config.RejectOriginDomains, domain) {
+			s.send("501 Unauthorized domain")
+			s.logger.Warn().Msgf("Bad domain sender %s", domain)
+			return
+		}
+
 		if from != "" && err != nil {
 			s.send("501 Bad sender address syntax")
 			s.logger.Warn().Msgf("Bad address as MAIL arg: %q, %s", from, err)
@@ -601,6 +611,7 @@ func (s *Session) readLine() (line string, err error) {
 
 func (s *Session) parseCmd(line string) (cmd string, arg string, ok bool) {
 	line = strings.TrimRight(line, "\r\n")
+	s.logger.Debug().Msgf("Line received: %v", line)
 
 	// Find length of command or entire line.
 	hasArg := true

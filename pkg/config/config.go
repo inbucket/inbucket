@@ -74,21 +74,22 @@ type Lua struct {
 
 // SMTP contains the SMTP server configuration.
 type SMTP struct {
-	Addr            string        `required:"true" default:"0.0.0.0:2500" desc:"SMTP server IP4 host:port"`
-	Domain          string        `required:"true" default:"inbucket" desc:"HELO domain"`
-	MaxRecipients   int           `required:"true" default:"200" desc:"Maximum RCPT TO per message"`
-	MaxMessageBytes int           `required:"true" default:"10240000" desc:"Maximum message size"`
-	DefaultAccept   bool          `required:"true" default:"true" desc:"Accept all mail by default?"`
-	AcceptDomains   []string      `desc:"Domains to accept mail for"`
-	RejectDomains   []string      `desc:"Domains to reject mail for"`
-	DefaultStore    bool          `required:"true" default:"true" desc:"Store all mail by default?"`
-	StoreDomains    []string      `desc:"Domains to store mail for"`
-	DiscardDomains  []string      `desc:"Domains to discard mail for"`
-	Timeout         time.Duration `required:"true" default:"300s" desc:"Idle network timeout"`
-	TLSEnabled      bool          `default:"false" desc:"Enable STARTTLS option"`
-	TLSPrivKey      string        `default:"cert.key" desc:"X509 Private Key file for TLS Support"`
-	TLSCert         string        `default:"cert.crt" desc:"X509 Public Certificate file for TLS Support"`
-	Debug           bool          `ignored:"true"`
+	Addr                string        `required:"true" default:"0.0.0.0:2500" desc:"SMTP server IP4 host:port"`
+	Domain              string        `required:"true" default:"inbucket" desc:"HELO domain"`
+	MaxRecipients       int           `required:"true" default:"200" desc:"Maximum RCPT TO per message"`
+	MaxMessageBytes     int           `required:"true" default:"10240000" desc:"Maximum message size"`
+	DefaultAccept       bool          `required:"true" default:"true" desc:"Accept all mail by default?"`
+	AcceptDomains       []string      `desc:"Domains to accept mail for"`
+	RejectDomains       []string      `desc:"Domains to reject mail for"`
+	DefaultStore        bool          `required:"true" default:"true" desc:"Store all mail by default?"`
+	StoreDomains        []string      `desc:"Domains to store mail for"`
+	DiscardDomains      []string      `desc:"Domains to discard mail for"`
+	RejectOriginDomains []string      `desc:"Domains to reject mail from"`
+	Timeout             time.Duration `required:"true" default:"300s" desc:"Idle network timeout"`
+	TLSEnabled          bool          `default:"false" desc:"Enable STARTTLS option"`
+	TLSPrivKey          string        `default:"cert.key" desc:"X509 Private Key file for TLS Support"`
+	TLSCert             string        `default:"cert.crt" desc:"X509 Public Certificate file for TLS Support"`
+	Debug               bool          `ignored:"true"`
 }
 
 // POP3 contains the POP3 server configuration.
@@ -128,6 +129,7 @@ func Process() (*Root, error) {
 	stringutil.SliceToLower(c.SMTP.RejectDomains)
 	stringutil.SliceToLower(c.SMTP.StoreDomains)
 	stringutil.SliceToLower(c.SMTP.DiscardDomains)
+	stringutil.SliceToLower(c.SMTP.RejectOriginDomains)
 	return c, err
 }
 

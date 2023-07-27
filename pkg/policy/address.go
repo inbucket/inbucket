@@ -71,6 +71,21 @@ func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 	}, nil
 }
 
+// ParseOrigin parses an address into a Origin. This is used for parsing MAIL FROM argument,
+// not To headers.
+func (a *Addressing) ParseOrigin(address string) (*Origin, error) {
+	local, domain, err := ParseEmailAddress(address)
+	if err != nil {
+		return nil, err
+	}
+	return &Origin{
+		Address:    mail.Address{Address: address},
+		addrPolicy: a,
+		LocalPart:  local,
+		Domain:     domain,
+	}, nil
+}
+
 // ShouldAcceptDomain indicates if Inbucket accepts mail destined for the specified domain.
 func (a *Addressing) ShouldAcceptDomain(domain string) bool {
 	domain = strings.ToLower(domain)
@@ -99,13 +114,10 @@ func (a *Addressing) ShouldStoreDomain(domain string) bool {
 	return false
 }
 
-// ShouldRejectOriginDomain indicates if Inbucket rejects mail from the specified domain.
-func (a *Addressing) ShouldRejectOriginDomain(domain string) bool {
+// ShouldAcceptOriginDomain indicates if Inbucket accept mail from the specified domain.
+func (a *Addressing) ShouldAcceptOriginDomain(domain string) bool {
 	domain = strings.ToLower(domain)
-	if stringutil.SliceContains(a.Config.SMTP.RejectOriginDomains, domain) {
-		return true
-	}
-	return false
+	return !stringutil.SliceContains(a.Config.SMTP.RejectOriginDomains, domain) 
 }
 
 // ParseEmailAddress unescapes an email address, and splits the local part from the domain part.

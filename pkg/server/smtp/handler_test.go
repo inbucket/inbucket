@@ -198,6 +198,31 @@ func TestReadyStateValidCommands(t *testing.T) {
 	}
 }
 
+// Test invalid domains in READY state.
+func TestReadyStateRejectedDomains(t *testing.T) {
+	ds := test.NewStore()
+	server := setupSMTPServer(ds, extension.NewHost())
+
+	tests := []scriptStep{
+		{"MAIL FROM john@validdomain.com", 250},
+		{"MAIL FROM:john@invalidomain.com", 501},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.send, func(t *testing.T) {
+			defer server.Drain()
+			script := []scriptStep{
+				{"HELO localhost", 250},
+				tc,
+				{"QUIT", 221}}
+			if err := playSession(t, server, script); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+
+}
+
 // Test invalid commands in READY state.
 func TestReadyStateInvalidCommands(t *testing.T) {
 	ds := test.NewStore()

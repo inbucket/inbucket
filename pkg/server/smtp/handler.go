@@ -15,7 +15,6 @@ import (
 
 	"github.com/inbucket/inbucket/pkg/extension/event"
 	"github.com/inbucket/inbucket/pkg/policy"
-	"github.com/inbucket/inbucket/pkg/stringutil"
 	"github.com/rs/zerolog"
 )
 
@@ -107,7 +106,7 @@ type Session struct {
 	sendError    error               // Last network send error.
 	state        State               // Session state machine.
 	reader       *bufio.Reader       // Buffered reading for TCP conn.
-	from         string              // Sender from MAIL command.
+	from         *policy.Origin      // Sender from MAIL command.
 	recipients   []*policy.Recipient // Recipients from RCPT commands.
 	logger       zerolog.Logger      // Session specific logger.
 	debug        bool                // Print network traffic to stdout.
@@ -387,13 +386,7 @@ func (s *Session) readyHandler(cmd string, arg string) {
 		from := m[1]
 		s.logger.Debug().Msgf("Mail sender is %v", from)
 		localpart, domain, err := policy.ParseEmailAddress(from)
-		s.logger.Debug().Msgf("Domain sender is %v", domain)
-
-		if stringutil.SliceContains(s.Server.config.RejectOriginDomains, domain) {
-			s.send("501 Unauthorized domain")
-			s.logger.Warn().Msgf("Bad domain sender %s", domain)
-			return
-		}
+		s.logger.Debug().Msgf("Origin domain is %v", domain)
 
 		if from != "" && err != nil {
 			s.send("501 Bad sender address syntax")
@@ -434,7 +427,19 @@ func (s *Session) readyHandler(cmd string, arg string) {
 
 		if extResult == nil || *extResult {
 			// Permitted by extension, or none had an opinion.
-			s.from = from
+			origin, err := s.addrPolicy.ParseOrigin(from)
+			if err != nil {
+				s.send("501 Bad origin address syntax")
+				s.logger.Warn().Str("from", from).Err(err).Msg("Bad address as MAIL arg")
+				return
+			}
+			s.from = origin
+			if !s.from.ShouldAccept() {
+				s.send("501 Unauthorized domain")
+				s.logger.Warn().Msgf("Bad domain sender %s", domain)
+				return
+			}
+
 			s.logger.Info().Msgf("Mail from: %v", from)
 			s.send(fmt.Sprintf("250 Roger, accepting mail from <%v>", from))
 			s.enterState(MAIL)
@@ -660,7 +665,7 @@ func (s *Session) parseArgs(arg string) (args map[string]string, ok bool) {
 
 func (s *Session) reset() {
 	s.enterState(READY)
-	s.from = ""
+	s.from = nil
 	s.recipients = nil
 }
 

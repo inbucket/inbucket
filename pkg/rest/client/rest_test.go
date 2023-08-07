@@ -2,7 +2,7 @@ package client
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -33,7 +33,7 @@ func (m *mockHTTPClient) Do(req *http.Request) (resp *http.Response, err error) 
 	}
 	resp = &http.Response{
 		StatusCode: m.statusCode,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(m.body)),
+		Body:       io.NopCloser(bytes.NewBufferString(m.body)),
 	}
 	return
 }
@@ -43,7 +43,7 @@ func (m *mockHTTPClient) ReqBody() []byte {
 	if err != nil {
 		return nil
 	}
-	body, err := ioutil.ReadAll(r)
+	body, err := io.ReadAll(r)
 	if err != nil {
 		return nil
 	}

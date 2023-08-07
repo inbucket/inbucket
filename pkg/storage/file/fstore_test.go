@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/mail"
 	"os"
@@ -192,7 +191,7 @@ func TestGetLatestMessage(t *testing.T) {
 
 // setupDataStore creates a new FileDataStore in a temporary directory
 func setupDataStore(cfg config.Storage, extHost *extension.Host) (*Store, *bytes.Buffer) {
-	path, err := ioutil.TempDir("", "inbucket")
+	path, err := os.MkdirTemp("", "inbucket")
 	if err != nil {
 		panic(err)
 	}
@@ -228,7 +227,7 @@ func deliverMessage(ds *Store, mbName string, subject string, date time.Time) (s
 		meta.To[0].Address, meta.From.Address, subject)
 	delivery := &message.Delivery{
 		Meta:   meta,
-		Reader: ioutil.NopCloser(strings.NewReader(testMsg)),
+		Reader: io.NopCloser(strings.NewReader(testMsg)),
 	}
 	id, err := ds.AddMessage(delivery)
 	if err != nil {

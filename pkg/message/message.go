@@ -3,7 +3,6 @@ package message
 
 import (
 	"io"
-	"io/ioutil"
 	"net/mail"
 	"net/textproto"
 	"time"
@@ -97,7 +96,7 @@ func (d *Delivery) Size() int64 {
 
 // Source contains the raw content of the message.
 func (d *Delivery) Source() (io.ReadCloser, error) {
-	return ioutil.NopCloser(d.Reader), nil
+	return io.NopCloser(d.Reader), nil
 }
 
 // Seen getter.

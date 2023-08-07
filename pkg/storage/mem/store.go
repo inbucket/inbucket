@@ -2,7 +2,7 @@ package mem
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"sort"
 	"strconv"
 	"sync"
@@ -62,7 +62,7 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 		err = ierr
 		return
 	}
-	source, ierr := ioutil.ReadAll(r)
+	source, ierr := io.ReadAll(r)
 	if ierr != nil {
 		err = ierr
 		return

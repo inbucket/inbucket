@@ -2,7 +2,7 @@
 
 ### Build frontend
 # Due to no official elm compiler for arm; build frontend with amd64.
-FROM --platform=linux/amd64 node:16 as frontend
+FROM --platform=linux/amd64 node:18 as frontend
 WORKDIR /build
 COPY . .
 WORKDIR /build/ui

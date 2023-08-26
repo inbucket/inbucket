@@ -2,7 +2,7 @@ package webui
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"net/http"
 
 	"github.com/inbucket/inbucket/pkg/config"
@@ -11,7 +11,7 @@ import (
 
 // RootGreeting serves the Inbucket greeting.
 func RootGreeting(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
-	greeting, err := ioutil.ReadFile(ctx.RootConfig.Web.GreetingFile)
+	greeting, err := os.ReadFile(ctx.RootConfig.Web.GreetingFile)
 	if err != nil {
 		return fmt.Errorf("Failed to load greeting: %v", err)
 	}

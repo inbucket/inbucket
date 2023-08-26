@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"container/list"
 	"io"
-	"io/ioutil"
 	"net/mail"
 	"time"
 
@@ -47,7 +46,7 @@ func (m *Message) Subject() string { return m.subject }
 
 // Source returns a reader for the message source.
 func (m *Message) Source() (io.ReadCloser, error) {
-	return ioutil.NopCloser(bytes.NewReader(m.source)), nil
+	return io.NopCloser(bytes.NewReader(m.source)), nil
 }
 
 // Size returns the message size in bytes.

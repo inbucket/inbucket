@@ -3,7 +3,7 @@ package test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/mail"
 	"strings"
 	"testing"
@@ -159,7 +159,7 @@ func testContent(t *testing.T, store storage.Store, extHost *extension.Host) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := ioutil.ReadAll(r)
+	got, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -455,7 +455,7 @@ func DeliverToStore(
 		meta.To[0].Address, meta.From.Address, subject)
 	delivery := &message.Delivery{
 		Meta:   meta,
-		Reader: ioutil.NopCloser(strings.NewReader(testMsg)),
+		Reader: io.NopCloser(strings.NewReader(testMsg)),
 	}
 	id, err := store.AddMessage(delivery)
 	if err != nil {

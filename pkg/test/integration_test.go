@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	smtpclient "net/smtp"
 	"os"
 	"path/filepath"
@@ -266,7 +266,7 @@ func readTestData(path ...string) []byte {
 	if err != nil {
 		panic(err)
 	}
-	data, err := ioutil.ReadAll(f)
+	data, err := io.ReadAll(f)
 	if err != nil {
 		panic(err)
 	}

@@ -19,7 +19,7 @@ import (
 type Manager interface {
 	Deliver(
 		to *policy.Recipient,
-		from string,
+		from *policy.Origin,
 		recipients []*policy.Recipient,
 		prefix string,
 		content []byte,
@@ -43,7 +43,7 @@ type StoreManager struct {
 // Deliver submits a new message to the store.
 func (s *StoreManager) Deliver(
 	to *policy.Recipient,
-	from string,
+	from *policy.Origin,
 	recipients []*policy.Recipient,
 	prefix string,
 	source []byte,
@@ -56,7 +56,8 @@ func (s *StoreManager) Deliver(
 	}
 	fromaddr, err := env.AddressList("From")
 	if err != nil || len(fromaddr) == 0 {
-		fromaddr = []*mail.Address{{Address: from}}
+		fromaddr = make([]*mail.Address, 1)
+		fromaddr[0] = &from.Address
 	}
 	toaddr, err := env.AddressList("To")
 	if err != nil {

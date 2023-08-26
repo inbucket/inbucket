@@ -92,7 +92,7 @@ func TestEmptyEnvelope(t *testing.T) {
 	// Test out some empty envelope without blanks
 	script := []scriptStep{
 		{"HELO localhost", 250},
-		{"MAIL FROM:<>", 250},
+		{"MAIL FROM:<>", 501},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
@@ -101,7 +101,7 @@ func TestEmptyEnvelope(t *testing.T) {
 	// Test out some empty envelope with blanks
 	script = []scriptStep{
 		{"HELO localhost", 250},
-		{"MAIL FROM: <>", 250},
+		{"MAIL FROM: <>", 501},
 	}
 	if err := playSession(t, server, script); err != nil {
 		t.Error(err)
@@ -196,6 +196,31 @@ func TestReadyStateValidCommands(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test invalid domains in READY state.
+func TestReadyStateRejectedDomains(t *testing.T) {
+	ds := test.NewStore()
+	server := setupSMTPServer(ds, extension.NewHost())
+
+	tests := []scriptStep{
+		{"MAIL FROM: <john@validdomain.com>", 250},
+		{"MAIL FROM: <john@invalidomain.com>", 501},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.send, func(t *testing.T) {
+			defer server.Drain()
+			script := []scriptStep{
+				{"HELO localhost", 250},
+				tc,
+				{"QUIT", 221}}
+			if err := playSession(t, server, script); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+
 }
 
 // Test invalid commands in READY state.
@@ -557,6 +582,7 @@ func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 			MaxMessageBytes: 5000,
 			DefaultAccept:   true,
 			RejectDomains:   []string{"deny.com"},
+			RejectOriginDomains: []string{"invalidomain.com"},
 			Timeout:         5,
 		},
 	}

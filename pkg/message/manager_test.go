@@ -22,9 +22,10 @@ func TestManagerEmitsMessageStoredEvent(t *testing.T) {
 	listener := extHost.Events.AfterMessageStored.AsyncTestListener("manager", 1)
 
 	// Attempt to deliver a message to generate event.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
 	if _, err := sm.Deliver(
 		&policy.Recipient{},
-		"from@example.com",
+		origin,
 		[]*policy.Recipient{},
 		"prefix",
 		[]byte("From: from@example.com\n\ntest email"),

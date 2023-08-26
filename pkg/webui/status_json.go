@@ -10,13 +10,14 @@ type jsonServerConfig struct {
 }
 
 type jsonSMTPConfig struct {
-	Addr           string   `json:"addr"`
-	DefaultAccept  bool     `json:"default-accept"`
-	AcceptDomains  []string `json:"accept-domains"`
-	RejectDomains  []string `json:"reject-domains"`
-	DefaultStore   bool     `json:"default-store"`
-	StoreDomains   []string `json:"store-domains"`
-	DiscardDomains []string `json:"discard-domains"`
+	Addr                string   `json:"addr"`
+	DefaultAccept       bool     `json:"default-accept"`
+	AcceptDomains       []string `json:"accept-domains"`
+	RejectDomains       []string `json:"reject-domains"`
+	DefaultStore        bool     `json:"default-store"`
+	StoreDomains        []string `json:"store-domains"`
+	DiscardDomains      []string `json:"discard-domains"`
+	RejectOriginDomains []string `json:"reject-origin-domains"`
 }
 
 type jsonStorageConfig struct {

@@ -576,14 +576,14 @@ func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 	cfg := &config.Root{
 		MailboxNaming: config.FullNaming,
 		SMTP: config.SMTP{
-			Addr:            "127.0.0.1:2500",
-			Domain:          "inbucket.local",
-			MaxRecipients:   5,
-			MaxMessageBytes: 5000,
-			DefaultAccept:   true,
-			RejectDomains:   []string{"deny.com"},
+			Addr:                "127.0.0.1:2500",
+			Domain:              "inbucket.local",
+			MaxRecipients:       5,
+			MaxMessageBytes:     5000,
+			DefaultAccept:       true,
+			RejectDomains:       []string{"deny.com"},
 			RejectOriginDomains: []string{"invalidomain.com"},
-			Timeout:         5,
+			Timeout:             5,
 		},
 	}
 

@@ -2,8 +2,8 @@ package webui
 
 import (
 	"fmt"
-	"os"
 	"net/http"
+	"os"
 
 	"github.com/inbucket/inbucket/pkg/config"
 	"github.com/inbucket/inbucket/pkg/server/web"

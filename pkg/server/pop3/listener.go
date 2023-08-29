@@ -2,6 +2,7 @@ package pop3
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"sync"
 	"time"
@@ -13,20 +14,40 @@ import (
 
 // Server defines an instance of the POP3 server.
 type Server struct {
-	config   config.POP3     // POP3 configuration.
-	store    storage.Store   // Mail store.
-	listener net.Listener    // TCP listener.
-	wg       *sync.WaitGroup // Waitgroup tracking sessions.
-	notify   chan error      // Notify on fatal error.
+	config    config.POP3     // POP3 configuration.
+	store     storage.Store   // Mail store.
+	listener  net.Listener    // TCP listener.
+	wg        *sync.WaitGroup // Waitgroup tracking sessions.
+	notify    chan error      // Notify on fatal error.
+	tlsConfig *tls.Config     // TLS encryption configuration.
+	tlsState  *tls.ConnectionState
 }
 
 // NewServer creates a new, unstarted, POP3 server.
 func NewServer(pop3Config config.POP3, store storage.Store) *Server {
+	slog := log.With().Str("module", "pop3").Str("phase", "tls").Logger()
+	tlsConfig := &tls.Config{}
+	if pop3Config.TLSEnabled {
+		var err error
+		tlsConfig.Certificates = make([]tls.Certificate, 1)
+		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(pop3Config.TLSCert, pop3Config.TLSPrivKey)
+		if err != nil {
+			slog.Error().Msgf("Failed loading X509 KeyPair: %v", err)
+			slog.Error().Msg("Disabling TLS support")
+			pop3Config.TLSEnabled = false
+			tlsConfig = nil
+		} else {
+			slog.Debug().Msg("TLS feature available")
+		}
+	} else {
+		tlsConfig = nil
+	}
 	return &Server{
-		config: pop3Config,
-		store:  store,
-		wg:     new(sync.WaitGroup),
-		notify: make(chan error, 1),
+		config:    pop3Config,
+		store:     store,
+		wg:        new(sync.WaitGroup),
+		notify:    make(chan error, 1),
+		tlsConfig: tlsConfig,
 	}
 }
 

@@ -3,6 +3,9 @@
 *.a
 *.so
 
+# Emacs messiness.
+*~
+
 # Folders
 _obj
 _test
@@ -58,3 +61,7 @@ repl-temp-*
 
 # Test lua files
 /inbucket.lua
+
+# IntelliJ
+.idea
+inbucket.iml

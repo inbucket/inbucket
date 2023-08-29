@@ -2,6 +2,7 @@ package pop3
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -53,6 +54,7 @@ var commands = map[string]bool{
 	"PASS": true,
 	"APOP": true,
 	"CAPA": true,
+	"STLS": true,
 }
 
 // Session defines an active POP3 session
@@ -139,6 +141,9 @@ func (s *Server) startSession(id int, conn net.Conn) {
 					ssn.send("USER")
 					ssn.send("UIDL")
 					ssn.send("IMPLEMENTATION Inbucket")
+					if s.tlsConfig != nil && s.tlsState == nil {
+						ssn.send("STLS")
+					}
 					ssn.send(".")
 					continue
 				}
@@ -193,7 +198,31 @@ func (s *Session) authorizationHandler(cmd string, args []string) {
 	switch cmd {
 	case "QUIT":
 		s.send("+OK Goodnight and good luck")
+		s.logger.Debug().Msg("Quitting.")
 		s.enterState(QUIT)
+
+	case "STARTTLS":
+		if !s.Server.config.TLSEnabled {
+			// Invalid command since TLS unconfigured.
+			s.logger.Debug().Msgf("-ERR TLS unavailable on the server")
+			s.send("-ERR TLS unavailable on the server")
+			s.ooSeq(cmd)
+		}
+		if s.tlsState != nil {
+			// TLS state previously valid.
+			s.logger.Debug().Msg("-ERR A TLS session already agreed upon.")
+			s.send("-ERR A TLS session already agreed upon.")
+			s.ooSeq(cmd)
+		}
+		s.logger.Debug().Msg("Initiating TLS context.")
+
+		// Start TLS connection handshake.
+		s.send("+OK Begin TLS Negotiation")
+		tlsConn := tls.Server(s.conn, s.Server.tlsConfig)
+		s.conn = tlsConn
+		s.tlsState = new(tls.ConnectionState)
+		*s.tlsState = tlsConn.ConnectionState()
+
 	case "USER":
 		if len(args) > 0 {
 			s.user = args[0]

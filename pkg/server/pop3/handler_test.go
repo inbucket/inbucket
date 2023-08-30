@@ -1,8 +1,10 @@
 package pop3
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -104,6 +106,47 @@ func TestStartTLS(t *testing.T) {
 	if !sawTLS {
 		t.Errorf("TLS enabled but no STLS capability.")
 	}
+
+	if err := c.PrintfLine("STLS"); err != nil {
+		t.Fatalf("Failed to send STLS; %v.", err)
+	}
+	reply, err = c.ReadLine()
+	if err != nil {
+		t.Fatalf("Reading STLS reply line failed %v", err)
+	}
+	if !strings.HasPrefix(reply, "+OK") {
+		t.Fatalf("STLS failed: %s", reply)
+	}
+
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	tlsConn := tls.Client(pipe, tlsConfig)
+	ctx, toCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer toCancel()
+	if err := tlsConn.HandshakeContext(ctx); err != nil {
+		t.Fatalf("TLS handshake failed; %v", err)
+	}
+	c = textproto.NewConn(tlsConn)
+	if err := c.PrintfLine("CAPA"); err != nil {
+		t.Fatalf("Failed to send CAPA; %v.", err)
+	}
+	reply, err = c.ReadLine()
+	if err != nil {
+		t.Fatalf("Reading CAPA reply line failed %v", err)
+	}
+	if !strings.HasPrefix(reply, "+OK") {
+		t.Fatalf("CAPA failed: %s", reply)
+	}
+	for true {
+		reply, err := c.ReadLine()
+		if err != nil {
+			t.Fatalf("Reading CAPA line failed %v", err)
+		}
+		if reply == "." {
+			break
+		}
+	}
 }
 
 // net.Pipe does not implement deadlines
@@ -121,6 +164,7 @@ func setupPOPServer(t *testing.T, ds storage.Store, tls bool) *Server {
 		Addr:    "127.0.0.1:2500",
 		Domain:  "inbucket.local",
 		Timeout: 5,
+		Debug:   true,
 	}
 	if tls {
 		cert, privKey, err := generateCertificate(t)

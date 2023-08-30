@@ -119,6 +119,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 	// This is our command reading loop
 	for ssn.state != QUIT && ssn.sendError == nil {
 		line, err := ssn.readLine()
+		ssn.logger.Debug().Msgf("read %s", line)
 		if err == nil {
 			if cmd, arg, ok := ssn.parseCmd(line); ok {
 				// Check against valid SMTP commands
@@ -201,7 +202,7 @@ func (s *Session) authorizationHandler(cmd string, args []string) {
 		s.logger.Debug().Msg("Quitting.")
 		s.enterState(QUIT)
 
-	case "STARTTLS":
+	case "STLS":
 		if !s.Server.config.TLSEnabled {
 			// Invalid command since TLS unconfigured.
 			s.logger.Debug().Msgf("-ERR TLS unavailable on the server")
@@ -219,9 +220,15 @@ func (s *Session) authorizationHandler(cmd string, args []string) {
 		// Start TLS connection handshake.
 		s.send("+OK Begin TLS Negotiation")
 		tlsConn := tls.Server(s.conn, s.Server.tlsConfig)
+		if err := tlsConn.Handshake(); err != nil {
+			s.logger.Error().Msgf("-ERR TLS handshake failed %v", err)
+			s.ooSeq(cmd)
+		}
 		s.conn = tlsConn
+		s.reader = bufio.NewReader(tlsConn)
 		s.tlsState = new(tls.ConnectionState)
 		*s.tlsState = tlsConn.ConnectionState()
+		s.logger.Debug().Msgf("TLS set %v", *s.tlsState)
 
 	case "USER":
 		if len(args) > 0 {

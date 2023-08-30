@@ -25,7 +25,7 @@ import (
 
 func TestNoTLS(t *testing.T) {
 	ds := test.NewStore()
-	server := setupPOPServer(t, ds, false)
+	server := setupPOPServer(t, ds, false, false)
 	pipe := setupPOPSession(t, server)
 	c := textproto.NewConn(pipe)
 	defer func() {
@@ -65,7 +65,7 @@ func TestNoTLS(t *testing.T) {
 
 func TestStartTLS(t *testing.T) {
 	ds := test.NewStore()
-	server := setupPOPServer(t, ds, true)
+	server := setupPOPServer(t, ds, true, false)
 	pipe := setupPOPSession(t, server)
 	c := textproto.NewConn(pipe)
 	defer func() {
@@ -149,6 +149,59 @@ func TestStartTLS(t *testing.T) {
 	}
 }
 
+func TestForceTLS(t *testing.T) {
+	ds := test.NewStore()
+	server := setupPOPServer(t, ds, true, true)
+	pipe := setupPOPSession(t, server)
+
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	tlsConn := tls.Client(pipe, tlsConfig)
+	ctx, toCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer toCancel()
+	if err := tlsConn.HandshakeContext(ctx); err != nil {
+		t.Fatalf("TLS handshake failed; %v", err)
+	}
+	c := textproto.NewConn(tlsConn)
+	defer func() {
+		_ = c.PrintfLine("QUIT")
+		_, _ = c.ReadLine()
+		server.Drain()
+	}()
+
+	reply, err := c.ReadLine()
+	if err != nil {
+		t.Fatalf("Reading initial line failed %v", err)
+	}
+	if !strings.HasPrefix(reply, "+OK") {
+		t.Fatalf("Initial line is not +OK")
+	}
+
+	if err := c.PrintfLine("CAPA"); err != nil {
+		t.Fatalf("Failed to send CAPA; %v.", err)
+	}
+	reply, err = c.ReadLine()
+	if err != nil {
+		t.Fatalf("Reading CAPA reply line failed %v", err)
+	}
+	if !strings.HasPrefix(reply, "+OK") {
+		t.Fatalf("CAPA failed: %s", reply)
+	}
+	for true {
+		reply, err := c.ReadLine()
+		if err != nil {
+			t.Fatalf("Reading CAPA line failed %v", err)
+		}
+		if reply == "STLS" {
+			t.Errorf("STLS in CAPA in forceTLS mode.")
+		}
+		if reply == "." {
+			break
+		}
+	}
+}
+
 // net.Pipe does not implement deadlines
 type mockConn struct {
 	net.Conn
@@ -158,13 +211,14 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
-func setupPOPServer(t *testing.T, ds storage.Store, tls bool) *Server {
+func setupPOPServer(t *testing.T, ds storage.Store, tls bool, forceTLS bool) *Server {
 	t.Helper()
 	cfg := config.POP3{
-		Addr:    "127.0.0.1:2500",
-		Domain:  "inbucket.local",
-		Timeout: 5,
-		Debug:   true,
+		Addr:     "127.0.0.1:2500",
+		Domain:   "inbucket.local",
+		Timeout:  5,
+		Debug:    true,
+		ForceTLS: forceTLS,
 	}
 	if tls {
 		cert, privKey, err := generateCertificate(t)
@@ -188,7 +242,11 @@ func setupPOPServer(t *testing.T, ds storage.Store, tls bool) *Server {
 		cfg.TLSPrivKey = keyPath
 	}
 
-	return NewServer(cfg, ds)
+	s, err := NewServer(cfg, ds)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v.", err)
+	}
+	return s
 }
 
 var sessionNum int

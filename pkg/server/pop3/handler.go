@@ -2,6 +2,7 @@ package pop3
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -104,11 +105,31 @@ func (s *Session) String() string {
 func (s *Server) startSession(id int, conn net.Conn) {
 	logger := log.With().Str("module", "pop3").Str("remote", conn.RemoteAddr().String()).
 		Int("session", id).Logger()
+	logger.Debug().Msgf("ForceTLS: %t", s.config.ForceTLS)
+	connToClose := conn
+	if s.config.ForceTLS {
+		logger.Debug().Msg("Setting up TLS for ForceTLS")
+		tlsConn := tls.Server(conn, s.tlsConfig)
+		toCtx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := tlsConn.HandshakeContext(toCtx); err != nil {
+			logger.Error().Msgf("TLS handshake failed: %v.", err)
+			s.notify <- err
+			close(s.notify)
+			return
+		}
+		s.tlsState = new(tls.ConnectionState)
+		*s.tlsState = tlsConn.ConnectionState()
+		conn = tlsConn
+	}
+
 	logger.Info().Msg("Starting POP3 session")
 	defer func() {
-		if err := conn.Close(); err != nil {
+		logger.Debug().Msg("closing at end of session")
+		// Closing the tlsConn hangs.
+		if err := connToClose.Close(); err != nil {
 			logger.Warn().Err(err).Msg("Closing connection")
 		}
+		logger.Debug().Msg("End of session")
 		s.wg.Done()
 	}()
 
@@ -142,7 +163,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 					ssn.send("USER")
 					ssn.send("UIDL")
 					ssn.send("IMPLEMENTATION Inbucket")
-					if s.tlsConfig != nil && s.tlsState == nil {
+					if s.tlsConfig != nil && s.tlsState == nil && !s.config.ForceTLS {
 						ssn.send("STLS")
 					}
 					ssn.send(".")
@@ -203,7 +224,7 @@ func (s *Session) authorizationHandler(cmd string, args []string) {
 		s.enterState(QUIT)
 
 	case "STLS":
-		if !s.Server.config.TLSEnabled {
+		if !s.Server.config.TLSEnabled || s.Server.config.ForceTLS {
 			// Invalid command since TLS unconfigured.
 			s.logger.Debug().Msgf("-ERR TLS unavailable on the server")
 			s.send("-ERR TLS unavailable on the server")

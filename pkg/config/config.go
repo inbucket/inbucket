@@ -101,6 +101,7 @@ type POP3 struct {
 	TLSEnabled bool          `default:"false" desc:"Enable TLS"`
 	TLSPrivKey string        `default:"cert.key" desc:"X509 Private Key file for TLS Support"`
 	TLSCert    string        `default:"cert.crt" desc:"X509 Public Certificate file for TLS Support"`
+	ForceTLS   bool          `default:"false" desc:"If true, TLS is always on. If false, enable STLS"`
 }
 
 // Web contains the HTTP server configuration.

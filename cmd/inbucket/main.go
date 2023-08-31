@@ -49,6 +49,7 @@ func init() {
 func main() {
 	// Command line flags.
 	help := flag.Bool("help", false, "Displays help on flags and env variables.")
+	versionflag := flag.Bool("version", false, "Displays version.")
 	pidfile := flag.String("pidfile", "", "Write our PID into the specified file.")
 	logfile := flag.String("logfile", "stderr", "Write out log into the specified file.")
 	logjson := flag.Bool("logjson", false, "Logs are written in JSON format.")
@@ -62,6 +63,10 @@ func main() {
 		flag.Usage()
 		fmt.Fprintln(os.Stderr, "")
 		config.Usage()
+		return
+	}
+	if *versionflag {
+		fmt.Fprintln(os.Stdout, version)
 		return
 	}
 

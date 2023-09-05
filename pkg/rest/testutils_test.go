@@ -110,12 +110,11 @@ func decodedStringEquals(t *testing.T, json interface{}, path string, want strin
 // Named path elements require the parent element to be a map[string]interface{}, numbers in square
 // brackets require the parent element to be a []interface{}.
 //
-//     getDecodedPath(o, "users", "[1]", "name")
+//	getDecodedPath(o, "users", "[1]", "name")
 //
 // is equivalent to the JavaScript:
 //
-//     o.users[1].name
-//
+//	o.users[1].name
 func getDecodedPath(o interface{}, path ...string) (interface{}, string) {
 	if len(path) == 0 {
 		return o, ""

@@ -61,7 +61,10 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 	rest.SetupRoutes(web.Router.PathPrefix(prefix("/api/")).Subrouter())
 	webServer := web.NewServer(conf, mmanager, msgHub)
 
-	pop3Server := pop3.NewServer(conf.POP3, store)
+	pop3Server, err := pop3.NewServer(conf.POP3, store)
+	if err != nil {
+		return nil, err
+	}
 	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy, extHost)
 
 	return &Services{

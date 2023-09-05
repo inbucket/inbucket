@@ -110,11 +110,12 @@ func (s *Server) startSession(id int, conn net.Conn) {
 	if s.config.ForceTLS {
 		logger.Debug().Msg("Setting up TLS for ForceTLS")
 		tlsConn := tls.Server(conn, s.tlsConfig)
-		toCtx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+		toCtx, toCtxCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer toCtxCancel()
 		if err := tlsConn.HandshakeContext(toCtx); err != nil {
 			logger.Error().Msgf("TLS handshake failed: %v.", err)
-			s.notify <- err
-			close(s.notify)
+			conn.Close()
+			s.wg.Done()
 			return
 		}
 		s.tlsState = new(tls.ConnectionState)

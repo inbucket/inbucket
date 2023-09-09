@@ -22,7 +22,7 @@ pkgs.mkShell {
     elmPackages.elm-json
     elmPackages.elm-language-server
     elmPackages.elm-test
-    go_1_18
+    go_1_20
     golint
     gopls
     nodejs_18

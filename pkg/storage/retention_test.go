@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/extension/event"
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/storage"
-	"github.com/inbucket/inbucket/pkg/test"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/test"
 )
 
 func TestDoRetentionScan(t *testing.T) {

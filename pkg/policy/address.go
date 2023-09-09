@@ -7,8 +7,8 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/stringutil"
 )
 
 // Addressing handles email address policy.

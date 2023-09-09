@@ -1,7 +1,7 @@
 package extension
 
 import (
-	"github.com/inbucket/inbucket/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 )
 
 // Host defines extension points for Inbucket.

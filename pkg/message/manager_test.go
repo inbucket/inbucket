@@ -3,10 +3,10 @@ package message_test
 import (
 	"testing"
 
-	"github.com/inbucket/inbucket/pkg/extension"
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/policy"
-	"github.com/inbucket/inbucket/pkg/test"
+	"github.com/inbucket/inbucket/v3/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/policy"
+	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

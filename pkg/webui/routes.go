@@ -3,7 +3,7 @@ package webui
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/inbucket/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/v3/pkg/server/web"
 )
 
 // SetupRoutes populates routes for the webui into the provided Router.

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

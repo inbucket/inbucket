@@ -15,10 +15,10 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/msghub"
-	"github.com/inbucket/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/msghub"
+	"github.com/inbucket/inbucket/v3/pkg/stringutil"
 	"github.com/rs/zerolog/log"
 )
 

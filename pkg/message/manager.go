@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/extension"
-	"github.com/inbucket/inbucket/pkg/extension/event"
-	"github.com/inbucket/inbucket/pkg/policy"
-	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/policy"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/jhillyerd/enmime"
 	"github.com/rs/zerolog/log"
 )

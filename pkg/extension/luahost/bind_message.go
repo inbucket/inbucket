@@ -4,7 +4,7 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	lua "github.com/yuin/gopher-lua"
 )
 

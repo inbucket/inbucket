@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/inbucket/inbucket/pkg/extension/event"
-	"github.com/inbucket/inbucket/pkg/msghub"
-	"github.com/inbucket/inbucket/pkg/rest/model"
-	"github.com/inbucket/inbucket/pkg/server/web"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/msghub"
+	"github.com/inbucket/inbucket/v3/pkg/rest/model"
+	"github.com/inbucket/inbucket/v3/pkg/server/web"
 	"github.com/rs/zerolog/log"
 )
 

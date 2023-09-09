@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/msghub"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/msghub"
 )
 
 // Context is passed into every request handler function

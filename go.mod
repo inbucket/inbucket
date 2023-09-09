@@ -1,4 +1,4 @@
-module github.com/inbucket/inbucket
+module github.com/inbucket/inbucket/v3
 
 go 1.20
 

@@ -8,7 +8,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/v3/pkg/stringutil"
 	"github.com/kelseyhightower/envconfig"
 )
 

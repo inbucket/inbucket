@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/inbucket/inbucket/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/rs/zerolog/log"
 )
 

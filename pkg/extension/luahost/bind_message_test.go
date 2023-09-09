@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	lua "github.com/yuin/gopher-lua"

@@ -14,11 +14,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/server"
-	"github.com/inbucket/inbucket/pkg/storage"
-	"github.com/inbucket/inbucket/pkg/storage/file"
-	"github.com/inbucket/inbucket/pkg/storage/mem"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/server"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/storage/file"
+	"github.com/inbucket/inbucket/v3/pkg/storage/mem"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

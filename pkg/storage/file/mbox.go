@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/rs/zerolog/log"
 )
 

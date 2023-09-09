@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/policy"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/policy"
 )
 
 func TestShouldAcceptDomain(t *testing.T) {

@@ -3,11 +3,11 @@ package test
 import (
 	"errors"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/extension/event"
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/policy"
-	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/policy"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
 )
 
 // ManagerStub is a test stub for message.Manager

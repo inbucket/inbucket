@@ -7,8 +7,8 @@ import (
 	"net/textproto"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/extension/event"
-	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/jhillyerd/enmime"
 )
 

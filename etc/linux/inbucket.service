@@ -12,16 +12,16 @@ Environment=INBUCKET_LOGLEVEL=warn
 Environment=INBUCKET_SMTP_ADDR=0.0.0.0:2500
 Environment=INBUCKET_POP3_ADDR=0.0.0.0:1100
 Environment=INBUCKET_WEB_ADDR=0.0.0.0:9000
-Environment=INBUCKET_WEB_UIDIR=/usr/local/share/inbucket/ui
+Environment=INBUCKET_WEB_UIDIR=/usr/share/inbucket/ui
 Environment=INBUCKET_WEB_GREETINGFILE=/etc/inbucket/greeting.html
 Environment=INBUCKET_STORAGE_TYPE=file
-Environment=INBUCKET_STORAGE_PARAMS=path:/var/local/inbucket
+Environment=INBUCKET_STORAGE_PARAMS=path:/var/inbucket
 
 # Uncomment line below to use low numbered ports
 #ExecStartPre=/sbin/setcap 'cap_net_bind_service=+ep' /usr/bin/inbucket
 
-ExecStartPre=/bin/mkdir -p /var/local/inbucket
-ExecStartPre=/bin/chown daemon:daemon /var/local/inbucket
+ExecStartPre=/bin/mkdir -p /var/inbucket
+ExecStartPre=/bin/chown daemon:daemon /var/inbucket
 
 ExecStart=/usr/bin/inbucket
 

@@ -73,7 +73,7 @@ nfpms:
     license: MIT
     contents:
       - src: "ui/dist/**"
-        dst: "/usr/local/share/inbucket/ui"
+        dst: "/usr/share/inbucket/ui"
       - src: "etc/linux/inbucket.service"
         dst: "/lib/systemd/system/inbucket.service"
         type: config|noreplace

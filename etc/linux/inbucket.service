@@ -18,12 +18,12 @@ Environment=INBUCKET_STORAGE_TYPE=file
 Environment=INBUCKET_STORAGE_PARAMS=path:/var/local/inbucket
 
 # Uncomment line below to use low numbered ports
-#ExecStartPre=/sbin/setcap 'cap_net_bind_service=+ep' /usr/local/bin/inbucket
+#ExecStartPre=/sbin/setcap 'cap_net_bind_service=+ep' /usr/bin/inbucket
 
 ExecStartPre=/bin/mkdir -p /var/local/inbucket
 ExecStartPre=/bin/chown daemon:daemon /var/local/inbucket
 
-ExecStart=/usr/local/bin/inbucket
+ExecStart=/usr/bin/inbucket
 
 # Give SMTP connections time to drain
 TimeoutStopSec=20

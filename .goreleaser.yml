@@ -48,7 +48,6 @@ builds:
 
 archives:
   - id: tarball
-    rlcp: true
     format: tar.gz
     wrap_in_directory: true
     format_overrides:

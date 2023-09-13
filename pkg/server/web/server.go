@@ -69,6 +69,9 @@ func NewServer(
 		log.Info().Str("module", "web").Str("phase", "startup").Str("path", redirectBase).
 			Msg("Base path configured")
 		Router.Path("/").Handler(http.RedirectHandler(redirectBase, http.StatusFound))
+
+		// Redirect prefix when missing trailing slash.
+		Router.Path(prefix("")).Handler(http.RedirectHandler(redirectBase, http.StatusFound))
 	}
 
 	// Dynamic paths.

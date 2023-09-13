@@ -77,7 +77,7 @@ version can be found at https://github.com/inbucket/inbucket
 [Configurator]:           https://www.inbucket.org/configurator/
 [CONTRIBUTING.md]:        https://github.com/inbucket/inbucket/blob/main/CONTRIBUTING.md
 [Development Quickstart]: https://github.com/inbucket/inbucket/wiki/Development-Quickstart
-[Docker Image]:           https://www.inbucket.org/binaries/docker.html
+[Docker Image]:           https://inbucket.org/packages/docker.html
 [Elm]:                    https://elm-lang.org/
 [From Source]:            https://www.inbucket.org/installation/from-source.html
 [Go]:                     https://golang.org/

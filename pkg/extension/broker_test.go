@@ -3,7 +3,7 @@ package extension_test
 import (
 	"testing"
 
-	"github.com/inbucket/inbucket/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/extension"
 )
 
 func TestBrokerEmitCallsOneListener(t *testing.T) {

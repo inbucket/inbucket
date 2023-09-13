@@ -4,19 +4,19 @@ import (
 	"context"
 	"sync"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/extension"
-	"github.com/inbucket/inbucket/pkg/extension/luahost"
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/msghub"
-	"github.com/inbucket/inbucket/pkg/policy"
-	"github.com/inbucket/inbucket/pkg/rest"
-	"github.com/inbucket/inbucket/pkg/server/pop3"
-	"github.com/inbucket/inbucket/pkg/server/smtp"
-	"github.com/inbucket/inbucket/pkg/server/web"
-	"github.com/inbucket/inbucket/pkg/storage"
-	"github.com/inbucket/inbucket/pkg/stringutil"
-	"github.com/inbucket/inbucket/pkg/webui"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/extension/luahost"
+	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/msghub"
+	"github.com/inbucket/inbucket/v3/pkg/policy"
+	"github.com/inbucket/inbucket/v3/pkg/rest"
+	"github.com/inbucket/inbucket/v3/pkg/server/pop3"
+	"github.com/inbucket/inbucket/v3/pkg/server/smtp"
+	"github.com/inbucket/inbucket/v3/pkg/server/web"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/stringutil"
+	"github.com/inbucket/inbucket/v3/pkg/webui"
 )
 
 // Services holds the configured services.
@@ -61,7 +61,10 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 	rest.SetupRoutes(web.Router.PathPrefix(prefix("/api/")).Subrouter())
 	webServer := web.NewServer(conf, mmanager, msgHub)
 
-	pop3Server := pop3.NewServer(conf.POP3, store)
+	pop3Server, err := pop3.NewServer(conf.POP3, store)
+	if err != nil {
+		return nil, err
+	}
 	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy, extHost)
 
 	return &Services{

@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/extension"
-	"github.com/inbucket/inbucket/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	lua "github.com/yuin/gopher-lua"

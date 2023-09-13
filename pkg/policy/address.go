@@ -7,8 +7,8 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/stringutil"
 )
 
 // Addressing handles email address policy.
@@ -117,7 +117,7 @@ func (a *Addressing) ShouldStoreDomain(domain string) bool {
 // ShouldAcceptOriginDomain indicates if Inbucket accept mail from the specified domain.
 func (a *Addressing) ShouldAcceptOriginDomain(domain string) bool {
 	domain = strings.ToLower(domain)
-	return !stringutil.SliceContains(a.Config.SMTP.RejectOriginDomains, domain) 
+	return !stringutil.SliceContains(a.Config.SMTP.RejectOriginDomains, domain)
 }
 
 // ParseEmailAddress unescapes an email address, and splits the local part from the domain part.

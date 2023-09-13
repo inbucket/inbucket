@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/extension/event"
-	"github.com/inbucket/inbucket/pkg/policy"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/policy"
 	"github.com/rs/zerolog"
 )
 

@@ -2,6 +2,7 @@ package pop3
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -10,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -53,6 +54,7 @@ var commands = map[string]bool{
 	"PASS": true,
 	"APOP": true,
 	"CAPA": true,
+	"STLS": true,
 }
 
 // Session defines an active POP3 session
@@ -102,11 +104,24 @@ func (s *Session) String() string {
 func (s *Server) startSession(id int, conn net.Conn) {
 	logger := log.With().Str("module", "pop3").Str("remote", conn.RemoteAddr().String()).
 		Int("session", id).Logger()
+	logger.Debug().Msgf("ForceTLS: %t", s.config.ForceTLS)
+	connToClose := conn
+	if s.config.ForceTLS {
+		logger.Debug().Msg("Setting up TLS for ForceTLS")
+		tlsConn := tls.Server(conn, s.tlsConfig)
+		s.tlsState = new(tls.ConnectionState)
+		*s.tlsState = tlsConn.ConnectionState()
+		conn = tlsConn
+	}
+
 	logger.Info().Msg("Starting POP3 session")
 	defer func() {
-		if err := conn.Close(); err != nil {
+		logger.Debug().Msg("closing at end of session")
+		// Closing the tlsConn hangs.
+		if err := connToClose.Close(); err != nil {
 			logger.Warn().Err(err).Msg("Closing connection")
 		}
+		logger.Debug().Msg("End of session")
 		s.wg.Done()
 	}()
 
@@ -117,6 +132,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 	// This is our command reading loop
 	for ssn.state != QUIT && ssn.sendError == nil {
 		line, err := ssn.readLine()
+		ssn.logger.Debug().Msgf("read %s", line)
 		if err == nil {
 			if cmd, arg, ok := ssn.parseCmd(line); ok {
 				// Check against valid SMTP commands
@@ -139,6 +155,9 @@ func (s *Server) startSession(id int, conn net.Conn) {
 					ssn.send("USER")
 					ssn.send("UIDL")
 					ssn.send("IMPLEMENTATION Inbucket")
+					if s.tlsConfig != nil && s.tlsState == nil && !s.config.ForceTLS {
+						ssn.send("STLS")
+					}
 					ssn.send(".")
 					continue
 				}
@@ -193,7 +212,37 @@ func (s *Session) authorizationHandler(cmd string, args []string) {
 	switch cmd {
 	case "QUIT":
 		s.send("+OK Goodnight and good luck")
+		s.logger.Debug().Msg("Quitting.")
 		s.enterState(QUIT)
+
+	case "STLS":
+		if !s.Server.config.TLSEnabled || s.Server.config.ForceTLS {
+			// Invalid command since TLS unconfigured.
+			s.logger.Debug().Msgf("-ERR TLS unavailable on the server")
+			s.send("-ERR TLS unavailable on the server")
+			s.ooSeq(cmd)
+		}
+		if s.tlsState != nil {
+			// TLS state previously valid.
+			s.logger.Debug().Msg("-ERR A TLS session already agreed upon.")
+			s.send("-ERR A TLS session already agreed upon.")
+			s.ooSeq(cmd)
+		}
+		s.logger.Debug().Msg("Initiating TLS context.")
+
+		// Start TLS connection handshake.
+		s.send("+OK Begin TLS Negotiation")
+		tlsConn := tls.Server(s.conn, s.Server.tlsConfig)
+		if err := tlsConn.Handshake(); err != nil {
+			s.logger.Error().Msgf("-ERR TLS handshake failed %v", err)
+			s.ooSeq(cmd)
+		}
+		s.conn = tlsConn
+		s.reader = bufio.NewReader(tlsConn)
+		s.tlsState = new(tls.ConnectionState)
+		*s.tlsState = tlsConn.ConnectionState()
+		s.logger.Debug().Msgf("TLS set %v", *s.tlsState)
+
 	case "USER":
 		if len(args) > 0 {
 			s.user = args[0]

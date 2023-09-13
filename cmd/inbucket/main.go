@@ -14,11 +14,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/server"
-	"github.com/inbucket/inbucket/pkg/storage"
-	"github.com/inbucket/inbucket/pkg/storage/file"
-	"github.com/inbucket/inbucket/pkg/storage/mem"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/server"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/storage/file"
+	"github.com/inbucket/inbucket/v3/pkg/storage/mem"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -49,6 +49,7 @@ func init() {
 func main() {
 	// Command line flags.
 	help := flag.Bool("help", false, "Displays help on flags and env variables.")
+	versionflag := flag.Bool("version", false, "Displays version.")
 	pidfile := flag.String("pidfile", "", "Write our PID into the specified file.")
 	logfile := flag.String("logfile", "stderr", "Write out log into the specified file.")
 	logjson := flag.Bool("logjson", false, "Logs are written in JSON format.")
@@ -62,6 +63,10 @@ func main() {
 		flag.Usage()
 		fmt.Fprintln(os.Stderr, "")
 		config.Usage()
+		return
+	}
+	if *versionflag {
+		fmt.Fprintln(os.Stdout, version)
 		return
 	}
 

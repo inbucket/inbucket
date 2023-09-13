@@ -5,7 +5,7 @@ import (
 	"net/mail"
 	"testing"
 
-	"github.com/inbucket/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/v3/pkg/stringutil"
 )
 
 func TestHashMailboxName(t *testing.T) {

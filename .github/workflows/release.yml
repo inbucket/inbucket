@@ -10,6 +10,7 @@ on:
 
 jobs:
   release:
+    name: 'Go Releaser'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

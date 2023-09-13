@@ -3,7 +3,7 @@ package test
 import (
 	"errors"
 
-	"github.com/inbucket/inbucket/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
 )
 
 // StoreStub stubs storage.Store for testing.

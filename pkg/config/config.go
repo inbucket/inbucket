@@ -8,7 +8,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/v3/pkg/stringutil"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -94,10 +94,14 @@ type SMTP struct {
 
 // POP3 contains the POP3 server configuration.
 type POP3 struct {
-	Addr    string        `required:"true" default:"0.0.0.0:1100" desc:"POP3 server IP4 host:port"`
-	Domain  string        `required:"true" default:"inbucket" desc:"HELLO domain"`
-	Timeout time.Duration `required:"true" default:"600s" desc:"Idle network timeout"`
-	Debug   bool          `ignored:"true"`
+	Addr       string        `required:"true" default:"0.0.0.0:1100" desc:"POP3 server IP4 host:port"`
+	Domain     string        `required:"true" default:"inbucket" desc:"HELLO domain"`
+	Timeout    time.Duration `required:"true" default:"600s" desc:"Idle network timeout"`
+	Debug      bool          `ignored:"true"`
+	TLSEnabled bool          `default:"false" desc:"Enable TLS"`
+	TLSPrivKey string        `default:"cert.key" desc:"X509 Private Key file for TLS Support"`
+	TLSCert    string        `default:"cert.crt" desc:"X509 Public Certificate file for TLS Support"`
+	ForceTLS   bool          `default:"false" desc:"If true, TLS is always on. If false, enable STLS"`
 }
 
 // Web contains the HTTP server configuration.

@@ -10,10 +10,10 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/inbucket/inbucket/pkg/rest/model"
-	"github.com/inbucket/inbucket/pkg/server/web"
-	"github.com/inbucket/inbucket/pkg/storage"
-	"github.com/inbucket/inbucket/pkg/stringutil"
+	"github.com/inbucket/inbucket/v3/pkg/rest/model"
+	"github.com/inbucket/inbucket/v3/pkg/server/web"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/stringutil"
 )
 
 // MailboxListV1 renders a list of messages in a mailbox

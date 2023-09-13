@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/extension"
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/metric"
-	"github.com/inbucket/inbucket/pkg/policy"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/metric"
+	"github.com/inbucket/inbucket/v3/pkg/policy"
 	"github.com/rs/zerolog/log"
 )
 

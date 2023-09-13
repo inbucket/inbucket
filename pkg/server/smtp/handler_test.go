@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inbucket/inbucket/pkg/config"
-	"github.com/inbucket/inbucket/pkg/extension"
-	"github.com/inbucket/inbucket/pkg/extension/event"
-	"github.com/inbucket/inbucket/pkg/message"
-	"github.com/inbucket/inbucket/pkg/policy"
-	"github.com/inbucket/inbucket/pkg/storage"
-	"github.com/inbucket/inbucket/pkg/test"
+	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/policy"
+	"github.com/inbucket/inbucket/v3/pkg/storage"
+	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -576,14 +576,14 @@ func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 	cfg := &config.Root{
 		MailboxNaming: config.FullNaming,
 		SMTP: config.SMTP{
-			Addr:            "127.0.0.1:2500",
-			Domain:          "inbucket.local",
-			MaxRecipients:   5,
-			MaxMessageBytes: 5000,
-			DefaultAccept:   true,
-			RejectDomains:   []string{"deny.com"},
+			Addr:                "127.0.0.1:2500",
+			Domain:              "inbucket.local",
+			MaxRecipients:       5,
+			MaxMessageBytes:     5000,
+			DefaultAccept:       true,
+			RejectDomains:       []string{"deny.com"},
 			RejectOriginDomains: []string{"invalidomain.com"},
-			Timeout:         5,
+			Timeout:             5,
 		},
 	}
 

@@ -1,0 +1,43 @@
+Subject: Inline attachment
+From: %FROM_ADDRESS%
+To: %TO_ADDRESS%
+Message-ID: <1234@example.com>
+Date: %DATE%
+Content-Type: multipart/mixed; boundary=boundary1
+
+--boundary1
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Hello World HTML</title>
+</head>
+<body>
+<h1 style=3D"color:red">Hello World</h1>
+</body>
+</html>
+
+--boundary1
+Content-Type: application/pdf; name=Hello-World.pdf
+Content-Transfer-Encoding: base64
+Content-Disposition: inline; name=Hello-World.pdf;
+ filename=Hello-World.pdf
+
+JVBERi0xLjQKJcK1wrYKCjEgMCBvYmoKPDwvVGl0bGUoSGVsbG8gV29ybGQpL0F1dGhvcihBZHJp
+dW0pPj4KZW5kb2JqCgoyIDAgb2JqCjw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAzIDAgUj4+CmVuZG9i
+agoKMyAwIG9iago8PC9UeXBlL1BhZ2VzL01lZGlhQm94WzAgMCA1OTUgODQyXS9SZXNvdXJjZXM8
+PC9Gb250PDwvRjEgNCAwIFI+Pi9Qcm9jU2V0Wy9QREYvVGV4dF0+Pi9LaWRzWzUgMCBSXS9Db3Vu
+dCAxPj4KZW5kb2JqCgo0IDAgb2JqCjw8L1R5cGUvRm9udC9TdWJ0eXBlL1R5cGUxL0Jhc2VGb250
+L0hlbHZldGljYS9FbmNvZGluZy9XaW5BbnNpRW5jb2Rpbmc+PgplbmRvYmoKCjUgMCBvYmoKPDwv
+VHlwZS9QYWdlL1BhcmVudCAzIDAgUi9Db250ZW50cyA2IDAgUj4+CmVuZG9iagoKNiAwIG9iago8
+PC9MZW5ndGggNTEvRmlsdGVyL0ZsYXRlRGVjb2RlPj4Kc3RyZWFtCnic03czVDCxUAhJ43IK4TI3
+UjA3MVMISeHS8EjNyclXCM8vyknRVAjJ4nIN4QIA3FcKuwplbmRzdHJlYW0KZW5kb2JqCgp4cmVm
+CjAgNwowMDAwMDAwMDAwIDY1NTM2IGYgCjAwMDAwMDAwMTYgMDAwMDAgbiAKMDAwMDAwMDA3MSAw
+MDAwMCBuIAowMDAwMDAwMTE3IDAwMDAwIG4gCjAwMDAwMDAyNDIgMDAwMDAgbiAKMDAwMDAwMDMz
+MSAwMDAwMCBuIAowMDAwMDAwMzkwIDAwMDAwIG4gCgp0cmFpbGVyCjw8L1NpemUgNy9JbmZvIDEg
+MCBSL1Jvb3QgMiAwIFI+PgpzdGFydHhyZWYKNTA5CiUlRU9GCg==
+
+
+--boundary1--

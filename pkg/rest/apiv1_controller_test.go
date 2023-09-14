@@ -201,6 +201,10 @@ func TestRestMessage(t *testing.T) {
 				FileName:    "favicon.png",
 				ContentType: "image/png",
 			}},
+			Inlines: []*enmime.Part{{
+				FileName:    "statement.pdf",
+				ContentType: "application/pdf",
+			}},
 		},
 	)
 	mm.AddMessage("good", msg1)
@@ -236,10 +240,14 @@ func TestRestMessage(t *testing.T) {
 	decodedStringEquals(t, result, "header/To/[0]", "fred@fish.com")
 	decodedStringEquals(t, result, "header/To/[1]", "keyword@nsa.gov")
 	decodedStringEquals(t, result, "header/From/[0]", "noreply@inbucket.org")
-	decodedStringEquals(t, result, "attachments/[0]/filename", "favicon.png")
-	decodedStringEquals(t, result, "attachments/[0]/content-type", "image/png")
-	decodedStringEquals(t, result, "attachments/[0]/download-link", "http://localhost/serve/mailbox/good/0001/attach/0/favicon.png")
-	decodedStringEquals(t, result, "attachments/[0]/view-link", "http://localhost/serve/mailbox/good/0001/attach/0/favicon.png")
+	decodedStringEquals(t, result, "attachments/[0]/filename", "statement.pdf")
+	decodedStringEquals(t, result, "attachments/[0]/content-type", "application/pdf")
+	decodedStringEquals(t, result, "attachments/[0]/download-link", "http://localhost/serve/mailbox/good/0001/attach/0/statement.pdf")
+	decodedStringEquals(t, result, "attachments/[0]/view-link", "http://localhost/serve/mailbox/good/0001/attach/0/statement.pdf")
+	decodedStringEquals(t, result, "attachments/[1]/filename", "favicon.png")
+	decodedStringEquals(t, result, "attachments/[1]/content-type", "image/png")
+	decodedStringEquals(t, result, "attachments/[1]/download-link", "http://localhost/serve/mailbox/good/0001/attach/1/favicon.png")
+	decodedStringEquals(t, result, "attachments/[1]/view-link", "http://localhost/serve/mailbox/good/0001/attach/1/favicon.png")
 
 	if t.Failed() {
 		// Wait for handler to finish logging

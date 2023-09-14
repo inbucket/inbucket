@@ -28,7 +28,9 @@ func New(m event.MessageMetadata, e *enmime.Envelope) *Message {
 
 // Attachments returns the MIME attachments for the message.
 func (m *Message) Attachments() []*enmime.Part {
-	return m.env.Attachments
+	attachments := append([]*enmime.Part{}, m.env.Inlines...)
+	attachments = append(attachments, m.env.Attachments...)
+	return attachments
 }
 
 // Header returns the header map for this message.

@@ -63,3 +63,6 @@ swaks $* --data mime-errors.raw
 # IP RCPT domain
 swaks $* --to="swaks@[127.0.0.1]" --h-Subject: "IPv4 RCPT Address" --body text.txt
 swaks $* --to="swaks@[IPv6:2001:db8:aaaa:1::100]" --h-Subject: "IPv6 RCPT Address" --body text.txt
+
+# Inline attachment test
+swaks $* --data mime-inline.raw

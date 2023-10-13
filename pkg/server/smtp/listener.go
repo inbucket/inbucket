@@ -113,7 +113,11 @@ func (s *Server) Start(ctx context.Context, readyFunc func()) {
 		return
 	}
 	slog.Info().Str("addr", addr.String()).Msg("SMTP listening on tcp4")
-	s.listener, err = net.ListenTCP("tcp4", addr)
+	if s.config.ForceTLS {
+		s.listener, err = tls.Listen("tcp4", addr.String(), s.tlsConfig)
+	} else {
+		s.listener, err = net.ListenTCP("tcp4", addr)
+	}
 	if err != nil {
 		slog.Error().Err(err).Msg("Failed to start tcp4 listener")
 		s.notify <- err

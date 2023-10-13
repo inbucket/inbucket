@@ -90,6 +90,7 @@ type SMTP struct {
 	TLSPrivKey          string        `default:"cert.key" desc:"X509 Private Key file for TLS Support"`
 	TLSCert             string        `default:"cert.crt" desc:"X509 Public Certificate file for TLS Support"`
 	Debug               bool          `ignored:"true"`
+	ForceTLS            bool          `default:"false" desc:"Listen for connections with TLS."`
 }
 
 // POP3 contains the POP3 server configuration.

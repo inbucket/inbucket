@@ -119,7 +119,7 @@ func NewSession(server *Server, id int, conn net.Conn, logger zerolog.Logger) *S
 	reader := bufio.NewReader(conn)
 	host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 
-	return &Session{
+	session := &Session{
 		Server:     server,
 		id:         id,
 		conn:       conn,
@@ -131,6 +131,11 @@ func NewSession(server *Server, id int, conn net.Conn, logger zerolog.Logger) *S
 		debug:      server.config.Debug,
 		text:       textproto.NewConn(conn),
 	}
+	if server.config.ForceTLS {
+		session.tlsState = new(tls.ConnectionState)
+		*session.tlsState = conn.(*tls.Conn).ConnectionState()
+	}
+	return session
 }
 
 func (s *Session) String() string {
@@ -289,7 +294,7 @@ func (s *Session) greetHandler(cmd string, arg string) {
 		s.send("250-" + readyBanner)
 		s.send("250-8BITMIME")
 		s.send("250-AUTH PLAIN LOGIN")
-		if s.Server.config.TLSEnabled && s.Server.tlsConfig != nil && s.tlsState == nil {
+		if s.Server.config.TLSEnabled && !s.Server.config.ForceTLS && s.Server.tlsConfig != nil && s.tlsState == nil {
 			s.send("250-STARTTLS")
 		}
 		s.send(fmt.Sprintf("250 SIZE %v", s.config.MaxMessageBytes))

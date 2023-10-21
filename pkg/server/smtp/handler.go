@@ -533,7 +533,7 @@ func (s *Session) dataHandler() {
 	mailData := bytes.NewBuffer(msgBuf)
 
 	// Mail data complete.
-	tstamp := time.Now().Format(timeStampFormat)
+	tstamp := time.Now().UTC().Format(timeStampFormat)
 	for _, recip := range s.recipients {
 		if recip.ShouldStore() {
 			// Generate Received header.

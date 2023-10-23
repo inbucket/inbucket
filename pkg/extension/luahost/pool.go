@@ -5,7 +5,9 @@ import (
 	"sync"
 
 	"github.com/cjoudrey/gluahttp"
+	"github.com/cosmotek/loguago"
 	"github.com/inbucket/gopher-json"
+	"github.com/rs/zerolog"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -14,12 +16,14 @@ type statePool struct {
 	funcProto *lua.FunctionProto         // Compiled lua.
 	states    []*lua.LState              // Pool of available LStates.
 	channels  map[string]chan lua.LValue // Global interop channels.
+	logger    zerolog.Logger             // Logger exported to Lua scripts.
 }
 
-func newStatePool(funcProto *lua.FunctionProto) *statePool {
+func newStatePool(logger zerolog.Logger, funcProto *lua.FunctionProto) *statePool {
 	return &statePool{
 		funcProto: funcProto,
 		channels:  make(map[string]chan lua.LValue),
+		logger:    logger,
 	}
 }
 
@@ -27,9 +31,12 @@ func newStatePool(funcProto *lua.FunctionProto) *statePool {
 func (lp *statePool) newState() (*lua.LState, error) {
 	ls := lua.NewState()
 
+	logger := loguago.NewLogger(lp.logger)
+
 	// Load supplemental native modules.
 	ls.PreloadModule("http", gluahttp.NewHttpModule(&http.Client{}).Loader)
 	ls.PreloadModule("json", json.Loader)
+	ls.PreloadModule("logger", logger.Loader)
 
 	// Setup channels.
 	for name, ch := range lp.channels {

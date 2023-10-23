@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	lua "github.com/yuin/gopher-lua"
@@ -23,7 +24,7 @@ func makeEmptyPool() *statePool {
 		panic(err)
 	}
 
-	return newStatePool(proto)
+	return newStatePool(zerolog.Nop(), proto)
 }
 
 func TestPoolGetsDistinct(t *testing.T) {

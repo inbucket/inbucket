@@ -47,14 +47,13 @@ func New(conf config.Lua, extHost *extension.Host) (*Host, error) {
 		return nil, err
 	}
 
-	return NewFromReader(extHost, bufio.NewReader(file), scriptPath)
+	return NewFromReader(logContext.Logger(), extHost, bufio.NewReader(file), scriptPath)
 }
 
 // NewFromReader constructs a new Lua Host, loading Lua source from the provided reader.
 // The provided path is used in logging and error messages.
-func NewFromReader(extHost *extension.Host, r io.Reader, path string) (*Host, error) {
-	logContext := log.With().Str("module", "lua")
-	logger := logContext.Str("phase", "startup").Str("path", path).Logger()
+func NewFromReader(logger zerolog.Logger, extHost *extension.Host, r io.Reader, path string) (*Host, error) {
+	startLogger := logger.With().Str("phase", "startup").Str("path", path).Logger()
 
 	// Pre-parse, and compile script.
 	chunk, err := parse.Parse(r, path)
@@ -67,10 +66,10 @@ func NewFromReader(extHost *extension.Host, r io.Reader, path string) (*Host, er
 	}
 
 	// Build the pool and confirm LState is retrievable.
-	pool := newStatePool(proto)
-	h := &Host{extHost: extHost, pool: pool, logContext: logContext}
+	pool := newStatePool(logger, proto)
+	h := &Host{extHost: extHost, pool: pool, logContext: logger.With()}
 	if ls, err := pool.getState(); err == nil {
-		h.wireFunctions(logger, ls)
+		h.wireFunctions(startLogger, ls)
 
 		// State creation works, put it back.
 		pool.putState(ls)

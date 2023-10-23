@@ -9,6 +9,8 @@ import (
 	"github.com/inbucket/inbucket/v3/pkg/extension"
 	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	"github.com/inbucket/inbucket/v3/pkg/extension/luahost"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -56,8 +58,24 @@ func TestEmptyScript(t *testing.T) {
 	script := ""
 	extHost := extension.NewHost()
 
-	_, err := luahost.NewFromReader(extHost, strings.NewReader(script), "test.lua")
+	_, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(script), "test.lua")
 	require.NoError(t, err)
+}
+
+func TestLogger(t *testing.T) {
+	script := `
+		local logger = require("logger")
+		logger.info("_test log entry_", {})
+	`
+
+	extHost := extension.NewHost()
+	output := &strings.Builder{}
+	logger := zerolog.New(output)
+
+	_, err := luahost.NewFromReader(logger, extHost, strings.NewReader(script), "test.lua")
+	require.NoError(t, err)
+
+	assert.Contains(t, output.String(), "_test log entry_")
 }
 
 func TestAfterMessageDeleted(t *testing.T) {
@@ -73,7 +91,7 @@ func TestAfterMessageDeleted(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(extHost, strings.NewReader(LuaInit+script), "test.lua")
+	luaHost, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 
@@ -104,7 +122,7 @@ func TestAfterMessageStored(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(extHost, strings.NewReader(LuaInit+script), "test.lua")
+	luaHost, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 
@@ -130,7 +148,7 @@ func TestBeforeMailAccepted(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	_, err := luahost.NewFromReader(extHost, strings.NewReader(script), "test.lua")
+	_, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(script), "test.lua")
 	require.NoError(t, err)
 
 	// Send event to be accepted.

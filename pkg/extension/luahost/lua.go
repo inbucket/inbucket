@@ -142,7 +142,7 @@ func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
 }
 
 func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
-	logger, ls, ib, ok := h.prepareInbucketFuncCall("after.message_stored")
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("before.mail_accepted")
 	if !ok {
 		return nil
 	}

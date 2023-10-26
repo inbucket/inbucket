@@ -23,6 +23,7 @@ type Events struct {
 	AfterMessageDeleted AsyncEventBroker[event.MessageMetadata]
 	AfterMessageStored  AsyncEventBroker[event.MessageMetadata]
 	BeforeMailAccepted  EventBroker[event.AddressParts, bool]
+	BeforeMessageStored EventBroker[event.InboundMessage, event.InboundMessage]
 }
 
 // Void indicates the event emitter will ignore any value returned by listeners.

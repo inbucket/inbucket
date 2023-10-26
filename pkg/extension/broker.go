@@ -6,7 +6,7 @@ import (
 
 // EventBroker maintains a list of listeners interested in a specific type
 // of event.
-type EventBroker[E any, R comparable] struct {
+type EventBroker[E any, R interface{}] struct {
 	sync.RWMutex
 	listenerNames []string     // Ordered listener names.
 	listenerFuncs []func(E) *R // Ordered listener functions.

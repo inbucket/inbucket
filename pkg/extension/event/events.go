@@ -11,6 +11,15 @@ type AddressParts struct {
 	Domain string
 }
 
+// InboundMessage contains the basic header and mailbox data for a message being received.
+type InboundMessage struct {
+	Mailboxes []string
+	From      mail.Address
+	To        []mail.Address
+	Subject   string
+	Size      int64
+}
+
 // MessageMetadata contains the basic header data for a message event.
 type MessageMetadata struct {
 	Mailbox string

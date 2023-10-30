@@ -48,18 +48,16 @@ func (s *StoreManager) Deliver(
 	prefix string,
 	source []byte,
 ) (string, error) {
-	// TODO enmime is too heavy for this step, only need header.
-	// Go's header parsing isn't good enough, so this is blocked on enmime issue #64.
-	env, err := enmime.ReadEnvelope(bytes.NewReader(source))
+	header, err := enmime.DecodeHeaders(source)
 	if err != nil {
 		return "", err
 	}
-	fromaddr, err := env.AddressList("From")
+	fromaddr, err := enmime.ParseAddressList(header.Get("From"))
 	if err != nil || len(fromaddr) == 0 {
 		fromaddr = make([]*mail.Address, 1)
 		fromaddr[0] = &from.Address
 	}
-	toaddr, err := env.AddressList("To")
+	toaddr, err := enmime.ParseAddressList(header.Get("To"))
 	if err != nil {
 		toaddr = make([]*mail.Address, len(recipients))
 		for i, torecip := range recipients {
@@ -74,7 +72,7 @@ func (s *StoreManager) Deliver(
 			From:    fromaddr[0],
 			To:      toaddr,
 			Date:    time.Now(),
-			Subject: env.GetHeader("Subject"),
+			Subject: header.Get("Subject"),
 		},
 		Reader: io.MultiReader(strings.NewReader(prefix), bytes.NewReader(source)),
 	}

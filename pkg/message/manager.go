@@ -77,7 +77,7 @@ func (s *StoreManager) Deliver(
 	for _, recip := range recipients {
 		if recip.ShouldStore() {
 			// Append recipient and timestamp to generated Recieved header.
-			addlRecvd := fmt.Sprintf("  for <%s>; %s\r\n", recip.Address.Address, tstamp)
+			recvd := fmt.Sprintf("%s  for <%s>; %s\r\n", recvdHeader, recip.Address.Address, tstamp)
 
 			// Deliver message.
 			logger.Debug().Str("mailbox", recip.Mailbox).Msg("Delivering message")
@@ -89,7 +89,7 @@ func (s *StoreManager) Deliver(
 					Date:    now,
 					Subject: header.Get("Subject"),
 				},
-				Reader: io.MultiReader(strings.NewReader(recvdHeader+addlRecvd), bytes.NewReader(source)),
+				Reader: io.MultiReader(strings.NewReader(recvd), bytes.NewReader(source)),
 			}
 			id, err := s.Store.AddMessage(delivery)
 			if err != nil {

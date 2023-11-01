@@ -22,7 +22,7 @@ func TestDeliverStoresMessages(t *testing.T) {
 	if err := sm.Deliver(
 		origin,
 		[]*policy.Recipient{recip1, recip2},
-		"Received: xyz\r\n",
+		"Received: xyz\n",
 		[]byte("From: from@example.com\nSubject: tsub\n\ntest email"),
 	); err != nil {
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	if err := sm.Deliver(
 		origin,
 		[]*policy.Recipient{recip},
-		"prefix",
+		"Received: xyz\n",
 		[]byte("From: from@example.com\n\ntest email"),
 	); err != nil {
 		t.Fatal(err)
@@ -52,6 +52,7 @@ func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	got, err := listener()
 	require.NoError(t, err)
 	assert.NotNil(t, got, "No event received, or it was nil")
+	assertMessageCount(t, sm, "to@example.com", 1)
 }
 
 func testStoreManager() (*message.StoreManager, *extension.Host) {

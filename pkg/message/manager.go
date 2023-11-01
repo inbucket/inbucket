@@ -2,6 +2,7 @@ package message
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/mail"
 	"strings"
@@ -15,15 +16,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// recvdTimeFmt to use in generated Received header.
+const recvdTimeFmt = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
+
 // Manager is the interface controllers use to interact with messages.
 type Manager interface {
 	Deliver(
-		to *policy.Recipient,
 		from *policy.Origin,
 		recipients []*policy.Recipient,
-		prefix string,
+		recvdHeader string,
 		content []byte,
-	) (id string, err error)
+	) error
 	GetMetadata(mailbox string) ([]*event.MessageMetadata, error)
 	GetMessage(mailbox, id string) (*Message, error)
 	MarkSeen(mailbox, id string) error
@@ -42,15 +45,17 @@ type StoreManager struct {
 
 // Deliver submits a new message to the store.
 func (s *StoreManager) Deliver(
-	to *policy.Recipient,
 	from *policy.Origin,
 	recipients []*policy.Recipient,
-	prefix string,
+	recvdHeader string,
 	source []byte,
-) (string, error) {
+) error {
+	logger := log.With().Str("module", "message").Logger()
+
+	// Parse envelope headers.
 	header, err := enmime.DecodeHeaders(source)
 	if err != nil {
-		return "", err
+		return err
 	}
 	fromaddr, err := enmime.ParseAddressList(header.Get("From"))
 	if err != nil || len(fromaddr) == 0 {
@@ -65,28 +70,41 @@ func (s *StoreManager) Deliver(
 		}
 	}
 
-	log.Debug().Str("module", "message").Str("mailbox", to.Mailbox).Msg("Delivering message")
-	delivery := &Delivery{
-		Meta: event.MessageMetadata{
-			Mailbox: to.Mailbox,
-			From:    fromaddr[0],
-			To:      toaddr,
-			Date:    time.Now(),
-			Subject: header.Get("Subject"),
-		},
-		Reader: io.MultiReader(strings.NewReader(prefix), bytes.NewReader(source)),
-	}
-	id, err := s.Store.AddMessage(delivery)
-	if err != nil {
-		return "", err
+	now := time.Now()
+	tstamp := now.UTC().Format(recvdTimeFmt)
+
+	// Deliver to mailboxes.
+	for _, recip := range recipients {
+		if recip.ShouldStore() {
+			// Append recipient and timestamp to generated Recieved header.
+			recvd := fmt.Sprintf("%s  for <%s>; %s\r\n", recvdHeader, recip.Address.Address, tstamp)
+
+			// Deliver message.
+			logger.Debug().Str("mailbox", recip.Mailbox).Msg("Delivering message")
+			delivery := &Delivery{
+				Meta: event.MessageMetadata{
+					Mailbox: recip.Mailbox,
+					From:    fromaddr[0],
+					To:      toaddr,
+					Date:    now,
+					Subject: header.Get("Subject"),
+				},
+				Reader: io.MultiReader(strings.NewReader(recvd), bytes.NewReader(source)),
+			}
+			id, err := s.Store.AddMessage(delivery)
+			if err != nil {
+				logger.Error().Str("mailbox", recip.Mailbox).Err(err).Msg("Delivery failed")
+				return err
+			}
+
+			// Emit message stored event.
+			event := delivery.Meta
+			event.ID = id
+			s.ExtHost.Events.AfterMessageStored.Emit(&event)
+		}
 	}
 
-	// Emit message stored event.
-	event := delivery.Meta
-	event.ID = id
-	s.ExtHost.Events.AfterMessageStored.Emit(&event)
-
-	return id, nil
+	return nil
 }
 
 // GetMetadata returns a slice of metadata for the specified mailbox.

@@ -22,9 +22,6 @@ import (
 type State int
 
 const (
-	// timeStampFormat to use in Received header.
-	timeStampFormat = "Mon, 02 Jan 2006 15:04:05 -0700 (MST)"
-
 	// Messages sent to user during LOGIN auth procedure. Can vary, but values are taken directly
 	// from spec https://tools.ietf.org/html/draft-murchison-sasl-login-00
 
@@ -532,27 +529,21 @@ func (s *Session) dataHandler() {
 	}
 	mailData := bytes.NewBuffer(msgBuf)
 
-	// Mail data complete.
-	tstamp := time.Now().UTC().Format(timeStampFormat)
-	for _, recip := range s.recipients {
-		if recip.ShouldStore() {
-			// Generate Received header.
-			prefix := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n  for <%s>; %s\r\n",
-				s.remoteDomain, s.remoteHost, s.config.Domain, recip.Address.Address,
-				tstamp)
+	// Generate Received header; Deliver() will append recipient and timestamp to this.
+	recvdHeader := fmt.Sprintf("Received: from %s ([%s]) by %s\r\n",
+		s.remoteDomain, s.remoteHost, s.config.Domain)
 
-			// Deliver message.
-			_, err := s.manager.Deliver(
-				recip, s.from, s.recipients, prefix, mailData.Bytes())
-			if err != nil {
-				s.logger.Error().Msgf("delivery for %v: %v", recip.LocalPart, err)
-				s.send(fmt.Sprintf("451 Failed to store message for %v", recip.LocalPart))
-				s.reset()
-				return
-			}
-		}
-		expReceivedTotal.Add(1)
+	// Deliver message.
+	if err := s.manager.Deliver(s.from, s.recipients, recvdHeader, mailData.Bytes()); err != nil {
+		// Deliver() logs failure details, and the effected mailbox.
+		s.send("451 Failed to store message")
+		s.reset()
+		return
 	}
+
+	// TODO Consider changing this to just 1 regardless of # of recipents.
+	expReceivedTotal.Add(int64(len(s.recipients)))
+
 	s.send("250 Mail accepted for delivery")
 	s.logger.Info().Msgf("Message size %v bytes", mailData.Len())
 	s.reset()

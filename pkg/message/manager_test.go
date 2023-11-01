@@ -1,10 +1,12 @@
 package message_test
 
 import (
+	"net/mail"
 	"testing"
 
 	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/inbucket/inbucket/v3/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	"github.com/inbucket/inbucket/v3/pkg/message"
 	"github.com/inbucket/inbucket/v3/pkg/policy"
 	"github.com/inbucket/inbucket/v3/pkg/test"
@@ -52,12 +54,48 @@ func TestDeliverRespectsRecipientPolicy(t *testing.T) {
 	assertMessageCount(t, sm, "u2@example.com", 1)
 }
 
+func TestDeliverEmitsBeforeMessageStoredEvent(t *testing.T) {
+	sm, extHost := testStoreManager()
+
+	// Register function to receive event.
+	var got *event.InboundMessage
+	extHost.Events.BeforeMessageStored.AddListener(
+		"test",
+		func(msg event.InboundMessage) *event.InboundMessage {
+			got = &msg
+			return nil
+		})
+
+	// Deliver a message to trigger event.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
+	if err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1, recip2},
+		"Received: xyz\n",
+		[]byte("From: from@example.com\nSubject: tsub\n\ntest email"),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	require.NotNil(t, got, "BeforeMessageStored listener did not receive InboundMessage")
+	assert.Equal(t, []string{"u1@example.com", "u2@example.com"}, got.Mailboxes, "Mailboxes not equal")
+	assert.Equal(t, mail.Address{Name: "", Address: "from@example.com"}, got.From, "From not equal")
+	assert.Equal(t, []mail.Address{
+		{Name: "", Address: "u1@example.com"},
+		{Name: "", Address: "u2@example.com"},
+	}, got.To, "To not equal")
+	assert.Equal(t, "tsub", got.Subject, "Subject not equal")
+	assert.Equal(t, int64(48), got.Size, "Size not equal")
+}
+
 func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	sm, extHost := testStoreManager()
 
 	listener := extHost.Events.AfterMessageStored.AsyncTestListener("manager", 1)
 
-	// Attempt to deliver a message to generate event.
+	// Deliver a message to trigger event.
 	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
 	recip, _ := sm.AddrPolicy.NewRecipient("to@example.com")
 	if err := sm.Deliver(

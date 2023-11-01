@@ -69,9 +69,31 @@ func (s *StoreManager) Deliver(
 			toaddr[i] = &torecip.Address
 		}
 	}
+	subject := header.Get("Subject")
 
 	now := time.Now()
 	tstamp := now.UTC().Format(recvdTimeFmt)
+
+	// Process inbound message through extensions.
+	mailboxes := make([]string, len(recipients))
+	toAddrs := make([]mail.Address, len(recipients))
+	for i, recip := range recipients {
+		mailboxes[i] = recip.Mailbox
+		toAddrs[i] = recip.Address
+	}
+
+	inbound := event.InboundMessage{
+		Mailboxes: mailboxes,
+		From:      from.Address,
+		To:        toAddrs,
+		Subject:   subject,
+		Size:      int64(len(source)),
+	}
+
+	extResult := s.ExtHost.Events.BeforeMessageStored.Emit(&inbound)
+	if extResult != nil {
+		inbound = *extResult
+	}
 
 	// Deliver to mailboxes.
 	for _, recip := range recipients {
@@ -87,7 +109,7 @@ func (s *StoreManager) Deliver(
 					From:    fromaddr[0],
 					To:      toaddr,
 					Date:    now,
-					Subject: header.Get("Subject"),
+					Subject: subject,
 				},
 				Reader: io.MultiReader(strings.NewReader(recvd), bytes.NewReader(source)),
 			}

@@ -2,7 +2,7 @@ Mailbox: ip4recipient
 From: <fromuser@inbucket.org>
 To: [<ip4recipient@[192.168.123.123]>]
 Subject: basic subject
-Size: 198
+Size: 180
 
 BODY TEXT:
 No-To message.

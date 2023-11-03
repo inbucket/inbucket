@@ -50,6 +50,7 @@ func TestDeliverRespectsRecipientPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expect empty mailbox for nostore domain.
 	assertMessageCount(t, sm, "u1@nostore.com", 0)
 	assertMessageCount(t, sm, "u2@example.com", 1)
 }
@@ -90,6 +91,40 @@ func TestDeliverEmitsBeforeMessageStoredEvent(t *testing.T) {
 	assert.Equal(t, int64(48), got.Size, "Size not equal")
 }
 
+func TestDeliverUsesBeforeMessageStoredEventResponseMailboxes(t *testing.T) {
+	sm, extHost := testStoreManager()
+
+	// Register function to receive event.
+	extHost.Events.BeforeMessageStored.AddListener(
+		"test",
+		func(msg event.InboundMessage) *event.InboundMessage {
+			// Listener rewrites destination mailboxes.
+			resp := msg
+			resp.Mailboxes = []string{"new1@example.com", "new2@nostore.com"}
+			return &resp
+		})
+
+	// Deliver a message to trigger event.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
+	if err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1, recip2},
+		"Received: xyz\r\n",
+		[]byte("From: from@example.com\nSubject: tsub\n\ntest email"),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Expect messages in only the mailboxes in the event response, and for the DiscardDomains
+	// policy to be ignored.
+	assertMessageCount(t, sm, "u1@example.com", 0)
+	assertMessageCount(t, sm, "u2@example.com", 0)
+	assertMessageCount(t, sm, "new1@example.com", 1)
+	assertMessageCount(t, sm, "new2@nostore.com", 1)
+}
+
 func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	sm, extHost := testStoreManager()
 
@@ -111,6 +146,46 @@ func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, got, "No event received, or it was nil")
 	assertMessageCount(t, sm, "to@example.com", 1)
+}
+
+func TestDeliverBeforeAndAfterMessageStoredEvents(t *testing.T) {
+	sm, extHost := testStoreManager()
+
+	// Register function to receive Before event.
+	extHost.Events.BeforeMessageStored.AddListener(
+		"test",
+		func(msg event.InboundMessage) *event.InboundMessage {
+			// Listener rewrites destination mailboxes.
+			resp := msg
+			resp.Mailboxes = []string{"new1@example.com", "new2@example.com"}
+			return &resp
+		})
+
+	// After event listener.
+	listener := extHost.Events.AfterMessageStored.AsyncTestListener("manager", 2)
+
+	// Deliver a message to trigger events.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
+	if err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1, recip2},
+		"Received: xyz\r\n",
+		[]byte("From: from@example.com\nSubject: tsub\n\ntest email"),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Confirm mailbox names overriden by Before were sent to After event.  Order is
+	// not guaranteed.
+	got1, err := listener()
+	require.NoError(t, err)
+	got2, err := listener()
+	require.NoError(t, err)
+	got := []string{got1.Mailbox, got2.Mailbox}
+	assert.Contains(t, got, "new1@example.com")
+	assert.Contains(t, got, "new2@example.com")
 }
 
 // Returns an empty StoreManager and extension Host pair, configured for testing.

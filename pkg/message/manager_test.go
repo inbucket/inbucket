@@ -125,6 +125,59 @@ func TestDeliverUsesBeforeMessageStoredEventResponseMailboxes(t *testing.T) {
 	assertMessageCount(t, sm, "new2@nostore.com", 1)
 }
 
+func TestDeliverUsesBeforeMessageStoredEventResponseFields(t *testing.T) {
+	sm, extHost := testStoreManager()
+
+	// Register function to receive event.
+	extHost.Events.BeforeMessageStored.AddListener(
+		"test",
+		func(msg event.InboundMessage) *event.InboundMessage {
+			// Listener rewrites destination mailboxes.
+			msg.Subject = "event subj"
+			msg.From = mail.Address{Address: "from@event.com", Name: "From Event"}
+
+			// Changing To does not affect destination mailbox(es).
+			msg.To = []mail.Address{
+				{Address: "to@event.com", Name: "To Event"},
+				{Address: "to2@event.com", Name: "To 2 Event"},
+			}
+
+			// Size is read only, should have no effect.
+			msg.Size = 12345
+
+			return &msg
+		})
+
+	// Deliver a message to trigger event.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	if err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1},
+		"Received: xyz\r\n",
+		[]byte("From: from@example.com\nSubject: tsub\n\ntest email"),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify single message stored.
+	metadata, err := sm.GetMetadata("u1@example.com")
+	require.NoError(t, err)
+	require.Len(t, metadata, 1, "mailbox has incorrect # of messages")
+	got := metadata[0]
+
+	// Verify metadata fields were overridden by event response values.
+	assert.Equal(t, "event subj", got.Subject, "Subject didn't match")
+	assert.Equal(t, "from@event.com", got.From.Address, "From Address didn't match")
+	assert.Equal(t, "From Event", got.From.Name, "From Name didn't match")
+	require.Len(t, got.To, 2)
+	assert.Equal(t, "to@event.com", got.To[0].Address, "To Address didn't match")
+	assert.Equal(t, "To Event", got.To[0].Name, "To Name didn't match")
+	assert.Equal(t, "to2@event.com", got.To[1].Address, "To Address didn't match")
+	assert.Equal(t, "To 2 Event", got.To[1].Name, "To Name didn't match")
+	assert.NotEqual(t, 12345, got.Size, "Size is read only")
+}
+
 func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	sm, extHost := testStoreManager()
 

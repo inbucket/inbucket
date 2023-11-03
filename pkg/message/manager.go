@@ -84,7 +84,7 @@ func (s *StoreManager) Deliver(
 
 	inbound := &event.InboundMessage{
 		Mailboxes: mailboxes,
-		From:      from.Address,
+		From:      *fromaddr[0],
 		To:        toAddrs,
 		Subject:   subject,
 		Size:      int64(len(source)),
@@ -103,6 +103,10 @@ func (s *StoreManager) Deliver(
 	} else {
 		// Event response overrides destination mailboxes and address policy.
 		inbound = extResult
+		toaddr = make([]*mail.Address, len(inbound.To))
+		for i := range inbound.To {
+			toaddr[i] = &inbound.To[i]
+		}
 	}
 
 	// Deliver to mailboxes.
@@ -115,10 +119,10 @@ func (s *StoreManager) Deliver(
 		delivery := &Delivery{
 			Meta: event.MessageMetadata{
 				Mailbox: mb,
-				From:    fromaddr[0],
+				From:    &inbound.From,
 				To:      toaddr,
 				Date:    now,
-				Subject: subject,
+				Subject: inbound.Subject,
 			},
 			Reader: io.MultiReader(strings.NewReader(recvd), bytes.NewReader(source)),
 		}

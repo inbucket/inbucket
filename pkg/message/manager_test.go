@@ -32,6 +32,26 @@ func TestDeliverStoresMessages(t *testing.T) {
 	assertMessageCount(t, sm, "u2@example.com", 1)
 }
 
+func TestDeliverRespectsRecipientPolicy(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Attempt to deliver a message to two mailboxes.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@nostore.com")
+	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
+	if err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1, recip2},
+		"Received: xyz\n",
+		[]byte("From: from@example.com\nSubject: tsub\n\ntest email"),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	assertMessageCount(t, sm, "u1@nostore.com", 0)
+	assertMessageCount(t, sm, "u2@example.com", 1)
+}
+
 func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	sm, extHost := testStoreManager()
 
@@ -55,6 +75,7 @@ func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	assertMessageCount(t, sm, "to@example.com", 1)
 }
 
+// Returns an empty StoreManager and extension Host pair, configured for testing.
 func testStoreManager() (*message.StoreManager, *extension.Host) {
 	extHost := extension.NewHost()
 
@@ -63,7 +84,10 @@ func testStoreManager() (*message.StoreManager, *extension.Host) {
 			Config: &config.Root{
 				MailboxNaming: config.FullNaming,
 				SMTP: config.SMTP{
-					DefaultStore: true,
+					DefaultAccept:  true,
+					DefaultStore:   true,
+					RejectDomains:  []string{"noaccept.com"},
+					DiscardDomains: []string{"nostore.com"},
 				},
 			},
 		},

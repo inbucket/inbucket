@@ -105,6 +105,9 @@ func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 	if ib.Before.MailAccepted != nil {
 		events.BeforeMailAccepted.AddListener(listenerName, h.handleBeforeMailAccepted)
 	}
+	if ib.Before.MessageStored != nil {
+		events.BeforeMessageStored.AddListener(listenerName, h.handleBeforeMessageStored)
+	}
 }
 
 func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) {
@@ -172,6 +175,38 @@ func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
 	}
 
 	return &result
+}
+
+func (h *Host) handleBeforeMessageStored(msg event.InboundMessage) *event.InboundMessage {
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("before.message_stored")
+	if !ok {
+		return nil
+	}
+	defer h.pool.putState(ls)
+
+	logger.Debug().Msgf("Calling Lua function with %+v", msg)
+	if err := ls.CallByParam(
+		lua.P{Fn: ib.Before.MessageStored, NRet: 1, Protect: true},
+		wrapInboundMessage(ls, &msg),
+	); err != nil {
+		logger.Error().Err(err).Msg("Failed to call Lua function")
+		return nil
+	}
+
+	lval := ls.Get(1)
+	logger.Debug().Msgf("Lua function returned %q (%v)", lval, lval.Type().String())
+
+	if lval.Type() == lua.LTNil || lua.LVIsFalse(lval) {
+		return nil
+	}
+
+	result, err := unwrapInboundMessage(lval)
+	if err != nil {
+		logger.Error().Err(err).Msg("Bad response from Lua Function")
+	}
+	ls.Pop(1)
+
+	return result
 }
 
 // Common preparation for calling Lua functions.

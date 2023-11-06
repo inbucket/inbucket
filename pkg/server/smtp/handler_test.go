@@ -589,7 +589,7 @@ func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 
 	// Create a server, don't start it.
 	addrPolicy := &policy.Addressing{Config: cfg}
-	manager := &message.StoreManager{Store: ds}
+	manager := &message.StoreManager{Store: ds, ExtHost: extHost}
 
 	return NewServer(cfg.SMTP, manager, addrPolicy, extHost)
 }

@@ -2,7 +2,7 @@ Mailbox: ip6recipient
 From: <fromuser@inbucket.org>
 To: [<ip6recipient@[IPv6:2001:0db8:85a3:0000:0000:8a2e:0370:7334]>]
 Subject: basic subject
-Size: 227
+Size: 180
 
 BODY TEXT:
 No-To message.

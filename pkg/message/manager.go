@@ -69,39 +69,73 @@ func (s *StoreManager) Deliver(
 			toaddr[i] = &torecip.Address
 		}
 	}
+	subject := header.Get("Subject")
 
 	now := time.Now()
 	tstamp := now.UTC().Format(recvdTimeFmt)
 
-	// Deliver to mailboxes.
-	for _, recip := range recipients {
-		if recip.ShouldStore() {
-			// Append recipient and timestamp to generated Recieved header.
-			recvd := fmt.Sprintf("%s  for <%s>; %s\r\n", recvdHeader, recip.Address.Address, tstamp)
+	// Process inbound message through extensions.
+	mailboxes := make([]string, len(recipients))
+	toAddrs := make([]mail.Address, len(recipients))
+	for i, recip := range recipients {
+		mailboxes[i] = recip.Mailbox
+		toAddrs[i] = recip.Address
+	}
 
-			// Deliver message.
-			logger.Debug().Str("mailbox", recip.Mailbox).Msg("Delivering message")
-			delivery := &Delivery{
-				Meta: event.MessageMetadata{
-					Mailbox: recip.Mailbox,
-					From:    fromaddr[0],
-					To:      toaddr,
-					Date:    now,
-					Subject: header.Get("Subject"),
-				},
-				Reader: io.MultiReader(strings.NewReader(recvd), bytes.NewReader(source)),
-			}
-			id, err := s.Store.AddMessage(delivery)
-			if err != nil {
-				logger.Error().Str("mailbox", recip.Mailbox).Err(err).Msg("Delivery failed")
-				return err
-			}
+	inbound := &event.InboundMessage{
+		Mailboxes: mailboxes,
+		From:      *fromaddr[0],
+		To:        toAddrs,
+		Subject:   subject,
+		Size:      int64(len(source)),
+	}
 
-			// Emit message stored event.
-			event := delivery.Meta
-			event.ID = id
-			s.ExtHost.Events.AfterMessageStored.Emit(&event)
+	extResult := s.ExtHost.Events.BeforeMessageStored.Emit(inbound)
+	if extResult == nil {
+		// Use address policy to determine deliverable mailboxes.
+		mailboxes = mailboxes[:0]
+		for _, recip := range recipients {
+			if recip.ShouldStore() {
+				mailboxes = append(mailboxes, recip.Mailbox)
+			}
 		}
+		inbound.Mailboxes = mailboxes
+	} else {
+		// Event response overrides destination mailboxes and address policy.
+		inbound = extResult
+		toaddr = make([]*mail.Address, len(inbound.To))
+		for i := range inbound.To {
+			toaddr[i] = &inbound.To[i]
+		}
+	}
+
+	// Deliver to mailboxes.
+	for _, mb := range inbound.Mailboxes {
+		// Append recipient and timestamp to generated Recieved header.
+		recvd := fmt.Sprintf("%s  for <%s>; %s\r\n", recvdHeader, mb, tstamp)
+
+		// Deliver message.
+		logger.Debug().Str("mailbox", mb).Msg("Delivering message")
+		delivery := &Delivery{
+			Meta: event.MessageMetadata{
+				Mailbox: mb,
+				From:    &inbound.From,
+				To:      toaddr,
+				Date:    now,
+				Subject: inbound.Subject,
+			},
+			Reader: io.MultiReader(strings.NewReader(recvd), bytes.NewReader(source)),
+		}
+		id, err := s.Store.AddMessage(delivery)
+		if err != nil {
+			logger.Error().Str("mailbox", mb).Err(err).Msg("Delivery failed")
+			return err
+		}
+
+		// Emit message stored event.
+		event := delivery.Meta
+		event.ID = id
+		s.ExtHost.Events.AfterMessageStored.Emit(&event)
 	}
 
 	return nil

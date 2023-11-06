@@ -54,11 +54,13 @@ const LuaInit = `
 	end
 `
 
+var consoleLogger = zerolog.New(zerolog.NewConsoleWriter())
+
 func TestEmptyScript(t *testing.T) {
 	script := ""
 	extHost := extension.NewHost()
 
-	_, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(script), "test.lua")
+	_, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(script), "test.lua")
 	require.NoError(t, err)
 }
 
@@ -91,7 +93,7 @@ func TestAfterMessageDeleted(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(LuaInit+script), "test.lua")
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 
@@ -122,7 +124,7 @@ func TestAfterMessageStored(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(LuaInit+script), "test.lua")
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 
@@ -148,7 +150,7 @@ func TestBeforeMailAccepted(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	_, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(script), "test.lua")
+	_, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(script), "test.lua")
 	require.NoError(t, err)
 
 	// Send event to be accepted.

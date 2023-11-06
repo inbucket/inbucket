@@ -17,14 +17,16 @@ import (
 
 // LuaInit holds useful test globals.
 const LuaInit = `
+	local logger = require("logger")
+
 	async = false
 	test_ok = true
 
-	-- Sends marks tests failed instead of erroring when enabled.
+	-- Sends marks tests as failed instead of erroring when enabled.
 	function assert_async(value, message)
 		if not value then
 			if async then
-				print(message)
+				logger.error(message, {from = "assert_async"})
 				test_ok = false
 			else
 				error(message)
@@ -32,7 +34,7 @@ const LuaInit = `
 		end
 	end
 
-	-- Tests plain values and list-style tables.
+	-- Verifies plain values and list-style tables.
 	function assert_eq(got, want)
 		if type(got) == "table" and type(want) == "table" then
 			assert_async(#got == #want, string.format("got %d elements, wanted %d", #got, #want))
@@ -48,6 +50,7 @@ const LuaInit = `
 		assert_async(got == want, string.format("got %q, wanted %q", got, want))
 	end
 
+	-- Verifies string want contains string got.
 	function assert_contains(got, want)
 		assert_async(string.find(got, want),
 			string.format("got %q, wanted it to contain %q", got, want))

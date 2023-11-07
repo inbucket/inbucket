@@ -27,6 +27,7 @@ type alias SmtpConfig =
     , defaultStore : Bool
     , storeDomains : Maybe (List String)
     , discardDomains : Maybe (List String)
+    , rejectOriginDomains : Maybe (List String)
     }
 
 
@@ -70,6 +71,7 @@ smtpConfigDecoder =
         |> P.required "default-store" D.bool
         |> P.required "store-domains" (D.nullable (D.list D.string))
         |> P.required "discard-domains" (D.nullable (D.list D.string))
+        |> P.required "reject-origin-domains" (D.nullable (D.list D.string))
 
 
 encodeSmtpConfig : SmtpConfig -> E.Value
@@ -82,6 +84,7 @@ encodeSmtpConfig r =
         , ( "default-store", E.bool r.defaultStore )
         , ( "store-domains", maybe (E.list E.string) r.storeDomains )
         , ( "discard-domains", maybe (E.list E.string) r.discardDomains )
+        , ( "reject-origin-domains", maybe (E.list E.string) r.rejectOriginDomains )
         ]
 
 

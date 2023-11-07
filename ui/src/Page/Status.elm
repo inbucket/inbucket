@@ -275,7 +275,8 @@ configPanel maybeConfig =
                 , textEntry "SMTP Listener" config.smtpConfig.addr
                 , textEntry "POP3 Listener" config.pop3Listener
                 , textEntry "HTTP Listener" config.webListener
-                , textEntry "Accept Policy" (acceptPolicy config)
+                , textEntry "Origin Policy" (originPolicy config)
+                , textEntry "Destination Policy" (acceptPolicy config)
                 , textEntry "Store Policy" (storePolicy config)
                 , textEntry "Store Type" config.storageConfig.storeType
                 , textEntry "Message Cap" (mailboxCap config)
@@ -286,7 +287,7 @@ configPanel maybeConfig =
 acceptPolicy : ServerConfig -> String
 acceptPolicy config =
     if config.smtpConfig.defaultAccept then
-        "All domains"
+        "Allow all domains"
             ++ (case config.smtpConfig.rejectDomains of
                     Nothing ->
                         ""
@@ -299,7 +300,7 @@ acceptPolicy config =
                )
 
     else
-        "No domains"
+        "Reject all domains"
             ++ (case config.smtpConfig.acceptDomains of
                     Nothing ->
                         ""
@@ -308,14 +309,29 @@ acceptPolicy config =
                         ""
 
                     Just domains ->
-                        ", except: " ++ String.join ", " domains
+                        ", except to: " ++ String.join ", " domains
                )
+
+
+originPolicy : ServerConfig -> String
+originPolicy config =
+    "Allow all domains"
+        ++ (case config.smtpConfig.rejectOriginDomains of
+                Nothing ->
+                    ""
+
+                Just [] ->
+                    ""
+
+                Just domains ->
+                    ", except from: " ++ String.join ", " domains
+           )
 
 
 storePolicy : ServerConfig -> String
 storePolicy config =
     if config.smtpConfig.defaultStore then
-        "All domains"
+        "All destination domains"
             ++ (case config.smtpConfig.discardDomains of
                     Nothing ->
                         ""
@@ -324,11 +340,11 @@ storePolicy config =
                         ""
 
                     Just domains ->
-                        ", except: " ++ String.join ", " domains
+                        ", except to: " ++ String.join ", " domains
                )
 
     else
-        "No domains"
+        "No destination domains"
             ++ (case config.smtpConfig.storeDomains of
                     Nothing ->
                         ""

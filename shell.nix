@@ -26,6 +26,7 @@ pkgs.mkShell {
     golint
     gopls
     nodejs_18
+    nodePackages.node-gyp
     nodePackages.yarn
     rpm
     swaks

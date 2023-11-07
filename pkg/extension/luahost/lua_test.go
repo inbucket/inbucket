@@ -17,14 +17,16 @@ import (
 
 // LuaInit holds useful test globals.
 const LuaInit = `
+	local logger = require("logger")
+
 	async = false
 	test_ok = true
 
-	-- Sends marks tests failed instead of erroring when enabled.
+	-- Sends marks tests as failed instead of erroring when enabled.
 	function assert_async(value, message)
 		if not value then
 			if async then
-				print(message)
+				logger.error(message, {from = "assert_async"})
 				test_ok = false
 			else
 				error(message)
@@ -32,7 +34,7 @@ const LuaInit = `
 		end
 	end
 
-	-- Tests plain values and list-style tables.
+	-- Verifies plain values and list-style tables.
 	function assert_eq(got, want)
 		if type(got) == "table" and type(want) == "table" then
 			assert_async(#got == #want, string.format("got %d elements, wanted %d", #got, #want))
@@ -48,17 +50,20 @@ const LuaInit = `
 		assert_async(got == want, string.format("got %q, wanted %q", got, want))
 	end
 
+	-- Verifies string want contains string got.
 	function assert_contains(got, want)
 		assert_async(string.find(got, want),
 			string.format("got %q, wanted it to contain %q", got, want))
 	end
 `
 
+var consoleLogger = zerolog.New(zerolog.NewConsoleWriter())
+
 func TestEmptyScript(t *testing.T) {
 	script := ""
 	extHost := extension.NewHost()
 
-	_, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(script), "test.lua")
+	_, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(script), "test.lua")
 	require.NoError(t, err)
 }
 
@@ -91,7 +96,7 @@ func TestAfterMessageDeleted(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(LuaInit+script), "test.lua")
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 
@@ -122,7 +127,7 @@ func TestAfterMessageStored(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(LuaInit+script), "test.lua")
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 
@@ -148,14 +153,14 @@ func TestBeforeMailAccepted(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	_, err := luahost.NewFromReader(zerolog.Nop(), extHost, strings.NewReader(script), "test.lua")
+	_, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(script), "test.lua")
 	require.NoError(t, err)
 
 	// Send event to be accepted.
 	addr := &event.AddressParts{Local: "from", Domain: "test"}
 	got := extHost.Events.BeforeMailAccepted.Emit(addr)
 	want := true
-	require.NotNil(t, got)
+	require.NotNil(t, got, "Expected result from Emit()")
 	if *got != want {
 		t.Errorf("Got %v, wanted %v for addr %v", *got, want, addr)
 	}
@@ -164,10 +169,79 @@ func TestBeforeMailAccepted(t *testing.T) {
 	addr = &event.AddressParts{Local: "reject", Domain: "me"}
 	got = extHost.Events.BeforeMailAccepted.Emit(addr)
 	want = false
-	require.NotNil(t, got)
+	require.NotNil(t, got, "Expected result from Emit()")
 	if *got != want {
 		t.Errorf("Got %v, wanted %v for addr %v", *got, want, addr)
 	}
+}
+
+func TestBeforeMessageStored(t *testing.T) {
+	// Event to send.
+	msg := event.InboundMessage{
+		Mailboxes: []string{"one", "two"},
+		From:      mail.Address{Name: "From Name", Address: "from@example.com"},
+		To: []mail.Address{
+			{Name: "To1 Name", Address: "to1@example.com"},
+			{Name: "To2 Name", Address: "to2@example.com"},
+		},
+		Subject: "inbound subj",
+		Size:    42,
+	}
+
+	// Register lua event listener.
+	script := `
+		async = true
+
+		function inbucket.before.message_stored(msg)
+			-- Verify incoming values.
+			assert_eq(msg.mailboxes, {"one", "two"})
+			assert_eq(msg.from.name, "From Name")
+			assert_eq(msg.from.address, "from@example.com")
+			assert_eq(2, #msg.to)
+			assert_eq(msg.to[1].name, "To1 Name")
+			assert_eq(msg.to[1].address, "to1@example.com")
+			assert_eq(msg.to[2].name, "To2 Name")
+			assert_eq(msg.to[2].address, "to2@example.com")
+			assert_eq(msg.subject, "inbound subj")
+			assert_eq(msg.size, 42)
+			notify:send(test_ok)
+
+			-- Generate response.
+			res = inbound_message.new()
+			res.mailboxes = {"resone", "restwo"}
+			res.from = address.new("Res From", "res@example.com")
+			res.to = {
+				address.new("To1 Res", "res1@example.com"),
+				address.new("To2 Res", "res2@example.com"),
+			}
+			res.subject = "res subj"
+			return res
+		end
+	`
+	extHost := extension.NewHost()
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(LuaInit+script), "test.lua")
+	require.NoError(t, err)
+	notify := luaHost.CreateChannel("notify")
+
+	// Send event to be accepted.
+	got := extHost.Events.BeforeMessageStored.Emit(&msg)
+	require.NotNil(t, got, "Expected result from Emit()")
+
+	// Verify Lua assertions passed.
+	assertNotified(t, notify)
+
+	// Verify response values.
+	want := &event.InboundMessage{
+		Mailboxes: []string{"resone", "restwo"},
+		From:      mail.Address{Name: "Res From", Address: "res@example.com"},
+		To: []mail.Address{
+			{Name: "To1 Res", Address: "res1@example.com"},
+			{Name: "To2 Res", Address: "res2@example.com"},
+		},
+		Subject: "res subj",
+		Size:    0,
+	}
+	assert.Equal(t, want, got, "Response InboundMessage did not match")
 }
 
 func assertNotified(t *testing.T, notify chan lua.LValue) {

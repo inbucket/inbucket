@@ -6,7 +6,7 @@ import (
 
 	"github.com/cjoudrey/gluahttp"
 	"github.com/cosmotek/loguago"
-	"github.com/inbucket/gopher-json"
+	json "github.com/inbucket/gopher-json"
 	"github.com/rs/zerolog"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -44,9 +44,10 @@ func (lp *statePool) newState() (*lua.LState, error) {
 	}
 
 	// Register custom types.
+	registerInboundMessageType(ls)
 	registerInbucketTypes(ls)
-	registerMessageMetadataType(ls)
 	registerMailAddressType(ls)
+	registerMessageMetadataType(ls)
 	registerPolicyType(ls)
 
 	// Run compiled script.

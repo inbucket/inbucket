@@ -18,6 +18,7 @@ variables it supports:
     INBUCKET_SMTP_DEFAULTACCEPT         true                Accept all mail by default?
     INBUCKET_SMTP_ACCEPTDOMAINS                             Domains to accept mail for
     INBUCKET_SMTP_REJECTDOMAINS                             Domains to reject mail for
+    INBUCKET_SMTP_REJECTORIGINDOMAINS                       Domains to reject mail from
     INBUCKET_SMTP_DEFAULTSTORE          true                Store all mail by default?
     INBUCKET_SMTP_STOREDOMAINS                              Domains to store mail for
     INBUCKET_SMTP_DISCARDDOMAINS                            Domains to discard mail for
@@ -161,7 +162,7 @@ List of domains to accept mail for when `INBUCKET_SMTP_DEFAULTACCEPT` is false;
 has no effect when true.
 
 - Default: None
-- Values: Comma separated list of domains
+- Values: Comma separated list of recipient domains
 - Example: `localhost,mysite.org`
 
 ### Rejected Recipient Domain List
@@ -172,7 +173,22 @@ List of domains to reject mail for when `INBUCKET_SMTP_DEFAULTACCEPT` is true;
 has no effect when false.
 
 - Default: None
-- Values: Comma separated list of domains
+- Values: Comma separated list of recipient domains
+- Example: `reject.com,gmail.com`
+
+### Rejected Origin Domain List
+
+`INBUCKET_SMTP_REJECTORIGINDOMAINS`
+
+List of domains to reject mail from.  This list is enforced regardless of the
+`INBUCKET_SMTP_DEFAULTACCEPT` value.
+
+Enforcement takes place during evalation of the `MAIL FROM` SMTP command, the
+origin domain is extracted from the address presented and compared against the
+list.  It does not take email headers into account.
+
+- Default: None
+- Values: Comma separated list of origin domains
 - Example: `reject.com,gmail.com`
 
 ### Default Recipient Store Policy
@@ -194,7 +210,7 @@ List of domains to store mail for when `INBUCKET_SMTP_DEFAULTSTORE` is false;
 has no effect when true.
 
 - Default: None
-- Values: Comma separated list of domains
+- Values: Comma separated list of recipient domains
 - Example: `localhost,mysite.org`
 
 ### Discarded Recipient Domain List
@@ -207,7 +223,7 @@ emails.  Messages sent to a domain other than this will be stored normally.
 Only has an effect when `INBUCKET_SMTP_DEFAULTSTORE` is true.
 
 - Default: None
-- Values: Comma separated list of domains
+- Values: Comma separated list of recipient domains
 - Example: `recycle.com,loadtest.org`
 
 ### Network Idle Timeout

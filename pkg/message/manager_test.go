@@ -118,11 +118,42 @@ func TestDeliverUsesBeforeMessageStoredEventResponseMailboxes(t *testing.T) {
 	}
 
 	// Expect messages in only the mailboxes in the event response, and for the DiscardDomains
-	// policy to be ignored.
+	// policy to be ignored for nostore.com.
 	assertMessageCount(t, sm, "u1@example.com", 0)
 	assertMessageCount(t, sm, "u2@example.com", 0)
 	assertMessageCount(t, sm, "new1@example.com", 1)
 	assertMessageCount(t, sm, "new2@nostore.com", 1)
+}
+
+func TestDeliverUsesBeforeMessageStoredEventResponseMailboxesEmpty(t *testing.T) {
+	sm, extHost := testStoreManager()
+
+	// Register function to receive event.
+	extHost.Events.BeforeMessageStored.AddListener(
+		"test",
+		func(msg event.InboundMessage) *event.InboundMessage {
+			// Listener clears destination mailboxes.
+			resp := msg
+			resp.Mailboxes = []string{}
+			return &resp
+		})
+
+	// Deliver a message to trigger event.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
+	if err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1, recip2},
+		"Received: xyz\r\n",
+		[]byte("From: from@example.com\nSubject: tsub\n\ntest email"),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Expect no messages the mailboxes.
+	assertMessageCount(t, sm, "u1@example.com", 0)
+	assertMessageCount(t, sm, "u2@example.com", 0)
 }
 
 func TestDeliverUsesBeforeMessageStoredEventResponseFields(t *testing.T) {

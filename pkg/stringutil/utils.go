@@ -75,8 +75,8 @@ func MakePathPrefixer(prefix string) func(string) string {
 	}
 }
 
-// Test if a "s" string match a "p" pattern with joker (*, ?)
-func MatchWithJokers(p string, s string) bool {
+// Test if a "s" string match a "p" pattern with wildcards (*, ?)
+func MatchWithWildcards(p string, s string) bool {
 	runeInput := []rune(s)
 	runePattern := []rune(p)
 	lenInput := len(runeInput)
@@ -86,9 +86,6 @@ func MatchWithJokers(p string, s string) bool {
 		isMatchingMatrix[i] = make([]bool, lenPattern+1)
 	}
 	isMatchingMatrix[0][0] = true
-	for i := 1; i < lenInput; i++ {
-		isMatchingMatrix[i][0] = false
-	}
 	if lenPattern > 0 {
 		if runePattern[0] == '*' {
 			isMatchingMatrix[0][1] = true

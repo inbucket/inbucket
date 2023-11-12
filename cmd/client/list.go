@@ -9,9 +9,7 @@ import (
 	"github.com/inbucket/inbucket/v3/pkg/rest/client"
 )
 
-type listCmd struct {
-	mailbox string
-}
+type listCmd struct{}
 
 func (*listCmd) Name() string {
 	return "list"
@@ -27,8 +25,7 @@ func (*listCmd) Usage() string {
 `
 }
 
-func (l *listCmd) SetFlags(f *flag.FlagSet) {
-}
+func (l *listCmd) SetFlags(f *flag.FlagSet) {}
 
 func (l *listCmd) Execute(
 	_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {

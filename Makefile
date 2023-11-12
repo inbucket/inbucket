@@ -32,8 +32,11 @@ simplify:
 	@gofmt -s -l -w $(SRC)
 
 lint:
+	@echo "gofmt check..."
 	@test -z "$(shell gofmt -l . | tee /dev/stderr)" || echo "[WARN] Fix formatting issues with 'make fmt'"
+	@echo "golint check..."
 	@golint -set_exit_status $(PKGS)
+	@echo "go vet check..."
 	@go vet $(PKGS)
 
 reflex:

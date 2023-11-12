@@ -75,7 +75,7 @@ func MakePathPrefixer(prefix string) func(string) string {
 	}
 }
 
-// Test if a "s" string match a "p" pattern with wildcards (*, ?)
+// MatchWithWildcards tests if a "s" string matches a "p" pattern with wildcards (*, ?)
 func MatchWithWildcards(p string, s string) bool {
 	runeInput := []rune(s)
 	runePattern := []rune(p)

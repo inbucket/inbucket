@@ -117,7 +117,14 @@ func (a *Addressing) ShouldStoreDomain(domain string) bool {
 // ShouldAcceptOriginDomain indicates if Inbucket accept mail from the specified domain.
 func (a *Addressing) ShouldAcceptOriginDomain(domain string) bool {
 	domain = strings.ToLower(domain)
-	return !stringutil.SliceContains(a.Config.SMTP.RejectOriginDomains, domain)
+	if len(a.Config.SMTP.RejectOriginDomains) > 0 {
+		for _, d := range a.Config.SMTP.RejectOriginDomains {
+			if stringutil.MatchWithWildcards(d, domain) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // ParseEmailAddress unescapes an email address, and splits the local part from the domain part.

@@ -206,6 +206,8 @@ func TestReadyStateRejectedDomains(t *testing.T) {
 	tests := []scriptStep{
 		{"MAIL FROM: <john@validdomain.com>", 250},
 		{"MAIL FROM: <john@invalidomain.com>", 501},
+		{"MAIL FROM: <john@s1.otherinvaliddomain.com>", 501},
+		{"MAIL FROM: <john@s2.otherinvaliddomain.com>", 501},
 	}
 
 	for _, tc := range tests {
@@ -582,7 +584,7 @@ func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 			MaxMessageBytes:     5000,
 			DefaultAccept:       true,
 			RejectDomains:       []string{"deny.com"},
-			RejectOriginDomains: []string{"invalidomain.com"},
+			RejectOriginDomains: []string{"invalidomain.com", "*.otherinvaliddomain.com"},
 			Timeout:             5,
 		},
 	}

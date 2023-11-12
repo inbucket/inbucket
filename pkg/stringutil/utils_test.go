@@ -76,3 +76,49 @@ func TestMakePathPrefixer(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchWithWildcards(t *testing.T) {
+	testCases := []struct {
+		pattern, input string
+		want           bool
+	}{
+		{pattern: "", input: "", want: true},
+		{pattern: "", input: "qwerty", want: false},
+		{pattern: "qw*ty", input: "qwerty", want: true},
+		{pattern: "qw?ty", input: "qwerty", want: false},
+		{pattern: "qwe*ty", input: "qwerty", want: true},
+		{pattern: "*erty", input: "qwerty", want: true},
+		{pattern: "?erty", input: "qwerty", want: false},
+		{pattern: "?werty", input: "qwerty", want: true},
+		{pattern: "qwer*", input: "qwerty", want: true},
+		{pattern: "qwer?", input: "qwerty", want: false},
+		{pattern: "qwert?", input: "qwerty", want: true},
+		{pattern: "qw**ty", input: "qwerty", want: true},
+		{pattern: "qw??ty", input: "qwerty", want: true},
+		{pattern: "qwe??ty", input: "qwerty", want: false},
+		{pattern: "**erty", input: "qwerty", want: true},
+		{pattern: "??erty", input: "qwerty", want: true},
+		{pattern: "??werty", input: "qwerty", want: false},
+		{pattern: "qwer**", input: "qwerty", want: true},
+		{pattern: "qwer??", input: "qwerty", want: true},
+		{pattern: "qwert??", input: "qwerty", want: false},
+		{pattern: "q?er?y", input: "qwerty", want: true},
+		{pattern: "q?r?y", input: "qwerty", want: false},
+		{pattern: "q*er*y", input: "qwerty", want: true},
+		{pattern: "q*r*y", input: "qwerty", want: true},
+		{pattern: "q*?werty", input: "qwerty", want: false},
+		{pattern: "q*?erty", input: "qwerty", want: true},
+		{pattern: "q?*werty", input: "qwerty", want: false},
+		{pattern: "q?*erty", input: "qwerty", want: true},
+		{pattern: "?*rty", input: "qwerty", want: true},
+		{pattern: "*?rty", input: "qwerty", want: true},
+		{pattern: "qwe?*", input: "qwerty", want: true},
+		{pattern: "qwe*?", input: "qwerty", want: true},
+	}
+	for _, tc := range testCases {
+		got := stringutil.MatchWithWildcards(tc.pattern, tc.input)
+		if got != tc.want {
+			t.Errorf("Test %s with pattern %s, Got: %v, want: %v", tc.input, tc.pattern, got, tc.want)
+		}
+	}
+}

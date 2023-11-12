@@ -58,24 +58,3 @@ func (c *restClient) doJSON(method string, uri string, v interface{}) error {
 
 	return fmt.Errorf("%s for %q, unexpected %v: %s", method, uri, resp.StatusCode, resp.Status)
 }
-
-// doJSONBody performs an HTTP request with this client and marshalls the JSON response into v.
-func (c *restClient) doJSONBody(method string, uri string, body []byte, v interface{}) error {
-	resp, err := c.do(method, uri, body)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-	if resp.StatusCode == http.StatusOK {
-		if v == nil {
-			return nil
-		}
-		// Decode response body
-		return json.NewDecoder(resp.Body).Decode(v)
-	}
-
-	return fmt.Errorf("%s for %q, unexpected %v: %s", method, uri, resp.StatusCode, resp.Status)
-}

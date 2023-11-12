@@ -72,12 +72,18 @@ func (ml *msgListenerV1) Delete(mailbox string, id string) error {
 func (ml *msgListenerV1) WSReader(conn *websocket.Conn) {
 	slog := log.With().Str("module", "rest").Str("proto", "WebSocket").
 		Str("remote", conn.RemoteAddr().String()).Logger()
+
 	defer ml.Close()
+
 	conn.SetReadLimit(maxMessageSizeV1)
-	conn.SetReadDeadline(time.Now().Add(pongWaitV1))
+	if err := conn.SetReadDeadline(time.Now().Add(pongWaitV1)); err != nil {
+		slog.Warn().Err(err).Msg("Failed to setup read deadline")
+	}
 	conn.SetPongHandler(func(string) error {
 		slog.Debug().Msg("Got pong")
-		conn.SetReadDeadline(time.Now().Add(pongWaitV1))
+		if err := conn.SetReadDeadline(time.Now().Add(pongWaitV1)); err != nil {
+			slog.Warn().Err(err).Msg("Failed to set read deadline in pong")
+		}
 		return nil
 	})
 
@@ -101,6 +107,9 @@ func (ml *msgListenerV1) WSReader(conn *websocket.Conn) {
 
 // WSWriter makes sure the websocket client is still connected
 func (ml *msgListenerV1) WSWriter(conn *websocket.Conn) {
+	slog := log.With().Str("module", "rest").Str("proto", "WebSocket").
+		Str("remote", conn.RemoteAddr().String()).Logger()
+
 	ticker := time.NewTicker(pingPeriodV1)
 	defer func() {
 		ticker.Stop()
@@ -111,10 +120,12 @@ func (ml *msgListenerV1) WSWriter(conn *websocket.Conn) {
 	for {
 		select {
 		case msg, ok := <-ml.c:
-			conn.SetWriteDeadline(time.Now().Add(writeWaitV1))
+			if err := conn.SetWriteDeadline(time.Now().Add(writeWaitV1)); err != nil {
+				slog.Warn().Err(err).Msg("Failed to set write deadline for msg")
+			}
 			if !ok {
 				// msgListener closed, exit
-				conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 			if conn.WriteJSON(metadataToHeader(&msg)) != nil {
@@ -123,13 +134,14 @@ func (ml *msgListenerV1) WSWriter(conn *websocket.Conn) {
 			}
 		case <-ticker.C:
 			// Send ping
-			conn.SetWriteDeadline(time.Now().Add(writeWaitV1))
+			if err := conn.SetWriteDeadline(time.Now().Add(writeWaitV1)); err != nil {
+				slog.Warn().Err(err).Msg("Failed to set write deadline for ping")
+			}
 			if conn.WriteMessage(websocket.PingMessage, []byte{}) != nil {
 				// Write error
 				return
 			}
-			log.Debug().Str("module", "rest").Str("proto", "WebSocket").
-				Str("remote", conn.RemoteAddr().String()).Msg("Sent ping")
+			slog.Debug().Msg("Sent ping")
 		}
 	}
 }

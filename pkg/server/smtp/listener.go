@@ -147,8 +147,8 @@ func (s *Server) serve(ctx context.Context) {
 	for sessionID := 1; ; sessionID++ {
 		if conn, err := s.listener.Accept(); err != nil {
 			// There was an error accepting the connection.
-			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
-				// Temporary error, sleep for a bit and try again.
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+				// Timeout, sleep for a bit and try again.
 				if tempDelay == 0 {
 					tempDelay = 5 * time.Millisecond
 				} else {
@@ -158,7 +158,7 @@ func (s *Server) serve(ctx context.Context) {
 					tempDelay = max
 				}
 				log.Error().Str("module", "smtp").Err(err).
-					Msgf("SMTP accept error; retrying in %v", tempDelay)
+					Msgf("SMTP accept timeout; retrying in %v", tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			} else {

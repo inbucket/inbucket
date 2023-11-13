@@ -45,7 +45,7 @@ func TestNoTLS(t *testing.T) {
 		t.Fatalf("Failed to send CAPA; %v.", err)
 	}
 	replies := []string{}
-	for true {
+	for {
 		reply, err := c.ReadLine()
 		if err != nil {
 			t.Fatalf("Reading CAPA line failed %v", err)
@@ -85,7 +85,7 @@ func TestStartTLS(t *testing.T) {
 		t.Fatalf("Failed to send CAPA; %v.", err)
 	}
 	replies := []string{}
-	for true {
+	for {
 		reply, err := c.ReadLine()
 		if err != nil {
 			t.Fatalf("Reading CAPA line failed %v", err)
@@ -138,7 +138,7 @@ func TestStartTLS(t *testing.T) {
 	if !strings.HasPrefix(reply, "+OK") {
 		t.Fatalf("CAPA failed: %s", reply)
 	}
-	for true {
+	for {
 		reply, err := c.ReadLine()
 		if err != nil {
 			t.Fatalf("Reading CAPA line failed %v", err)
@@ -188,7 +188,7 @@ func TestForceTLS(t *testing.T) {
 	if !strings.HasPrefix(reply, "+OK") {
 		t.Fatalf("CAPA failed: %s", reply)
 	}
-	for true {
+	for {
 		reply, err := c.ReadLine()
 		if err != nil {
 			t.Fatalf("Reading CAPA line failed %v", err)

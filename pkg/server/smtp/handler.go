@@ -547,7 +547,6 @@ func (s *Session) dataHandler() {
 	s.send("250 Mail accepted for delivery")
 	s.logger.Info().Msgf("Message size %v bytes", mailData.Len())
 	s.reset()
-	return
 }
 
 func (s *Session) enterState(state State) {

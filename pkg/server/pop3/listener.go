@@ -74,9 +74,7 @@ func (s *Server) Start(ctx context.Context, readyFunc func()) {
 	readyFunc()
 
 	// Wait for shutdown.
-	select {
-	case _ = <-ctx.Done():
-	}
+	<-ctx.Done()
 	slog = log.With().Str("module", "pop3").Str("phase", "shutdown").Logger()
 	slog.Debug().Msg("POP3 shutdown requested, connections will be drained")
 
@@ -92,8 +90,8 @@ func (s *Server) serve(ctx context.Context) {
 	var tempDelay time.Duration
 	for sid := 1; ; sid++ {
 		if conn, err := s.listener.Accept(); err != nil {
-			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
-				// Temporary error, sleep for a bit and try again.
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+				// Timeout, sleep for a bit and try again.
 				if tempDelay == 0 {
 					tempDelay = 5 * time.Millisecond
 				} else {
@@ -103,7 +101,7 @@ func (s *Server) serve(ctx context.Context) {
 					tempDelay = max
 				}
 				log.Error().Str("module", "pop3").Err(err).
-					Msgf("POP3 accept error; retrying in %v", tempDelay)
+					Msgf("POP3 accept timout; retrying in %v", tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			} else {

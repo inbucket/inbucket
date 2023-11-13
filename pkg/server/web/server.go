@@ -159,11 +159,9 @@ func (s *Server) Start(ctx context.Context, readyFunc func()) {
 	readyFunc()
 
 	// Wait for shutdown
-	select {
-	case _ = <-ctx.Done():
-		log.Debug().Str("module", "web").Str("phase", "shutdown").
-			Msg("HTTP server shutting down on request")
-	}
+	<-ctx.Done()
+	log.Debug().Str("module", "web").Str("phase", "shutdown").
+		Msg("HTTP server shutting down on request")
 
 	// Closing the listener will cause the serve() go routine to exit
 	if err := listener.Close(); err != nil {
@@ -195,7 +193,7 @@ func (s *Server) serve(ctx context.Context) {
 	err := server.Serve(listener)
 
 	select {
-	case _ = <-ctx.Done():
+	case <-ctx.Done():
 		// Nop
 	default:
 		log.Error().Str("module", "web").Str("phase", "startup").Err(err).

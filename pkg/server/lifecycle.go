@@ -67,7 +67,7 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 	}
 	smtpServer := smtp.NewServer(conf.SMTP, mmanager, addrPolicy, extHost)
 
-	return &Services{
+	s := &Services{
 		MsgHub:           msgHub,
 		RetentionScanner: retentionScanner,
 		POP3Server:       pop3Server,
@@ -76,7 +76,10 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 		ExtHost:          extHost,
 		LuaHost:          luaHost,
 		ready:            &sync.WaitGroup{},
-	}, nil
+	}
+	s.setupNotify()
+
+	return s, nil
 }
 
 // Start all services, returns immediately.  Callers may use Notify to detect failed services.
@@ -94,10 +97,16 @@ func (s *Services) Start(ctx context.Context, readyFunc func()) {
 	}()
 }
 
-// Notify merges the error notification channels of all fallible services, allowing the process to
-// be shutdown if needed.
+// Notify returns a merged channel of the error notification channels of all fallible services,
+// allowing the process to be shutdown if needed.
 func (s *Services) Notify() <-chan error {
+	return s.notify
+}
+
+// setupNotify merges the error notification channels of all fallible services.
+func (s *Services) setupNotify() {
 	c := make(chan error, 1)
+	s.notify = c
 	go func() {
 		// TODO: What level to log failure.
 		select {
@@ -109,10 +118,10 @@ func (s *Services) Notify() <-chan error {
 			c <- err
 		}
 	}()
-
-	return c
 }
 
+// makeReadyFunc returns a function used to signal that a service is ready. The `Services.ready`
+// wait group can then be used to await all services being ready.
 func (s *Services) makeReadyFunc() func() {
 	s.ready.Add(1)
 	var once sync.Once

@@ -62,7 +62,7 @@ func exampleSetup() (baseURL string, teardown func()) {
 
 	// Handle ListMailbox request.
 	router.HandleFunc("/api/v1/mailbox/user1", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`[
+		_, _ = w.Write([]byte(`[
 			{
 				"mailbox": "user1",
 				"id": "20180107T224128-0000",
@@ -79,7 +79,7 @@ func exampleSetup() (baseURL string, teardown func()) {
 	// Handle GetMessage request.
 	router.HandleFunc("/api/v1/mailbox/user1/20180107T224128-0000",
 		func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"mailbox": "user1",
 				"id": "20180107T224128-0000",
 				"from": "admin@inbucket.org",

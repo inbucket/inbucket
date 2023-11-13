@@ -1,11 +1,12 @@
 package client_test
 
 import (
-	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
 
 	"github.com/inbucket/inbucket/v3/pkg/rest/client"
 )
@@ -357,5 +358,5 @@ type jsonHandler struct {
 
 func (j *jsonHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	j.called = true
-	w.Write([]byte(j.json))
+	_, _ = w.Write([]byte(j.json))
 }

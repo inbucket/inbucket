@@ -15,21 +15,6 @@ import (
 	"github.com/jhillyerd/enmime"
 )
 
-const (
-	// JSON map keys
-	mailboxKey = "mailbox"
-	idKey      = "id"
-	fromKey    = "from"
-	toKey      = "to"
-	subjectKey = "subject"
-	dateKey    = "date"
-	sizeKey    = "size"
-	headerKey  = "header"
-	bodyKey    = "body"
-	textKey    = "text"
-	htmlKey    = "html"
-)
-
 func TestRestMailboxList(t *testing.T) {
 	// Setup
 	mm := test.NewManager()

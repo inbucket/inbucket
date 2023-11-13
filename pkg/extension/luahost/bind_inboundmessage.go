@@ -116,6 +116,7 @@ func inboundMessageNewIndex(ls *lua.LState) int {
 		to := make([]mail.Address, 0, 16)
 		lt.ForEach(func(k, lv lua.LValue) {
 			if ud, ok := lv.(*lua.LUserData); ok {
+				// TODO should fail if wrong type + test.
 				if entry, ok := unwrapMailAddress(ud); ok {
 					to = append(to, *entry)
 				}

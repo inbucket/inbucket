@@ -42,10 +42,10 @@ func New(conf config.Lua, extHost *extension.Host) (*Host, error) {
 
 	logger.Info().Msg("Loading script")
 	file, err := os.Open(scriptPath)
-	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
 	return NewFromReader(logContext.Logger(), extHost, bufio.NewReader(file), scriptPath)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/inbucket/inbucket/v3/pkg/extension"
 	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/inbucket/inbucket/v3/pkg/test"
+	"github.com/stretchr/testify/require"
 )
 
 // TestSuite runs storage package test suite on file store.
@@ -52,12 +53,13 @@ func TestMaxSize(t *testing.T) {
 
 	// Calculate actual size.
 	gotSize := int64(0)
-	s.VisitMailboxes(func(messages []storage.Message) bool {
+	err := s.VisitMailboxes(func(messages []storage.Message) bool {
 		for _, m := range messages {
 			gotSize += m.Size()
 		}
 		return true
 	})
+	require.NoError(t, err, "VisitMailboxes() must succeed")
 
 	// Verify state. Messages are ~75 bytes each.
 	if gotSize < 2048-75 {
@@ -80,11 +82,14 @@ func TestMaxSize(t *testing.T) {
 		}(mailbox)
 	}
 	wg.Wait()
+
+	// Verify zero stored messages.
 	count := 0
-	s.VisitMailboxes(func(messages []storage.Message) bool {
+	err = s.VisitMailboxes(func(messages []storage.Message) bool {
 		count += len(messages)
 		return true
 	})
+	require.NoError(t, err, "VisitMailboxes() must succeed")
 	if count != 0 {
 		t.Errorf("Got %v total messages, want: %v", count, 0)
 	}

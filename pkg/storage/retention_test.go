@@ -23,12 +23,12 @@ func TestDoRetentionScan(t *testing.T) {
 	old1 := stubMessage("mb1", 4)
 	old2 := stubMessage("mb1", 12)
 	old3 := stubMessage("mb2", 24)
-	ds.AddMessage(new1)
-	ds.AddMessage(old1)
-	ds.AddMessage(old2)
-	ds.AddMessage(old3)
-	ds.AddMessage(new2)
-	ds.AddMessage(new3)
+	_, _ = ds.AddMessage(new1)
+	_, _ = ds.AddMessage(old1)
+	_, _ = ds.AddMessage(old2)
+	_, _ = ds.AddMessage(old3)
+	_, _ = ds.AddMessage(new2)
+	_, _ = ds.AddMessage(new3)
 
 	// Test 4 hour retention
 	cfg := config.Storage{

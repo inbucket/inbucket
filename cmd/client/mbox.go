@@ -11,8 +11,7 @@ import (
 )
 
 type mboxCmd struct {
-	mailbox string
-	delete  bool
+	delete bool
 }
 
 func (*mboxCmd) Name() string {
@@ -73,9 +72,12 @@ func outputMbox(headers []*client.MessageHeader) error {
 		if err != nil {
 			return fmt.Errorf("Get source REST failed: %v", err)
 		}
+
 		fmt.Printf("From %s\n", h.From)
 		// TODO Escape "From " in message bodies with >
-		source.WriteTo(os.Stdout)
+		if _, err := source.WriteTo(os.Stdout); err != nil {
+			return err
+		}
 		fmt.Println()
 	}
 	return nil

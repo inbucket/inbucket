@@ -14,7 +14,6 @@ import (
 )
 
 type matchCmd struct {
-	mailbox string
 	output  string
 	outFunc func(headers []*client.MessageHeader) error
 	delete  bool

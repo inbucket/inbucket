@@ -50,14 +50,17 @@ func main() {
 	// Important top-level flags
 	subcommands.ImportantFlag("host")
 	subcommands.ImportantFlag("port")
+
 	// Setup standard helpers
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.FlagsCommand(), "")
 	subcommands.Register(subcommands.CommandsCommand(), "")
+
 	// Setup my commands
 	subcommands.Register(&listCmd{}, "")
 	subcommands.Register(&matchCmd{}, "")
 	subcommands.Register(&mboxCmd{}, "")
+
 	// Parse and execute
 	flag.Parse()
 	ctx := context.Background()

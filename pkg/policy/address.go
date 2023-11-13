@@ -228,7 +228,7 @@ func extractDomainMailbox(address string) (string, error) {
 		domain = local
 	}
 
-	if ValidateDomainPart(domain) == false {
+	if !ValidateDomainPart(domain) {
 		return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
 	}
 

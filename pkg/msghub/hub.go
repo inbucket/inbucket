@@ -120,7 +120,7 @@ func (hub *Hub) AddListener(l Listener) {
 		// Playback log
 		h.history.Do(func(v interface{}) {
 			if v != nil {
-				l.Receive(v.(event.MessageMetadata))
+				_ = l.Receive(v.(event.MessageMetadata))
 			}
 		})
 

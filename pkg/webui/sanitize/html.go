@@ -54,7 +54,9 @@ func styleTagFilter(w io.Writer, r io.Reader) error {
 		case html.StartTagToken, html.SelfClosingTagToken:
 			name, hasAttr := z.TagName()
 			if !hasAttr {
-				bw.Write(z.Raw())
+				if _, err := bw.Write(z.Raw()); err != nil {
+					return err
+				}
 				continue
 			}
 			b = append(b, '<')
@@ -81,9 +83,13 @@ func styleTagFilter(w io.Writer, r io.Reader) error {
 			if tt == html.SelfClosingTagToken {
 				b = append(b, '/')
 			}
-			bw.Write(append(b, '>'))
+			if _, err := bw.Write(append(b, '>')); err != nil {
+				return err
+			}
 		default:
-			bw.Write(z.Raw())
+			if _, err := bw.Write(z.Raw()); err != nil {
+				return err
+			}
 		}
 	}
 }

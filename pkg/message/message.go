@@ -73,7 +73,7 @@ func (d *Delivery) ID() string {
 
 // From getter.
 func (d *Delivery) From() *mail.Address {
-	return d.Meta.From
+	return &d.Meta.From
 }
 
 // To getter.

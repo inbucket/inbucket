@@ -56,7 +56,7 @@ func TestRestMailboxList(t *testing.T) {
 	meta1 := event.MessageMetadata{
 		Mailbox: "good",
 		ID:      "0001",
-		From:    &mail.Address{Name: "", Address: "from1@host"},
+		From:    mail.Address{Name: "", Address: "from1@host"},
 		To:      []*mail.Address{{Name: "", Address: "to1@host"}},
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, tzPST),
@@ -64,7 +64,7 @@ func TestRestMailboxList(t *testing.T) {
 	meta2 := event.MessageMetadata{
 		Mailbox: "good",
 		ID:      "0002",
-		From:    &mail.Address{Name: "", Address: "from2@host"},
+		From:    mail.Address{Name: "", Address: "from2@host"},
 		To:      []*mail.Address{{Name: "", Address: "to1@host"}},
 		Subject: "subject 2",
 		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, tzPDT),
@@ -167,7 +167,7 @@ func TestRestMessage(t *testing.T) {
 		event.MessageMetadata{
 			Mailbox: "good",
 			ID:      "0001",
-			From:    &mail.Address{Name: "", Address: "from1@host"},
+			From:    mail.Address{Name: "", Address: "from1@host"},
 			To:      []*mail.Address{{Name: "", Address: "to1@host"}},
 			Subject: "subject 1",
 			Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, tzPST),
@@ -251,7 +251,7 @@ func TestRestMarkSeen(t *testing.T) {
 	meta1 := event.MessageMetadata{
 		Mailbox: "good",
 		ID:      "0001",
-		From:    &mail.Address{Name: "", Address: "from1@host"},
+		From:    mail.Address{Name: "", Address: "from1@host"},
 		To:      []*mail.Address{{Name: "", Address: "to1@host"}},
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, tzPST),
@@ -259,7 +259,7 @@ func TestRestMarkSeen(t *testing.T) {
 	meta2 := event.MessageMetadata{
 		Mailbox: "good",
 		ID:      "0002",
-		From:    &mail.Address{Name: "", Address: "from2@host"},
+		From:    mail.Address{Name: "", Address: "from2@host"},
 		To:      []*mail.Address{{Name: "", Address: "to1@host"}},
 		Subject: "subject 2",
 		Date:    time.Date(2012, 7, 1, 10, 11, 12, 253, tzPDT),

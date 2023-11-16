@@ -119,7 +119,7 @@ func (s *StoreManager) Deliver(
 		delivery := &Delivery{
 			Meta: event.MessageMetadata{
 				Mailbox: mb,
-				From:    &inbound.From,
+				From:    inbound.From,
 				To:      toaddr,
 				Date:    now,
 				Subject: inbound.Subject,
@@ -209,7 +209,7 @@ func MakeMetadata(m storage.Message) *event.MessageMetadata {
 	return &event.MessageMetadata{
 		Mailbox: m.Mailbox(),
 		ID:      m.ID(),
-		From:    m.From(),
+		From:    *m.From(),
 		To:      m.To(),
 		Date:    m.Date(),
 		Subject: m.Subject(),

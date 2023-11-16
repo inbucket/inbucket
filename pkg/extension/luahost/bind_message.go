@@ -60,7 +60,7 @@ func messageMetadataIndex(ls *lua.LState) int {
 	case "id":
 		ls.Push(lua.LString(m.ID))
 	case "from":
-		ls.Push(wrapMailAddress(ls, m.From))
+		ls.Push(wrapMailAddress(ls, &m.From))
 	case "to":
 		lt := &lua.LTable{}
 		for _, v := range m.To {
@@ -93,7 +93,7 @@ func messageMetadataNewIndex(ls *lua.LState) int {
 	case "id":
 		m.ID = ls.CheckString(3)
 	case "from":
-		m.From = checkMailAddress(ls, 3)
+		m.From = *checkMailAddress(ls, 3)
 	case "to":
 		lt := ls.CheckTable(3)
 		to := make([]*mail.Address, 0, 16)

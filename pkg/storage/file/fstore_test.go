@@ -219,7 +219,7 @@ func deliverMessage(ds *Store, mbName string, subject string, date time.Time) (s
 	meta := event.MessageMetadata{
 		Mailbox: mbName,
 		To:      []*mail.Address{{Name: "", Address: "somebody@host"}},
-		From:    &mail.Address{Name: "", Address: "somebodyelse@host"},
+		From:    mail.Address{Name: "", Address: "somebodyelse@host"},
 		Subject: subject,
 		Date:    date,
 	}

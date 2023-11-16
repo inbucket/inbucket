@@ -104,7 +104,7 @@ func TestAfterMessageDeleted(t *testing.T) {
 	msg := &event.MessageMetadata{
 		Mailbox: "mb1",
 		ID:      "id1",
-		From:    &mail.Address{Name: "name1", Address: "addr1"},
+		From:    mail.Address{Name: "name1", Address: "addr1"},
 		To:      []*mail.Address{{Name: "name2", Address: "addr2"}},
 		Date:    time.Date(2001, time.February, 3, 4, 5, 6, 0, time.UTC),
 		Subject: "subj1",
@@ -135,7 +135,7 @@ func TestAfterMessageStored(t *testing.T) {
 	msg := &event.MessageMetadata{
 		Mailbox: "mb1",
 		ID:      "id1",
-		From:    &mail.Address{Name: "name1", Address: "addr1"},
+		From:    mail.Address{Name: "name1", Address: "addr1"},
 		To:      []*mail.Address{{Name: "name2", Address: "addr2"}},
 		Date:    time.Date(2001, time.February, 3, 4, 5, 6, 0, time.UTC),
 		Subject: "subj1",

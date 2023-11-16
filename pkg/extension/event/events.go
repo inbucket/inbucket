@@ -24,7 +24,7 @@ type InboundMessage struct {
 type MessageMetadata struct {
 	Mailbox string
 	ID      string
-	From    *mail.Address
+	From    mail.Address
 	To      []*mail.Address
 	Date    time.Time
 	Subject string

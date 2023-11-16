@@ -244,7 +244,7 @@ func makeTestMessage(mailbox string, subject string) *message.Delivery {
 		Meta: event.MessageMetadata{
 			ID:      id,
 			Mailbox: mailbox,
-			From:    &from,
+			From:    from,
 			To:      []*mail.Address{&to},
 			Date:    time.Now(),
 			Subject: subject,

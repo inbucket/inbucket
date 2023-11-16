@@ -211,7 +211,7 @@ func metadataToHeader(msg *event.MessageMetadata) *model.JSONMessageHeaderV1 {
 	return &model.JSONMessageHeaderV1{
 		Mailbox:     msg.Mailbox,
 		ID:          msg.ID,
-		From:        stringutil.StringAddress(msg.From),
+		From:        stringutil.StringAddress(&msg.From),
 		To:          stringutil.StringAddressList(msg.To),
 		Subject:     msg.Subject,
 		Date:        msg.Date,

@@ -469,7 +469,7 @@ func addTestMessage(sm *message.StoreManager, mailbox string, subject string) st
 	delivery := &message.Delivery{
 		Meta: event.MessageMetadata{
 			Mailbox: mailbox,
-			From:    &from,
+			From:    from,
 			To:      []*mail.Address{&to},
 			Date:    time.Now(),
 			Subject: subject,

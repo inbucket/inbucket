@@ -70,7 +70,7 @@ func testMetadata(t *testing.T, store storage.Store, extHost *extension.Host) {
 		Meta: event.MessageMetadata{
 			// ID and Size will be determined by the Store.
 			Mailbox: mailbox,
-			From:    from,
+			From:    *from,
 			To:      to,
 			Date:    date,
 			Subject: subject,
@@ -139,7 +139,7 @@ func testContent(t *testing.T, store storage.Store, extHost *extension.Host) {
 		Meta: event.MessageMetadata{
 			// ID and Size will be determined by the Store.
 			Mailbox: mailbox,
-			From:    from,
+			From:    *from,
 			To:      to,
 			Date:    date,
 			Subject: subject,
@@ -447,7 +447,7 @@ func DeliverToStore(
 	meta := event.MessageMetadata{
 		Mailbox: mailbox,
 		To:      []*mail.Address{{Name: "Some Body", Address: "somebody@host"}},
-		From:    &mail.Address{Name: "Some B. Else", Address: "somebodyelse@host"},
+		From:    mail.Address{Name: "Some B. Else", Address: "somebodyelse@host"},
 		Subject: subject,
 		Date:    date,
 	}

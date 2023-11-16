@@ -21,14 +21,61 @@ func TestDeliverStoresMessages(t *testing.T) {
 	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
 	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
 	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
-	if err := sm.Deliver(
+	err := sm.Deliver(
 		origin,
 		[]*policy.Recipient{recip1, recip2},
 		"Received: xyz\n",
-		[]byte("From: from@example.com\nSubject: tsub\n\ntest email"),
-	); err != nil {
-		t.Fatal(err)
-	}
+		[]byte(`From: from@example.com
+To: u1@example.com, u2@example.com
+Subject: tsub
+
+test email`),
+	)
+	require.NoError(t, err)
+
+	assertMessageCount(t, sm, "u1@example.com", 1)
+	assertMessageCount(t, sm, "u2@example.com", 1)
+}
+
+func TestDeliverStoresMessageNoFromHeader(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Attempt to deliver a message to two mailboxes.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
+	err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1, recip2},
+		"Received: xyz\n",
+		[]byte(`To: u1@example.com, u2@example.com
+Subject: tsub
+
+test email`),
+	)
+	require.NoError(t, err)
+
+	assertMessageCount(t, sm, "u1@example.com", 1)
+	assertMessageCount(t, sm, "u2@example.com", 1)
+}
+
+func TestDeliverStoresMessageNoToHeader(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Attempt to deliver a message to two mailboxes.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
+	err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1, recip2},
+		"Received: xyz\n",
+		[]byte(`From: from@example.com
+Subject: tsub
+
+test email`),
+	)
+	require.NoError(t, err)
 
 	assertMessageCount(t, sm, "u1@example.com", 1)
 	assertMessageCount(t, sm, "u2@example.com", 1)

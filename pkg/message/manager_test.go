@@ -1,8 +1,11 @@
 package message_test
 
 import (
+	"fmt"
 	"net/mail"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/inbucket/inbucket/v3/pkg/extension"
@@ -319,6 +322,21 @@ func TestDeliverBeforeAndAfterMessageStoredEvents(t *testing.T) {
 	assert.Contains(t, got, "new2@example.com")
 }
 
+func TestGetMessage(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Add a test message.
+	subject := "getMessage1"
+	id := addTestMessage(sm, "box1", subject)
+
+	// Verify retrieval of the test message.
+	msg, err := sm.GetMessage("box1", id)
+	require.NoError(t, err, "GetMessage must succeed")
+	require.NotNil(t, msg, "GetMessage must return a result")
+	assert.Equal(t, subject, msg.Subject)
+	assert.Contains(t, msg.Text(), fmt.Sprintf("about %q", subject))
+}
+
 // Returns an empty StoreManager and extension Host pair, configured for testing.
 func testStoreManager() (*message.StoreManager, *extension.Host) {
 	extHost := extension.NewHost()
@@ -340,6 +358,32 @@ func testStoreManager() (*message.StoreManager, *extension.Host) {
 	}
 
 	return sm, extHost
+}
+
+// Adds a test message to the provided store, returning the new message ID.
+func addTestMessage(sm *message.StoreManager, mailbox string, subject string) string {
+	from := mail.Address{Name: "From Test", Address: "from@example.com"}
+	to := mail.Address{Name: "To Test", Address: "to@example.com"}
+	delivery := &message.Delivery{
+		Meta: event.MessageMetadata{
+			Mailbox: mailbox,
+			From:    &from,
+			To:      []*mail.Address{&to},
+			Date:    time.Now(),
+			Subject: subject,
+		},
+		Reader: strings.NewReader(fmt.Sprintf(
+			"From: %s\nTo: %s\nSubject: %s\n\nTest message about %q\n",
+			from, to, subject, subject,
+		)),
+	}
+
+	id, err := sm.Store.AddMessage(delivery)
+	if err != nil {
+		panic(err)
+	}
+
+	return id
 }
 
 func assertMessageCount(t *testing.T, sm *message.StoreManager, mailbox string, count int) {

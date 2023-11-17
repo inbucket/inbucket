@@ -80,17 +80,25 @@ func TestStoreStubMailboxAddGetVisit(t *testing.T) {
 			// Verify entire mailbox contents.
 			gotMsgs, err := ss.GetMessages(tc.mailbox)
 			require.NoError(t, err, "GetMessages() should not error")
-			require.NoError(t, err)
 			assert.Len(t, gotMsgs, tc.count, "GetMessages() returned wrong number of items")
+		input:
 			for _, want := range inputMsgs {
-				assert.Contains(t, gotMsgs, want, "GetMessages() did not return expected message")
+				for _, got := range gotMsgs {
+					if got.ID() == want.ID() && got.Mailbox() == want.Mailbox() {
+						continue input
+					}
+				}
+				t.Errorf("GetMessages() did not return message %q for mailbox %q",
+					want.ID(), want.Mailbox())
 			}
 
 			// Fetch and verify individual messages.
 			for _, want := range inputMsgs {
 				got, err := ss.GetMessage(tc.mailbox, want.ID())
 				require.NoError(t, err, "GetMessage() should not error")
-				assert.Equal(t, want, got, "GetMessage() returned unexpected value")
+				assert.Equal(t, want.Mailbox(), got.Mailbox(),
+					"GetMessage() returned unexpected Mailbox")
+				assert.Equal(t, want.ID(), got.ID(), "GetMessage() returned unexpected ID")
 			}
 		})
 	}
@@ -120,6 +128,42 @@ func TestStoreStubMailboxAddGetVisit(t *testing.T) {
 		assert.Empty(t, expectCounts, "Failed to visit mailboxes: %v",
 			reflect.ValueOf(expectCounts).MapKeys())
 	})
+}
+
+func TestStoreStubMarkSeen(t *testing.T) {
+	ss := test.NewStore()
+
+	// Add messages.
+	inputMsgs := make([]*message.Delivery, 5)
+	for i := range inputMsgs {
+		subject := fmt.Sprintf("%s message %v", "box1", i)
+		inputMsgs[i] = makeTestMessage("box1", subject)
+		id, err := ss.AddMessage(inputMsgs[i])
+		require.NoError(t, err)
+		require.NotEmpty(t, id, "AddMessage() must return an ID")
+	}
+
+	// Mark second message as seen.
+	seen := inputMsgs[1]
+	err := ss.MarkSeen("box1", seen.ID())
+	assert.NoError(t, err, "MarkSeen must not fail")
+
+	// Verify message has seen flag.
+	got, err := ss.GetMessage("box1", seen.ID())
+	require.NoError(t, err)
+	assert.True(t, got.Seen(), "Message should have been seen")
+
+	// Verify only one message seen.
+	gotMsgs, err := ss.GetMessages("box1")
+	require.NoError(t, err, "GetMessages() should not error")
+	assert.Len(t, gotMsgs, len(inputMsgs), "GetMessages() returned wrong number of items")
+	gotCount := 0
+	for _, msg := range gotMsgs {
+		if msg.Seen() {
+			gotCount++
+		}
+	}
+	assert.Equal(t, 1, gotCount, "Incorrect number of seen messages")
 }
 
 func makeTestMessage(mailbox string, subject string) *message.Delivery {

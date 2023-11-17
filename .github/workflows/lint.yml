@@ -20,4 +20,4 @@ jobs:
           version: latest
           # Disable cache to prevent `File exists` errors.
           # https://github.com/golangci/golangci-lint-action/issues/135
-          skip-pkg-cache: false
+          skip-pkg-cache: true

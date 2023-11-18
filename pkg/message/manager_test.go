@@ -337,6 +337,29 @@ func TestGetMessage(t *testing.T) {
 	assert.Contains(t, msg.Text(), fmt.Sprintf("about %q", subject))
 }
 
+func TestMarkSeen(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Add a test message.
+	subject := "getMessage1"
+	id := addTestMessage(sm, "box1", subject)
+
+	// Verify test message unseen.
+	msg, err := sm.GetMessage("box1", id)
+	require.NoError(t, err, "GetMessage must succeed")
+	require.NotNil(t, msg, "GetMessage must return a result")
+	assert.False(t, msg.Seen, "msg should be unseen")
+
+	err = sm.MarkSeen("box1", id)
+	assert.NoError(t, err, "MarkSeen should succeed")
+
+	// Verify test message seen.
+	msg, err = sm.GetMessage("box1", id)
+	require.NoError(t, err, "GetMessage must succeed")
+	require.NotNil(t, msg, "GetMessage must return a result")
+	assert.True(t, msg.Seen, "msg should have been seen")
+}
+
 // Returns an empty StoreManager and extension Host pair, configured for testing.
 func testStoreManager() (*message.StoreManager, *extension.Host) {
 	extHost := extension.NewHost()

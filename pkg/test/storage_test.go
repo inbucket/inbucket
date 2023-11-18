@@ -166,6 +166,47 @@ func TestStoreStubMarkSeen(t *testing.T) {
 	assert.Equal(t, 1, gotCount, "Incorrect number of seen messages")
 }
 
+func TestStoreStubForcedErrors(t *testing.T) {
+	ss := test.NewStore()
+	var err error
+
+	// Add message to forced error mailboxes.
+	msg := makeTestMessage("messageerr", "test 1")
+	id1, err := ss.AddMessage(msg)
+	require.NoError(t, err)
+	msg = makeTestMessage("messageserr", "test 2")
+	_, err = ss.AddMessage(msg)
+	require.NoError(t, err)
+
+	// Verify methods return error.
+	_, err = ss.GetMessage("messageerr", id1)
+	assert.Error(t, err, "GetMessage()")
+	assert.NotEqual(t, storage.ErrNotExist, err)
+
+	_, err = ss.GetMessages("messageserr")
+	assert.Error(t, err, "GetMessages()")
+	assert.NotEqual(t, storage.ErrNotExist, err)
+
+	err = ss.MarkSeen("messageerr", id1)
+	assert.Error(t, err, "MarkSeen()")
+	assert.NotEqual(t, storage.ErrNotExist, err)
+}
+
+func TestStoreStubNotExistErrors(t *testing.T) {
+	ss := test.NewStore()
+	var err error
+
+	// Verify methods return error.
+	_, err = ss.GetMessage("fake", "1")
+	assert.Equal(t, storage.ErrNotExist, err, "GetMessage()")
+
+	err = ss.MarkSeen("fake", "1")
+	assert.Equal(t, storage.ErrNotExist, err, "MarkSeen()")
+
+	err = ss.RemoveMessage("fake", "1")
+	assert.Equal(t, storage.ErrNotExist, err, "RemoveMessage()")
+}
+
 func makeTestMessage(mailbox string, subject string) *message.Delivery {
 	id := fmt.Sprintf("%06d", atomic.AddUint32(&testMessageIDSource, 1))
 	from := mail.Address{Name: "From Test", Address: "from@example.com"}

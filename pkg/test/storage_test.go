@@ -19,38 +19,6 @@ import (
 
 var testMessageIDSource uint32
 
-func TestStoreStubRemoveMessage(t *testing.T) {
-	ss := test.NewStore()
-
-	// Add messages.
-	inputMsgs := make([]*message.Delivery, 5)
-	for i := range inputMsgs {
-		subject := fmt.Sprintf("%s message %v", "box1", i)
-		inputMsgs[i] = makeTestMessage("box1", subject)
-		id, err := ss.AddMessage(inputMsgs[i])
-		require.NoError(t, err)
-		require.NotEmpty(t, id, "AddMessage() must return an ID")
-	}
-
-	// Delete second message.
-	deleted := inputMsgs[1]
-	err := ss.RemoveMessage("box1", deleted.ID())
-	assert.NoError(t, err, "DeleteMessage must not fail")
-
-	// Verify message is not in mailbox.
-	messages, err := ss.GetMessages("box1")
-	assert.NoError(t, err)
-	assert.NotContains(t, messages, deleted, "Mailbox should not contain msg %q", deleted.ID())
-
-	// Verify message is no longer retrievable.
-	got, err := ss.GetMessage("box1", deleted.ID())
-	assert.Error(t, err)
-	assert.Nil(t, got, "Message should have been nil")
-
-	// Verify message is in deleted list.
-	assert.True(t, ss.MessageDeleted(deleted), "Message %q should be in deleted list", deleted.ID())
-}
-
 func TestStoreStubMailboxAddGetVisit(t *testing.T) {
 	ss := test.NewStore()
 
@@ -164,6 +132,66 @@ func TestStoreStubMarkSeen(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 1, gotCount, "Incorrect number of seen messages")
+}
+
+func TestStoreStubRemoveMessage(t *testing.T) {
+	ss := test.NewStore()
+
+	// Add messages.
+	inputMsgs := make([]*message.Delivery, 5)
+	for i := range inputMsgs {
+		subject := fmt.Sprintf("%s message %v", "box1", i)
+		inputMsgs[i] = makeTestMessage("box1", subject)
+		id, err := ss.AddMessage(inputMsgs[i])
+		require.NoError(t, err)
+		require.NotEmpty(t, id, "AddMessage() must return an ID")
+	}
+
+	// Delete second message.
+	deleted := inputMsgs[1]
+	err := ss.RemoveMessage("box1", deleted.ID())
+	assert.NoError(t, err, "DeleteMessage must not fail")
+
+	// Verify message is not in mailbox.
+	messages, err := ss.GetMessages("box1")
+	assert.NoError(t, err)
+	assert.NotContains(t, messages, deleted, "Mailbox should not contain msg %q", deleted.ID())
+
+	// Verify message is no longer retrievable.
+	got, err := ss.GetMessage("box1", deleted.ID())
+	assert.Error(t, err)
+	assert.Nil(t, got, "Message should have been nil")
+
+	// Verify message is in deleted list.
+	assert.True(t, ss.MessageDeleted(deleted), "Message %q should be in deleted list", deleted.ID())
+}
+
+func TestStoreStubPurgeMessages(t *testing.T) {
+	ss := test.NewStore()
+
+	// Add messages.
+	inputMsgs := make([]*message.Delivery, 5)
+	for i := range inputMsgs {
+		subject := fmt.Sprintf("%s message %v", "box1", i)
+		inputMsgs[i] = makeTestMessage("box1", subject)
+		id, err := ss.AddMessage(inputMsgs[i])
+		require.NoError(t, err)
+		require.NotEmpty(t, id, "AddMessage() must return an ID")
+	}
+
+	// Purge messages.
+	err := ss.PurgeMessages("box1")
+	assert.NoError(t, err, "PurgeMessages must not fail")
+
+	// Verify message is not in mailbox.
+	messages, err := ss.GetMessages("box1")
+	assert.NoError(t, err)
+	assert.Len(t, messages, 0, "Mailbox should be empty")
+
+	// Verify messages are in deleted list.
+	for _, want := range inputMsgs {
+		assert.True(t, ss.MessageDeleted(want), "Message %q should be in deleted list", want.ID())
+	}
 }
 
 func TestStoreStubForcedErrors(t *testing.T) {

@@ -2,6 +2,7 @@ package message_test
 
 import (
 	"fmt"
+	"io"
 	"net/mail"
 	"strings"
 	"testing"
@@ -358,6 +359,58 @@ func TestMarkSeen(t *testing.T) {
 	require.NoError(t, err, "GetMessage must succeed")
 	require.NotNil(t, msg, "GetMessage must return a result")
 	assert.True(t, msg.Seen, "msg should have been seen")
+}
+
+func TestPurgeMessages(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Add test messages.
+	_ = addTestMessage(sm, "box1", "subject 1")
+	_ = addTestMessage(sm, "box1", "subject 2")
+	_ = addTestMessage(sm, "box1", "subject 3")
+	got, err := sm.GetMetadata("box1")
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+
+	// Purge and verify.
+	err = sm.PurgeMessages("box1")
+	assert.NoError(t, err)
+	got, err = sm.GetMetadata("box1")
+	require.NoError(t, err)
+	require.Len(t, got, 0, "Purge should remove all mailbox messages")
+}
+
+func TestSourceReader(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	recvdHeader := "Received: xyz\n"
+	msgSource := `From: from@example.com
+To: u1@example.com, u2@example.com
+Subject: tsub
+
+test email`
+
+	// Deliver mesage.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	err := sm.Deliver(origin, []*policy.Recipient{recip1}, recvdHeader, []byte(msgSource))
+	require.NoError(t, err)
+
+	// Find message ID.
+	msgs, err := sm.GetMetadata("u1@example.com")
+	require.NoError(t, err, "Failed to read mailbox")
+	require.Len(t, msgs, 1, "Unexpected mailbox len")
+	id := msgs[0].ID
+
+	// Read back and verify source.
+	r, err := sm.SourceReader("u1@example.com", id)
+	require.NoError(t, err, "SourceReader must succeed")
+	gotBytes, err := io.ReadAll(r)
+	require.NoError(t, err, "Failed to read source")
+
+	got := string(gotBytes)
+	assert.Contains(t, got, recvdHeader, "Source should contain received header")
+	assert.Contains(t, got, msgSource, "Source should contain original message source")
 }
 
 // Returns an empty StoreManager and extension Host pair, configured for testing.

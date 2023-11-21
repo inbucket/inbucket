@@ -361,6 +361,32 @@ func TestMarkSeen(t *testing.T) {
 	assert.True(t, msg.Seen, "msg should have been seen")
 }
 
+func TestRemoveMessage(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Add test messages.
+	id1 := addTestMessage(sm, "box1", "subject 1")
+	id2 := addTestMessage(sm, "box1", "subject 2")
+	id3 := addTestMessage(sm, "box1", "subject 3")
+	got, err := sm.GetMetadata("box1")
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+
+	// Delete message 2 and verify.
+	err = sm.RemoveMessage("box1", id2)
+	assert.NoError(t, err)
+	got, err = sm.GetMetadata("box1")
+	require.NoError(t, err)
+	require.Len(t, got, 2, "Should be 2 messages remaining")
+
+	gotIDs := make([]string, 0, 3)
+	for _, msg := range got {
+		gotIDs = append(gotIDs, msg.ID)
+	}
+	assert.Contains(t, gotIDs, id1)
+	assert.Contains(t, gotIDs, id3)
+}
+
 func TestPurgeMessages(t *testing.T) {
 	sm, _ := testStoreManager()
 

@@ -1,8 +1,12 @@
 package message_test
 
 import (
+	"fmt"
+	"io"
 	"net/mail"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/inbucket/inbucket/v3/pkg/extension"
@@ -21,14 +25,61 @@ func TestDeliverStoresMessages(t *testing.T) {
 	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
 	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
 	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
-	if err := sm.Deliver(
+	err := sm.Deliver(
 		origin,
 		[]*policy.Recipient{recip1, recip2},
 		"Received: xyz\n",
-		[]byte("From: from@example.com\nSubject: tsub\n\ntest email"),
-	); err != nil {
-		t.Fatal(err)
-	}
+		[]byte(`From: from@example.com
+To: u1@example.com, u2@example.com
+Subject: tsub
+
+test email`),
+	)
+	require.NoError(t, err)
+
+	assertMessageCount(t, sm, "u1@example.com", 1)
+	assertMessageCount(t, sm, "u2@example.com", 1)
+}
+
+func TestDeliverStoresMessageNoFromHeader(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Attempt to deliver a message to two mailboxes.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
+	err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1, recip2},
+		"Received: xyz\n",
+		[]byte(`To: u1@example.com, u2@example.com
+Subject: tsub
+
+test email`),
+	)
+	require.NoError(t, err)
+
+	assertMessageCount(t, sm, "u1@example.com", 1)
+	assertMessageCount(t, sm, "u2@example.com", 1)
+}
+
+func TestDeliverStoresMessageNoToHeader(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Attempt to deliver a message to two mailboxes.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	recip2, _ := sm.AddrPolicy.NewRecipient("u2@example.com")
+	err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1, recip2},
+		"Received: xyz\n",
+		[]byte(`From: from@example.com
+Subject: tsub
+
+test email`),
+	)
+	require.NoError(t, err)
 
 	assertMessageCount(t, sm, "u1@example.com", 1)
 	assertMessageCount(t, sm, "u2@example.com", 1)
@@ -272,6 +323,122 @@ func TestDeliverBeforeAndAfterMessageStoredEvents(t *testing.T) {
 	assert.Contains(t, got, "new2@example.com")
 }
 
+func TestGetMessage(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Add a test message.
+	subject := "getMessage1"
+	id := addTestMessage(sm, "box1", subject)
+
+	// Verify retrieval of the test message.
+	msg, err := sm.GetMessage("box1", id)
+	require.NoError(t, err, "GetMessage must succeed")
+	require.NotNil(t, msg, "GetMessage must return a result")
+	assert.Equal(t, subject, msg.Subject)
+	assert.Contains(t, msg.Text(), fmt.Sprintf("about %q", subject))
+}
+
+func TestMarkSeen(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Add a test message.
+	subject := "getMessage1"
+	id := addTestMessage(sm, "box1", subject)
+
+	// Verify test message unseen.
+	msg, err := sm.GetMessage("box1", id)
+	require.NoError(t, err, "GetMessage must succeed")
+	require.NotNil(t, msg, "GetMessage must return a result")
+	assert.False(t, msg.Seen, "msg should be unseen")
+
+	err = sm.MarkSeen("box1", id)
+	assert.NoError(t, err, "MarkSeen should succeed")
+
+	// Verify test message seen.
+	msg, err = sm.GetMessage("box1", id)
+	require.NoError(t, err, "GetMessage must succeed")
+	require.NotNil(t, msg, "GetMessage must return a result")
+	assert.True(t, msg.Seen, "msg should have been seen")
+}
+
+func TestRemoveMessage(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Add test messages.
+	id1 := addTestMessage(sm, "box1", "subject 1")
+	id2 := addTestMessage(sm, "box1", "subject 2")
+	id3 := addTestMessage(sm, "box1", "subject 3")
+	got, err := sm.GetMetadata("box1")
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+
+	// Delete message 2 and verify.
+	err = sm.RemoveMessage("box1", id2)
+	assert.NoError(t, err)
+	got, err = sm.GetMetadata("box1")
+	require.NoError(t, err)
+	require.Len(t, got, 2, "Should be 2 messages remaining")
+
+	gotIDs := make([]string, 0, 3)
+	for _, msg := range got {
+		gotIDs = append(gotIDs, msg.ID)
+	}
+	assert.Contains(t, gotIDs, id1)
+	assert.Contains(t, gotIDs, id3)
+}
+
+func TestPurgeMessages(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	// Add test messages.
+	_ = addTestMessage(sm, "box1", "subject 1")
+	_ = addTestMessage(sm, "box1", "subject 2")
+	_ = addTestMessage(sm, "box1", "subject 3")
+	got, err := sm.GetMetadata("box1")
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+
+	// Purge and verify.
+	err = sm.PurgeMessages("box1")
+	assert.NoError(t, err)
+	got, err = sm.GetMetadata("box1")
+	require.NoError(t, err)
+	require.Len(t, got, 0, "Purge should remove all mailbox messages")
+}
+
+func TestSourceReader(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	recvdHeader := "Received: xyz\n"
+	msgSource := `From: from@example.com
+To: u1@example.com, u2@example.com
+Subject: tsub
+
+test email`
+
+	// Deliver mesage.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	err := sm.Deliver(origin, []*policy.Recipient{recip1}, recvdHeader, []byte(msgSource))
+	require.NoError(t, err)
+
+	// Find message ID.
+	msgs, err := sm.GetMetadata("u1@example.com")
+	require.NoError(t, err, "Failed to read mailbox")
+	require.Len(t, msgs, 1, "Unexpected mailbox len")
+	id := msgs[0].ID
+
+	// Read back and verify source.
+	r, err := sm.SourceReader("u1@example.com", id)
+	require.NoError(t, err, "SourceReader must succeed")
+	gotBytes, err := io.ReadAll(r)
+	require.NoError(t, err, "Failed to read source")
+
+	got := string(gotBytes)
+	assert.Contains(t, got, recvdHeader, "Source should contain received header")
+	assert.Contains(t, got, msgSource, "Source should contain original message source")
+}
+
 // Returns an empty StoreManager and extension Host pair, configured for testing.
 func testStoreManager() (*message.StoreManager, *extension.Host) {
 	extHost := extension.NewHost()
@@ -293,6 +460,32 @@ func testStoreManager() (*message.StoreManager, *extension.Host) {
 	}
 
 	return sm, extHost
+}
+
+// Adds a test message to the provided store, returning the new message ID.
+func addTestMessage(sm *message.StoreManager, mailbox string, subject string) string {
+	from := mail.Address{Name: "From Test", Address: "from@example.com"}
+	to := mail.Address{Name: "To Test", Address: "to@example.com"}
+	delivery := &message.Delivery{
+		Meta: event.MessageMetadata{
+			Mailbox: mailbox,
+			From:    &from,
+			To:      []*mail.Address{&to},
+			Date:    time.Now(),
+			Subject: subject,
+		},
+		Reader: strings.NewReader(fmt.Sprintf(
+			"From: %s\nTo: %s\nSubject: %s\n\nTest message about %q\n",
+			from, to, subject, subject,
+		)),
+	}
+
+	id, err := sm.Store.AddMessage(delivery)
+	if err != nil {
+		panic(err)
+	}
+
+	return id
 }
 
 func assertMessageCount(t *testing.T, sm *message.StoreManager, mailbox string, count int) {

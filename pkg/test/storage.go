@@ -92,6 +92,21 @@ func (s *StoreStub) RemoveMessage(mailbox, id string) error {
 	return storage.ErrNotExist
 }
 
+// PurgeMessages deletes the contents of a mailbox.
+func (s *StoreStub) PurgeMessages(mailbox string) error {
+	for _, removed := range s.mailboxes[mailbox] {
+		// Clients will be checking for their original storage.Message, not our wrapper.
+		if stub, ok := removed.(*MessageStub); ok {
+			s.deleted[stub.Message] = struct{}{}
+		} else {
+			return errors.New("unexpected type in StoreStub.mailboxes")
+		}
+	}
+
+	s.mailboxes[mailbox] = nil
+	return nil
+}
+
 // VisitMailboxes accepts a function that will be called with the messages in each mailbox while it
 // continues to return true.
 func (s *StoreStub) VisitMailboxes(f func([]storage.Message) (cont bool)) error {

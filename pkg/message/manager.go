@@ -57,20 +57,24 @@ func (s *StoreManager) Deliver(
 	if err != nil {
 		return err
 	}
-	fromaddr, err := enmime.ParseAddressList(header.Get("From"))
-	if err != nil || len(fromaddr) == 0 {
-		fromaddr = make([]*mail.Address, 1)
-		fromaddr[0] = &from.Address
+
+	fromAddrs, err := enmime.ParseAddressList(header.Get("From"))
+	if err != nil || len(fromAddrs) == 0 {
+		// Failed to parse From header, use SMTP MAIL FROM instead.
+		fromAddrs = make([]*mail.Address, 1)
+		fromAddrs[0] = &from.Address
 	}
-	toaddr, err := enmime.ParseAddressList(header.Get("To"))
+
+	toAddrs, err := enmime.ParseAddressList(header.Get("To"))
 	if err != nil {
-		toaddr = make([]*mail.Address, len(recipients))
+		// Failed to parse To header, use SMTP RCPT TO instead.
+		toAddrs = make([]*mail.Address, len(recipients))
 		for i, torecip := range recipients {
-			toaddr[i] = &torecip.Address
+			toAddrs[i] = &torecip.Address
 		}
 	}
-	subject := header.Get("Subject")
 
+	subject := header.Get("Subject")
 	now := time.Now()
 	tstamp := now.UTC().Format(recvdTimeFmt)
 
@@ -79,14 +83,11 @@ func (s *StoreManager) Deliver(
 	for i, recip := range recipients {
 		mailboxes[i] = recip.Mailbox
 	}
-	toAddrs := make([]mail.Address, len(toaddr))
-	for i, addr := range toaddr {
-		toAddrs[i] = *addr
-	}
 
+	// Construct InboundMessage event and process through extensions.
 	inbound := &event.InboundMessage{
 		Mailboxes: mailboxes,
-		From:      *fromaddr[0],
+		From:      fromAddrs[0],
 		To:        toAddrs,
 		Subject:   subject,
 		Size:      int64(len(source)),
@@ -105,13 +106,9 @@ func (s *StoreManager) Deliver(
 	} else {
 		// Event response overrides destination mailboxes and address policy.
 		inbound = extResult
-		toaddr = make([]*mail.Address, len(inbound.To))
-		for i := range inbound.To {
-			toaddr[i] = &inbound.To[i]
-		}
 	}
 
-	// Deliver to mailboxes.
+	// Deliver to each mailbox.
 	for _, mb := range inbound.Mailboxes {
 		// Append recipient and timestamp to generated Recieved header.
 		recvd := fmt.Sprintf("%s  for <%s>; %s\r\n", recvdHeader, mb, tstamp)
@@ -121,8 +118,8 @@ func (s *StoreManager) Deliver(
 		delivery := &Delivery{
 			Meta: event.MessageMetadata{
 				Mailbox: mb,
-				From:    &inbound.From,
-				To:      toaddr,
+				From:    inbound.From,
+				To:      inbound.To,
 				Date:    now,
 				Subject: inbound.Subject,
 			},

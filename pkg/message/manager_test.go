@@ -137,8 +137,8 @@ test email`),
 
 	require.NotNil(t, got, "BeforeMessageStored listener did not receive InboundMessage")
 	assert.Equal(t, []string{"u1@example.com", "u2@example.com"}, got.Mailboxes, "Mailboxes not equal")
-	assert.Equal(t, mail.Address{Name: "", Address: "from@example.com"}, got.From, "From not equal")
-	assert.Equal(t, []mail.Address{
+	assert.Equal(t, &mail.Address{Name: "", Address: "from@example.com"}, got.From, "From not equal")
+	assert.Equal(t, []*mail.Address{
 		{Name: "", Address: "u1@example.com"},
 		{Name: "", Address: "u3@external.com"},
 	}, got.To, "To not equal")
@@ -173,8 +173,8 @@ func TestDeliverEmitsBeforeMessageStoredEventRcptTo(t *testing.T) {
 
 	require.NotNil(t, got, "BeforeMessageStored listener did not receive InboundMessage")
 	assert.Equal(t, []string{"u1@example.com", "u2@example.com"}, got.Mailboxes, "Mailboxes not equal")
-	assert.Equal(t, mail.Address{Name: "", Address: "from@example.com"}, got.From, "From not equal")
-	assert.Equal(t, []mail.Address{
+	assert.Equal(t, &mail.Address{Name: "", Address: "from@example.com"}, got.From, "From not equal")
+	assert.Equal(t, []*mail.Address{
 		{Name: "", Address: "u1@example.com"},
 		{Name: "", Address: "u2@example.com"},
 	}, got.To, "To not equal")
@@ -256,10 +256,10 @@ func TestDeliverUsesBeforeMessageStoredEventResponseFields(t *testing.T) {
 		func(msg event.InboundMessage) *event.InboundMessage {
 			// Listener rewrites destination mailboxes.
 			msg.Subject = "event subj"
-			msg.From = mail.Address{Address: "from@event.com", Name: "From Event"}
+			msg.From = &mail.Address{Address: "from@event.com", Name: "From Event"}
 
 			// Changing To does not affect destination mailbox(es).
-			msg.To = []mail.Address{
+			msg.To = []*mail.Address{
 				{Address: "to@event.com", Name: "To Event"},
 				{Address: "to2@event.com", Name: "To 2 Event"},
 			}
@@ -477,6 +477,17 @@ test email`
 	got := string(gotBytes)
 	assert.Contains(t, got, recvdHeader, "Source should contain received header")
 	assert.Contains(t, got, msgSource, "Source should contain original message source")
+}
+
+func TestMailboxForAddress(t *testing.T) {
+	// Configured for FullNaming.
+	sm, _ := testStoreManager()
+
+	addr := "u1@example.com"
+	got, err := sm.MailboxForAddress(addr)
+	require.NoError(t, err)
+
+	assert.Equal(t, addr, got, "FullNaming mode should return a full address for mailbox")
 }
 
 // Returns an empty StoreManager and extension Host pair, configured for testing.

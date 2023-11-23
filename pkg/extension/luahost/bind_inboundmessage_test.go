@@ -31,8 +31,8 @@ const LuaInit = `
 func TestInboundMessageGetters(t *testing.T) {
 	want := &event.InboundMessage{
 		Mailboxes: []string{"mb1", "mb2"},
-		From:      mail.Address{Name: "name1", Address: "addr1"},
-		To: []mail.Address{
+		From:      &mail.Address{Name: "name1", Address: "addr1"},
+		To: []*mail.Address{
 			{Name: "name2", Address: "addr2"},
 			{Name: "name3", Address: "addr3"},
 		},
@@ -66,8 +66,8 @@ func TestInboundMessageGetters(t *testing.T) {
 func TestInboundMessageSetters(t *testing.T) {
 	want := &event.InboundMessage{
 		Mailboxes: []string{"mb1", "mb2"},
-		From:      mail.Address{Name: "name1", Address: "addr1"},
-		To: []mail.Address{
+		From:      &mail.Address{Name: "name1", Address: "addr1"},
+		To: []*mail.Address{
 			{Name: "name2", Address: "addr2"},
 			{Name: "name3", Address: "addr3"},
 		},

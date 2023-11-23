@@ -479,6 +479,17 @@ test email`
 	assert.Contains(t, got, msgSource, "Source should contain original message source")
 }
 
+func TestMailboxForAddress(t *testing.T) {
+	// Configured for FullNaming.
+	sm, _ := testStoreManager()
+
+	addr := "u1@example.com"
+	got, err := sm.MailboxForAddress(addr)
+	require.NoError(t, err)
+
+	assert.Equal(t, addr, got, "FullNaming mode should return a full address for mailbox")
+}
+
 // Returns an empty StoreManager and extension Host pair, configured for testing.
 func testStoreManager() (*message.StoreManager, *extension.Host) {
 	extHost := extension.NewHost()

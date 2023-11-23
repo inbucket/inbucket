@@ -76,10 +76,12 @@ func (s *StoreManager) Deliver(
 
 	// Process inbound message through extensions.
 	mailboxes := make([]string, len(recipients))
-	toAddrs := make([]mail.Address, len(recipients))
 	for i, recip := range recipients {
 		mailboxes[i] = recip.Mailbox
-		toAddrs[i] = recip.Address
+	}
+	toAddrs := make([]mail.Address, len(toaddr))
+	for i, addr := range toaddr {
+		toAddrs[i] = *addr
 	}
 
 	inbound := &event.InboundMessage{

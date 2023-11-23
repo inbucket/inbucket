@@ -73,12 +73,12 @@ func inboundMessageIndex(ls *lua.LState) int {
 		}
 		ls.Push(lt)
 	case "from":
-		ls.Push(wrapMailAddress(ls, &m.From))
+		ls.Push(wrapMailAddress(ls, m.From))
 	case "to":
 		lt := &lua.LTable{}
 		for _, v := range m.To {
 			addr := v
-			lt.Append(wrapMailAddress(ls, &addr))
+			lt.Append(wrapMailAddress(ls, addr))
 		}
 		ls.Push(lt)
 	case "subject":
@@ -110,15 +110,15 @@ func inboundMessageNewIndex(ls *lua.LState) int {
 		})
 		m.Mailboxes = mailboxes
 	case "from":
-		m.From = *checkMailAddress(ls, 3)
+		m.From = checkMailAddress(ls, 3)
 	case "to":
 		lt := ls.CheckTable(3)
-		to := make([]mail.Address, 0, 16)
+		to := make([]*mail.Address, 0, 16)
 		lt.ForEach(func(k, lv lua.LValue) {
 			if ud, ok := lv.(*lua.LUserData); ok {
 				// TODO should fail if wrong type + test.
 				if entry, ok := unwrapMailAddress(ud); ok {
-					to = append(to, *entry)
+					to = append(to, entry)
 				}
 			}
 		})

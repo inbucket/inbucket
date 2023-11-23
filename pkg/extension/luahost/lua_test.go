@@ -179,8 +179,8 @@ func TestBeforeMessageStored(t *testing.T) {
 	// Event to send.
 	msg := event.InboundMessage{
 		Mailboxes: []string{"one", "two"},
-		From:      mail.Address{Name: "From Name", Address: "from@example.com"},
-		To: []mail.Address{
+		From:      &mail.Address{Name: "From Name", Address: "from@example.com"},
+		To: []*mail.Address{
 			{Name: "To1 Name", Address: "to1@example.com"},
 			{Name: "To2 Name", Address: "to2@example.com"},
 		},
@@ -233,8 +233,8 @@ func TestBeforeMessageStored(t *testing.T) {
 	// Verify response values.
 	want := &event.InboundMessage{
 		Mailboxes: []string{"resone", "restwo"},
-		From:      mail.Address{Name: "Res From", Address: "res@example.com"},
-		To: []mail.Address{
+		From:      &mail.Address{Name: "Res From", Address: "res@example.com"},
+		To: []*mail.Address{
 			{Name: "To1 Res", Address: "res1@example.com"},
 			{Name: "To2 Res", Address: "res2@example.com"},
 		},

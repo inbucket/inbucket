@@ -14,8 +14,8 @@ type AddressParts struct {
 // InboundMessage contains the basic header and mailbox data for a message being received.
 type InboundMessage struct {
 	Mailboxes []string
-	From      mail.Address
-	To        []mail.Address
+	From      *mail.Address
+	To        []*mail.Address
 	Subject   string
 	Size      int64
 }

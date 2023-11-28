@@ -58,12 +58,14 @@ func New(cfg config.Storage, extHost *extension.Host) (storage.Store, error) {
 	}
 	mailPath := filepath.Join(path, "mail")
 	if _, err := os.Stat(mailPath); err != nil {
-		// Mail datastore does not yet exist
+		// Mail datastore does not yet exist, create it.
 		if err = os.MkdirAll(mailPath, 0770); err != nil {
 			log.Error().Str("module", "storage").Str("path", mailPath).Err(err).
 				Msg("Error creating dir")
+			return nil, err
 		}
 	}
+
 	return &Store{
 		path:       path,
 		mailPath:   mailPath,

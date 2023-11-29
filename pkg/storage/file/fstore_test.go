@@ -19,6 +19,7 @@ import (
 	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestSuite runs storage package test suite on file store.
@@ -31,6 +32,24 @@ func TestSuite(t *testing.T) {
 			}
 			return ds, destroy, nil
 		})
+}
+
+// Test filestore initialization.
+func TestFSNew(t *testing.T) {
+	// Should fail if no path specified.
+	ds, err := New(config.Storage{}, extension.NewHost())
+	assert.ErrorContains(t, err, "parameter not specified")
+	assert.Nil(t, ds)
+}
+
+func TestFSGetMailPath(t *testing.T) {
+	// Path should have `mail` dir appended.
+	got := getMailPath(`one`)
+	assert.Regexp(t, "^one.mail$", got, "Expected one/mail or similar")
+
+	// Path should convert `$` to `:`.
+	got = getMailPath(`C$\inbucket`)
+	assert.Regexp(t, "^C:.inbucket.mail$", got, "Expected C:\\inbucket\\mail or similar")
 }
 
 // Test directory structure created by filestore
@@ -167,14 +186,14 @@ func TestGetLatestMessage(t *testing.T) {
 
 	// Test get the latest message
 	msg, err = ds.GetMessage(mbName, "latest")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.True(t, msg.ID() == id2, "Expected %q to be equal to %q", msg.ID(), id2)
 
 	// Deliver test message 3
 	id3, _ := deliverMessage(ds, mbName, "test 3", time.Now())
 
 	msg, err = ds.GetMessage(mbName, "latest")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.True(t, msg.ID() == id3, "Expected %q to be equal to %q", msg.ID(), id3)
 
 	// Test wrong id

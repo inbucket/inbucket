@@ -25,6 +25,9 @@ main() {
         usage
         exit
         ;;
+      -b)
+        build
+        ;;
       -r)
         reset
         ;;
@@ -38,6 +41,8 @@ main() {
     esac
   done
 
+  set -x
+
   docker run $run_opts \
     -p $PORT_HTTP:9000 \
     -p $PORT_SMTP:2500 \
@@ -49,14 +54,21 @@ main() {
 
 usage() {
   echo "$0 [options]" 2>&1
+  echo "  -b    build - build image before starting" 2>&1
   echo "  -d    detach - detach and print container ID" 2>&1
   echo "  -r    reset - purge config and data before startup" 2>&1
   echo "  -h    help - print this message" 2>&1
 }
 
+build() {
+  echo "Building $IMAGE"
+  docker build . -t "$IMAGE"
+  echo
+}
+
 reset() {
-  /bin/rm -rf "$VOL_CONFIG"
-  /bin/rm -rf "$VOL_DATA"
+  rm -rf "$VOL_CONFIG"
+  rm -rf "$VOL_DATA"
 }
 
 main $*

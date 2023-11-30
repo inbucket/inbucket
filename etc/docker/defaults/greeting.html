@@ -13,5 +13,7 @@ of 300 messages per mailbox - the oldest messages will be deleted to stay under
 that limit.</p>
 
 <p>Messages addressed to any recipient in the <code>@bitbucket.local</code>
-domain will be accepted but not written to disk.  Use this domain for load or
-soak testing your application.</p>
+domain will be accepted, but immediately <b>discarded</b> without being written
+to disk. Use this domain for load or soak testing your application.  Inbucket
+will retain mail for any other domain by default, i.e.
+<code>@inbucket.local</code>.</p>

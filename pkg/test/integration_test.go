@@ -8,6 +8,7 @@ import (
 	smtpclient "net/smtp"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -222,7 +223,7 @@ func startServer() (func(), error) {
 
 	// Storage setup.
 	storage.Constructors["memory"] = mem.New
-	os.Clearenv()
+	clearEnv()
 	conf, err := config.Process()
 	if err != nil {
 		return nil, err
@@ -271,4 +272,24 @@ func readTestData(path ...string) []byte {
 		panic(err)
 	}
 	return data
+}
+
+// clearEnv clears environment variables, preserving any that are critical for this OS.
+func clearEnv() {
+	preserve := make(map[string]string)
+	backup := func(k string) {
+		preserve[k] = os.Getenv(k)
+	}
+
+	// Backup ciritcal env variables.
+	switch runtime.GOOS {
+	case "windows":
+		backup("SYSTEMROOT")
+	}
+
+	os.Clearenv()
+
+	for k, v := range preserve {
+		os.Setenv(k, v)
+	}
 }

@@ -442,7 +442,8 @@ separated list of key:value pairs.
 #### `file` type parameters
 
 - `path`: Operating system specific path to the directory where mail should be
-  stored.
+  stored.  `$` characters will be replaced with `:` in the final path value,
+  allowing Windows drive letters, i.e. `D$\inbucket`.
 
 #### `memory` type parameters
 

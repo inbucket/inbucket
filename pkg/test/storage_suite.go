@@ -147,22 +147,19 @@ func testContent(t *testing.T, store storage.Store, extHost *extension.Host) {
 		Reader: bytes.NewReader(content),
 	}
 	id, err := store.AddMessage(delivery)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Get and check.
+	require.NoError(t, err, "AddMessage() failed")
+
+	// Read stored message source.
 	m, err := store.GetMessage(mailbox, id)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "GetMessage() failed")
 	r, err := m.Source()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "Source() failed")
 	got, err := io.ReadAll(r)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "failed to read source")
+	err = r.Close()
+	assert.NoError(t, err, "failed to close source reader")
+
+	// Verify source.
 	if len(got) != len(content) {
 		t.Errorf("Got len(content) == %v, want: %v", len(got), len(content))
 	}

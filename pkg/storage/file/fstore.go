@@ -326,5 +326,9 @@ func readDirNames(elem ...string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = f.Close()
+	}()
+
 	return f.Readdirnames(0)
 }

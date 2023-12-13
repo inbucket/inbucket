@@ -409,26 +409,27 @@ func testNoMsgCap(t *testing.T, store storage.Store, extHost *extension.Host) {
 // testVisitMailboxes creates some mailboxes and confirms the VisitMailboxes method visits all of
 // them.
 func testVisitMailboxes(t *testing.T, ds storage.Store, extHost *extension.Host) {
+	// Deliver 2 test messages to each of 5 mailboxes.
 	boxes := []string{"abby", "bill", "christa", "donald", "evelyn"}
 	for _, name := range boxes {
 		DeliverToStore(t, ds, name, "Old Message", time.Now().Add(-24*time.Hour))
 		DeliverToStore(t, ds, name, "New Message", time.Now())
 	}
-	seen := 0
+
+	// Verify message and mailbox counts.
+	nboxes := 0
 	err := ds.VisitMailboxes(func(messages []storage.Message) bool {
-		seen++
-		count := len(messages)
-		if count != 2 {
-			t.Errorf("got: %v messages, want: 2", count)
+		nboxes++
+		name := "unknown"
+		if len(messages) > 0 {
+			name = messages[0].Mailbox()
 		}
+
+		assert.Equal(t, 2, len(messages), "incorrect message count in mailbox %s", name)
 		return true
 	})
-	if err != nil {
-		t.Error(err)
-	}
-	if seen != 5 {
-		t.Errorf("saw %v messages in total, want: 5", seen)
-	}
+	assert.NoError(t, err, "VisitMailboxes() failed")
+	assert.Equal(t, 5, nboxes, "visited %v mailboxes, want: 5", nboxes)
 }
 
 // DeliverToStore creates and delivers a message to the specific mailbox, returning the size of the

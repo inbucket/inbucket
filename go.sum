@@ -26,8 +26,8 @@ github.com/inbucket/gopher-json v0.2.0 h1:v/luoFy5olitFhByVUGMZ3LmtcroRs9YHlyrBe
 github.com/inbucket/gopher-json v0.2.0/go.mod h1:1BK2XgU9y+ibiRkylJQeV44AV9DrO8dVsgOJ6vpqF3g=
 github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056 h1:iCHtR9CQyktQ5+f3dMVZfwD2KWJUgm7M0gdL9NGr8KA=
 github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056/go.mod h1:CVKlgaMiht+LXvHG173ujK6JUhZXKb2u/BQtjPDIvyk=
-github.com/jhillyerd/enmime v1.0.1 h1:y6RyqIgBOI2hIinOXIzmeB+ITRVls0zTJIm5GwgXnjE=
-github.com/jhillyerd/enmime v1.0.1/go.mod h1:LMMbm6oTlzWHghPavqHtOrP/NosVv3l42CUrZjn03/Q=
+github.com/jhillyerd/enmime v1.1.0 h1:ubaIzg68VY7CMCe2YbHe6nkRvU9vujixTkNz3EBvZOw=
+github.com/jhillyerd/enmime v1.1.0/go.mod h1:FRFuUPCLh8PByQv+8xRcLO9QHqaqTqreYhopv5eyk4I=
 github.com/jhillyerd/goldiff v0.1.0 h1:7JzKPKVwAg1GzrbnsToYzq3Y5+S7dXM4hgEYiOzaf4A=
 github.com/jhillyerd/goldiff v0.1.0/go.mod h1:WeDal6DTqhbMhNkf5REzWCIvKl3JWs0Q9omZ/huIWAs=
 github.com/kelseyhightower/envconfig v1.4.0 h1:Im6hONhd3pLkfDFsbRgu68RDNkGF1r3dvMUtDTo2cv8=

@@ -10,7 +10,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/inbucket/gopher-json v0.2.0
-	github.com/jhillyerd/enmime v1.0.1
+	github.com/jhillyerd/enmime v1.1.0
 	github.com/jhillyerd/goldiff v0.1.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/microcosm-cc/bluemonday v1.0.25

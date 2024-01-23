@@ -18,13 +18,15 @@ type Client struct {
 // "http://localhost:9000"
 func New(baseURL string, optionFuncs ...func(*ClientOptions)) (*Client, error) {
 	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
 	clientOptions := getDefaultClientOptions()
 	for _, optionFunc := range optionFuncs {
 		optionFunc(clientOptions)
 	}
-	if err != nil {
-		return nil, err
-	}
+
 	c := &Client{
 		restClient{
 			client: &http.Client{

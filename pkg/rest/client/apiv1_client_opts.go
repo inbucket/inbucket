@@ -7,7 +7,7 @@ import (
 
 // ClientOptions is a struct that holds the options for the client
 type ClientOptions struct {
-	transport *http.Transport
+	transport http.RoundTripper
 	timeout   time.Duration
 }
 
@@ -19,7 +19,7 @@ func getDefaultClientOptions() *ClientOptions {
 }
 
 // WithTransport returns a function that sets the transport object
-func WithClientOptsTransport(transport *http.Transport) func(*ClientOptions) {
+func WithClientOptsTransport(transport http.RoundTripper) func(*ClientOptions) {
 	return func(options *ClientOptions) {
 		options.transport = transport
 	}

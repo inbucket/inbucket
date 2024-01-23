@@ -19,7 +19,7 @@ func getDefaultClientOptions() *ClientOptions {
 }
 
 // WithTransport returns a function that sets the transport object
-func WithTransport(transport *http.Transport) func(*ClientOptions) {
+func WithClientOptsTransport(transport *http.Transport) func(*ClientOptions) {
 	return func(options *ClientOptions) {
 		options.transport = transport
 	}

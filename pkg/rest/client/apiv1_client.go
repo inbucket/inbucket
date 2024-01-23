@@ -4,11 +4,9 @@ package client
 import (
 	"bytes"
 	"fmt"
+	"github.com/inbucket/inbucket/v3/pkg/rest/model"
 	"net/http"
 	"net/url"
-	"time"
-
-	"github.com/inbucket/inbucket/v3/pkg/rest/model"
 )
 
 // Client accesses the Inbucket REST API v1
@@ -18,15 +16,20 @@ type Client struct {
 
 // New creates a new v1 REST API client given the base URL of an Inbucket server, ex:
 // "http://localhost:9000"
-func New(baseURL string) (*Client, error) {
+func New(baseURL string, optionFuncs ...func(*ClientOptions)) (*Client, error) {
 	parsedURL, err := url.Parse(baseURL)
+	clientOptions := getDefaultClientOptions()
+	for _, optionFunc := range optionFuncs {
+		optionFunc(clientOptions)
+	}
 	if err != nil {
 		return nil, err
 	}
 	c := &Client{
 		restClient{
 			client: &http.Client{
-				Timeout: 30 * time.Second,
+				Timeout:   clientOptions.timeout,
+				Transport: clientOptions.transport,
 			},
 			baseURL: parsedURL,
 		},

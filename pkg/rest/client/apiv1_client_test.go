@@ -2,7 +2,7 @@ package client_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -375,7 +375,7 @@ func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	m.CallCount++
 	return &http.Response{
 		StatusCode: http.StatusOK,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(m.ResponseBody)),
+		Body:       io.NopCloser(bytes.NewBufferString(m.ResponseBody)),
 	}, nil
 }
 

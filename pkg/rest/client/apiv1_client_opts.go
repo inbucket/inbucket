@@ -29,10 +29,10 @@ func (t transportOption) apply(opts *options) {
 	opts.transport = t.transport
 }
 
-// WithOptTransport sets the transport for the rest client.
+// WithTransport sets the transport for the rest client.
 // Transport specifies the mechanism by which individual
 // HTTP requests are made.
 // If nil, http.DefaultTransport is used.
-func WithOptTransport(transport http.RoundTripper) Option {
+func WithTransport(transport http.RoundTripper) Option {
 	return transportOption{transport}
 }

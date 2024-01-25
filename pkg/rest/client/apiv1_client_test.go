@@ -1,6 +1,8 @@
 package client_test
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -210,6 +212,33 @@ func TestClientV1GetMessageSource(t *testing.T) {
 	}
 }
 
+func TestClientV1WithCustomTransport(t *testing.T) {
+	// Call setup, passing a custom roundtripper and make sure it was used during the request.
+	mockRoundTripper := &mockRoundTripper{ResponseBody: "Custom Transport"}
+	c, router, teardown := setup(client.WithOptTransport(mockRoundTripper))
+
+	defer teardown()
+
+	router.Path("/api/v1/mailbox/testbox/20170107T224128-0000/source").Methods("GET").
+		Handler(&jsonHandler{json: `message source`})
+
+	// Method under test.
+	source, err := c.GetMessageSource("testbox", "20170107T224128-0000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := mockRoundTripper.ResponseBody
+	got := source.String()
+	if got != want {
+		t.Errorf("Source got %q, want %q", got, want)
+	}
+
+	if mockRoundTripper.CallCount != 1 {
+		t.Errorf("RoundTripper called %v times, want 1", mockRoundTripper.CallCount)
+	}
+}
+
 func TestClientV1DeleteMessage(t *testing.T) {
 	// Setup.
 	c, router, teardown := setup()
@@ -337,11 +366,24 @@ func TestClientV1MessageHeader(t *testing.T) {
 	}
 }
 
+type mockRoundTripper struct {
+	ResponseBody string
+	CallCount    int
+}
+
+func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	m.CallCount++
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewBufferString(m.ResponseBody)),
+	}, nil
+}
+
 // setup returns a client, router and server for API testing.
-func setup() (c *client.Client, router *mux.Router, teardown func()) {
+func setup(opts ...client.Option) (c *client.Client, router *mux.Router, teardown func()) {
 	router = mux.NewRouter()
 	server := httptest.NewServer(router)
-	c, err := client.New(server.URL)
+	c, err := client.New(server.URL, opts...)
 	if err != nil {
 		panic(err)
 	}

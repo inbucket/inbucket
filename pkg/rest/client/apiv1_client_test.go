@@ -215,7 +215,7 @@ func TestClientV1GetMessageSource(t *testing.T) {
 func TestClientV1WithCustomTransport(t *testing.T) {
 	// Call setup, passing a custom roundtripper and make sure it was used during the request.
 	mockRoundTripper := &mockRoundTripper{ResponseBody: "Custom Transport"}
-	c, router, teardown := setup(client.WithOptTransport(mockRoundTripper))
+	c, router, teardown := setup(client.WithTransport(mockRoundTripper))
 
 	defer teardown()
 

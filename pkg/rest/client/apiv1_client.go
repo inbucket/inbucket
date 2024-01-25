@@ -17,22 +17,22 @@ type Client struct {
 
 // New creates a new v1 REST API client given the base URL of an Inbucket server, ex:
 // "http://localhost:9000"
-func New(baseURL string, opts ...ClientOption) (*Client, error) {
+func New(baseURL string, opts ...Option) (*Client, error) {
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	clientOptions := getDefaultClientOptions()
+	mergedOpts := getDefaultOptions()
 	for _, opt := range opts {
-		opt.apply(clientOptions)
+		opt.apply(mergedOpts)
 	}
 
 	c := &Client{
 		restClient{
 			client: &http.Client{
-				Timeout:   clientOptions.timeout,
-				Transport: clientOptions.transport,
+				Timeout:   mergedOpts.timeout,
+				Transport: mergedOpts.transport,
 			},
 			baseURL: parsedURL,
 		},

@@ -5,19 +5,18 @@ import (
 	"time"
 )
 
-// ClientOptions is a struct that holds the options for the client
-type clientOptions struct {
+// options is a struct that holds the options for the rest client
+type options struct {
 	transport http.RoundTripper
 	timeout   time.Duration
 }
 
-type ClientOption interface {
-	apply(*clientOptions)
+type Option interface {
+	apply(*options)
 }
 
-// getDefaultClientOptions returns the default options for the client
-func getDefaultClientOptions() *clientOptions {
-	return &clientOptions{
+func getDefaultOptions() *options {
+	return &options{
 		timeout: 30 * time.Second,
 	}
 }
@@ -26,11 +25,14 @@ type transportOption struct {
 	transport http.RoundTripper
 }
 
-func (t transportOption) apply(opts *clientOptions) {
+func (t transportOption) apply(opts *options) {
 	opts.transport = t.transport
 }
 
-// WithTransport returns a function that sets the transport object
-func WithClientOptsTransport(transport http.RoundTripper) ClientOption {
+// WithOptTransport sets the transport for the rest client.
+// Transport specifies the mechanism by which individual
+// HTTP requests are made.
+// If nil, http.DefaultTransport is used.
+func WithOptTransport(transport http.RoundTripper) Option {
 	return transportOption{transport}
 }

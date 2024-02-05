@@ -4,6 +4,9 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+
 ## [v3.1.0-beta2] - 2024-02-05
 
 ### Added
@@ -389,9 +392,10 @@ No change from beta1.
     - Update previous tag version for *Unreleased* 
 3.  Run tests
 4.  Update goreleaser, and then test cross-compile: `goreleaser --snapshot`
-5.  Commit changes and merge release into main, tag `vX.Y.Z`
-6.  Push tags and wait for
+5.  Commit changes and merge release PR into main
+6.  Create new release via GitHub, use CHANGELOG release notes, tag `vX.Y.Z`
+7.  Push tags and wait for
     [GitHub actions](https://github.com/inbucket/inbucket/actions) to complete
-7.  Update `binary_versions` option in `inbucket-site/_config.yml`
+    -- it will add compiled release assets
 
 See http://keepachangelog.com/ for additional instructions on how to update this file.

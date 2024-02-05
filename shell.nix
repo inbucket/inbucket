@@ -25,7 +25,7 @@ pkgs.mkShell {
     go_1_21
     golint
     gopls
-    nodejs_18
+    nodejs_20
     nodePackages.node-gyp
     nodePackages.yarn
     rpm

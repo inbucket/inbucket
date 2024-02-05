@@ -11,6 +11,7 @@ type options struct {
 	timeout   time.Duration
 }
 
+// Option can apply itself to the private options type.
 type Option interface {
 	apply(*options)
 }

@@ -12,7 +12,7 @@ RUN yarn install --frozen-lockfile --non-interactive
 RUN yarn run build
 
 ### Build backend
-FROM golang:1.20-alpine3.18 as backend
+FROM golang:1.21-alpine3.19 as backend
 RUN apk add --no-cache --virtual .build-deps g++ git make
 WORKDIR /build
 COPY . .
@@ -23,7 +23,7 @@ RUN go build -o inbucket \
   -v ./cmd/inbucket
 
 ### Run in minimal image
-FROM alpine:3.18
+FROM alpine:3.19
 RUN apk --no-cache add tzdata
 WORKDIR /opt/inbucket
 RUN mkdir bin defaults ui

@@ -4,15 +4,37 @@ Change Log
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v3.1.0-beta2] - 2024-02-05
+
+### Added
+- Reject mail by origin domain: `INBUCKET_SMTP_REJECTORIGINDOMAINS` (#375)
+  - Wildcard support (#412)
+- Version flag for `inbucket` cmd (#385)
+- STLS support for POP3 (#384)
+- ForceTLS flag for SMTP (#402)
+- Lua scripting additions:
+  - `logger` API for Lua (#407)
+  - `before.message_stored` handler (#417, #418)
+- `$` is replaced with `:` in filestore paths, for `D:\...` syntax (#449)
+- REST Client `transport` support (#463)
+
+### Fixed
+- UI & Storage paths in systemd service file (#393)
+- Web UI will redirect from `prefix` to `prefix/` (#397)
+- Include inlines when listing attachments (#398)
+- Fail Inbucket startup if unable to create storage dir (#448)
+- Close directory file handles immediately, fixes Windows locking (#457)
+
+
 ## [v3.1.0-beta1] - 2023-02-28
 
 ### Added
 - Monitor tab updates when messages are deleted (#337)
 - Initial framework for extensions
 - Initial Lua scripting implementation, supporting events:
-  - after.message_deleted
-  - after.message_stored
-  - before.mail_accepted
+  - `after.message_deleted`
+  - `after.message_stored`
+  - `before.mail_accepted`
 - Provide `http` and `json` modules for Lua scripts
 
 ### Fixed
@@ -328,7 +350,8 @@ No change from beta1.
   specific message.
 
 
-[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.1.0-beta1...main
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.1.0-beta2...main
+[v3.1.0-beta2]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta1...v3.1.0-beta2
 [v3.1.0-beta1]: https://github.com/inbucket/inbucket/compare/v3.0.4...v3.1.0-beta1
 [v3.0.4]:       https://github.com/inbucket/inbucket/compare/v3.0.3...v3.0.4
 [v3.0.3]:       https://github.com/inbucket/inbucket/compare/v3.0.2...v3.0.3

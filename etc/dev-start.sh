@@ -29,7 +29,7 @@ fi
 index="$INBUCKET_WEB_UIDIR/index.html"
 if ! test -f "$index"; then
   echo "$index does not exist!" >&2
-  echo "Run 'npm run build' from the 'ui' directory." >&2
+  echo "Run 'yarn build' from the 'ui' directory." >&2
   exit 1
 fi
 

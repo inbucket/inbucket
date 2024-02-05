@@ -1,0 +1,79 @@
+run:
+  timeout: 5m
+linters:
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - decorder
+    # - dupl
+    # - dupword
+    - durationcheck
+    - errchkjson
+    - errname
+    # - errorlint
+    - execinquery
+    # - exhaustive
+    - exportloopref
+    # - forcetypeassert
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    # - gochecknoinits
+    - gochecksumtype
+    - gocritic
+    # - godot
+    # - goerr113
+    - gofmt
+    # - gofumpt
+    - goheader
+    - goimports
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    # - gosec
+    - gosmopolitan
+    - grouper
+    - importas
+    - inamedparam
+    - interfacebloat
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    - musttag
+    - nilerr
+    # - nilnil
+    # - nlreturn
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    # - revive
+    - rowserrcheck
+    - sloglint
+    - stylecheck
+    - tagliatelle
+    - tenv
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    # - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    - zerologlint
+linters-settings:
+  tagliatelle:
+    case:
+      rules:
+        json: kebab

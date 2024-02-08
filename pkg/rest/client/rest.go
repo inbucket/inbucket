@@ -22,11 +22,7 @@ type restClient struct {
 
 // do performs an HTTP request with this client and returns the response.
 func (c *restClient) do(method, uri string, body []byte) (*http.Response, error) {
-	rel, err := url.Parse(uri)
-	if err != nil {
-		return nil, err
-	}
-	url := c.baseURL.ResolveReference(rel)
+	url := c.baseURL.JoinPath(uri)
 	var r io.Reader
 	if body != nil {
 		r = bytes.NewReader(body)

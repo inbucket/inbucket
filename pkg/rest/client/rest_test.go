@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -9,12 +10,19 @@ import (
 )
 
 const baseURLStr = "http://test.local:8080"
+const baseURLPathStr = "http://test.local:8080/inbucket"
 
 var baseURL *url.URL
+
+var baseURLPath *url.URL
 
 func init() {
 	var err error
 	baseURL, err = url.Parse(baseURLStr)
+	if err != nil {
+		panic(err)
+	}
+	baseURLPath, err = url.Parse(baseURLPathStr)
 	if err != nil {
 		panic(err)
 	}
@@ -51,32 +59,39 @@ func (m *mockHTTPClient) ReqBody() []byte {
 	return body
 }
 
-func TestDo(t *testing.T) {
-	var want, got string
-	mth := &mockHTTPClient{}
-	c := &restClient{mth, baseURL}
-	body := []byte("Test body")
-
-	_, err := c.do("POST", "/dopost", body)
-	if err != nil {
-		t.Fatal(err)
+func TestDoTable(t *testing.T) {
+	tests := []struct {
+		method     string
+		uri        string
+		wantMethod string
+		base       *url.URL
+		wantUrl    string
+		wantBody   []byte
+	}{
+		{method: "GET", wantMethod: "GET", uri: "/doget", base: baseURL, wantUrl: baseURLStr + "/doget", wantBody: []byte("Test body 1")},
+		{method: "POST", wantMethod: "POST", uri: "/dopost", base: baseURL, wantUrl: baseURLStr + "/dopost", wantBody: []byte("Test body 2")},
+		{method: "GET", wantMethod: "GET", uri: "/doget", base: baseURLPath, wantUrl: baseURLPathStr + "/doget", wantBody: []byte("Test body 3")},
+		{method: "POST", wantMethod: "POST", uri: "/dopost", base: baseURLPath, wantUrl: baseURLPathStr + "/dopost", wantBody: []byte("Test body 4")},
 	}
-
-	want = "POST"
-	got = mth.req.Method
-	if got != want {
-		t.Errorf("req.Method == %q, want %q", got, want)
-	}
-
-	want = baseURLStr + "/dopost"
-	got = mth.req.URL.String()
-	if got != want {
-		t.Errorf("req.URL == %q, want %q", got, want)
-	}
-
-	b := mth.ReqBody()
-	if !bytes.Equal(b, body) {
-		t.Errorf("req.Body == %q, want %q", b, body)
+	for _, test := range tests {
+		testname := fmt.Sprintf("%s,%s", test.method, test.wantUrl)
+		t.Run(testname, func(t *testing.T) {
+			mth := &mockHTTPClient{}
+			c := &restClient{mth, test.base}
+			_, err := c.do(test.method, test.uri, test.wantBody)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if mth.req.Method != test.wantMethod {
+				t.Errorf("req.Method == %q, want %q", mth.req.Method, test.wantMethod)
+			}
+			if mth.req.URL.String() != test.wantUrl {
+				t.Errorf("req.URL == %q, want %q", mth.req.URL.String(), test.wantUrl)
+			}
+			if !bytes.Equal(mth.ReqBody(), test.wantBody) {
+				t.Errorf("req.Body == %q, want %q", mth.ReqBody(), test.wantBody)
+			}
+		})
 	}
 }
 

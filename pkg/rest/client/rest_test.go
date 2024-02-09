@@ -68,10 +68,10 @@ func TestDoTable(t *testing.T) {
 		wantUrl    string
 		wantBody   []byte
 	}{
-		{"GET", "/doget", "GET", baseURL, baseURLStr + "/doget", []byte("Test body")},
-		{"POST", "/dopost", "POST", baseURL, baseURLStr + "/dopost", []byte("Test body")},
-		{"GET", "/doget", "GET", baseURLPath, baseURLPathStr + "/doget", []byte("Test body")},
-		{"POST", "/dopost", "POST", baseURLPath, baseURLPathStr + "/dopost", []byte("Test body")},
+		{method: "GET", wantMethod: "GET", uri: "/doget", base: baseURL, wantUrl: baseURLStr + "/doget", wantBody: []byte("Test body 1")},
+		{method: "POST", wantMethod: "POST", uri: "/dopost", base: baseURL, wantUrl: baseURLStr + "/dopost", wantBody: []byte("Test body 2")},
+		{method: "GET", wantMethod: "GET", uri: "/doget", base: baseURLPath, wantUrl: baseURLPathStr + "/doget", wantBody: []byte("Test body 3")},
+		{method: "POST", wantMethod: "POST", uri: "/dopost", base: baseURLPath, wantUrl: baseURLPathStr + "/dopost", wantBody: []byte("Test body 4")},
 	}
 	for _, test := range tests {
 		testname := fmt.Sprintf("%s,%s", test.method, test.wantUrl)

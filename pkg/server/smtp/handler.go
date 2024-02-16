@@ -206,7 +206,7 @@ func (s *Server) startSession(id int, conn net.Conn, logger zerolog.Logger) {
 					ssn.send("252 Cannot VRFY user, but will accept message")
 					continue
 				case "NOOP":
-					ssn.send("250 I have sucessfully done nothing")
+					ssn.send("250 I have successfully done nothing")
 					continue
 				case "RSET":
 					// Reset session

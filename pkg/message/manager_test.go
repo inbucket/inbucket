@@ -352,7 +352,7 @@ func TestDeliverBeforeAndAfterMessageStoredEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Confirm mailbox names overriden by Before were sent to After event.  Order is
+	// Confirm mailbox names overridden by `Before` were sent to `After` event.  Order is
 	// not guaranteed.
 	got1, err := listener()
 	require.NoError(t, err)

@@ -83,7 +83,7 @@ func (eb *AsyncEventBroker[E]) AsyncTestListener(name string, capacity int) func
 			return &event, nil
 
 		case <-time.After(time.Second * 2):
-			return nil, errors.New("Timeout waiting for event")
+			return nil, errors.New("timeout waiting for event")
 		}
 	}
 }

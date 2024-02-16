@@ -51,7 +51,7 @@ func (n *mbNaming) Decode(v string) error {
 	case "domain":
 		*n = DomainNaming
 	default:
-		return fmt.Errorf("Unknown MailboxNaming strategy: %q", v)
+		return fmt.Errorf("unknown MailboxNaming strategy: %q", v)
 	}
 	return nil
 }

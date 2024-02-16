@@ -36,7 +36,7 @@ func TestHashLock(t *testing.T) {
 		t.Run(ts, func(t *testing.T) {
 			l := hl.Get(ts)
 			if l == nil {
-				t.Errorf("Expeced non-nil lock for hex string %q", ts)
+				t.Errorf("Expected non-nil lock for hex string %q", ts)
 			}
 		})
 	}

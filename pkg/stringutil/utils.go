@@ -95,11 +95,9 @@ func MatchWithWildcards(p string, s string) bool {
 		if runePattern[j-1] == '*' {
 			isMatchingMatrix[0][j] = isMatchingMatrix[0][j-1]
 		}
-
 	}
 	for i := 1; i <= lenInput; i++ {
 		for j := 1; j <= lenPattern; j++ {
-
 			if runePattern[j-1] == '*' {
 				isMatchingMatrix[i][j] = isMatchingMatrix[i-1][j] || isMatchingMatrix[i][j-1]
 			}

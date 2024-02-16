@@ -18,7 +18,7 @@ type Host struct {
 //
 // After-events allow extensions to take an action after an event has completed.  These events are
 // processed asynchronously with respect to the rest of Inbuckets operation.  However, an event
-// listener will not be called until the one before it complets.
+// listener will not be called until the one before it completes.
 type Events struct {
 	AfterMessageDeleted AsyncEventBroker[event.MessageMetadata]
 	AfterMessageStored  AsyncEventBroker[event.MessageMetadata]

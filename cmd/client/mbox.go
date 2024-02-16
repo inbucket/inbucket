@@ -70,7 +70,7 @@ func outputMbox(headers []*client.MessageHeader) error {
 	for _, h := range headers {
 		source, err := h.GetSource()
 		if err != nil {
-			return fmt.Errorf("Get source REST failed: %v", err)
+			return fmt.Errorf("get source REST failed: %v", err)
 		}
 
 		fmt.Printf("From %s\n", h.From)

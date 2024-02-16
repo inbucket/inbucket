@@ -82,6 +82,7 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 		m.id = id
 		m.source = source
 		mb.messages[id] = m
+
 		if s.cap > 0 {
 			// Enforce cap.
 			for len(mb.messages) > s.cap {

@@ -2,6 +2,7 @@ package luahost
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,6 +15,9 @@ import (
 	lua "github.com/yuin/gopher-lua"
 	"github.com/yuin/gopher-lua/parse"
 )
+
+// ErrNoScript signals that the Lua script file was not present.
+var ErrNoScript error = errors.New("no script file present")
 
 // Host of Lua extensions.
 type Host struct {
@@ -35,7 +39,7 @@ func New(conf config.Lua, extHost *extension.Host) (*Host, error) {
 	// Pre-load, parse, and compile script.
 	if fi, err := os.Stat(scriptPath); err != nil {
 		logger.Info().Msg("Script file not found")
-		return nil, nil
+		return nil, ErrNoScript
 	} else if fi.IsDir() {
 		return nil, fmt.Errorf("lua script %v is a directory", scriptPath)
 	}

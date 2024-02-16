@@ -1,7 +1,9 @@
 package rest
 
-import "github.com/gorilla/mux"
-import "github.com/inbucket/inbucket/v3/pkg/server/web"
+import (
+	"github.com/gorilla/mux"
+	"github.com/inbucket/inbucket/v3/pkg/server/web"
+)
 
 // SetupRoutes populates the routes for the REST interface
 func SetupRoutes(r *mux.Router) {

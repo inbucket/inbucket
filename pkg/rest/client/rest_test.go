@@ -65,16 +65,16 @@ func TestDoTable(t *testing.T) {
 		uri        string
 		wantMethod string
 		base       *url.URL
-		wantUrl    string
+		wantURL    string
 		wantBody   []byte
 	}{
-		{method: "GET", wantMethod: "GET", uri: "/doget", base: baseURL, wantUrl: baseURLStr + "/doget", wantBody: []byte("Test body 1")},
-		{method: "POST", wantMethod: "POST", uri: "/dopost", base: baseURL, wantUrl: baseURLStr + "/dopost", wantBody: []byte("Test body 2")},
-		{method: "GET", wantMethod: "GET", uri: "/doget", base: baseURLPath, wantUrl: baseURLPathStr + "/doget", wantBody: []byte("Test body 3")},
-		{method: "POST", wantMethod: "POST", uri: "/dopost", base: baseURLPath, wantUrl: baseURLPathStr + "/dopost", wantBody: []byte("Test body 4")},
+		{method: "GET", wantMethod: "GET", uri: "/doget", base: baseURL, wantURL: baseURLStr + "/doget", wantBody: []byte("Test body 1")},
+		{method: "POST", wantMethod: "POST", uri: "/dopost", base: baseURL, wantURL: baseURLStr + "/dopost", wantBody: []byte("Test body 2")},
+		{method: "GET", wantMethod: "GET", uri: "/doget", base: baseURLPath, wantURL: baseURLPathStr + "/doget", wantBody: []byte("Test body 3")},
+		{method: "POST", wantMethod: "POST", uri: "/dopost", base: baseURLPath, wantURL: baseURLPathStr + "/dopost", wantBody: []byte("Test body 4")},
 	}
 	for _, test := range tests {
-		testname := fmt.Sprintf("%s,%s", test.method, test.wantUrl)
+		testname := fmt.Sprintf("%s,%s", test.method, test.wantURL)
 		t.Run(testname, func(t *testing.T) {
 			mth := &mockHTTPClient{}
 			c := &restClient{mth, test.base}
@@ -85,8 +85,8 @@ func TestDoTable(t *testing.T) {
 			if mth.req.Method != test.wantMethod {
 				t.Errorf("req.Method == %q, want %q", mth.req.Method, test.wantMethod)
 			}
-			if mth.req.URL.String() != test.wantUrl {
-				t.Errorf("req.URL == %q, want %q", mth.req.URL.String(), test.wantUrl)
+			if mth.req.URL.String() != test.wantURL {
+				t.Errorf("req.URL == %q, want %q", mth.req.URL.String(), test.wantURL)
 			}
 			if !bytes.Equal(mth.ReqBody(), test.wantBody) {
 				t.Errorf("req.Body == %q, want %q", mth.ReqBody(), test.wantBody)

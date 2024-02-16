@@ -51,11 +51,7 @@ type Server struct {
 }
 
 // NewServer sets up things for unit tests or the Start() method.
-func NewServer(
-	conf *config.Root,
-	mm message.Manager,
-	mh *msghub.Hub) *Server {
-
+func NewServer(conf *config.Root, mm message.Manager, mh *msghub.Hub) *Server {
 	rootConfig = conf
 
 	// NewContext() will use this DataStore for the web handlers.

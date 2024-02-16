@@ -30,5 +30,4 @@ func TestSanitizeStyle(t *testing.T) {
 			}
 		})
 	}
-
 }

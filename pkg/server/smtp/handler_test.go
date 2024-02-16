@@ -222,7 +222,6 @@ func TestReadyStateRejectedDomains(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 // Test invalid commands in READY state.
@@ -255,7 +254,6 @@ func TestReadyStateInvalidCommands(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 // Test commands in MAIL state
@@ -562,7 +560,6 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 			assert.NotNil(t, gotEvent, "BeforeMailListener did not receive Address")
 		})
 	}
-
 }
 
 // net.Pipe does not implement deadlines

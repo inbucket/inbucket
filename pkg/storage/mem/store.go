@@ -33,7 +33,7 @@ type mbox struct {
 
 var _ storage.Store = &Store{}
 
-// New returns an emtpy memory store.
+// New returns an empty memory store.
 func New(cfg config.Storage, extHost *extension.Host) (storage.Store, error) {
 	s := &Store{
 		boxes:   make(map[string]*mbox),

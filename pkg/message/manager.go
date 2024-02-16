@@ -110,7 +110,7 @@ func (s *StoreManager) Deliver(
 
 	// Deliver to each mailbox.
 	for _, mb := range inbound.Mailboxes {
-		// Append recipient and timestamp to generated Recieved header.
+		// Append recipient and timestamp to generated Received header.
 		recvd := fmt.Sprintf("%s  for <%s>; %s\r\n", recvdHeader, mb, tstamp)
 
 		// Deliver message.

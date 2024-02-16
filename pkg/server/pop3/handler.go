@@ -463,7 +463,7 @@ func (s *Session) transactionHandler(cmd string, args []string) {
 		s.processDeletes()
 		s.enterState(QUIT)
 	case "NOOP":
-		s.send("+OK I have sucessfully done nothing")
+		s.send("+OK I have successfully done nothing")
 	case "RSET":
 		// Reset session, don't actually delete anything I told you to
 		s.logger.Debug().Msgf("Resetting session state on RSET request")

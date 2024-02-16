@@ -157,7 +157,7 @@ func testContent(t *testing.T, store storage.Store, extHost *extension.Host) {
 	got, err := io.ReadAll(r)
 	require.NoError(t, err, "failed to read source")
 	err = r.Close()
-	assert.NoError(t, err, "failed to close source reader")
+	require.NoError(t, err, "failed to close source reader")
 
 	// Verify source.
 	if len(got) != len(content) {
@@ -425,10 +425,10 @@ func testVisitMailboxes(t *testing.T, ds storage.Store, extHost *extension.Host)
 			name = messages[0].Mailbox()
 		}
 
-		assert.Equal(t, 2, len(messages), "incorrect message count in mailbox %s", name)
+		assert.Len(t, messages, 2, "incorrect message count in mailbox %s", name)
 		return true
 	})
-	assert.NoError(t, err, "VisitMailboxes() failed")
+	require.NoError(t, err, "VisitMailboxes() failed")
 	assert.Equal(t, 5, nboxes, "visited %v mailboxes, want: 5", nboxes)
 }
 

@@ -38,7 +38,7 @@ func TestSuite(t *testing.T) {
 func TestFSNew(t *testing.T) {
 	// Should fail if no path specified.
 	ds, err := New(config.Storage{}, extension.NewHost())
-	assert.ErrorContains(t, err, "parameter not specified")
+	require.ErrorContains(t, err, "parameter not specified")
 	assert.Nil(t, ds)
 }
 
@@ -100,7 +100,7 @@ func TestFSDirStructure(t *testing.T) {
 
 	// Delete message
 	err := ds.RemoveMessage(mbName, id1)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Message should be removed
 	expect = filepath.Join(mbPath, id1+".raw")
@@ -110,7 +110,7 @@ func TestFSDirStructure(t *testing.T) {
 
 	// Delete message
 	err = ds.RemoveMessage(mbName, id2)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Message should be removed
 	expect = filepath.Join(mbPath, id2+".raw")
@@ -147,15 +147,15 @@ func TestFSMissing(t *testing.T) {
 
 	// Delete a message file without removing it from index
 	msg, err := ds.GetMessage(mbName, sentIds[1])
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	fmsg := msg.(*Message)
 	_ = os.Remove(fmsg.rawPath())
 	msg, err = ds.GetMessage(mbName, sentIds[1])
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Try to read parts of message
 	_, err = msg.Source()
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	if t.Failed() {
 		// Wait for handler to finish logging
@@ -176,7 +176,7 @@ func TestGetLatestMessage(t *testing.T) {
 	// Test empty mailbox
 	msg, err := ds.GetMessage(mbName, "latest")
 	assert.Nil(t, msg)
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Deliver test message
 	deliverMessage(ds, mbName, "test", time.Now())
@@ -187,18 +187,18 @@ func TestGetLatestMessage(t *testing.T) {
 	// Test get the latest message
 	msg, err = ds.GetMessage(mbName, "latest")
 	require.NoError(t, err)
-	assert.True(t, msg.ID() == id2, "Expected %q to be equal to %q", msg.ID(), id2)
+	assert.Equal(t, id2, msg.ID(), "Expected %q to be equal to %q", msg.ID(), id2)
 
 	// Deliver test message 3
 	id3, _ := deliverMessage(ds, mbName, "test 3", time.Now())
 
 	msg, err = ds.GetMessage(mbName, "latest")
 	require.NoError(t, err)
-	assert.True(t, msg.ID() == id3, "Expected %q to be equal to %q", msg.ID(), id3)
+	assert.Equal(t, id3, msg.ID(), "Expected %q to be equal to %q", msg.ID(), id3)
 
 	// Test wrong id
 	_, err = ds.GetMessage(mbName, "wrongid")
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	if t.Failed() {
 		// Wait for handler to finish logging

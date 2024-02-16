@@ -47,7 +47,7 @@ func TestPoolGrowsWithPuts(t *testing.T) {
 	require.NoError(t, err)
 	b, err := pool.getState()
 	require.NoError(t, err)
-	assert.Equal(t, 0, len(pool.states), "Wanted pool to be empty")
+	assert.Empty(t, pool.states, "Wanted pool to be empty")
 
 	pool.putState(a)
 	pool.putState(b)
@@ -64,11 +64,11 @@ func TestPoolPutDiscardsClosed(t *testing.T) {
 
 	a, err := pool.getState()
 	require.NoError(t, err)
-	assert.Equal(t, 0, len(pool.states), "Wanted pool to be empty")
+	assert.Empty(t, pool.states, "Wanted pool to be empty")
 
 	a.Close()
 	pool.putState(a)
-	assert.Equal(t, 0, len(pool.states), "Wanted pool to remain empty")
+	assert.Empty(t, pool.states, "Wanted pool to remain empty")
 }
 
 func TestPoolPutClearsStack(t *testing.T) {
@@ -76,7 +76,7 @@ func TestPoolPutClearsStack(t *testing.T) {
 
 	ls, err := pool.getState()
 	require.NoError(t, err)
-	assert.Equal(t, 0, len(pool.states), "Wanted pool to be empty")
+	assert.Empty(t, pool.states, "Wanted pool to be empty")
 
 	// Setup stack.
 	ls.Push(lua.LNumber(4))
@@ -85,7 +85,7 @@ func TestPoolPutClearsStack(t *testing.T) {
 
 	// Return and verify stack cleared.
 	pool.putState(ls)
-	assert.Equal(t, 1, len(pool.states), "Wanted pool to have one item")
+	assert.Len(t, pool.states, 1, "Wanted pool to have one item")
 	require.Equal(t, 0, ls.GetTop(), "Want stack to be empty")
 }
 

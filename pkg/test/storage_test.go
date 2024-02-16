@@ -84,7 +84,7 @@ func TestStoreStubMailboxAddGetVisit(t *testing.T) {
 
 			want, ok := expectCounts[mailbox]
 			assert.True(t, ok, "Mailbox %q was unexpected", mailbox)
-			assert.Equal(t, want, len(m), "Unexpected message count for mailbox %q", mailbox)
+			assert.Len(t, m, want, "Unexpected message count for mailbox %q", mailbox)
 
 			delete(expectCounts, mailbox)
 
@@ -114,7 +114,7 @@ func TestStoreStubMarkSeen(t *testing.T) {
 	// Mark second message as seen.
 	seen := inputMsgs[1]
 	err := ss.MarkSeen("box1", seen.ID())
-	assert.NoError(t, err, "MarkSeen must not fail")
+	require.NoError(t, err, "MarkSeen must not fail")
 
 	// Verify message has seen flag.
 	got, err := ss.GetMessage("box1", seen.ID())
@@ -150,16 +150,16 @@ func TestStoreStubRemoveMessage(t *testing.T) {
 	// Delete second message.
 	deleted := inputMsgs[1]
 	err := ss.RemoveMessage("box1", deleted.ID())
-	assert.NoError(t, err, "DeleteMessage must not fail")
+	require.NoError(t, err, "DeleteMessage must not fail")
 
 	// Verify message is not in mailbox.
 	messages, err := ss.GetMessages("box1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotContains(t, messages, deleted, "Mailbox should not contain msg %q", deleted.ID())
 
 	// Verify message is no longer retrievable.
 	got, err := ss.GetMessage("box1", deleted.ID())
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, got, "Message should have been nil")
 
 	// Verify message is in deleted list.
@@ -181,12 +181,12 @@ func TestStoreStubPurgeMessages(t *testing.T) {
 
 	// Purge messages.
 	err := ss.PurgeMessages("box1")
-	assert.NoError(t, err, "PurgeMessages must not fail")
+	require.NoError(t, err, "PurgeMessages must not fail")
 
 	// Verify message is not in mailbox.
 	messages, err := ss.GetMessages("box1")
-	assert.NoError(t, err)
-	assert.Len(t, messages, 0, "Mailbox should be empty")
+	require.NoError(t, err)
+	assert.Empty(t, messages, "Mailbox should be empty")
 
 	// Verify messages are in deleted list.
 	for _, want := range inputMsgs {
@@ -208,15 +208,15 @@ func TestStoreStubForcedErrors(t *testing.T) {
 
 	// Verify methods return error.
 	_, err = ss.GetMessage("messageerr", id1)
-	assert.Error(t, err, "GetMessage()")
+	require.Error(t, err, "GetMessage()")
 	assert.NotEqual(t, storage.ErrNotExist, err)
 
 	_, err = ss.GetMessages("messageserr")
-	assert.Error(t, err, "GetMessages()")
+	require.Error(t, err, "GetMessages()")
 	assert.NotEqual(t, storage.ErrNotExist, err)
 
 	err = ss.MarkSeen("messageerr", id1)
-	assert.Error(t, err, "MarkSeen()")
+	require.Error(t, err, "MarkSeen()")
 	assert.NotEqual(t, storage.ErrNotExist, err)
 }
 

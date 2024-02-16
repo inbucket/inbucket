@@ -16,34 +16,42 @@ func Example() {
 	baseURL, teardown := exampleSetup()
 	defer teardown()
 
-	// Begin by creating a new client using the base URL of your Inbucket server, i.e.
-	// `localhost:9000`.
-	restClient, err := client.New(baseURL)
-	if err != nil {
-		log.Fatal(err)
-	}
+	err := func() error {
+		// Begin by creating a new client using the base URL of your Inbucket server, i.e.
+		// `localhost:9000`.
+		restClient, err := client.New(baseURL)
+		if err != nil {
+			return err
+		}
 
-	// Get a slice of message headers for the mailbox named `user1`.
-	headers, err := restClient.ListMailbox("user1")
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, header := range headers {
-		fmt.Printf("ID: %v, Subject: %v\n", header.ID, header.Subject)
-	}
+		// Get a slice of message headers for the mailbox named `user1`.
+		headers, err := restClient.ListMailbox("user1")
+		if err != nil {
+			return err
+		}
+		for _, header := range headers {
+			fmt.Printf("ID: %v, Subject: %v\n", header.ID, header.Subject)
+		}
 
-	// Get the content of the first message.
-	message, err := headers[0].GetMessage()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("\nFrom: %v\n", message.From)
-	fmt.Printf("Text body:\n%v", message.Body.Text)
+		// Get the content of the first message.
+		message, err := headers[0].GetMessage()
+		if err != nil {
+			return err
+		}
+		fmt.Printf("\nFrom: %v\n", message.From)
+		fmt.Printf("Text body:\n%v", message.Body.Text)
 
-	// Delete the second message.
-	err = headers[1].Delete()
+		// Delete the second message.
+		err = headers[1].Delete()
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}()
+
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	// Output:

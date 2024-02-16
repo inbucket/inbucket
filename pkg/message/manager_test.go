@@ -392,7 +392,7 @@ func TestMarkSeen(t *testing.T) {
 	assert.False(t, msg.Seen, "msg should be unseen")
 
 	err = sm.MarkSeen("box1", id)
-	assert.NoError(t, err, "MarkSeen should succeed")
+	require.NoError(t, err, "MarkSeen should succeed")
 
 	// Verify test message seen.
 	msg, err = sm.GetMessage("box1", id)
@@ -414,7 +414,7 @@ func TestRemoveMessage(t *testing.T) {
 
 	// Delete message 2 and verify.
 	err = sm.RemoveMessage("box1", id2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	got, err = sm.GetMetadata("box1")
 	require.NoError(t, err)
 	require.Len(t, got, 2, "Should be 2 messages remaining")
@@ -440,10 +440,10 @@ func TestPurgeMessages(t *testing.T) {
 
 	// Purge and verify.
 	err = sm.PurgeMessages("box1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	got, err = sm.GetMetadata("box1")
 	require.NoError(t, err)
-	require.Len(t, got, 0, "Purge should remove all mailbox messages")
+	assert.Empty(t, got, "Purge should remove all mailbox messages")
 }
 
 func TestSourceReader(t *testing.T) {
@@ -543,7 +543,7 @@ func assertMessageCount(t *testing.T, sm *message.StoreManager, mailbox string, 
 	t.Helper()
 
 	metas, err := sm.GetMetadata(mailbox)
-	assert.NoError(t, err, "StoreManager GetMetadata failed")
+	require.NoError(t, err, "StoreManager GetMetadata failed")
 
 	got := len(metas)
 	if got != count {

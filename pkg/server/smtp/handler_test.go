@@ -435,11 +435,12 @@ Hi!
 
 // playSession creates a new session, reads the greeting and then plays the script
 func playSession(t *testing.T, server *Server, script []scriptStep) error {
+	t.Helper()
 	pipe := setupSMTPSession(t, server)
 	c := textproto.NewConn(pipe)
 
 	if code, _, err := c.ReadCodeLine(220); err != nil {
-		return fmt.Errorf("Expected a 220 greeting, got %v", code)
+		return fmt.Errorf("expected a 220 greeting, got %v", code)
 	}
 
 	err := playScriptAgainst(t, c, script)
@@ -596,6 +597,7 @@ func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 var sessionNum int
 
 func setupSMTPSession(t *testing.T, server *Server) net.Conn {
+	t.Helper()
 	logger := zerolog.New(zerolog.NewTestWriter(t))
 	serverConn, clientConn := net.Pipe()
 

@@ -37,7 +37,7 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 	// Configure extensions.
 	extHost := extension.NewHost()
 	luaHost, err := luahost.New(conf.Lua, extHost)
-	if err != nil {
+	if err != nil && err != luahost.ErrNoScript {
 		return nil, err
 	}
 

@@ -5,8 +5,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/google/subcommands"
 )
@@ -68,7 +70,8 @@ func main() {
 }
 
 func baseURL() string {
-	return fmt.Sprintf("http://%s:%v", *host, *port)
+	return fmt.Sprintf("http://%s",
+		net.JoinHostPort(*host, strconv.FormatUint(uint64(*port), 10)))
 }
 
 func fatal(msg string, err error) subcommands.ExitStatus {

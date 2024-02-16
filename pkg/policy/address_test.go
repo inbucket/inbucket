@@ -283,24 +283,18 @@ func TestExtractMailboxValid(t *testing.T) {
 	for _, tc := range testTable {
 		if result, err := localPolicy.ExtractMailbox(tc.input); err != nil {
 			t.Errorf("Error while parsing with local naming %q: %v", tc.input, err)
-		} else {
-			if result != tc.local {
-				t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.local, result)
-			}
+		} else if result != tc.local {
+			t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.local, result)
 		}
 		if result, err := fullPolicy.ExtractMailbox(tc.input); err != nil {
 			t.Errorf("Error while parsing with full naming %q: %v", tc.input, err)
-		} else {
-			if result != tc.full {
-				t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.full, result)
-			}
+		} else if result != tc.full {
+			t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.full, result)
 		}
 		if result, err := domainPolicy.ExtractMailbox(tc.input); tc.domain != "" && err != nil {
 			t.Errorf("Error while parsing with domain naming %q: %v", tc.input, err)
-		} else {
-			if result != tc.domain {
-				t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.domain, result)
-			}
+		} else if result != tc.domain {
+			t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.domain, result)
 		}
 	}
 }
@@ -327,10 +321,8 @@ func TestExtractDomainMailboxValid(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			if result, err := domainPolicy.ExtractMailbox(tc.input); tc.domain != "" && err != nil {
 				t.Errorf("Error while parsing with domain naming %q: %v", tc.input, err)
-			} else {
-				if result != tc.domain {
-					t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.domain, result)
-				}
+			} else if result != tc.domain {
+				t.Errorf("Parsing %q, expected %q, got %q", tc.input, tc.domain, result)
 			}
 		})
 	}

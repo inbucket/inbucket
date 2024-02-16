@@ -112,6 +112,8 @@ func (mb *mbox) readIndex() error {
 		log.Debug().Str("module", "storage").Str("path", mb.indexPath).
 			Msg("Index does not yet exist")
 		mb.indexLoaded = true
+
+		//lint:ignore nilerr missing mailboxes are considered empty.
 		return nil
 	}
 	file, err := os.Open(mb.indexPath)

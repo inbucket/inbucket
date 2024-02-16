@@ -13,7 +13,7 @@ import (
 func RootGreeting(w http.ResponseWriter, req *http.Request, ctx *web.Context) (err error) {
 	greeting, err := os.ReadFile(ctx.RootConfig.Web.GreetingFile)
 	if err != nil {
-		return fmt.Errorf("Failed to load greeting: %v", err)
+		return fmt.Errorf("failed to load greeting: %v", err)
 	}
 
 	w.Header().Set("Content-Type", "text/html")

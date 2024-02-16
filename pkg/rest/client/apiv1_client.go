@@ -87,7 +87,7 @@ func (c *Client) GetMessageSource(name, id string) (*bytes.Buffer, error) {
 	}()
 	if resp.StatusCode != http.StatusOK {
 		return nil,
-			fmt.Errorf("Unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)
+			fmt.Errorf("unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)
 	}
 	buf := new(bytes.Buffer)
 	_, err = buf.ReadFrom(resp.Body)
@@ -103,7 +103,7 @@ func (c *Client) DeleteMessage(name, id string) error {
 	}
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)
+		return fmt.Errorf("unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)
 	}
 	return nil
 }
@@ -117,7 +117,7 @@ func (c *Client) PurgeMailbox(name string) error {
 	}
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)
+		return fmt.Errorf("unexpected HTTP response status %v: %s", resp.StatusCode, resp.Status)
 	}
 	return nil
 }

@@ -28,13 +28,13 @@ func TestBrokerEmitCallsMultipleListeners(t *testing.T) {
 	broker := &extension.EventBroker[string, bool]{}
 
 	// Setup listeners.
-	var first_got, second_got string
+	var firstGot, secondGot string
 	first := func(s string) *bool {
-		first_got = s
+		firstGot = s
 		return nil
 	}
 	second := func(s string) *bool {
-		second_got = s
+		secondGot = s
 		return nil
 	}
 
@@ -43,11 +43,11 @@ func TestBrokerEmitCallsMultipleListeners(t *testing.T) {
 
 	want := "hi"
 	broker.Emit(&want)
-	if first_got != want {
-		t.Errorf("first got %q, want %q", first_got, want)
+	if firstGot != want {
+		t.Errorf("first got %q, want %q", firstGot, want)
 	}
-	if second_got != want {
-		t.Errorf("second got %q, want %q", second_got, want)
+	if secondGot != want {
+		t.Errorf("second got %q, want %q", secondGot, want)
 	}
 }
 
@@ -77,13 +77,13 @@ func TestBrokerAddingDuplicateNameReplacesPrevious(t *testing.T) {
 	broker := &extension.EventBroker[string, bool]{}
 
 	// Setup listeners.
-	var first_got, second_got string
+	var firstGot, secondGot string
 	first := func(s string) *bool {
-		first_got = s
+		firstGot = s
 		return nil
 	}
 	second := func(s string) *bool {
-		second_got = s
+		secondGot = s
 		return nil
 	}
 
@@ -92,11 +92,11 @@ func TestBrokerAddingDuplicateNameReplacesPrevious(t *testing.T) {
 
 	want := "hi"
 	broker.Emit(&want)
-	if first_got != "" {
-		t.Errorf("first got %q, want empty string", first_got)
+	if firstGot != "" {
+		t.Errorf("first got %q, want empty string", firstGot)
 	}
-	if second_got != want {
-		t.Errorf("second got %q, want %q", second_got, want)
+	if secondGot != want {
+		t.Errorf("second got %q, want %q", secondGot, want)
 	}
 }
 
@@ -104,13 +104,13 @@ func TestBrokerRemovingListenerSuccessful(t *testing.T) {
 	broker := &extension.EventBroker[string, bool]{}
 
 	// Setup listeners.
-	var first_got, second_got string
+	var firstGot, secondGot string
 	first := func(s string) *bool {
-		first_got = s
+		firstGot = s
 		return nil
 	}
 	second := func(s string) *bool {
-		second_got = s
+		secondGot = s
 		return nil
 	}
 
@@ -120,11 +120,11 @@ func TestBrokerRemovingListenerSuccessful(t *testing.T) {
 
 	want := "hi"
 	broker.Emit(&want)
-	if first_got != "" {
-		t.Errorf("first got %q, want empty string", first_got)
+	if firstGot != "" {
+		t.Errorf("first got %q, want empty string", firstGot)
 	}
-	if second_got != want {
-		t.Errorf("second got %q, want %q", second_got, want)
+	if secondGot != want {
+		t.Errorf("second got %q, want %q", secondGot, want)
 	}
 }
 

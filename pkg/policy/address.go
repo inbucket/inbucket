@@ -45,7 +45,7 @@ func (a *Addressing) ExtractMailbox(address string) (string, error) {
 	}
 
 	if !ValidateDomainPart(domain) {
-		return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
+		return "", fmt.Errorf("domain part %q in %q failed validation", domain, address)
 	}
 
 	return local + "@" + domain, nil
@@ -136,7 +136,7 @@ func ParseEmailAddress(address string) (local string, domain string, err error) 
 		return "", "", err
 	}
 	if !ValidateDomainPart(domain) {
-		return "", "", fmt.Errorf("Domain part validation failed")
+		return "", "", fmt.Errorf("domain part validation failed")
 	}
 	return local, domain, nil
 }
@@ -229,7 +229,7 @@ func extractDomainMailbox(address string) (string, error) {
 	}
 
 	if !ValidateDomainPart(domain) {
-		return "", fmt.Errorf("Domain part %q in %q failed validation", domain, address)
+		return "", fmt.Errorf("domain part %q in %q failed validation", domain, address)
 	}
 
 	return domain, nil
@@ -254,7 +254,7 @@ func parseEmailAddress(address string) (local string, domain string, err error) 
 		}
 		address = address[end+1:]
 		if address == "" {
-			return "", "", fmt.Errorf("Address empty after removing route specification")
+			return "", "", fmt.Errorf("address empty after removing route specification")
 		}
 	}
 
@@ -296,7 +296,7 @@ LOOP:
 			// A single period is OK.
 			if prev == '.' {
 				// Sequence of periods is not permitted.
-				return "", "", fmt.Errorf("Sequence of periods is not permitted")
+				return "", "", fmt.Errorf("sequence of periods is not permitted")
 			}
 			err = buf.WriteByte(c)
 			if err != nil {
@@ -318,7 +318,7 @@ LOOP:
 				if i == 0 {
 					inStringQuote = true
 				} else {
-					return "", "", fmt.Errorf("Quoted string can only begin at start of address")
+					return "", "", fmt.Errorf("quoted string can only begin at start of address")
 				}
 			}
 		case c == '@':
@@ -331,16 +331,16 @@ LOOP:
 			} else {
 				// End of local-part.
 				if i > 128 {
-					return "", "", fmt.Errorf("Local part must not exceed 128 characters")
+					return "", "", fmt.Errorf("local part must not exceed 128 characters")
 				}
 				if prev == '.' {
-					return "", "", fmt.Errorf("Local part cannot end with a period")
+					return "", "", fmt.Errorf("local part cannot end with a period")
 				}
 				domain = address[i+1:]
 				break LOOP
 			}
 		case c > 127:
-			return "", "", fmt.Errorf("Characters outside of US-ASCII range not permitted")
+			return "", "", fmt.Errorf("characters outside of US-ASCII range not permitted")
 		default:
 			if inCharQuote || inStringQuote {
 				err = buf.WriteByte(c)
@@ -349,16 +349,16 @@ LOOP:
 				}
 				inCharQuote = false
 			} else {
-				return "", "", fmt.Errorf("Character %q must be quoted", c)
+				return "", "", fmt.Errorf("character %q must be quoted", c)
 			}
 		}
 		prev = c
 	}
 	if inCharQuote {
-		return "", "", fmt.Errorf("Cannot end address with unterminated quoted-pair")
+		return "", "", fmt.Errorf("cannot end address with unterminated quoted-pair")
 	}
 	if inStringQuote {
-		return "", "", fmt.Errorf("Cannot end address with unterminated string quote")
+		return "", "", fmt.Errorf("cannot end address with unterminated string quote")
 	}
 	return buf.String(), domain, nil
 }
@@ -369,7 +369,7 @@ LOOP:
 // quoted according to RFC3696.
 func parseMailboxName(localPart string) (result string, err error) {
 	if localPart == "" {
-		return "", fmt.Errorf("Mailbox name cannot be empty")
+		return "", fmt.Errorf("mailbox name cannot be empty")
 	}
 	result = strings.ToLower(localPart)
 	invalid := make([]byte, 0, 10)
@@ -384,7 +384,7 @@ func parseMailboxName(localPart string) (result string, err error) {
 		}
 	}
 	if len(invalid) > 0 {
-		return "", fmt.Errorf("Mailbox name contained invalid character(s): %q", invalid)
+		return "", fmt.Errorf("mailbox name contained invalid character(s): %q", invalid)
 	}
 	if idx := strings.Index(result, "+"); idx > -1 {
 		result = result[0:idx]

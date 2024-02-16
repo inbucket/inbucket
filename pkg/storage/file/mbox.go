@@ -130,7 +130,7 @@ func (mb *mbox) readIndex() error {
 	dec := gob.NewDecoder(br)
 	name := ""
 	if err = dec.Decode(&name); err != nil {
-		return fmt.Errorf("Corrupt mailbox %q: %v", mb.indexPath, err)
+		return fmt.Errorf("corrupt mailbox %q: %v", mb.indexPath, err)
 	}
 	mb.name = name
 	for {
@@ -140,7 +140,7 @@ func (mb *mbox) readIndex() error {
 			if err == io.EOF {
 				break
 			}
-			return fmt.Errorf("Corrupt mailbox %q: %v", mb.indexPath, err)
+			return fmt.Errorf("corrupt mailbox %q: %v", mb.indexPath, err)
 		}
 		msg.mailbox = mb
 		mb.messages = append(mb.messages, msg)

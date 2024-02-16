@@ -26,7 +26,7 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 	messages, err := ctx.Manager.GetMetadata(name)
 	if err != nil {
 		// This doesn't indicate empty, likely an IO error
-		return fmt.Errorf("Failed to get messages for %v: %v", name, err)
+		return fmt.Errorf("failed to get messages for %v: %v", name, err)
 	}
 	jmessages := make([]*model.JSONMessageHeaderV1, len(messages))
 	for i, msg := range messages {
@@ -108,7 +108,7 @@ func MailboxMarkSeenV1(w http.ResponseWriter, req *http.Request, ctx *web.Contex
 	dec := json.NewDecoder(req.Body)
 	dm := model.JSONMessageHeaderV1{}
 	if err := dec.Decode(&dm); err != nil {
-		return fmt.Errorf("Failed to decode JSON: %v", err)
+		return fmt.Errorf("failed to decode JSON: %v", err)
 	}
 	if dm.Seen {
 		err = ctx.Manager.MarkSeen(name, id)

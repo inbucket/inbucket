@@ -173,7 +173,7 @@ func openLog(level string, logfile string, json bool) (close func(), err error) 
 	case "error":
 		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 	default:
-		return nil, fmt.Errorf("Log level %q not one of: debug, info, warn, error", level)
+		return nil, fmt.Errorf("log level %q not one of: debug, info, warn, error", level)
 	}
 	close = func() {}
 	var w io.Writer

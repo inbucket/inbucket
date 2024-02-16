@@ -55,7 +55,7 @@ func unwrapInboundMessage(lv lua.LValue) (*event.InboundMessage, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Expected InboundMessage, got %q", lv.Type().String())
+	return nil, fmt.Errorf("expected InboundMessage, got %q", lv.Type().String())
 }
 
 // Gets a field value from InboundMessage user object.  This emulates a Lua table,

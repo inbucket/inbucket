@@ -285,7 +285,7 @@ LOOP:
 				return
 			}
 			inCharQuote = false
-		case bytes.IndexByte([]byte("!#$%&'*+-/=?^_`{|}~"), c) >= 0:
+		case strings.IndexByte("!#$%&'*+-/=?^_`{|}~", c) >= 0:
 			// These specials can be used unquoted.
 			err = buf.WriteByte(c)
 			if err != nil {
@@ -378,7 +378,7 @@ func parseMailboxName(localPart string) (result string, err error) {
 		switch {
 		case 'a' <= c && c <= 'z':
 		case '0' <= c && c <= '9':
-		case bytes.IndexByte([]byte("!#$%&'*+-=/?^_`.{|}~"), c) >= 0:
+		case strings.IndexByte("!#$%&'*+-=/?^_`.{|}~", c) >= 0:
 		default:
 			invalid = append(invalid, c)
 		}

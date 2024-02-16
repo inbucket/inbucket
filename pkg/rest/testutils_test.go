@@ -122,9 +122,10 @@ func getDecodedPath(o interface{}, path ...string) (interface{}, string) {
 	if o == nil {
 		return nil, " is nil"
 	}
-	key := path[0]
-	present := false
+
+	var present bool
 	var val interface{}
+	key := path[0]
 	if key[0] == '[' {
 		// Expecting slice.
 		index, err := strconv.Atoi(strings.Trim(key, "[]"))
@@ -147,12 +148,15 @@ func getDecodedPath(o interface{}, path ...string) (interface{}, string) {
 		}
 		val, present = omap[key]
 	}
+
 	if !present {
 		return nil, "/" + key + " is missing"
 	}
+
 	result, msg := getDecodedPath(val, path[1:]...)
 	if msg != "" {
 		return nil, "/" + key + msg
 	}
+
 	return result, ""
 }

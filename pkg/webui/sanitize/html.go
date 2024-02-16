@@ -39,7 +39,7 @@ func sanitizeStyleTags(input string) (string, error) {
 
 func styleTagFilter(w io.Writer, r io.Reader) error {
 	bw := bufio.NewWriter(w)
-	b := make([]byte, 256)
+	b := make([]byte, 0, 256)
 	z := html.NewTokenizer(r)
 	for {
 		b = b[:0]

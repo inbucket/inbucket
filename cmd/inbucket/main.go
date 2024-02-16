@@ -162,7 +162,7 @@ signalLoop:
 }
 
 // openLog configures zerolog output, returns func to close logfile.
-func openLog(level string, logfile string, json bool) (close func(), err error) {
+func openLog(level string, logfile string, json bool) (closeLog func(), err error) {
 	switch level {
 	case "debug":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -175,7 +175,8 @@ func openLog(level string, logfile string, json bool) (close func(), err error) 
 	default:
 		return nil, fmt.Errorf("log level %q not one of: debug, info, warn, error", level)
 	}
-	close = func() {}
+
+	closeLog = func() {}
 	var w io.Writer
 	color := runtime.GOOS != "windows"
 	switch logfile {
@@ -191,21 +192,24 @@ func openLog(level string, logfile string, json bool) (close func(), err error) 
 		bw := bufio.NewWriter(logf)
 		w = bw
 		color = false
-		close = func() {
+		closeLog = func() {
 			_ = bw.Flush()
 			_ = logf.Close()
 		}
 	}
+
 	w = zerolog.SyncWriter(w)
 	if json {
 		log.Logger = log.Output(w)
-		return close, nil
+		return closeLog, nil
 	}
+
 	log.Logger = log.Output(zerolog.ConsoleWriter{
 		Out:     w,
 		NoColor: !color,
 	})
-	return close, nil
+
+	return closeLog, nil
 }
 
 // removePIDFile removes the PID file if created.

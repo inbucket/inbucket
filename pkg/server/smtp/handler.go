@@ -173,13 +173,13 @@ func (s *Server) startSession(id int, conn net.Conn, logger zerolog.Logger) {
 		}
 		line, err := ssn.readLine()
 		if err == nil {
-			//Handle LOGIN/PASSWORD states here, because they don't expect a command
+			// Handle LOGIN/PASSWORD states here, because they don't expect a command.
 			switch ssn.state {
 			case LOGIN:
-				ssn.loginHandler(line)
+				ssn.loginHandler()
 				continue
 			case PASSWORD:
-				ssn.passwordHandler(line)
+				ssn.passwordHandler()
 				continue
 			}
 
@@ -312,13 +312,13 @@ func parseHelloArgument(arg string) (string, error) {
 	return domain, nil
 }
 
-func (s *Session) loginHandler(line string) {
+func (s *Session) loginHandler() {
 	// Content and length of username is ignored.
 	s.send(fmt.Sprintf("334 %v", passwordChallenge))
 	s.enterState(PASSWORD)
 }
 
-func (s *Session) passwordHandler(line string) {
+func (s *Session) passwordHandler() {
 	// Content and length of password is ignored.
 	s.send("235 Authentication successful")
 	s.enterState(READY)

@@ -134,48 +134,46 @@ func (s *Server) startSession(id int, conn net.Conn) {
 		line, err := ssn.readLine()
 		ssn.logger.Debug().Msgf("read %s", line)
 		if err == nil {
-			if cmd, arg, ok := ssn.parseCmd(line); ok {
-				// Check against valid SMTP commands
-				if cmd == "" {
-					ssn.send("-ERR Speak up")
-					continue
+			cmd, arg := ssn.parseCmd(line)
+			// Commands we handle in any state
+			if cmd == "CAPA" {
+				// List our capabilities per RFC2449
+				ssn.send("+OK Capability list follows")
+				ssn.send("TOP")
+				ssn.send("USER")
+				ssn.send("UIDL")
+				ssn.send("IMPLEMENTATION Inbucket")
+				if s.tlsConfig != nil && s.tlsState == nil && !s.config.ForceTLS {
+					ssn.send("STLS")
 				}
-				if !commands[cmd] {
-					ssn.send(fmt.Sprintf("-ERR Syntax error, %v command unrecognized", cmd))
-					ssn.logger.Warn().Msgf("Unrecognized command: %v", cmd)
-					continue
-				}
-
-				// Commands we handle in any state
-				switch cmd {
-				case "CAPA":
-					// List our capabilities per RFC2449
-					ssn.send("+OK Capability list follows")
-					ssn.send("TOP")
-					ssn.send("USER")
-					ssn.send("UIDL")
-					ssn.send("IMPLEMENTATION Inbucket")
-					if s.tlsConfig != nil && s.tlsState == nil && !s.config.ForceTLS {
-						ssn.send("STLS")
-					}
-					ssn.send(".")
-					continue
-				}
-
-				// Send command to handler for current state
-				switch ssn.state {
-				case AUTHORIZATION:
-					ssn.authorizationHandler(cmd, arg)
-					continue
-				case TRANSACTION:
-					ssn.transactionHandler(cmd, arg)
-					continue
-				}
-				ssn.logger.Error().Msgf("Session entered unexpected state %v", ssn.state)
-				break
-			} else {
-				ssn.send("-ERR Syntax error, command garbled")
+				ssn.send(".")
+				continue
 			}
+
+			// Check against valid SMTP commands
+			if cmd == "" {
+				ssn.send("-ERR Speak up")
+				continue
+			}
+
+			if !commands[cmd] {
+				ssn.send(fmt.Sprintf("-ERR Syntax error, %v command unrecognized", cmd))
+				ssn.logger.Warn().Msgf("Unrecognized command: %v", cmd)
+				continue
+			}
+
+			// Send command to handler for current state
+			switch ssn.state {
+			case AUTHORIZATION:
+				ssn.authorizationHandler(cmd, arg)
+				continue
+			case TRANSACTION:
+				ssn.transactionHandler(cmd, arg)
+				continue
+			}
+
+			ssn.logger.Error().Msgf("Session entered unexpected state %v", ssn.state)
+			break
 		} else {
 			// readLine() returned an error
 			if err == io.EOF {
@@ -631,14 +629,14 @@ func (s *Session) readLine() (line string, err error) {
 	return line, nil
 }
 
-func (s *Session) parseCmd(line string) (cmd string, args []string, ok bool) {
+func (s *Session) parseCmd(line string) (cmd string, args []string) {
 	line = strings.TrimRight(line, "\r\n")
 	if line == "" {
-		return "", nil, true
+		return "", nil
 	}
 
 	words := strings.Split(line, " ")
-	return strings.ToUpper(words[0]), words[1:], true
+	return strings.ToUpper(words[0]), words[1:]
 }
 
 func (s *Session) reset() {

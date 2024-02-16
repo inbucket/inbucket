@@ -47,13 +47,13 @@ func TestAsyncBrokerEmitCallsMultipleListeners(t *testing.T) {
 	want := "hi"
 	broker.Emit(&want)
 
-	first_got, err := first()
+	firstGot, err := first()
 	require.NoError(t, err)
-	assert.Equal(t, want, *first_got)
+	assert.Equal(t, want, *firstGot)
 
-	second_got, err := second()
+	secondGot, err := second()
 	require.NoError(t, err)
-	assert.Equal(t, want, *second_got)
+	assert.Equal(t, want, *secondGot)
 }
 
 func TestAsyncBrokerAddingDuplicateNameReplacesPrevious(t *testing.T) {
@@ -66,13 +66,13 @@ func TestAsyncBrokerAddingDuplicateNameReplacesPrevious(t *testing.T) {
 	want := "hi"
 	broker.Emit(&want)
 
-	first_got, err := first()
+	firstGot, err := first()
 	require.Error(t, err)
-	assert.Nil(t, first_got)
+	assert.Nil(t, firstGot)
 
-	second_got, err := second()
+	secondGot, err := second()
 	require.NoError(t, err)
-	assert.Equal(t, want, *second_got)
+	assert.Equal(t, want, *secondGot)
 }
 
 func TestAsyncBrokerRemovingListenerSuccessful(t *testing.T) {
@@ -86,13 +86,13 @@ func TestAsyncBrokerRemovingListenerSuccessful(t *testing.T) {
 	want := "hi"
 	broker.Emit(&want)
 
-	first_got, err := first()
+	firstGot, err := first()
 	require.Error(t, err)
-	assert.Nil(t, first_got)
+	assert.Nil(t, firstGot)
 
-	second_got, err := second()
+	secondGot, err := second()
 	require.NoError(t, err)
-	assert.Equal(t, want, *second_got)
+	assert.Equal(t, want, *secondGot)
 }
 
 func TestAsyncBrokerRemovingMissingListener(t *testing.T) {

@@ -307,7 +307,7 @@ func parseHelloArgument(arg string) (string, error) {
 		domain = arg[:idx]
 	}
 	if domain == "" {
-		return "", fmt.Errorf("Invalid domain")
+		return "", fmt.Errorf("invalid domain")
 	}
 	return domain, nil
 }

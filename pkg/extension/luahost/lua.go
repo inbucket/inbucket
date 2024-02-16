@@ -37,7 +37,7 @@ func New(conf config.Lua, extHost *extension.Host) (*Host, error) {
 		logger.Info().Msg("Script file not found")
 		return nil, nil
 	} else if fi.IsDir() {
-		return nil, fmt.Errorf("Lua script %v is a directory", scriptPath)
+		return nil, fmt.Errorf("lua script %v is a directory", scriptPath)
 	}
 
 	logger.Info().Msg("Loading script")

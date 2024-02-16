@@ -34,7 +34,7 @@ func NewServer(pop3Config config.POP3, store storage.Store) (*Server, error) {
 		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(pop3Config.TLSCert, pop3Config.TLSPrivKey)
 		if err != nil {
 			slog.Error().Msgf("Failed loading X509 KeyPair: %v", err)
-			return nil, fmt.Errorf("Failed to configure TLS; %v", err)
+			return nil, fmt.Errorf("failed to configure TLS; %v", err)
 			// Do not silently turn off Security.
 		}
 		slog.Debug().Msg("TLS config available")

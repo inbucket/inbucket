@@ -2,9 +2,6 @@ name: Lint Go Code
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
 
 jobs:
   golangci:

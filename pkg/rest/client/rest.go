@@ -11,7 +11,7 @@ import (
 
 // httpClient allows http.Client to be mocked for tests
 type httpClient interface {
-	Do(*http.Request) (*http.Response, error)
+	Do(req *http.Request) (*http.Response, error)
 }
 
 // Generic REST restClient

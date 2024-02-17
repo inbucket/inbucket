@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 const baseURLStr = "http://test.local:8080"
@@ -78,10 +80,11 @@ func TestDoTable(t *testing.T) {
 		t.Run(testname, func(t *testing.T) {
 			mth := &mockHTTPClient{}
 			c := &restClient{mth, test.base}
-			_, err := c.do(test.method, test.uri, test.wantBody)
-			if err != nil {
-				t.Fatal(err)
-			}
+			resp, err := c.do(test.method, test.uri, test.wantBody)
+			require.NoError(t, err)
+			err = resp.Body.Close()
+			require.NoError(t, err)
+
 			if mth.req.Method != test.wantMethod {
 				t.Errorf("req.Method == %q, want %q", mth.req.Method, test.wantMethod)
 			}

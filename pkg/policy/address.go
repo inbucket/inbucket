@@ -306,15 +306,16 @@ LOOP:
 		case c == '\\':
 			inCharQuote = true
 		case c == '"':
-			if inCharQuote {
+			switch {
+			case inCharQuote:
 				err = buf.WriteByte(c)
 				if err != nil {
 					return
 				}
 				inCharQuote = false
-			} else if inStringQuote {
+			case inStringQuote:
 				inStringQuote = false
-			} else {
+			default:
 				if i == 0 {
 					inStringQuote = true
 				} else {

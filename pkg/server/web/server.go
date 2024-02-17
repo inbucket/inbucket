@@ -109,7 +109,7 @@ func NewServer(conf *config.Root, mm message.Manager, mh *msghub.Hub) *Server {
 
 	// SPA managed paths.
 	spaHandler := cookieHandler(appConfigCookie(conf.Web),
-		spaTemplateHandler(indexTmpl, prefix("/"), conf.Web))
+		spaTemplateHandler(indexTmpl, prefix("/")))
 	Router.Path(prefix("/")).Handler(spaHandler)
 	Router.Path(prefix("/monitor")).Handler(spaHandler)
 	Router.Path(prefix("/status")).Handler(spaHandler)

@@ -282,8 +282,7 @@ func clearEnv() {
 	}
 
 	// Backup ciritcal env variables.
-	switch runtime.GOOS {
-	case "windows":
+	if runtime.GOOS == "windows" {
 		backup("SYSTEMROOT")
 	}
 

@@ -49,9 +49,7 @@ func TestGreetStateValidCommands(t *testing.T) {
 			script := []scriptStep{
 				tc,
 				{"QUIT", 221}}
-			if err := playSession(t, server, script); err != nil {
-				t.Error(err)
-			}
+			playSession(t, server, script)
 		})
 	}
 }
@@ -77,9 +75,7 @@ func TestGreetState(t *testing.T) {
 			script := []scriptStep{
 				tc,
 				{"QUIT", 221}}
-			if err := playSession(t, server, script); err != nil {
-				t.Error(err)
-			}
+			playSession(t, server, script)
 		})
 	}
 }
@@ -94,18 +90,14 @@ func TestEmptyEnvelope(t *testing.T) {
 		{"HELO localhost", 250},
 		{"MAIL FROM:<>", 501},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 
 	// Test out some empty envelope with blanks
 	script = []scriptStep{
 		{"HELO localhost", 250},
 		{"MAIL FROM: <>", 501},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 }
 
 // Test AUTH commands.
@@ -125,9 +117,7 @@ func TestAuth(t *testing.T) {
 		{"RSET", 250},
 		{"AUTH PLAIN aW5idWNrZXQ6cG Fzc3dvcmQK", 500},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 
 	// LOGIN AUTH
 	script = []scriptStep{
@@ -140,9 +130,7 @@ func TestAuth(t *testing.T) {
 		{"", 334},
 		{"", 235},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 }
 
 // Test TLS commands.
@@ -157,9 +145,7 @@ func TestTLS(t *testing.T) {
 		{"STARTTLS", 454}, // TLS unconfigured.
 	}
 
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 }
 
 // Test valid commands in READY state.
@@ -191,9 +177,7 @@ func TestReadyStateValidCommands(t *testing.T) {
 				{"HELO localhost", 250},
 				tc,
 				{"QUIT", 221}}
-			if err := playSession(t, server, script); err != nil {
-				t.Error(err)
-			}
+			playSession(t, server, script)
 		})
 	}
 }
@@ -217,9 +201,7 @@ func TestReadyStateRejectedDomains(t *testing.T) {
 				{"HELO localhost", 250},
 				tc,
 				{"QUIT", 221}}
-			if err := playSession(t, server, script); err != nil {
-				t.Error(err)
-			}
+			playSession(t, server, script)
 		})
 	}
 }
@@ -249,9 +231,7 @@ func TestReadyStateInvalidCommands(t *testing.T) {
 				{"HELO localhost", 250},
 				tc,
 				{"QUIT", 221}}
-			if err := playSession(t, server, script); err != nil {
-				t.Error(err)
-			}
+			playSession(t, server, script)
 		})
 	}
 }
@@ -276,9 +256,7 @@ func TestMailState(t *testing.T) {
 		{"RCPT TO:<first last@host.com>", 501},
 		{"RCPT TO:<fred@fish@host.com", 501},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 
 	// Test out some good RCPT commands
 	script = []scriptStep{
@@ -295,9 +273,7 @@ func TestMailState(t *testing.T) {
 		{"RCPT TO:<u1@[127.0.0.1]>", 250},
 		{"RCPT TO:<u1@[IPv6:2001:db8:aaaa:1::100]>", 250},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 
 	// Test out recipient limit
 	script = []scriptStep{
@@ -310,9 +286,7 @@ func TestMailState(t *testing.T) {
 		{"RCPT TO:<u5@gmail.com>", 250},
 		{"RCPT TO:<u6@gmail.com>", 552},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 
 	// Test DATA
 	script = []scriptStep{
@@ -322,9 +296,7 @@ func TestMailState(t *testing.T) {
 		{"DATA", 354},
 		{".", 250},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 
 	// Test late EHLO, similar to RSET
 	script = []scriptStep{
@@ -335,9 +307,7 @@ func TestMailState(t *testing.T) {
 		{"EHLO localhost", 250},
 		{"MAIL FROM:<john@gmail.com>", 250},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 
 	// Test RSET
 	script = []scriptStep{
@@ -347,9 +317,7 @@ func TestMailState(t *testing.T) {
 		{"RSET", 250},
 		{"MAIL FROM:<john@gmail.com>", 250},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 
 	// Test QUIT
 	script = []scriptStep{
@@ -358,9 +326,7 @@ func TestMailState(t *testing.T) {
 		{"RCPT TO:<u1@gmail.com>", 250},
 		{"QUIT", 221},
 	}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 }
 
 // Test commands in DATA state
@@ -382,9 +348,7 @@ func TestDataState(t *testing.T) {
 		{"RCPT TO:<u1@gmail.com>", 250},
 		{"DATA", 354},
 	}
-	if err := playScriptAgainst(t, c, script); err != nil {
-		t.Error(err)
-	}
+	playScriptAgainst(t, c, script)
 
 	// Send a message
 	body := `To: u1@gmail.com
@@ -414,9 +378,7 @@ Hi!
 		{"RCPT TO:<u1@gmail.com>", 250},
 		{"DATA", 354},
 	}
-	if err := playScriptAgainst(t, c, script); err != nil {
-		t.Error(err)
-	}
+	playScriptAgainst(t, c, script)
 
 	// Send a message
 	body = `X-Useless-Header: true
@@ -434,31 +396,30 @@ Hi!
 }
 
 // playSession creates a new session, reads the greeting and then plays the script
-func playSession(t *testing.T, server *Server, script []scriptStep) error {
+func playSession(t *testing.T, server *Server, script []scriptStep) {
 	t.Helper()
 	pipe := setupSMTPSession(t, server)
 	c := textproto.NewConn(pipe)
 
 	if code, _, err := c.ReadCodeLine(220); err != nil {
-		return fmt.Errorf("expected a 220 greeting, got %v", code)
+		t.Errorf("expected a 220 greeting, got %v", code)
 	}
 
-	err := playScriptAgainst(t, c, script)
+	playScriptAgainst(t, c, script)
 
-	// Not all tests leave the session in a clean state, so the following two
-	// calls can fail
+	// Not all tests leave the session in a clean state, so the following two calls can fail
 	_, _ = c.Cmd("QUIT")
 	_, _, _ = c.ReadCodeLine(221)
-
-	return err
 }
 
 // playScriptAgainst an existing connection, does not handle server greeting
-func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) error {
+func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) {
+	t.Helper()
+
 	for i, step := range script {
 		id, err := c.Cmd(step.send)
 		if err != nil {
-			return fmt.Errorf("Step %d, failed to send %q: %v", i, step.send, err)
+			t.Fatalf("Step %d, failed to send %q: %v", i, step.send, err)
 		}
 
 		c.StartResponse(id)
@@ -470,11 +431,10 @@ func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) err
 		c.EndResponse(id)
 
 		if err != nil {
-			// Return after c.EndResponse so we don't hang the connection
-			return err
+			// Fail after c.EndResponse so we don't hang the connection
+			t.Fatal(err)
 		}
 	}
-	return nil
 }
 
 // Tests "MAIL FROM" emits BeforeMailAccepted event.
@@ -497,9 +457,7 @@ func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
 		{"HELO localhost", 250},
 		{"MAIL FROM:<john@gmail.com>", 250},
 		{"QUIT", 221}}
-	if err := playSession(t, server, script); err != nil {
-		t.Error(err)
-	}
+	playSession(t, server, script)
 
 	assert.NotNil(t, got, "BeforeMailListener did not receive Address")
 	assert.Equal(t, "john", got.Local, "Address local part had wrong value")
@@ -554,9 +512,7 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 				{"HELO localhost", 250},
 				tc.script,
 				{"QUIT", 221}}
-			if err := playSession(t, server, script); err != nil {
-				t.Error(err)
-			}
+			playSession(t, server, script)
 
 			assert.NotNil(t, gotEvent, "BeforeMailListener did not receive Address")
 		})

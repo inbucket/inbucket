@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/rs/zerolog/log"
 )
 
@@ -86,13 +85,13 @@ func requestLoggingWrapper(next http.Handler) http.Handler {
 }
 
 // spaTemplateHandler creates a handler to serve the index.html template for our SPA.
-func spaTemplateHandler(tmpl *template.Template, basePath string,
-	webConfig config.Web) http.Handler {
+func spaTemplateHandler(tmpl *template.Template, basePath string) http.Handler {
 	tmplData := struct {
 		BasePath string
 	}{
 		BasePath: basePath,
 	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		// ensure we do now allow click jacking
 		w.Header().Set("X-Frame-Options", "SameOrigin")

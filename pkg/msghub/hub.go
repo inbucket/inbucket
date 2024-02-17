@@ -140,7 +140,7 @@ func (hub *Hub) RemoveListener(l Listener) {
 // for unit tests.
 func (hub *Hub) Sync() {
 	done := make(chan struct{})
-	hub.opChan <- func(h *Hub) {
+	hub.opChan <- func(_ *Hub) {
 		close(done)
 	}
 	<-done

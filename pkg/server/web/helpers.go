@@ -21,6 +21,6 @@ func TextToHTML(text string) string {
 
 // WrapURL wraps a <a href> tag around the provided URL
 func WrapURL(url string) string {
-	unescaped := strings.Replace(url, "&amp;", "&", -1)
+	unescaped := strings.ReplaceAll(url, "&amp;", "&")
 	return fmt.Sprintf("<a href=\"%s\" target=\"_blank\">%s</a>", unescaped, url)
 }

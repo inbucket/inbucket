@@ -13,7 +13,7 @@ type options struct {
 
 // Option can apply itself to the private options type.
 type Option interface {
-	apply(*options)
+	apply(opts *options)
 }
 
 func getDefaultOptions() *options {

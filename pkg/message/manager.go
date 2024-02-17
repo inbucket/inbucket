@@ -79,9 +79,9 @@ func (s *StoreManager) Deliver(
 	tstamp := now.UTC().Format(recvdTimeFmt)
 
 	// Process inbound message through extensions.
-	mailboxes := make([]string, len(recipients))
-	for i, recip := range recipients {
-		mailboxes[i] = recip.Mailbox
+	mailboxes := make([]string, 0, len(recipients))
+	for _, recip := range recipients {
+		mailboxes = append(mailboxes, recip.Mailbox)
 	}
 
 	// Construct InboundMessage event and process through extensions.

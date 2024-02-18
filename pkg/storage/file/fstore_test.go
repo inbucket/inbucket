@@ -2,20 +2,15 @@ package file
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log"
-	"net/mail"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/inbucket/inbucket/v3/pkg/extension"
-	"github.com/inbucket/inbucket/v3/pkg/extension/event"
-	"github.com/inbucket/inbucket/v3/pkg/message"
 	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/stretchr/testify/assert"
@@ -73,7 +68,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.False(t, isDir(expect), "Expected %q to not exist", expect)
 
 	// Deliver test message
-	id1, _ := deliverMessage(ds, mbName, "test", time.Now())
+	id1, _ := test.DeliverToStore(t, ds, mbName, "test", time.Now())
 
 	// Check path to message exists
 	assert.True(t, isDir(expect), "Expected %q to be a directory", expect)
@@ -90,7 +85,7 @@ func TestFSDirStructure(t *testing.T) {
 	assert.True(t, isFile(expect), "Expected %q to be a file", expect)
 
 	// Deliver second test message
-	id2, _ := deliverMessage(ds, mbName, "test 2", time.Now())
+	id2, _ := test.DeliverToStore(t, ds, mbName, "test 2", time.Now())
 
 	// Check files
 	expect = filepath.Join(mbPath, "index.gob")
@@ -141,7 +136,7 @@ func TestFSMissing(t *testing.T) {
 
 	for i, subj := range subjects {
 		// Add a message
-		id, _ := deliverMessage(ds, mbName, subj, time.Now())
+		id, _ := test.DeliverToStore(t, ds, mbName, subj, time.Now())
 		sentIds[i] = id
 	}
 
@@ -179,10 +174,10 @@ func TestGetLatestMessage(t *testing.T) {
 	require.Error(t, err)
 
 	// Deliver test message
-	deliverMessage(ds, mbName, "test", time.Now())
+	test.DeliverToStore(t, ds, mbName, "test", time.Now())
 
 	// Deliver test message 2
-	id2, _ := deliverMessage(ds, mbName, "test 2", time.Now())
+	id2, _ := test.DeliverToStore(t, ds, mbName, "test 2", time.Now())
 
 	// Test get the latest message
 	msg, err = ds.GetMessage(mbName, "latest")
@@ -190,7 +185,7 @@ func TestGetLatestMessage(t *testing.T) {
 	assert.Equal(t, id2, msg.ID(), "Expected %q to be equal to %q", msg.ID(), id2)
 
 	// Deliver test message 3
-	id3, _ := deliverMessage(ds, mbName, "test 3", time.Now())
+	id3, _ := test.DeliverToStore(t, ds, mbName, "test 3", time.Now())
 
 	msg, err = ds.GetMessage(mbName, "latest")
 	require.NoError(t, err)
@@ -229,30 +224,6 @@ func setupDataStore(cfg config.Storage, extHost *extension.Host) (*Store, *bytes
 	}
 
 	return s.(*Store), buf
-}
-
-// deliverMessage creates and delivers a message to the specific mailbox, returning
-// the size of the generated message.
-func deliverMessage(ds *Store, mbName string, subject string, date time.Time) (string, int64) {
-	// Build message for delivery
-	meta := event.MessageMetadata{
-		Mailbox: mbName,
-		To:      []*mail.Address{{Name: "", Address: "somebody@host"}},
-		From:    &mail.Address{Name: "", Address: "somebodyelse@host"},
-		Subject: subject,
-		Date:    date,
-	}
-	testMsg := fmt.Sprintf("To: %s\r\nFrom: %s\r\nSubject: %s\r\n\r\nTest Body\r\n",
-		meta.To[0].Address, meta.From.Address, subject)
-	delivery := &message.Delivery{
-		Meta:   meta,
-		Reader: io.NopCloser(strings.NewReader(testMsg)),
-	}
-	id, err := ds.AddMessage(delivery)
-	if err != nil {
-		panic(err)
-	}
-	return id, int64(len(testMsg))
 }
 
 func teardownDataStore(ds *Store) {

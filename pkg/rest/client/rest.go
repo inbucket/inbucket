@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,22 +22,24 @@ type restClient struct {
 }
 
 // do performs an HTTP request with this client and returns the response.
-func (c *restClient) do(method, uri string, body []byte) (*http.Response, error) {
+func (c *restClient) do(ctx context.Context, method, uri string, body []byte) (*http.Response, error) {
 	url := c.baseURL.JoinPath(uri)
 	var r io.Reader
 	if body != nil {
 		r = bytes.NewReader(body)
 	}
-	req, err := http.NewRequest(method, url.String(), r)
+
+	req, err := http.NewRequestWithContext(ctx, method, url.String(), r)
 	if err != nil {
 		return nil, fmt.Errorf("%s for %q: %v", method, url, err)
 	}
+
 	return c.client.Do(req)
 }
 
 // doJSON performs an HTTP request with this client and marshalls the JSON response into v.
-func (c *restClient) doJSON(method string, uri string, v interface{}) error {
-	resp, err := c.do(method, uri, nil)
+func (c *restClient) doJSON(ctx context.Context, method string, uri string, v interface{}) error {
+	resp, err := c.do(ctx, method, uri, nil)
 	if err != nil {
 		return err
 	}

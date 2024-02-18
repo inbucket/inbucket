@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -78,9 +79,11 @@ func TestDoTable(t *testing.T) {
 	for _, test := range tests {
 		testname := fmt.Sprintf("%s,%s", test.method, test.wantURL)
 		t.Run(testname, func(t *testing.T) {
+			ctx := context.Background()
 			mth := &mockHTTPClient{}
 			c := &restClient{mth, test.base}
-			resp, err := c.do(test.method, test.uri, test.wantBody)
+
+			resp, err := c.do(ctx, test.method, test.uri, test.wantBody)
 			require.NoError(t, err)
 			err = resp.Body.Close()
 			require.NoError(t, err)
@@ -107,7 +110,7 @@ func TestDoJSON(t *testing.T) {
 	c := &restClient{mth, baseURL}
 
 	var v map[string]interface{}
-	err := c.doJSON("GET", "/doget", &v)
+	err := c.doJSON(context.Background(), "GET", "/doget", &v)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +144,7 @@ func TestDoJSONNilV(t *testing.T) {
 	mth := &mockHTTPClient{}
 	c := &restClient{mth, baseURL}
 
-	err := c.doJSON("GET", "/doget", nil)
+	err := c.doJSON(context.Background(), "GET", "/doget", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

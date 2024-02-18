@@ -33,42 +33,46 @@ func (m *mboxCmd) SetFlags(f *flag.FlagSet) {
 }
 
 func (m *mboxCmd) Execute(
-	_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+	ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	mailbox := f.Arg(0)
 	if mailbox == "" {
 		return usage("mailbox required")
 	}
+
 	// Setup REST client
 	c, err := client.New(baseURL())
 	if err != nil {
 		return fatal("Couldn't build client", err)
 	}
+
 	// Get list
-	headers, err := c.ListMailbox(mailbox)
+	headers, err := c.ListMailboxWithContext(ctx, mailbox)
 	if err != nil {
 		return fatal("List REST call failed", err)
 	}
-	err = outputMbox(headers)
+	err = outputMbox(ctx, headers)
 	if err != nil {
 		return fatal("Error", err)
 	}
+
+	// Optionally, delete retrieved messages
 	if m.delete {
-		// Delete matches
 		for _, h := range headers {
-			err = h.Delete()
+			err = h.DeleteWithContext(ctx)
 			if err != nil {
 				return fatal("Delete REST call failed", err)
 			}
 		}
 	}
+
 	return subcommands.ExitSuccess
 }
 
-// outputMbox renders messages in mbox format
-// also used by match subcommand
-func outputMbox(headers []*client.MessageHeader) error {
+// outputMbox renders messages in mbox format.
+// It is also used by match subcommand.
+func outputMbox(ctx context.Context, headers []*client.MessageHeader) error {
 	for _, h := range headers {
-		source, err := h.GetSource()
+		source, err := h.GetSourceWithContext(ctx)
 		if err != nil {
 			return fmt.Errorf("get source REST failed: %v", err)
 		}

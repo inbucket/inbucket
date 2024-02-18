@@ -15,7 +15,7 @@ import (
 
 type matchCmd struct {
 	output  string
-	outFunc func(headers []*client.MessageHeader) error
+	outFunc func(ctx context.Context, headers []*client.MessageHeader) error
 	delete  bool
 	// match criteria
 	from    regexFlag
@@ -51,11 +51,12 @@ func (m *matchCmd) SetFlags(f *flag.FlagSet) {
 }
 
 func (m *matchCmd) Execute(
-	_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+	ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	mailbox := f.Arg(0)
 	if mailbox == "" {
 		return usage("mailbox required")
 	}
+
 	// Select output function
 	switch m.output {
 	case "id":
@@ -67,16 +68,19 @@ func (m *matchCmd) Execute(
 	default:
 		return usage("unknown output type: " + m.output)
 	}
+
 	// Setup REST client
 	c, err := client.New(baseURL())
 	if err != nil {
 		return fatal("Couldn't build client", err)
 	}
+
 	// Get list
-	headers, err := c.ListMailbox(mailbox)
+	headers, err := c.ListMailboxWithContext(ctx, mailbox)
 	if err != nil {
 		return fatal("List REST call failed", err)
 	}
+
 	// Find matches
 	matches := make([]*client.MessageHeader, 0, len(headers))
 	for _, h := range headers {
@@ -84,24 +88,28 @@ func (m *matchCmd) Execute(
 			matches = append(matches, h)
 		}
 	}
+
 	// Return error status if no matches
 	if len(matches) == 0 {
 		return subcommands.ExitFailure
 	}
+
 	// Output matches
-	err = m.outFunc(matches)
+	err = m.outFunc(ctx, matches)
 	if err != nil {
 		return fatal("Error", err)
 	}
+
+	// Optionally, delete matches
 	if m.delete {
-		// Delete matches
 		for _, h := range matches {
-			err = h.Delete()
+			err = h.DeleteWithContext(ctx)
 			if err != nil {
 				return fatal("Delete REST call failed", err)
 			}
 		}
 	}
+
 	return subcommands.ExitSuccess
 }
 
@@ -148,14 +156,14 @@ func (m *matchCmd) match(header *client.MessageHeader) bool {
 	return true
 }
 
-func outputID(headers []*client.MessageHeader) error {
+func outputID(_ context.Context, headers []*client.MessageHeader) error {
 	for _, h := range headers {
 		fmt.Println(h.ID)
 	}
 	return nil
 }
 
-func outputJSON(headers []*client.MessageHeader) error {
+func outputJSON(_ context.Context, headers []*client.MessageHeader) error {
 	jsonEncoder := json.NewEncoder(os.Stdout)
 	jsonEncoder.SetEscapeHTML(false)
 	jsonEncoder.SetIndent("", "  ")

@@ -28,18 +28,20 @@ func (*listCmd) Usage() string {
 func (l *listCmd) SetFlags(f *flag.FlagSet) {}
 
 func (l *listCmd) Execute(
-	_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+	ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	mailbox := f.Arg(0)
 	if mailbox == "" {
 		return usage("mailbox required")
 	}
+
 	// Setup rest client
 	c, err := client.New(baseURL())
 	if err != nil {
 		return fatal("Couldn't build client", err)
 	}
+
 	// Get list
-	headers, err := c.ListMailbox(mailbox)
+	headers, err := c.ListMailboxWithContext(ctx, mailbox)
 	if err != nil {
 		return fatal("REST call failed", err)
 	}

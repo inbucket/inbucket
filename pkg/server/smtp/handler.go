@@ -330,7 +330,8 @@ func (s *Session) passwordHandler() {
 // READY state -> waiting for MAIL
 // AUTH can change
 func (s *Session) readyHandler(cmd string, arg string) {
-	if cmd == "STARTTLS" {
+	switch cmd {
+	case "STARTTLS":
 		if !s.Server.config.TLSEnabled {
 			// Invalid command since TLS unconfigured.
 			s.logger.Debug().Msgf("454 TLS unavailable on the server")
@@ -353,7 +354,8 @@ func (s *Session) readyHandler(cmd string, arg string) {
 		s.tlsState = new(tls.ConnectionState)
 		*s.tlsState = tlsConn.ConnectionState()
 		s.enterState(GREET)
-	} else if cmd == "AUTH" {
+
+	case "AUTH":
 		args := strings.SplitN(arg, " ", 3)
 		authMethod := args[0]
 		switch authMethod {
@@ -380,7 +382,8 @@ func (s *Session) readyHandler(cmd string, arg string) {
 				return
 			}
 		}
-	} else if cmd == "MAIL" {
+
+	case "MAIL":
 		// Capture group 1: from address.  2: optional params.
 		m := fromRegex.FindStringSubmatch(arg)
 		if m == nil {
@@ -453,12 +456,14 @@ func (s *Session) readyHandler(cmd string, arg string) {
 			s.logger.Warn().Msgf("Extension denied mail from <%v>", from)
 			return
 		}
-	} else if cmd == "EHLO" {
+
+	case "EHLO":
 		// Reset session
 		s.logger.Debug().Msgf("Resetting session state on EHLO request")
 		s.reset()
 		s.send("250 Session reset")
-	} else {
+
+	default:
 		s.ooSeq(cmd)
 	}
 }

@@ -37,14 +37,14 @@ jobs:
         working-directory: ./ui
 
       - name: Test build release
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@v5
         if: "!startsWith(github.ref, 'refs/tags/v')"
         with:
           version: latest
           args: release --snapshot
 
       - name: Build and publish release
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@v5
         if: "startsWith(github.ref, 'refs/tags/v')"
         with:
           version: latest

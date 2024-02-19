@@ -384,78 +384,7 @@ func (s *Session) readyHandler(cmd string, arg string) {
 		}
 
 	case "MAIL":
-		// Capture group 1: from address.  2: optional params.
-		m := fromRegex.FindStringSubmatch(arg)
-		if m == nil {
-			s.send("501 Was expecting MAIL arg syntax of FROM:<address>")
-			s.logger.Warn().Msgf("Bad MAIL argument: %q", arg)
-			return
-		}
-		from := m[1]
-		s.logger.Debug().Msgf("Mail sender is %v", from)
-		localpart, domain, err := policy.ParseEmailAddress(from)
-		s.logger.Debug().Msgf("Origin domain is %v", domain)
-
-		if from != "" && err != nil {
-			s.send("501 Bad sender address syntax")
-			s.logger.Warn().Msgf("Bad address as MAIL arg: %q, %s", from, err)
-			return
-		}
-		if from == "" {
-			from = "unspecified"
-		}
-
-		// This is where the client may put BODY=8BITMIME, but we already
-		// read the DATA as bytes, so it does not effect our processing.
-		if m[2] != "" {
-			args, ok := s.parseArgs(m[2])
-			if !ok {
-				s.send("501 Unable to parse MAIL ESMTP parameters")
-				s.logger.Warn().Msgf("Bad MAIL argument: %q", arg)
-				return
-			}
-			if args["SIZE"] != "" {
-				size, err := strconv.ParseInt(args["SIZE"], 10, 32)
-				if err != nil {
-					s.send("501 Unable to parse SIZE as an integer")
-					s.logger.Warn().Msgf("Unable to parse SIZE %q as an integer", args["SIZE"])
-					return
-				}
-				if int(size) > s.config.MaxMessageBytes {
-					s.send("552 Max message size exceeded")
-					s.logger.Warn().Msgf("Client wanted to send oversized message: %v", args["SIZE"])
-					return
-				}
-			}
-		}
-
-		// Process through extensions.
-		extResult := s.extHost.Events.BeforeMailAccepted.Emit(
-			&event.AddressParts{Local: localpart, Domain: domain})
-
-		if extResult == nil || *extResult {
-			// Permitted by extension, or none had an opinion.
-			origin, err := s.addrPolicy.ParseOrigin(from)
-			if err != nil {
-				s.send("501 Bad origin address syntax")
-				s.logger.Warn().Str("from", from).Err(err).Msg("Bad address as MAIL arg")
-				return
-			}
-			s.from = origin
-			if !s.from.ShouldAccept() {
-				s.send("501 Unauthorized domain")
-				s.logger.Warn().Msgf("Bad domain sender %s", domain)
-				return
-			}
-
-			s.logger.Info().Msgf("Mail from: %v", from)
-			s.send(fmt.Sprintf("250 Roger, accepting mail from <%v>", from))
-			s.enterState(MAIL)
-		} else {
-			s.send("550 Mail denied by policy")
-			s.logger.Warn().Msgf("Extension denied mail from <%v>", from)
-			return
-		}
+		s.parseMailFromCmd(arg)
 
 	case "EHLO":
 		// Reset session
@@ -466,6 +395,86 @@ func (s *Session) readyHandler(cmd string, arg string) {
 	default:
 		s.ooSeq(cmd)
 	}
+}
+
+// Parses `MAIL FROM` command.
+func (s *Session) parseMailFromCmd(arg string) {
+	// Capture group 1: from address. 2: optional params.
+	m := fromRegex.FindStringSubmatch(arg)
+	if m == nil {
+		s.send("501 Was expecting MAIL arg syntax of FROM:<address>")
+		s.logger.Warn().Msgf("Bad MAIL argument: %q", arg)
+		return
+	}
+	from := m[1]
+	s.logger.Debug().Msgf("Mail sender is %v", from)
+
+	// Parse from address.
+	localpart, domain, err := policy.ParseEmailAddress(from)
+	s.logger.Debug().Msgf("Origin domain is %v", domain)
+	if from != "" && err != nil {
+		s.send("501 Bad sender address syntax")
+		s.logger.Warn().Msgf("Bad address as MAIL arg: %q, %s", from, err)
+		return
+	}
+	if from == "" {
+		from = "unspecified"
+	}
+
+	// Parse ESMTP parameters.
+	if m[2] != "" {
+		// Here the client may put BODY=8BITMIME, but Inbucket already
+		// reads the DATA as bytes, so it does not effect mail processing.
+		args, ok := s.parseArgs(m[2])
+		if !ok {
+			s.send("501 Unable to parse MAIL ESMTP parameters")
+			s.logger.Warn().Msgf("Bad MAIL argument: %q", arg)
+			return
+		}
+
+		// Reject oversized messages.
+		if args["SIZE"] != "" {
+			size, err := strconv.ParseInt(args["SIZE"], 10, 32)
+			if err != nil {
+				s.send("501 Unable to parse SIZE as an integer")
+				s.logger.Warn().Msgf("Unable to parse SIZE %q as an integer", args["SIZE"])
+				return
+			}
+			if int(size) > s.config.MaxMessageBytes {
+				s.send("552 Max message size exceeded")
+				s.logger.Warn().Msgf("Client wanted to send oversized message: %v", args["SIZE"])
+				return
+			}
+		}
+	}
+
+	// Process through extensions.
+	extResult := s.extHost.Events.BeforeMailAccepted.Emit(
+		&event.AddressParts{Local: localpart, Domain: domain})
+	if extResult != nil && !*extResult {
+		s.send("550 Mail denied by policy")
+		s.logger.Warn().Msgf("Extension denied mail from <%v>", from)
+		return
+	}
+
+	// Sender was permitted by an extension, or no extension rejected it.
+	origin, err := s.addrPolicy.ParseOrigin(from)
+	if err != nil {
+		s.send("501 Bad origin address syntax")
+		s.logger.Warn().Str("from", from).Err(err).Msg("Bad address as MAIL arg")
+		return
+	}
+	s.from = origin
+	if !s.from.ShouldAccept() {
+		s.send("501 Unauthorized domain")
+		s.logger.Warn().Msgf("Bad domain sender %s", domain)
+		return
+	}
+
+	// Ok to transition to MAIL state.
+	s.logger.Info().Msgf("Mail from: %v", from)
+	s.send(fmt.Sprintf("250 Roger, accepting mail from <%v>", from))
+	s.enterState(MAIL)
 }
 
 // MAIL state -> waiting for RCPTs followed by DATA

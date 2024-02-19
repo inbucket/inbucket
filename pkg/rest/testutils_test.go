@@ -2,12 +2,14 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/inbucket/inbucket/v3/pkg/message"
@@ -16,24 +18,36 @@ import (
 )
 
 func testRestGet(url string) (*httptest.ResponseRecorder, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	req.Header.Add("Accept", "application/json")
 	if err != nil {
 		return nil, err
 	}
+
+	// Pass request to handlers directly.
 	w := httptest.NewRecorder()
 	web.Router.ServeHTTP(w, req)
+
 	return w, nil
 }
 
 func testRestPatch(url string, body string) (*httptest.ResponseRecorder, error) {
-	req, err := http.NewRequest("PATCH", url, strings.NewReader(body))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, strings.NewReader(body))
 	req.Header.Add("Accept", "application/json")
 	if err != nil {
 		return nil, err
 	}
+
+	// Pass request to handlers directly.
 	w := httptest.NewRecorder()
 	web.Router.ServeHTTP(w, req)
+
 	return w, nil
 }
 

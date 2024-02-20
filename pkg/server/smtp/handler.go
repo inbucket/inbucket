@@ -360,27 +360,23 @@ func (s *Session) readyHandler(cmd string, arg string) {
 		authMethod := args[0]
 		switch authMethod {
 		case "PLAIN":
-			{
-				if len(args) != 2 {
-					s.send("500 Bad auth arguments")
-					s.logger.Warn().Msgf("Bad auth attempt: %q", arg)
-					return
-				}
-				s.logger.Info().Msgf("Accepting credentials: %q", args[1])
-				s.send("235 2.7.0 Authentication successful")
+			if len(args) != 2 {
+				s.send("500 Bad auth arguments")
+				s.logger.Warn().Msgf("Bad auth attempt: %q", arg)
 				return
 			}
+			s.logger.Info().Msgf("Accepting credentials: %q", args[1])
+			s.send("235 2.7.0 Authentication successful")
+			return
+
 		case "LOGIN":
-			{
-				s.send(fmt.Sprintf("334 %v", usernameChallenge))
-				s.enterState(LOGIN)
-				return
-			}
+			s.send(fmt.Sprintf("334 %v", usernameChallenge))
+			s.enterState(LOGIN)
+			return
+
 		default:
-			{
-				s.send(fmt.Sprintf("500 Unsupported AUTH method: %v", authMethod))
-				return
-			}
+			s.send(fmt.Sprintf("500 Unsupported AUTH method: %v", authMethod))
+			return
 		}
 
 	case "MAIL":

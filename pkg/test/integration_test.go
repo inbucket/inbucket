@@ -27,6 +27,7 @@ import (
 	"github.com/jhillyerd/goldiff"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/suite"
 )
 
 const (
@@ -35,172 +36,128 @@ const (
 )
 
 // TODO: Add suites for domain and full addressing modes.
-
-func TestSuite(t *testing.T) {
-	stopServer, err := startServer()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer stopServer()
-
-	testCases := []struct {
-		name string
-		test func(*testing.T)
-	}{
-		{"basic", testBasic},
-		{"fullname", testFullname},
-		{"encodedHeader", testEncodedHeader},
-		{"ipv4Recipient", testIPv4Recipient},
-		{"ipv6Recipient", testIPv6Recipient},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, tc.test)
-	}
+type IntegrationSuite struct {
+	suite.Suite
+	stopServer func()
 }
 
-func testBasic(t *testing.T) {
+func (s *IntegrationSuite) SetupSuite() {
+	stopServer, err := startServer()
+	s.NoError(err)
+	s.stopServer = stopServer
+}
+
+func (s *IntegrationSuite) TearDownSuite() {
+	s.stopServer()
+}
+
+func TestIntegrationSuite(t *testing.T) {
+	suite.Run(t, new(IntegrationSuite))
+}
+
+func (s *IntegrationSuite) TestBasic() {
 	client, err := client.New(restBaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 	from := "fromuser@inbucket.org"
 	to := []string{"recipient@inbucket.org"}
 	input := readTestData("basic.txt")
 
 	// Send mail.
 	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 
 	// Confirm receipt.
 	msg, err := client.GetMessage("recipient", "latest")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if msg == nil {
-		t.Errorf("Got nil message, wanted non-nil message.")
-	}
+	s.Require().NoError(err)
+	s.NotNil(msg)
 
 	// Compare to golden.
 	got := formatMessage(msg)
-	goldiff.File(t, got, "testdata", "basic.golden")
+	goldiff.File(s.T(), got, "testdata", "basic.golden")
 }
 
-func testFullname(t *testing.T) {
+func (s *IntegrationSuite) TestFullname() {
 	client, err := client.New(restBaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 	from := "fromuser@inbucket.org"
 	to := []string{"recipient@inbucket.org"}
 	input := readTestData("fullname.txt")
 
 	// Send mail.
 	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 
 	// Confirm receipt.
 	msg, err := client.GetMessage("recipient", "latest")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if msg == nil {
-		t.Errorf("Got nil message, wanted non-nil message.")
-	}
+	s.Require().NoError(err)
+	s.NotNil(msg)
 
 	// Compare to golden.
 	got := formatMessage(msg)
-	goldiff.File(t, got, "testdata", "fullname.golden")
+	goldiff.File(s.T(), got, "testdata", "fullname.golden")
 }
 
-func testEncodedHeader(t *testing.T) {
+func (s *IntegrationSuite) TestEncodedHeader() {
 	client, err := client.New(restBaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 	from := "fromuser@inbucket.org"
 	to := []string{"recipient@inbucket.org"}
 	input := readTestData("encodedheader.txt")
 
 	// Send mail.
 	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 
 	// Confirm receipt.
 	msg, err := client.GetMessage("recipient", "latest")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if msg == nil {
-		t.Errorf("Got nil message, wanted non-nil message.")
-	}
+	s.Require().NoError(err)
+	s.NotNil(msg)
 
 	// Compare to golden.
 	got := formatMessage(msg)
-	goldiff.File(t, got, "testdata", "encodedheader.golden")
+	goldiff.File(s.T(), got, "testdata", "encodedheader.golden")
 }
 
-func testIPv4Recipient(t *testing.T) {
+func (s *IntegrationSuite) TestIPv4Recipient() {
 	client, err := client.New(restBaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 	from := "fromuser@inbucket.org"
 	to := []string{"ip4recipient@[192.168.123.123]"}
 	input := readTestData("no-to.txt")
 
 	// Send mail.
 	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 
 	// Confirm receipt.
 	msg, err := client.GetMessage("ip4recipient", "latest")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if msg == nil {
-		t.Errorf("Got nil message, wanted non-nil message.")
-	}
+	s.Require().NoError(err)
+	s.NotNil(msg)
 
 	// Compare to golden.
 	got := formatMessage(msg)
-	goldiff.File(t, got, "testdata", "no-to-ipv4.golden")
+	goldiff.File(s.T(), got, "testdata", "no-to-ipv4.golden")
 }
 
-func testIPv6Recipient(t *testing.T) {
+func (s *IntegrationSuite) TestIPv6Recipient() {
 	client, err := client.New(restBaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 	from := "fromuser@inbucket.org"
 	to := []string{"ip6recipient@[IPv6:2001:0db8:85a3:0000:0000:8a2e:0370:7334]"}
 	input := readTestData("no-to.txt")
 
 	// Send mail.
 	err = smtpclient.SendMail(smtpHost, nil, from, to, input)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Require().NoError(err)
 
 	// Confirm receipt.
 	msg, err := client.GetMessage("ip6recipient", "latest")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if msg == nil {
-		t.Errorf("Got nil message, wanted non-nil message.")
-	}
+	s.Require().NoError(err)
+	s.NotNil(msg)
 
 	// Compare to golden.
 	got := formatMessage(msg)
-	goldiff.File(t, got, "testdata", "no-to-ipv6.golden")
+	goldiff.File(s.T(), got, "testdata", "no-to-ipv6.golden")
 }
 
 func formatMessage(m *client.Message) []byte {

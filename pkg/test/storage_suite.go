@@ -22,8 +22,8 @@ import (
 type StoreFactory func(
 	config.Storage, *extension.Host) (store storage.Store, destroy func(), err error)
 
-// suite is passed to each test function; embeds `testing.T` to provide testing primitives.
-type suite struct {
+// storeSuite is passed to each test function; embeds `testing.T` to provide testing primitives.
+type storeSuite struct {
 	*testing.T
 	store   storage.Store
 	extHost *extension.Host
@@ -34,7 +34,7 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 	t.Helper()
 	testCases := []struct {
 		name string
-		test func(suite)
+		test func(storeSuite)
 		conf config.Storage
 	}{
 		{"metadata", testMetadata, config.Storage{}},
@@ -59,7 +59,7 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 			}
 			defer destroy()
 
-			s := suite{
+			s := storeSuite{
 				T:       t,
 				store:   store,
 				extHost: extHost,
@@ -70,7 +70,7 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 }
 
 // testMetadata verifies message metadata is stored and retrieved correctly.
-func testMetadata(s suite) {
+func testMetadata(s storeSuite) {
 	mailbox := "testmailbox"
 	from := &mail.Address{Name: "From Person", Address: "from@person.com"}
 	to := []*mail.Address{
@@ -137,7 +137,7 @@ func testMetadata(s suite) {
 }
 
 // testContent generates some binary content and makes sure it is correctly retrieved.
-func testContent(s suite) {
+func testContent(s storeSuite) {
 	content := make([]byte, 5000)
 	for i := 0; i < len(content); i++ {
 		content[i] = byte(i % 256)
@@ -191,7 +191,7 @@ func testContent(s suite) {
 
 // testDeliveryOrder delivers several messages to the same mailbox, meanwhile querying its contents
 // with a new GetMessages call each cycle.
-func testDeliveryOrder(s suite) {
+func testDeliveryOrder(s storeSuite) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for i, subj := range subjects {
@@ -211,7 +211,7 @@ func testDeliveryOrder(s suite) {
 
 // testLatest delivers several messages to the same mailbox, and confirms the id `latest` returns
 // the last message sent.
-func testLatest(s suite) {
+func testLatest(s storeSuite) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for _, subj := range subjects {
@@ -233,14 +233,14 @@ func testLatest(s suite) {
 }
 
 // testNaming ensures the store does not enforce local part mailbox naming.
-func testNaming(s suite) {
+func testNaming(s storeSuite) {
 	DeliverToStore(s.T, s.store, "fred@fish.net", "disk #27", time.Now())
 	GetAndCountMessages(s.T, s.store, "fred", 0)
 	GetAndCountMessages(s.T, s.store, "fred@fish.net", 1)
 }
 
 // testSize verifies message content size metadata values.
-func testSize(s suite) {
+func testSize(s storeSuite) {
 	mailbox := "fred"
 	subjects := []string{"a", "br", "much longer than the others"}
 	sentIds := make([]string, len(subjects))
@@ -264,7 +264,7 @@ func testSize(s suite) {
 }
 
 // testSeen verifies a message can be marked as seen.
-func testSeen(s suite) {
+func testSeen(s storeSuite) {
 	mailbox := "lisa"
 	id1, _ := DeliverToStore(s.T, s.store, mailbox, "whatever", time.Now())
 	id2, _ := DeliverToStore(s.T, s.store, mailbox, "hello?", time.Now())
@@ -300,7 +300,7 @@ func testSeen(s suite) {
 }
 
 // testDelete creates and deletes some messages.
-func testDelete(s suite) {
+func testDelete(s storeSuite) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 	for _, subj := range subjects {
@@ -351,7 +351,7 @@ func testDelete(s suite) {
 }
 
 // testPurge makes sure mailboxes can be purged.
-func testPurge(s suite) {
+func testPurge(s storeSuite) {
 	mailbox := "fred"
 	subjects := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 
@@ -384,7 +384,7 @@ func testPurge(s suite) {
 }
 
 // testMsgCap verifies the message cap is enforced.
-func testMsgCap(s suite) {
+func testMsgCap(s storeSuite) {
 	mbCap := 10
 	mailbox := "captain"
 
@@ -413,7 +413,7 @@ func testMsgCap(s suite) {
 }
 
 // testNoMsgCap verfies a cap of 0 is not enforced.
-func testNoMsgCap(s suite) {
+func testNoMsgCap(s storeSuite) {
 	mailbox := "captain"
 	for i := 0; i < 20; i++ {
 		subj := fmt.Sprintf("subject %v", i)
@@ -424,7 +424,7 @@ func testNoMsgCap(s suite) {
 
 // testVisitMailboxes creates some mailboxes and confirms the VisitMailboxes method visits all of
 // them.
-func testVisitMailboxes(s suite) {
+func testVisitMailboxes(s storeSuite) {
 	// Deliver 2 test messages to each of 5 mailboxes.
 	boxes := []string{"abby", "bill", "christa", "donald", "evelyn"}
 	for _, name := range boxes {

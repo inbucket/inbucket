@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -310,7 +311,7 @@ func parseHelloArgument(arg string) (string, error) {
 		domain = arg[:idx]
 	}
 	if domain == "" {
-		return "", fmt.Errorf("invalid domain")
+		return "", errors.New("invalid domain")
 	}
 	return domain, nil
 }

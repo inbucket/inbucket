@@ -6,14 +6,17 @@ import (
 	"testing"
 
 	"github.com/inbucket/inbucket/v3/pkg/stringutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHashMailboxName(t *testing.T) {
-	want := "1d6e1cf70ec6f9ab28d3ea4b27a49a77654d370e"
-	got := stringutil.HashMailboxName("mail")
-	if got != want {
-		t.Errorf("Got %q, want %q", got, want)
-	}
+	want := "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+	got := stringutil.HashMailboxName("")
+	assert.Equal(t, want, got, "for empty string")
+
+	want = "1d6e1cf70ec6f9ab28d3ea4b27a49a77654d370e"
+	got = stringutil.HashMailboxName("mail")
+	assert.Equal(t, want, got, "for 'mail'")
 }
 
 func TestStringAddressList(t *testing.T) {

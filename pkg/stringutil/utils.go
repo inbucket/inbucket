@@ -2,7 +2,7 @@ package stringutil
 
 import (
 	"crypto/sha1"
-	"fmt"
+	"encoding/hex"
 	"io"
 	"net/mail"
 	"strings"
@@ -13,10 +13,11 @@ import (
 func HashMailboxName(mailbox string) string {
 	h := sha1.New()
 	if _, err := io.WriteString(h, mailbox); err != nil {
-		// This shouldn't ever happen
+		// This should never happen.
 		return ""
 	}
-	return fmt.Sprintf("%x", h.Sum(nil))
+
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // StringAddress converts an Address to a UTF-8 string.

@@ -176,8 +176,6 @@ func (s *Server) serve(ctx context.Context) {
 			}
 		} else {
 			tempDelay = 0
-			expConnectsTotal.Add(1)
-			s.wg.Add(1)
 			go s.startSession(sessionID, conn, log.Logger)
 		}
 	}

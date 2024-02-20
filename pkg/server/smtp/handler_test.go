@@ -45,7 +45,6 @@ func TestGreetStateValidCommands(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain() // Required to prevent test logging data race.
 			script := []scriptStep{
 				tc,
 				{"QUIT", 221}}
@@ -58,7 +57,6 @@ func TestGreetStateValidCommands(t *testing.T) {
 func TestGreetState(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds, extension.NewHost())
-	defer server.Drain() // Required to prevent test logging data race.
 
 	tests := []scriptStep{
 		{"HELO", 501},
@@ -71,7 +69,6 @@ func TestGreetState(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain() // Required to prevent test logging data race.
 			script := []scriptStep{
 				tc,
 				{"QUIT", 221}}
@@ -83,7 +80,6 @@ func TestGreetState(t *testing.T) {
 func TestEmptyEnvelope(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds, extension.NewHost())
-	defer server.Drain()
 
 	// Test out some empty envelope without blanks
 	script := []scriptStep{
@@ -104,7 +100,6 @@ func TestEmptyEnvelope(t *testing.T) {
 func TestAuth(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds, extension.NewHost())
-	defer server.Drain()
 
 	// PLAIN AUTH
 	script := []scriptStep{
@@ -137,7 +132,6 @@ func TestAuth(t *testing.T) {
 func TestTLS(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds, extension.NewHost())
-	defer server.Drain()
 
 	// Test Start TLS parsing.
 	script := []scriptStep{
@@ -172,7 +166,6 @@ func TestReadyStateValidCommands(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain()
 			script := []scriptStep{
 				{"HELO localhost", 250},
 				tc,
@@ -196,7 +189,6 @@ func TestReadyStateRejectedDomains(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain()
 			script := []scriptStep{
 				{"HELO localhost", 250},
 				tc,
@@ -226,7 +218,6 @@ func TestReadyStateInvalidCommands(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain()
 			script := []scriptStep{
 				{"HELO localhost", 250},
 				tc,
@@ -240,7 +231,6 @@ func TestReadyStateInvalidCommands(t *testing.T) {
 func TestMailState(t *testing.T) {
 	mds := test.NewStore()
 	server := setupSMTPServer(mds, extension.NewHost())
-	defer server.Drain()
 
 	// Test out some mangled READY commands
 	script := []scriptStep{
@@ -333,7 +323,6 @@ func TestMailState(t *testing.T) {
 func TestDataState(t *testing.T) {
 	mds := test.NewStore()
 	server := setupSMTPServer(mds, extension.NewHost())
-	defer server.Drain()
 
 	var script []scriptStep
 	pipe := setupSMTPSession(t, server)
@@ -395,54 +384,11 @@ Hi!
 	_, _, _ = c.ReadCodeLine(221)
 }
 
-// playSession creates a new session, reads the greeting and then plays the script
-func playSession(t *testing.T, server *Server, script []scriptStep) {
-	t.Helper()
-	pipe := setupSMTPSession(t, server)
-	c := textproto.NewConn(pipe)
-
-	if code, _, err := c.ReadCodeLine(220); err != nil {
-		t.Errorf("expected a 220 greeting, got %v", code)
-	}
-
-	playScriptAgainst(t, c, script)
-
-	// Not all tests leave the session in a clean state, so the following two calls can fail
-	_, _ = c.Cmd("QUIT")
-	_, _, _ = c.ReadCodeLine(221)
-}
-
-// playScriptAgainst an existing connection, does not handle server greeting
-func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) {
-	t.Helper()
-
-	for i, step := range script {
-		id, err := c.Cmd(step.send)
-		if err != nil {
-			t.Fatalf("Step %d, failed to send %q: %v", i, step.send, err)
-		}
-
-		c.StartResponse(id)
-		code, msg, err := c.ReadResponse(step.expect)
-		if err != nil {
-			err = fmt.Errorf("Step %d, sent %q, expected %v, got %v: %q",
-				i, step.send, step.expect, code, msg)
-		}
-		c.EndResponse(id)
-
-		if err != nil {
-			// Fail after c.EndResponse so we don't hang the connection
-			t.Fatal(err)
-		}
-	}
-}
-
 // Tests "MAIL FROM" emits BeforeMailAccepted event.
 func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
 	ds := test.NewStore()
 	extHost := extension.NewHost()
 	server := setupSMTPServer(ds, extHost)
-	defer server.Drain()
 
 	var got *event.AddressParts
 	extHost.Events.BeforeMailAccepted.AddListener(
@@ -469,7 +415,6 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 	ds := test.NewStore()
 	extHost := extension.NewHost()
 	server := setupSMTPServer(ds, extHost)
-	defer server.Drain()
 
 	var shouldReturn *bool
 	var gotEvent *event.AddressParts
@@ -519,6 +464,48 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 	}
 }
 
+// playSession creates a new session, reads the greeting and then plays the script
+func playSession(t *testing.T, server *Server, script []scriptStep) {
+	t.Helper()
+	pipe := setupSMTPSession(t, server)
+	c := textproto.NewConn(pipe)
+
+	if code, _, err := c.ReadCodeLine(220); err != nil {
+		t.Errorf("expected a 220 greeting, got %v", code)
+	}
+
+	playScriptAgainst(t, c, script)
+
+	// Not all tests leave the session in a clean state, so the following two calls can fail
+	_, _ = c.Cmd("QUIT")
+	_, _, _ = c.ReadCodeLine(221)
+}
+
+// playScriptAgainst an existing connection, does not handle server greeting
+func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) {
+	t.Helper()
+
+	for i, step := range script {
+		id, err := c.Cmd(step.send)
+		if err != nil {
+			t.Fatalf("Step %d, failed to send %q: %v", i, step.send, err)
+		}
+
+		c.StartResponse(id)
+		code, msg, err := c.ReadResponse(step.expect)
+		if err != nil {
+			err = fmt.Errorf("Step %d, sent %q, expected %v, got %v: %q",
+				i, step.send, step.expect, code, msg)
+		}
+		c.EndResponse(id)
+
+		if err != nil {
+			// Fail after c.EndResponse so we don't hang the connection
+			t.Fatal(err)
+		}
+	}
+}
+
 // net.Pipe does not implement deadlines
 type mockConn struct {
 	net.Conn
@@ -528,6 +515,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
+// Creates an unstarted smtp.Server.
 func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 	cfg := &config.Root{
 		MailboxNaming: config.FullNaming,
@@ -543,7 +531,7 @@ func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 		},
 	}
 
-	// Create a server, don't start it.
+	// Create a server, but don't start it.
 	addrPolicy := &policy.Addressing{Config: cfg}
 	manager := &message.StoreManager{Store: ds, ExtHost: extHost}
 
@@ -556,9 +544,15 @@ func setupSMTPSession(t *testing.T, server *Server) net.Conn {
 	t.Helper()
 	logger := zerolog.New(zerolog.NewTestWriter(t))
 	serverConn, clientConn := net.Pipe()
+	t.Cleanup(func() {
+		_ = clientConn.Close()
+
+		// Drain is required to prevent a test-logging data race. If a (failing) test run is
+		// hanging, this may be the culprit.
+		server.Drain()
+	})
 
 	// Start the session.
-	server.wg.Add(1)
 	sessionNum++
 	go server.startSession(sessionNum, &mockConn{serverConn}, logger)
 

@@ -384,48 +384,6 @@ Hi!
 	_, _, _ = c.ReadCodeLine(221)
 }
 
-// playSession creates a new session, reads the greeting and then plays the script
-func playSession(t *testing.T, server *Server, script []scriptStep) {
-	t.Helper()
-	pipe := setupSMTPSession(t, server)
-	c := textproto.NewConn(pipe)
-
-	if code, _, err := c.ReadCodeLine(220); err != nil {
-		t.Errorf("expected a 220 greeting, got %v", code)
-	}
-
-	playScriptAgainst(t, c, script)
-
-	// Not all tests leave the session in a clean state, so the following two calls can fail
-	_, _ = c.Cmd("QUIT")
-	_, _, _ = c.ReadCodeLine(221)
-}
-
-// playScriptAgainst an existing connection, does not handle server greeting
-func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) {
-	t.Helper()
-
-	for i, step := range script {
-		id, err := c.Cmd(step.send)
-		if err != nil {
-			t.Fatalf("Step %d, failed to send %q: %v", i, step.send, err)
-		}
-
-		c.StartResponse(id)
-		code, msg, err := c.ReadResponse(step.expect)
-		if err != nil {
-			err = fmt.Errorf("Step %d, sent %q, expected %v, got %v: %q",
-				i, step.send, step.expect, code, msg)
-		}
-		c.EndResponse(id)
-
-		if err != nil {
-			// Fail after c.EndResponse so we don't hang the connection
-			t.Fatal(err)
-		}
-	}
-}
-
 // Tests "MAIL FROM" emits BeforeMailAccepted event.
 func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
 	ds := test.NewStore()
@@ -503,6 +461,48 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 
 			assert.NotNil(t, gotEvent, "BeforeMailListener did not receive Address")
 		})
+	}
+}
+
+// playSession creates a new session, reads the greeting and then plays the script
+func playSession(t *testing.T, server *Server, script []scriptStep) {
+	t.Helper()
+	pipe := setupSMTPSession(t, server)
+	c := textproto.NewConn(pipe)
+
+	if code, _, err := c.ReadCodeLine(220); err != nil {
+		t.Errorf("expected a 220 greeting, got %v", code)
+	}
+
+	playScriptAgainst(t, c, script)
+
+	// Not all tests leave the session in a clean state, so the following two calls can fail
+	_, _ = c.Cmd("QUIT")
+	_, _, _ = c.ReadCodeLine(221)
+}
+
+// playScriptAgainst an existing connection, does not handle server greeting
+func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) {
+	t.Helper()
+
+	for i, step := range script {
+		id, err := c.Cmd(step.send)
+		if err != nil {
+			t.Fatalf("Step %d, failed to send %q: %v", i, step.send, err)
+		}
+
+		c.StartResponse(id)
+		code, msg, err := c.ReadResponse(step.expect)
+		if err != nil {
+			err = fmt.Errorf("Step %d, sent %q, expected %v, got %v: %q",
+				i, step.send, step.expect, code, msg)
+		}
+		c.EndResponse(id)
+
+		if err != nil {
+			// Fail after c.EndResponse so we don't hang the connection
+			t.Fatal(err)
+		}
 	}
 }
 

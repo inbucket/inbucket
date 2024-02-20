@@ -23,6 +23,7 @@ pkgs.mkShell {
     elmPackages.elm-language-server
     elmPackages.elm-test
     go_1_21
+    golangci-lint
     golint
     gopls
     nodejs_20

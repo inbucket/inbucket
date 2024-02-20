@@ -43,7 +43,7 @@ type IntegrationSuite struct {
 
 func (s *IntegrationSuite) SetupSuite() {
 	stopServer, err := startServer()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.stopServer = stopServer
 }
 

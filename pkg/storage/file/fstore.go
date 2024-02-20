@@ -2,6 +2,7 @@ package file
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -55,7 +56,7 @@ type Store struct {
 func New(cfg config.Storage, extHost *extension.Host) (storage.Store, error) {
 	path := cfg.Params["path"]
 	if path == "" {
-		return nil, fmt.Errorf("'path' parameter not specified")
+		return nil, errors.New("'path' parameter not specified")
 	}
 
 	mailPath := getMailPath(path)

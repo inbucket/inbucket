@@ -2,6 +2,7 @@ package msghub
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -51,7 +52,7 @@ func (l *testListener) Receive(msg event.MessageMetadata) error {
 		close(l.overflow)
 	}
 	if l.errorAfter > 0 && l.gotEvents > l.errorAfter {
-		return fmt.Errorf("Too many messages")
+		return errors.New("too many messages")
 	}
 	return nil
 }

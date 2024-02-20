@@ -70,8 +70,7 @@ func main() {
 }
 
 func baseURL() string {
-	return fmt.Sprintf("http://%s",
-		net.JoinHostPort(*host, strconv.FormatUint(uint64(*port), 10)))
+	return "http://%s" + net.JoinHostPort(*host, strconv.FormatUint(uint64(*port), 10))
 }
 
 func fatal(msg string, err error) subcommands.ExitStatus {

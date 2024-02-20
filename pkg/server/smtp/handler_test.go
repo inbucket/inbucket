@@ -45,7 +45,6 @@ func TestGreetStateValidCommands(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain() // Required to prevent test logging data race.
 			script := []scriptStep{
 				tc,
 				{"QUIT", 221}}
@@ -58,7 +57,6 @@ func TestGreetStateValidCommands(t *testing.T) {
 func TestGreetState(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds, extension.NewHost())
-	defer server.Drain() // Required to prevent test logging data race.
 
 	tests := []scriptStep{
 		{"HELO", 501},
@@ -71,7 +69,6 @@ func TestGreetState(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain() // Required to prevent test logging data race.
 			script := []scriptStep{
 				tc,
 				{"QUIT", 221}}
@@ -83,7 +80,6 @@ func TestGreetState(t *testing.T) {
 func TestEmptyEnvelope(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds, extension.NewHost())
-	defer server.Drain()
 
 	// Test out some empty envelope without blanks
 	script := []scriptStep{
@@ -104,7 +100,6 @@ func TestEmptyEnvelope(t *testing.T) {
 func TestAuth(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds, extension.NewHost())
-	defer server.Drain()
 
 	// PLAIN AUTH
 	script := []scriptStep{
@@ -137,7 +132,6 @@ func TestAuth(t *testing.T) {
 func TestTLS(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds, extension.NewHost())
-	defer server.Drain()
 
 	// Test Start TLS parsing.
 	script := []scriptStep{
@@ -172,7 +166,6 @@ func TestReadyStateValidCommands(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain()
 			script := []scriptStep{
 				{"HELO localhost", 250},
 				tc,
@@ -196,7 +189,6 @@ func TestReadyStateRejectedDomains(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain()
 			script := []scriptStep{
 				{"HELO localhost", 250},
 				tc,
@@ -226,7 +218,6 @@ func TestReadyStateInvalidCommands(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.send, func(t *testing.T) {
-			defer server.Drain()
 			script := []scriptStep{
 				{"HELO localhost", 250},
 				tc,
@@ -240,7 +231,6 @@ func TestReadyStateInvalidCommands(t *testing.T) {
 func TestMailState(t *testing.T) {
 	mds := test.NewStore()
 	server := setupSMTPServer(mds, extension.NewHost())
-	defer server.Drain()
 
 	// Test out some mangled READY commands
 	script := []scriptStep{
@@ -333,7 +323,6 @@ func TestMailState(t *testing.T) {
 func TestDataState(t *testing.T) {
 	mds := test.NewStore()
 	server := setupSMTPServer(mds, extension.NewHost())
-	defer server.Drain()
 
 	var script []scriptStep
 	pipe := setupSMTPSession(t, server)
@@ -442,7 +431,6 @@ func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
 	ds := test.NewStore()
 	extHost := extension.NewHost()
 	server := setupSMTPServer(ds, extHost)
-	defer server.Drain()
 
 	var got *event.AddressParts
 	extHost.Events.BeforeMailAccepted.AddListener(
@@ -469,7 +457,6 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 	ds := test.NewStore()
 	extHost := extension.NewHost()
 	server := setupSMTPServer(ds, extHost)
-	defer server.Drain()
 
 	var shouldReturn *bool
 	var gotEvent *event.AddressParts
@@ -528,6 +515,7 @@ func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
+// Creates an unstarted smtp.Server.
 func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 	cfg := &config.Root{
 		MailboxNaming: config.FullNaming,
@@ -543,7 +531,7 @@ func setupSMTPServer(ds storage.Store, extHost *extension.Host) *Server {
 		},
 	}
 
-	// Create a server, don't start it.
+	// Create a server, but don't start it.
 	addrPolicy := &policy.Addressing{Config: cfg}
 	manager := &message.StoreManager{Store: ds, ExtHost: extHost}
 
@@ -556,6 +544,13 @@ func setupSMTPSession(t *testing.T, server *Server) net.Conn {
 	t.Helper()
 	logger := zerolog.New(zerolog.NewTestWriter(t))
 	serverConn, clientConn := net.Pipe()
+	t.Cleanup(func() {
+		_ = clientConn.Close()
+
+		// Drain is required to prevent a test-logging data race. If a (failing) test run is
+		// hanging, this may be the culprit.
+		server.Drain()
+	})
 
 	// Start the session.
 	sessionNum++

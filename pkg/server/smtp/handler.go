@@ -139,20 +139,23 @@ func (s *Session) String() string {
 	return fmt.Sprintf("Session{id: %v, state: %v}", s.id, s.state)
 }
 
-/* Session flow:
- *  1. Send initial greeting
- *  2. Receive cmd
- *  3. If good cmd, respond, optionally change state
- *  4. If bad cmd, respond error
- *  5. Goto 2
- */
+// Session flow:
+//  1. Send initial greeting
+//  2. Receive cmd
+//  3. If good cmd, respond, optionally change state
+//  4. If bad cmd, respond error
+//  5. Goto 2
 func (s *Server) startSession(id int, conn net.Conn, logger zerolog.Logger) {
 	logger = logger.Hook(logHook{}).With().
 		Str("module", "smtp").
 		Str("remote", conn.RemoteAddr().String()).
 		Int("session", id).Logger()
 	logger.Info().Msg("Starting SMTP session")
+
+	// Update WaitGroup and counters.
+	s.wg.Add(1)
 	expConnectsCurrent.Add(1)
+	expConnectsTotal.Add(1)
 	defer func() {
 		if err := conn.Close(); err != nil {
 			logger.Warn().Err(err).Msg("Closing connection")

@@ -558,7 +558,6 @@ func setupSMTPSession(t *testing.T, server *Server) net.Conn {
 	serverConn, clientConn := net.Pipe()
 
 	// Start the session.
-	server.wg.Add(1)
 	sessionNum++
 	go server.startSession(sessionNum, &mockConn{serverConn}, logger)
 

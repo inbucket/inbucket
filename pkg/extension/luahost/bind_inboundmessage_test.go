@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	lua "github.com/yuin/gopher-lua"
 )
 
 // LuaInit holds useful test globals.
@@ -56,11 +56,11 @@ func TestInboundMessageGetters(t *testing.T) {
 		assert_eq(msg.to[2].address, "addr3")
 	`
 
-	ls := lua.NewState()
+	ls, _ := test.NewLuaState()
 	registerInboundMessageType(ls)
 	registerMailAddressType(ls)
 	ls.SetGlobal("msg", wrapInboundMessage(ls, want))
-	require.NoError(t, ls.DoString(LuaInit+script))
+	require.NoError(t, ls.DoString(script))
 }
 
 func TestInboundMessageSetters(t *testing.T) {
@@ -83,7 +83,7 @@ func TestInboundMessageSetters(t *testing.T) {
 	`
 
 	got := &event.InboundMessage{}
-	ls := lua.NewState()
+	ls, _ := test.NewLuaState()
 	registerInboundMessageType(ls)
 	registerMailAddressType(ls)
 	ls.SetGlobal("msg", wrapInboundMessage(ls, got))

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	lua "github.com/yuin/gopher-lua"
 )
 
 func TestMessageMetadataGetters(t *testing.T) {
@@ -23,10 +23,6 @@ func TestMessageMetadataGetters(t *testing.T) {
 	}
 	script := `
 		assert(msg, "msg should not be nil")
-
-		function assert_eq(got, want)
-			assert(got == want, string.format("got name %q, wanted %q", got, want))
-		end
 
 		assert_eq(msg.mailbox, "mb1")
 		assert_eq(msg.id, "id1")
@@ -43,7 +39,7 @@ func TestMessageMetadataGetters(t *testing.T) {
 		assert_eq(msg.date, 981173106)
 	`
 
-	ls := lua.NewState()
+	ls, _ := test.NewLuaState()
 	registerMessageMetadataType(ls)
 	registerMailAddressType(ls)
 	ls.SetGlobal("msg", wrapMessageMetadata(ls, want))
@@ -75,7 +71,7 @@ func TestMessageMetadataSetters(t *testing.T) {
 	`
 
 	got := &event.MessageMetadata{}
-	ls := lua.NewState()
+	ls, _ := test.NewLuaState()
 	registerMessageMetadataType(ls)
 	registerMailAddressType(ls)
 	ls.SetGlobal("msg", wrapMessageMetadata(ls, got))

@@ -17,7 +17,7 @@
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
             "jweir/sparkline": "4.0.0",
-            "ryannhg/date-format": "2.3.0"
+            "ryan-haskell/date-format": "1.0.0"
         },
         "indirect": {
             "elm/bytes": "1.0.8",

@@ -40,21 +40,15 @@ func TestNoTLS(t *testing.T) {
 	if !strings.HasPrefix(reply, "+OK") {
 		t.Fatalf("Initial line is not +OK")
 	}
+
+	// Verify CAPA response does not include STLS.
 	if err := c.PrintfLine("CAPA"); err != nil {
 		t.Fatalf("Failed to send CAPA; %v.", err)
 	}
-	replies := []string{}
-	for {
-		reply, err := c.ReadLine()
-		if err != nil {
-			t.Fatalf("Reading CAPA line failed %v", err)
-		}
-		if reply == "." {
-			break
-		}
-		replies = append(replies, reply)
+	replies, err := c.ReadDotLines()
+	if err != nil {
+		t.Fatalf("Reading CAPA line failed %v", err)
 	}
-
 	for _, r := range replies {
 		if r == "STLS" {
 			t.Errorf("TLS not enabled but received STLS.")
@@ -110,28 +104,21 @@ func TestStartTLS(t *testing.T) {
 	if !strings.HasPrefix(reply, "+OK") {
 		t.Fatalf("Initial line is not +OK")
 	}
+
+	// Verify CAPA response does not include STLS.
 	if err := c.PrintfLine("CAPA"); err != nil {
 		t.Fatalf("Failed to send CAPA; %v.", err)
 	}
-	replies := []string{}
-	for {
-		reply, err := c.ReadLine()
-		if err != nil {
-			t.Fatalf("Reading CAPA line failed %v", err)
-		}
-		if reply == "." {
-			break
-		}
-		replies = append(replies, reply)
+	replies, err := c.ReadDotLines()
+	if err != nil {
+		t.Fatalf("Reading CAPA line failed %v", err)
 	}
-
 	sawTLS := false
 	for _, r := range replies {
 		if r == "STLS" {
 			sawTLS = true
 		}
 	}
-
 	if !sawTLS {
 		t.Errorf("TLS enabled but no STLS capability.")
 	}
@@ -167,14 +154,9 @@ func TestStartTLS(t *testing.T) {
 	if !strings.HasPrefix(reply, "+OK") {
 		t.Fatalf("CAPA failed: %s", reply)
 	}
-	for {
-		reply, err := c.ReadLine()
-		if err != nil {
-			t.Fatalf("Reading CAPA line failed %v", err)
-		}
-		if reply == "." {
-			break
-		}
+	_, err = c.ReadDotLines()
+	if err != nil {
+		t.Fatalf("Reading CAPA line failed %v", err)
 	}
 }
 
@@ -196,28 +178,21 @@ func TestDupStartTLS(t *testing.T) {
 	if !strings.HasPrefix(reply, "+OK") {
 		t.Fatalf("Initial line is not +OK")
 	}
+
+	// Verify CAPA response includes STLS.
 	if err := c.PrintfLine("CAPA"); err != nil {
 		t.Fatalf("Failed to send CAPA; %v.", err)
 	}
-	replies := []string{}
-	for {
-		reply, err := c.ReadLine()
-		if err != nil {
-			t.Fatalf("Reading CAPA line failed %v", err)
-		}
-		if reply == "." {
-			break
-		}
-		replies = append(replies, reply)
+	replies, err := c.ReadDotLines()
+	if err != nil {
+		t.Fatalf("Reading CAPA line failed %v", err)
 	}
-
 	sawTLS := false
 	for _, r := range replies {
 		if r == "STLS" {
 			sawTLS = true
 		}
 	}
-
 	if !sawTLS {
 		t.Errorf("TLS enabled but no STLS capability.")
 	}
@@ -298,26 +273,17 @@ func TestForceTLS(t *testing.T) {
 		t.Fatalf("Initial line is not +OK")
 	}
 
+	// Verify CAPA response does not include STLS.
 	if err := c.PrintfLine("CAPA"); err != nil {
 		t.Fatalf("Failed to send CAPA; %v.", err)
 	}
-	reply, err = c.ReadLine()
+	replies, err := c.ReadDotLines()
 	if err != nil {
-		t.Fatalf("Reading CAPA reply line failed %v", err)
+		t.Fatalf("Reading CAPA line failed %v", err)
 	}
-	if !strings.HasPrefix(reply, "+OK") {
-		t.Fatalf("CAPA failed: %s", reply)
-	}
-	for {
-		reply, err := c.ReadLine()
-		if err != nil {
-			t.Fatalf("Reading CAPA line failed %v", err)
-		}
-		if reply == "STLS" {
+	for _, r := range replies {
+		if r == "STLS" {
 			t.Errorf("STLS in CAPA in forceTLS mode.")
-		}
-		if reply == "." {
-			break
 		}
 	}
 }

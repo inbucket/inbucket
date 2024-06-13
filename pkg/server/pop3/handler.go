@@ -218,13 +218,13 @@ func (s *Session) authorizationHandler(cmd string, args []string) {
 			// Invalid command since TLS unconfigured.
 			s.logger.Debug().Msgf("-ERR TLS unavailable on the server")
 			s.send("-ERR TLS unavailable on the server")
-			s.ooSeq(cmd)
+			return
 		}
 		if s.tlsState != nil {
 			// TLS state previously valid.
 			s.logger.Debug().Msg("-ERR A TLS session already agreed upon.")
 			s.send("-ERR A TLS session already agreed upon.")
-			s.ooSeq(cmd)
+			return
 		}
 		s.logger.Debug().Msg("Initiating TLS context.")
 

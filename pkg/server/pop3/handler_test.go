@@ -66,7 +66,7 @@ func TestSTLSWithTLSDisabled(t *testing.T) {
 	ds := test.NewStore()
 	server := setupPOPServer(t, ds, false, false)
 	pipe := setupPOPSession(t, server)
-	pipe.SetDeadline(time.Now().Add(10 * time.Second))
+	_ = pipe.SetDeadline(time.Now().Add(10 * time.Second))
 	c := textproto.NewConn(pipe)
 	defer func() {
 		_ = c.Close()
@@ -182,7 +182,7 @@ func TestDupStartTLS(t *testing.T) {
 	ds := test.NewStore()
 	server := setupPOPServer(t, ds, true, false)
 	pipe := setupPOPSession(t, server)
-	pipe.SetDeadline(time.Now().Add(10 * time.Second))
+	_ = pipe.SetDeadline(time.Now().Add(10 * time.Second))
 	c := textproto.NewConn(pipe)
 	defer func() {
 		_ = c.Close()

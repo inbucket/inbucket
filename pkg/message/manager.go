@@ -12,7 +12,7 @@ import (
 	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	"github.com/inbucket/inbucket/v3/pkg/policy"
 	"github.com/inbucket/inbucket/v3/pkg/storage"
-	"github.com/jhillyerd/enmime"
+	"github.com/jhillyerd/enmime/v2"
 	"github.com/rs/zerolog/log"
 )
 

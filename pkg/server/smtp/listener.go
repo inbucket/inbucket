@@ -154,8 +154,8 @@ func (s *Server) serve(ctx context.Context) {
 				} else {
 					tempDelay *= 2
 				}
-				if max := 1 * time.Second; tempDelay > max {
-					tempDelay = max
+				if maxDelay := 1 * time.Second; tempDelay > maxDelay {
+					tempDelay = maxDelay
 				}
 				log.Error().Str("module", "smtp").Err(err).
 					Msgf("SMTP accept timeout; retrying in %v", tempDelay)

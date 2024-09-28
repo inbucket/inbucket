@@ -486,7 +486,7 @@ func playScriptAgainst(t *testing.T, c *textproto.Conn, script []scriptStep) {
 	t.Helper()
 
 	for i, step := range script {
-		id, err := c.Cmd(step.send)
+		id, err := c.Cmd("%s", step.send)
 		if err != nil {
 			t.Fatalf("Step %d, failed to send %q: %v", i, step.send, err)
 		}

@@ -97,8 +97,8 @@ func (s *Server) serve(ctx context.Context) {
 				} else {
 					tempDelay *= 2
 				}
-				if max := 1 * time.Second; tempDelay > max {
-					tempDelay = max
+				if maxDelay := 1 * time.Second; tempDelay > maxDelay {
+					tempDelay = maxDelay
 				}
 				log.Error().Str("module", "pop3").Err(err).
 					Msgf("POP3 accept timout; retrying in %v", tempDelay)

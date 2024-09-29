@@ -50,7 +50,7 @@ func TestAfterMessageDeleted(t *testing.T) {
 			-- Full message bindings tested elsewhere.
 			assert_eq(msg.mailbox, "mb1")
 			assert_eq(msg.id, "id1")
-			notify:send(test_ok)
+			notify:send(asserts_ok)
 		end
 	`
 	extHost := extension.NewHost()
@@ -82,7 +82,7 @@ func TestAfterMessageStored(t *testing.T) {
 			-- Full message bindings tested elsewhere.
 			assert_eq(msg.mailbox, "mb1")
 			assert_eq(msg.id, "id1")
-			notify:send(test_ok)
+			notify:send(asserts_ok)
 		end
 	`
 	extHost := extension.NewHost()
@@ -157,14 +157,14 @@ func TestBeforeMessageStored(t *testing.T) {
 			assert_eq(msg.mailboxes, {"one", "two"})
 			assert_eq(msg.from.name, "From Name")
 			assert_eq(msg.from.address, "from@example.com")
-			assert_eq(2, #msg.to)
+			assert_eq(2, #msg.to, "#msg.to")
 			assert_eq(msg.to[1].name, "To1 Name")
 			assert_eq(msg.to[1].address, "to1@example.com")
 			assert_eq(msg.to[2].name, "To2 Name")
 			assert_eq(msg.to[2].address, "to2@example.com")
 			assert_eq(msg.subject, "inbound subj")
-			assert_eq(msg.size, 42)
-			notify:send(test_ok)
+			assert_eq(msg.size, 42, "msg.size")
+			notify:send(asserts_ok)
 
 			-- Generate response.
 			res = inbound_message.new()

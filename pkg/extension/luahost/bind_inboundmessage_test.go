@@ -10,24 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// LuaInit holds useful test globals.
-const LuaInit = `
-	function assert_eq(got, want)
-		if type(got) == "table" and type(want) == "table" then
-			assert(#got == #want, string.format("got %d element(s), wanted %d", #got, #want))
-
-			for i, gotv in ipairs(got) do
-				local wantv = want[i]
-				assert_eq(gotv, wantv, "got[%d] = %q, wanted %q", gotv, wantv)
-			end
-
-			return
-		end
-
-		assert(got == want, string.format("got %q, wanted %q", got, want))
-	end
-`
-
 func TestInboundMessageGetters(t *testing.T) {
 	want := &event.InboundMessage{
 		Mailboxes: []string{"mb1", "mb2"},
@@ -44,16 +26,16 @@ func TestInboundMessageGetters(t *testing.T) {
 
 		assert_eq(msg.mailboxes, {"mb1", "mb2"})
 		assert_eq(msg.subject, "subj1")
-		assert_eq(msg.size, 42)
+		assert_eq(msg.size, 42, "msg.size")
 
-		assert_eq(msg.from.name, "name1")
-		assert_eq(msg.from.address, "addr1")
+		assert_eq(msg.from.name, "name1", "from.name")
+		assert_eq(msg.from.address, "addr1", "from.address")
 
-		assert_eq(#msg.to, 2)
-		assert_eq(msg.to[1].name, "name2")
-		assert_eq(msg.to[1].address, "addr2")
-		assert_eq(msg.to[2].name, "name3")
-		assert_eq(msg.to[2].address, "addr3")
+		assert_eq(#msg.to, 2, "#msg.to")
+		assert_eq(msg.to[1].name, "name2", "to[1].name")
+		assert_eq(msg.to[1].address, "addr2", "to[1].address")
+		assert_eq(msg.to[2].name, "name3", "to[2].name")
+		assert_eq(msg.to[2].address, "addr3", "to[2].address")
 	`
 
 	ls, _ := test.NewLuaState()

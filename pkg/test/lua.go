@@ -15,15 +15,19 @@ const LuaInit = `
 	local logger = require("logger")
 
 	async = false
-	test_ok = true
+	asserts_ok = true
 
-	-- With async: marks tests as failed via test_ok, logs error.
+	-- With async: marks tests as failed via asserts_ok, logs error.
 	-- Without async: erroring when tests fail.
-	function assert_async(value, message)
+	function assert_async(value, message, label)
 		if not value then
+			if label then
+				message = string.format("%s for %s", message, label)
+			end
+
 			if async then
 				logger.error(message, {from = "assert_async"})
-				test_ok = false
+				asserts_ok = false
 			else
 				error(message)
 			end
@@ -31,25 +35,27 @@ const LuaInit = `
 	end
 
 	-- Verifies plain values and list-style tables.
-	function assert_eq(got, want)
+	function assert_eq(got, want, label)
 		if type(got) == "table" and type(want) == "table" then
-			assert_async(#got == #want, string.format("got %d elements, wanted %d", #got, #want))
+			assert_async(#got == #want,
+				string.format("got %d elements, wanted %d", #got, #want), label)
 
 			for i, gotv in ipairs(got) do
 				local wantv = want[i]
-				assert_eq(gotv, wantv, "got[%d] = %q, wanted %q", gotv, wantv)
+				assert_eq(gotv, wantv,
+					string.format("got[%d] = %q, wanted %q", gotv, wantv), label)
 			end
 
 			return
 		end
 
-		assert_async(got == want, string.format("got %q, wanted %q", got, want))
+		assert_async(got == want, string.format("got %q, wanted %q", got, want), label)
 	end
 
 	-- Verifies string want contains string got.
-	function assert_contains(got, want)
+	function assert_contains(got, want, label)
 		assert_async(string.find(got, want),
-			string.format("got %q, wanted it to contain %q", got, want))
+			string.format("got %q, wanted it to contain %q", got, want), label)
 	end
 `
 

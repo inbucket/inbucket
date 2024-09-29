@@ -27,16 +27,16 @@ func TestMessageMetadataGetters(t *testing.T) {
 		assert_eq(msg.mailbox, "mb1")
 		assert_eq(msg.id, "id1")
 		assert_eq(msg.subject, "subj1")
-		assert_eq(msg.size, 42)
+		assert_eq(msg.size, 42, "msg.size")
 
-		assert_eq(msg.from.name, "name1")
-		assert_eq(msg.from.address, "addr1")
+		assert_eq(msg.from.name, "name1", "from.name")
+		assert_eq(msg.from.address, "addr1", "from.address")
 
 		assert_eq(table.getn(msg.to), 1)
-		assert_eq(msg.to[1].name, "name2")
-		assert_eq(msg.to[1].address, "addr2")
+		assert_eq(msg.to[1].name, "name2", "to.name")
+		assert_eq(msg.to[1].address, "addr2", "to.address")
 
-		assert_eq(msg.date, 981173106)
+		assert_eq(msg.date, 981173106, "msg.date")
 	`
 
 	ls, _ := test.NewLuaState()

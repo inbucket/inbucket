@@ -9,53 +9,11 @@ import (
 	"github.com/inbucket/inbucket/v3/pkg/extension"
 	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	"github.com/inbucket/inbucket/v3/pkg/extension/luahost"
+	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	lua "github.com/yuin/gopher-lua"
 )
-
-// LuaInit holds useful test globals.
-const LuaInit = `
-	local logger = require("logger")
-
-	async = false
-	test_ok = true
-
-	-- Sends marks tests as failed instead of erroring when enabled.
-	function assert_async(value, message)
-		if not value then
-			if async then
-				logger.error(message, {from = "assert_async"})
-				test_ok = false
-			else
-				error(message)
-			end
-		end
-	end
-
-	-- Verifies plain values and list-style tables.
-	function assert_eq(got, want)
-		if type(got) == "table" and type(want) == "table" then
-			assert_async(#got == #want, string.format("got %d elements, wanted %d", #got, #want))
-
-			for i, gotv in ipairs(got) do
-				local wantv = want[i]
-				assert_eq(gotv, wantv, "got[%d] = %q, wanted %q", gotv, wantv)
-			end
-
-			return
-		end
-
-		assert_async(got == want, string.format("got %q, wanted %q", got, want))
-	end
-
-	-- Verifies string want contains string got.
-	function assert_contains(got, want)
-		assert_async(string.find(got, want),
-			string.format("got %q, wanted it to contain %q", got, want))
-	end
-`
 
 var consoleLogger = zerolog.New(zerolog.NewConsoleWriter())
 
@@ -92,11 +50,12 @@ func TestAfterMessageDeleted(t *testing.T) {
 			-- Full message bindings tested elsewhere.
 			assert_eq(msg.mailbox, "mb1")
 			assert_eq(msg.id, "id1")
-			notify:send(test_ok)
+			notify:send(asserts_ok)
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(LuaInit+script), "test.lua")
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost,
+		strings.NewReader(test.LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 
@@ -111,7 +70,7 @@ func TestAfterMessageDeleted(t *testing.T) {
 		Size:    42,
 	}
 	extHost.Events.AfterMessageDeleted.Emit(msg)
-	assertNotified(t, notify)
+	test.AssertNotified(t, notify)
 }
 
 func TestAfterMessageStored(t *testing.T) {
@@ -123,11 +82,12 @@ func TestAfterMessageStored(t *testing.T) {
 			-- Full message bindings tested elsewhere.
 			assert_eq(msg.mailbox, "mb1")
 			assert_eq(msg.id, "id1")
-			notify:send(test_ok)
+			notify:send(asserts_ok)
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(LuaInit+script), "test.lua")
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost,
+		strings.NewReader(test.LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 
@@ -142,7 +102,7 @@ func TestAfterMessageStored(t *testing.T) {
 		Size:    42,
 	}
 	extHost.Events.AfterMessageStored.Emit(msg)
-	assertNotified(t, notify)
+	test.AssertNotified(t, notify)
 }
 
 func TestBeforeMailAccepted(t *testing.T) {
@@ -197,14 +157,14 @@ func TestBeforeMessageStored(t *testing.T) {
 			assert_eq(msg.mailboxes, {"one", "two"})
 			assert_eq(msg.from.name, "From Name")
 			assert_eq(msg.from.address, "from@example.com")
-			assert_eq(2, #msg.to)
+			assert_eq(2, #msg.to, "#msg.to")
 			assert_eq(msg.to[1].name, "To1 Name")
 			assert_eq(msg.to[1].address, "to1@example.com")
 			assert_eq(msg.to[2].name, "To2 Name")
 			assert_eq(msg.to[2].address, "to2@example.com")
 			assert_eq(msg.subject, "inbound subj")
-			assert_eq(msg.size, 42)
-			notify:send(test_ok)
+			assert_eq(msg.size, 42, "msg.size")
+			notify:send(asserts_ok)
 
 			-- Generate response.
 			res = inbound_message.new()
@@ -219,7 +179,8 @@ func TestBeforeMessageStored(t *testing.T) {
 		end
 	`
 	extHost := extension.NewHost()
-	luaHost, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(LuaInit+script), "test.lua")
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost,
+		strings.NewReader(test.LuaInit+script), "test.lua")
 	require.NoError(t, err)
 	notify := luaHost.CreateChannel("notify")
 
@@ -228,7 +189,7 @@ func TestBeforeMessageStored(t *testing.T) {
 	require.NotNil(t, got, "Expected result from Emit()")
 
 	// Verify Lua assertions passed.
-	assertNotified(t, notify)
+	test.AssertNotified(t, notify)
 
 	// Verify response values.
 	want := &event.InboundMessage{
@@ -242,17 +203,4 @@ func TestBeforeMessageStored(t *testing.T) {
 		Size:    0,
 	}
 	assert.Equal(t, want, got, "Response InboundMessage did not match")
-}
-
-func assertNotified(t *testing.T, notify chan lua.LValue) {
-	t.Helper()
-	select {
-	case reslv := <-notify:
-		// Lua function received event.
-		if lua.LVIsFalse(reslv) {
-			t.Error("Lua responsed with false, wanted true")
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("Lua did not respond to event within timeout")
-	}
 }

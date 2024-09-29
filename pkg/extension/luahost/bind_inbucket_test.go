@@ -3,8 +3,8 @@ package luahost
 import (
 	"testing"
 
+	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/stretchr/testify/require"
-	lua "github.com/yuin/gopher-lua"
 )
 
 func TestInbucketAfterFuncs(t *testing.T) {
@@ -49,7 +49,7 @@ func TestInbucketAfterFuncs(t *testing.T) {
 		end
 	`
 
-	ls := lua.NewState()
+	ls, _ := test.NewLuaState()
 	registerInbucketTypes(ls)
 	require.NoError(t, ls.DoString(script))
 }
@@ -96,7 +96,7 @@ func TestInbucketBeforeFuncs(t *testing.T) {
 		end
 	`
 
-	ls := lua.NewState()
+	ls, _ := test.NewLuaState()
 	registerInbucketTypes(ls)
 	require.NoError(t, ls.DoString(script))
 }

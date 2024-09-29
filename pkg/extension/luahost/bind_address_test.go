@@ -4,9 +4,9 @@ import (
 	"net/mail"
 	"testing"
 
+	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	lua "github.com/yuin/gopher-lua"
 )
 
 func TestMailAddressGetters(t *testing.T) {
@@ -26,8 +26,9 @@ func TestMailAddressGetters(t *testing.T) {
 		assert(got == want, string.format("got address %q, want %q", got, want))
 	`
 
-	ls := lua.NewState()
+	ls, _ := test.NewLuaState()
 	registerMailAddressType(ls)
+
 	ls.SetGlobal("addr", wrapMailAddress(ls, want))
 	require.NoError(t, ls.DoString(script))
 }
@@ -44,9 +45,10 @@ func TestMailAddressSetters(t *testing.T) {
 		addr.address = "ri@example.com"
 	`
 
-	got := &mail.Address{}
-	ls := lua.NewState()
+	ls, _ := test.NewLuaState()
 	registerMailAddressType(ls)
+
+	got := &mail.Address{}
 	ls.SetGlobal("addr", wrapMailAddress(ls, got))
 	require.NoError(t, ls.DoString(script))
 

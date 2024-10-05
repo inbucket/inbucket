@@ -446,10 +446,14 @@ func (s *Session) parseMailFromCmd(arg string) {
 	}
 
 	// Process through extensions.
+	extAction := event.ActionDefer
 	extResult := s.extHost.Events.BeforeMailAccepted.Emit(
 		&event.AddressParts{Local: localpart, Domain: domain})
-	if extResult != nil && !*extResult {
-		s.send("550 Mail denied by policy")
+	if extResult != nil {
+		extAction = extResult.Action
+	}
+	if extAction == event.ActionDeny {
+		s.send(fmt.Sprintf("%03d %s", extResult.ErrorCode, extResult.ErrorMsg))
 		s.logger.Warn().Msgf("Extension denied mail from <%v>", from)
 		return
 	}
@@ -462,7 +466,8 @@ func (s *Session) parseMailFromCmd(arg string) {
 		return
 	}
 	s.from = origin
-	if !s.from.ShouldAccept() {
+	// Ignore ShouldAccept if extensions explicitly allowed this From.
+	if extAction == event.ActionDefer && !s.from.ShouldAccept() {
 		s.send("501 Unauthorized domain")
 		s.logger.Warn().Msgf("Bad domain sender %s", domain)
 		return

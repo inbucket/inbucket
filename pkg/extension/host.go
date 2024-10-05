@@ -22,7 +22,7 @@ type Host struct {
 type Events struct {
 	AfterMessageDeleted AsyncEventBroker[event.MessageMetadata]
 	AfterMessageStored  AsyncEventBroker[event.MessageMetadata]
-	BeforeMailAccepted  EventBroker[event.AddressParts, bool]
+	BeforeMailAccepted  EventBroker[event.AddressParts, event.SMTPResponse]
 	BeforeMessageStored EventBroker[event.InboundMessage, event.InboundMessage]
 }
 

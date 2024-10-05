@@ -165,7 +165,7 @@ func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
 		return nil
 	}
 
-	lval := ls.Get(1)
+	lval := ls.Get(-1)
 	ls.Pop(1)
 	logger.Debug().Msgf("Lua function returned %q (%v)", lval, lval.Type().String())
 
@@ -197,7 +197,8 @@ func (h *Host) handleBeforeMessageStored(msg event.InboundMessage) *event.Inboun
 		return nil
 	}
 
-	lval := ls.Get(1)
+	lval := ls.Get(-1)
+	ls.Pop(1)
 	logger.Debug().Msgf("Lua function returned %q (%v)", lval, lval.Type().String())
 
 	if lval.Type() == lua.LTNil || lua.LVIsFalse(lval) {
@@ -208,7 +209,6 @@ func (h *Host) handleBeforeMessageStored(msg event.InboundMessage) *event.Inboun
 	if err != nil {
 		logger.Error().Err(err).Msg("Bad response from Lua Function")
 	}
-	ls.Pop(1)
 
 	return result
 }

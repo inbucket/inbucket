@@ -393,9 +393,9 @@ func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
 	var got *event.AddressParts
 	extHost.Events.BeforeMailAccepted.AddListener(
 		"test",
-		func(addr event.AddressParts) *bool {
+		func(addr event.AddressParts) *event.SMTPResponse {
 			got = &addr
-			return nil
+			return &event.SMTPResponse{Action: event.ActionDefer}
 		})
 
 	// Play and verify SMTP session.
@@ -416,32 +416,34 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 	extHost := extension.NewHost()
 	server := setupSMTPServer(ds, extHost)
 
-	var shouldReturn *bool
+	var shouldReturn *event.SMTPResponse
 	var gotEvent *event.AddressParts
 	extHost.Events.BeforeMailAccepted.AddListener(
 		"test",
-		func(addr event.AddressParts) *bool {
+		func(addr event.AddressParts) *event.SMTPResponse {
 			gotEvent = &addr
 			return shouldReturn
 		})
 
-	allowRes := true
-	denyRes := false
 	tcs := map[string]struct {
-		script   scriptStep // Command to send and SMTP code expected.
-		eventRes *bool      // Response to send from event listener.
+		script   scriptStep         // Command to send and SMTP code expected.
+		eventRes event.SMTPResponse // Response to send from event listener.
 	}{
 		"allow": {
 			script:   scriptStep{"MAIL FROM:<john@gmail.com>", 250},
-			eventRes: &allowRes,
+			eventRes: event.SMTPResponse{Action: event.ActionAllow},
 		},
 		"deny": {
-			script:   scriptStep{"MAIL FROM:<john@gmail.com>", 550},
-			eventRes: &denyRes,
+			script: scriptStep{"MAIL FROM:<john@gmail.com>", 550},
+			eventRes: event.SMTPResponse{
+				Action:    event.ActionDeny,
+				ErrorCode: 550,
+				ErrorMsg:  "meh",
+			},
 		},
 		"defer": {
 			script:   scriptStep{"MAIL FROM:<john@gmail.com>", 250},
-			eventRes: nil,
+			eventRes: event.SMTPResponse{Action: event.ActionDefer},
 		},
 	}
 
@@ -449,7 +451,7 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			// Reset event listener.
-			shouldReturn = tc.eventRes
+			shouldReturn = &tc.eventRes
 			gotEvent = nil
 
 			// Play and verify SMTP session.

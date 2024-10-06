@@ -5,6 +5,15 @@ import (
 	"time"
 )
 
+const (
+	// ActionDefer defers decision to built-in Inbucket logic.
+	ActionDefer = iota
+	// ActionAllow explicitly allows this event.
+	ActionAllow
+	// ActionDeny explicitly deny this event, typically with specified SMTP error.
+	ActionDeny
+)
+
 // AddressParts contains the local and domain parts of an email address.
 type AddressParts struct {
 	Local  string
@@ -30,4 +39,11 @@ type MessageMetadata struct {
 	Subject string
 	Size    int64
 	Seen    bool
+}
+
+// SMTPResponse describes the response to an SMTP policy check.
+type SMTPResponse struct {
+	Action    int    // ActionDefer, ActionAllow, etc.
+	ErrorCode int    // SMTP error code to respond with on deny.
+	ErrorMsg  string // SMTP error message to respond with on deny.
 }

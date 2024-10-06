@@ -109,29 +109,36 @@ func TestBeforeMailAccepted(t *testing.T) {
 	// Register lua event listener.
 	script := `
 		function inbucket.before.mail_accepted(localpart, domain)
-			return localpart == "from" and domain == "test"
+			if localpart == "from" and domain == "test" then
+				logger.info("allowing message", {})
+				return smtp.allow()
+			else
+				logger.info("denying message", {})
+				return smtp.deny()
+			end
 		end
 	`
 	extHost := extension.NewHost()
-	_, err := luahost.NewFromReader(consoleLogger, extHost, strings.NewReader(script), "test.lua")
+	_, err := luahost.NewFromReader(
+		consoleLogger, extHost, strings.NewReader(test.LuaInit+script), "test.lua")
 	require.NoError(t, err)
 
 	// Send event to be accepted.
 	addr := &event.AddressParts{Local: "from", Domain: "test"}
 	got := extHost.Events.BeforeMailAccepted.Emit(addr)
-	want := true
+	want := event.ActionAllow
 	require.NotNil(t, got, "Expected result from Emit()")
-	if *got != want {
-		t.Errorf("Got %v, wanted %v for addr %v", *got, want, addr)
+	if got.Action != want {
+		t.Errorf("Got %v, wanted %v for addr %v", got.Action, want, addr)
 	}
 
 	// Send event to be denied.
 	addr = &event.AddressParts{Local: "reject", Domain: "me"}
 	got = extHost.Events.BeforeMailAccepted.Emit(addr)
-	want = false
+	want = event.ActionDeny
 	require.NotNil(t, got, "Expected result from Emit()")
-	if *got != want {
-		t.Errorf("Got %v, wanted %v for addr %v", *got, want, addr)
+	if got.Action != want {
+		t.Errorf("Got %v, wanted %v for addr %v", got.Action, want, addr)
 	}
 }
 

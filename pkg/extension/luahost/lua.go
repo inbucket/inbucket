@@ -148,7 +148,7 @@ func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
 	}
 }
 
-func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
+func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *event.SMTPResponse {
 	logger, ls, ib, ok := h.prepareInbucketFuncCall("before.mail_accepted")
 	if !ok {
 		return nil
@@ -169,16 +169,16 @@ func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *bool {
 	ls.Pop(1)
 	logger.Debug().Msgf("Lua function returned %q (%v)", lval, lval.Type().String())
 
-	if lval.Type() == lua.LTNil {
+	if lval.Type() == lua.LTNil || lua.LVIsFalse(lval) {
 		return nil
 	}
 
-	result := true
-	if lua.LVIsFalse(lval) {
-		result = false
+	result, err := unwrapSMTPResponse(lval)
+	if err != nil {
+		logger.Error().Err(err).Msg("Bad response from Lua Function")
 	}
 
-	return &result
+	return result
 }
 
 func (h *Host) handleBeforeMessageStored(msg event.InboundMessage) *event.InboundMessage {

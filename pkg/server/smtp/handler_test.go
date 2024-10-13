@@ -18,6 +18,7 @@ import (
 	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type scriptStep struct {
@@ -457,11 +458,180 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 			// Play and verify SMTP session.
 			script := []scriptStep{
 				{"HELO localhost", 250},
-				tc.script,
+				tc.script, // error code is the significant part.
 				{"QUIT", 221}}
 			playSession(t, server, script)
 
 			assert.NotNil(t, gotEvent, "BeforeMailListener did not receive Address")
+		})
+	}
+}
+
+// Tests "RCPT TO" emits BeforeRcptToAccepted event.
+func TestBeforeRcptToAcceptedSingleEventEmitted(t *testing.T) {
+	ds := test.NewStore()
+	extHost := extension.NewHost()
+	server := setupSMTPServer(ds, extHost)
+
+	var got *event.SMTPSession
+	extHost.Events.BeforeRcptToAccepted.AddListener(
+		"test",
+		func(session event.SMTPSession) *event.SMTPResponse {
+			got = &session
+			return &event.SMTPResponse{Action: event.ActionDefer}
+		})
+
+	// Play and verify SMTP session.
+	script := []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<user@gmail.com>", 250},
+		{"QUIT", 221}}
+	playSession(t, server, script)
+
+	require.NotNil(t, got, "BeforeRcptToListener did not receive SMTPSession")
+	require.NotNil(t, got.From)
+	require.NotNil(t, got.To)
+	assert.Equal(t, "john@gmail.com", got.From.Address)
+	assert.Len(t, got.To, 1)
+	assert.Equal(t, "user@gmail.com", got.To[0].Address)
+}
+
+// Tests "RCPT TO" emits many BeforeRcptToAccepted events.
+func TestBeforeRcptToAcceptedManyEventsEmitted(t *testing.T) {
+	ds := test.NewStore()
+	extHost := extension.NewHost()
+	server := setupSMTPServer(ds, extHost)
+
+	var called int
+	var got *event.SMTPSession
+	extHost.Events.BeforeRcptToAccepted.AddListener(
+		"test",
+		func(session event.SMTPSession) *event.SMTPResponse {
+			called++
+			got = &session
+			return &event.SMTPResponse{Action: event.ActionDefer}
+		})
+
+	// Play and verify SMTP session.
+	script := []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<user@gmail.com>", 250},
+		{"RCPT TO:<user2@gmail.com>", 250},
+		{"QUIT", 221}}
+	playSession(t, server, script)
+
+	require.Equal(t, 2, called, "2 events should have been emitted")
+	require.NotNil(t, got, "BeforeRcptToListener did not receive SMTPSession")
+	require.NotNil(t, got.From)
+	require.NotNil(t, got.To)
+	assert.Equal(t, "john@gmail.com", got.From.Address)
+	assert.Len(t, got.To, 2)
+	assert.Equal(t, "user@gmail.com", got.To[0].Address)
+	assert.Equal(t, "user2@gmail.com", got.To[1].Address)
+}
+
+// Tests we can continue after denying a "RCPT TO".
+func TestBeforeRcptToAcceptedEventDeny(t *testing.T) {
+	ds := test.NewStore()
+	extHost := extension.NewHost()
+	server := setupSMTPServer(ds, extHost)
+
+	var called int
+	var got *event.SMTPSession
+	extHost.Events.BeforeRcptToAccepted.AddListener(
+		"test",
+		func(session event.SMTPSession) *event.SMTPResponse {
+			called++
+
+			// Reject bad address.
+			action := event.ActionDefer
+			for _, to := range session.To {
+				if to.Address == "bad@apple.com" {
+					action = event.ActionDeny
+				}
+			}
+
+			got = &session
+			return &event.SMTPResponse{Action: action, ErrorCode: 550, ErrorMsg: "rotten"}
+		})
+
+	// Play and verify SMTP session.
+	script := []scriptStep{
+		{"HELO localhost", 250},
+		{"MAIL FROM:<john@gmail.com>", 250},
+		{"RCPT TO:<user@gmail.com>", 250},
+		{"RCPT TO:<bad@apple.com>", 550},
+		{"RCPT TO:<user2@gmail.com>", 250},
+		{"QUIT", 221}}
+	playSession(t, server, script)
+
+	require.Equal(t, 3, called, "3 events should have been emitted")
+	require.NotNil(t, got, "BeforeRcptToListener did not receive SMTPSession")
+	require.NotNil(t, got.From)
+	require.NotNil(t, got.To)
+	assert.Equal(t, "john@gmail.com", got.From.Address)
+
+	// Verify bad apple dropped from final event.
+	assert.Len(t, got.To, 2)
+	assert.Equal(t, "user@gmail.com", got.To[0].Address)
+	assert.Equal(t, "user2@gmail.com", got.To[1].Address)
+}
+
+// Test "RCPT TO" acts on BeforeRcptToAccepted event result.
+func TestBeforeRcptToAcceptedEventResponse(t *testing.T) {
+	ds := test.NewStore()
+	extHost := extension.NewHost()
+	server := setupSMTPServer(ds, extHost)
+
+	var shouldReturn *event.SMTPResponse
+	var gotEvent *event.SMTPSession
+	extHost.Events.BeforeRcptToAccepted.AddListener(
+		"test",
+		func(session event.SMTPSession) *event.SMTPResponse {
+			gotEvent = &session
+			return shouldReturn
+		})
+
+	tcs := map[string]struct {
+		script   scriptStep         // Command to send and SMTP code expected.
+		eventRes event.SMTPResponse // Response to send from event listener.
+	}{
+		"allow": {
+			script:   scriptStep{"RCPT TO:<john@gmail.com>", 250},
+			eventRes: event.SMTPResponse{Action: event.ActionAllow},
+		},
+		"deny": {
+			script: scriptStep{"RCPT TO:<john@gmail.com>", 550},
+			eventRes: event.SMTPResponse{
+				Action:    event.ActionDeny,
+				ErrorCode: 550,
+				ErrorMsg:  "meh",
+			},
+		},
+		"defer": {
+			script:   scriptStep{"RCPT TO:<john@gmail.com>", 250},
+			eventRes: event.SMTPResponse{Action: event.ActionDefer},
+		},
+	}
+
+	for name, tc := range tcs {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			// Reset event listener.
+			shouldReturn = &tc.eventRes
+			gotEvent = nil
+
+			// Play and verify SMTP session.
+			script := []scriptStep{
+				{"HELO localhost", 250},
+				{"MAIL FROM:<user@gmail.com>", 250},
+				tc.script, // error code is the significant part.
+				{"QUIT", 221}}
+			playSession(t, server, script)
+
+			assert.NotNil(t, gotEvent, "BeforeRcptToListener did not receive SMTPSession")
 		})
 	}
 }

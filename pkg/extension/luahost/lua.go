@@ -112,6 +112,9 @@ func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 	if ib.Before.MessageStored != nil {
 		events.BeforeMessageStored.AddListener(listenerName, h.handleBeforeMessageStored)
 	}
+	if ib.Before.RcptToAccepted != nil {
+		events.BeforeRcptToAccepted.AddListener(listenerName, h.handleBeforeRcptToAccepted)
+	}
 }
 
 func (h *Host) handleAfterMessageDeleted(msg event.MessageMetadata) {
@@ -169,9 +172,33 @@ func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *event.SMTPResp
 	ls.Pop(1)
 	logger.Debug().Msgf("Lua function returned %q (%v)", lval, lval.Type().String())
 
-	if lval.Type() == lua.LTNil || lua.LVIsFalse(lval) {
+	result, err := unwrapSMTPResponse(lval)
+	if err != nil {
+		logger.Error().Err(err).Msg("Bad response from Lua Function")
+	}
+
+	return result
+}
+
+func (h *Host) handleBeforeRcptToAccepted(session event.SMTPSession) *event.SMTPResponse {
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("before.rcpt_to_accepted")
+	if !ok {
 		return nil
 	}
+	defer h.pool.putState(ls)
+
+	logger.Debug().Msgf("Calling Lua function with %+v", session)
+	if err := ls.CallByParam(
+		lua.P{Fn: ib.Before.RcptToAccepted, NRet: 1, Protect: true},
+		wrapSMTPSession(ls, &session),
+	); err != nil {
+		logger.Error().Err(err).Msg("Failed to call Lua function")
+		return nil
+	}
+
+	lval := ls.Get(-1)
+	ls.Pop(1)
+	logger.Debug().Msgf("Lua function returned %q (%v)", lval, lval.Type().String())
 
 	result, err := unwrapSMTPResponse(lval)
 	if err != nil {
@@ -201,7 +228,7 @@ func (h *Host) handleBeforeMessageStored(msg event.InboundMessage) *event.Inboun
 	ls.Pop(1)
 	logger.Debug().Msgf("Lua function returned %q (%v)", lval, lval.Type().String())
 
-	if lval.Type() == lua.LTNil || lua.LVIsFalse(lval) {
+	if lua.LVIsFalse(lval) {
 		return nil
 	}
 

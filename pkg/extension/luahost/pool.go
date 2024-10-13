@@ -49,6 +49,7 @@ func (lp *statePool) newState() (*lua.LState, error) {
 	registerMailAddressType(ls)
 	registerMessageMetadataType(ls)
 	registerSMTPResponseType(ls)
+	registerSMTPSessionType(ls)
 
 	// Run compiled script.
 	ls.Push(ls.NewFunctionFromProto(lp.funcProto))

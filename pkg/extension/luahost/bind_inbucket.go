@@ -29,8 +29,9 @@ type InbucketAfterFuncs struct {
 // InbucketBeforeFuncs holds references to Lua extension functions to be called
 // before Inbucket handles an event.
 type InbucketBeforeFuncs struct {
-	MailAccepted  *lua.LFunction
-	MessageStored *lua.LFunction
+	MailAccepted   *lua.LFunction
+	MessageStored  *lua.LFunction
+	RcptToAccepted *lua.LFunction
 }
 
 func registerInbucketTypes(ls *lua.LState) {
@@ -189,6 +190,8 @@ func inbucketBeforeIndex(ls *lua.LState) int {
 		ls.Push(funcOrNil(before.MailAccepted))
 	case "message_stored":
 		ls.Push(funcOrNil(before.MessageStored))
+	case "rcpt_to_accepted":
+		ls.Push(funcOrNil(before.RcptToAccepted))
 	default:
 		// Unknown field.
 		ls.Push(lua.LNil)
@@ -207,6 +210,8 @@ func inbucketBeforeNewIndex(ls *lua.LState) int {
 		m.MailAccepted = ls.CheckFunction(3)
 	case "message_stored":
 		m.MessageStored = ls.CheckFunction(3)
+	case "rcpt_to_accepted":
+		m.RcptToAccepted = ls.CheckFunction(3)
 	default:
 		ls.RaiseError("invalid inbucket.before index %q", index)
 	}

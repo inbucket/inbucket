@@ -47,3 +47,9 @@ type SMTPResponse struct {
 	ErrorCode int    // SMTP error code to respond with on deny.
 	ErrorMsg  string // SMTP error message to respond with on deny.
 }
+
+// SMTPSession captures SMTP `MAIL FROM` & `RCPT TO` values prior to mail DATA being received.
+type SMTPSession struct {
+	From *mail.Address
+	To   []*mail.Address
+}

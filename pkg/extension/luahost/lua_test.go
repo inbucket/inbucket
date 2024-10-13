@@ -211,3 +211,85 @@ func TestBeforeMessageStored(t *testing.T) {
 	}
 	assert.Equal(t, want, got, "Response InboundMessage did not match")
 }
+
+func TestBeforeMessageStoredNilReturn(t *testing.T) {
+	// Event to send.
+	msg := event.InboundMessage{
+		Mailboxes: []string{"one", "two"},
+		From:      &mail.Address{Name: "From Name", Address: "from@example.com"},
+		To: []*mail.Address{
+			{Name: "To1 Name", Address: "to1@example.com"},
+			{Name: "To2 Name", Address: "to2@example.com"},
+		},
+		Subject: "inbound subj",
+		Size:    42,
+	}
+
+	// Register lua event listener.
+	script := `
+		async = true
+
+		function inbucket.before.message_stored(msg)
+			assert(msg)
+			notify:send(asserts_ok)
+
+			-- Generate response.
+			return nil
+		end
+	`
+	extHost := extension.NewHost()
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost,
+		strings.NewReader(test.LuaInit+script), "test.lua")
+	require.NoError(t, err)
+	notify := luaHost.CreateChannel("notify")
+
+	// Send event to be accepted.
+	got := extHost.Events.BeforeMessageStored.Emit(&msg)
+	require.Nil(t, got, "Expected nil result from Emit()")
+
+	// Verify Lua assertions passed.
+	test.AssertNotified(t, notify)
+}
+
+func TestBeforeRcptToAccepted(t *testing.T) {
+	// Event to send.
+	session := event.SMTPSession{
+		From: &mail.Address{Name: "", Address: "from@example.com"},
+		To: []*mail.Address{
+			{Name: "", Address: "to1@example.com"},
+			{Name: "", Address: "to2@example.com"},
+		},
+	}
+
+	// Register lua event listener.
+	script := `
+		async = true
+
+		function inbucket.before.rcpt_to_accepted(msg)
+			-- Verify incoming values.
+			assert_eq(msg.from.address, "from@example.com")
+			assert_eq(2, #msg.to, "#msg.to")
+			assert_eq(msg.to[1].address, "to1@example.com")
+			assert_eq(msg.to[2].address, "to2@example.com")
+			notify:send(asserts_ok)
+
+			return smtp.allow()
+		end
+	`
+	extHost := extension.NewHost()
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost,
+		strings.NewReader(test.LuaInit+script), "test.lua")
+	require.NoError(t, err)
+	notify := luaHost.CreateChannel("notify")
+
+	// Send event to be accepted.
+	got := extHost.Events.BeforeRcptToAccepted.Emit(&session)
+	require.NotNil(t, got, "Expected result from Emit()")
+
+	// Verify Lua assertions passed.
+	test.AssertNotified(t, notify)
+
+	// Verify response values.
+	want := event.SMTPResponse{Action: event.ActionAllow}
+	assert.Equal(t, want, *got)
+}

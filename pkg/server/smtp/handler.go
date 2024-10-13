@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/mail"
 	"net/textproto"
 	"regexp"
 	"strconv"
@@ -495,7 +496,26 @@ func (s *Session) mailHandler(cmd string, arg string) {
 			s.logger.Warn().Str("to", addr).Err(err).Msg("Bad address as RCPT arg")
 			return
 		}
-		if !recip.ShouldAccept() {
+
+		// Append new address to extSession for inspection.
+		addrCopy := recip.Address
+		extSession := s.extSession()
+		extSession.To = append(extSession.To, &addrCopy)
+
+		// Process through extensions.
+		extAction := event.ActionDefer
+		extResult := s.extHost.Events.BeforeRcptToAccepted.Emit(extSession)
+		if extResult != nil {
+			extAction = extResult.Action
+		}
+		if extAction == event.ActionDeny {
+			s.send(fmt.Sprintf("%03d %s", extResult.ErrorCode, extResult.ErrorMsg))
+			s.logger.Warn().Msgf("Extension denied mail to <%v>", recip.Address)
+			return
+		}
+
+		// Ignore ShouldAccept if extensions explicitly allowed this Recipient.
+		if extAction == event.ActionDefer && !recip.ShouldAccept() {
 			s.logger.Warn().Str("to", addr).Msg("Rejecting recipient domain")
 			s.send("550 Relay not permitted")
 			return
@@ -686,4 +706,19 @@ func (s *Session) reset() {
 func (s *Session) ooSeq(cmd string) {
 	s.send(fmt.Sprintf("503 Command %v is out of sequence", cmd))
 	s.logger.Warn().Msgf("Wasn't expecting %v here", cmd)
+}
+
+// extSession builds an SMTPSession for extensions.
+func (s *Session) extSession() *event.SMTPSession {
+	from := s.from.Address
+	to := make([]*mail.Address, 0, len(s.recipients))
+	for _, recip := range s.recipients {
+		addr := recip.Address
+		to = append(to, &addr)
+	}
+
+	return &event.SMTPSession{
+		From: &from,
+		To:   to,
+	}
 }

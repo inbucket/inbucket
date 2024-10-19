@@ -448,7 +448,7 @@ func (s *Session) parseMailFromCmd(arg string) {
 
 	// Process through extensions.
 	extAction := event.ActionDefer
-	extResult := s.extHost.Events.BeforeMailAccepted.Emit(
+	extResult := s.extHost.Events.BeforeMailFromAccepted.Emit(
 		&event.AddressParts{Local: localpart, Domain: domain})
 	if extResult != nil {
 		extAction = extResult.Action

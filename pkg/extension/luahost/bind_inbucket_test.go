@@ -62,7 +62,7 @@ func TestInbucketBeforeFuncs(t *testing.T) {
 		assert(inbucket, "inbucket should not be nil")
 		assert(inbucket.before, "inbucket.before should not be nil")
 
-		local fns = { "mail_accepted", "message_stored" }
+		local fns = { "mail_from_accepted", "message_stored", "rcpt_to_accepted" }
 
 		-- Verify functions start off nil.
 		for i, name in ipairs(fns) do

@@ -385,14 +385,14 @@ Hi!
 	_, _, _ = c.ReadCodeLine(221)
 }
 
-// Tests "MAIL FROM" emits BeforeMailAccepted event.
-func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
+// Tests "MAIL FROM" emits BeforeMailFromAccepted event.
+func TestBeforeMailFromAcceptedEventEmitted(t *testing.T) {
 	ds := test.NewStore()
 	extHost := extension.NewHost()
 	server := setupSMTPServer(ds, extHost)
 
 	var got *event.AddressParts
-	extHost.Events.BeforeMailAccepted.AddListener(
+	extHost.Events.BeforeMailFromAccepted.AddListener(
 		"test",
 		func(addr event.AddressParts) *event.SMTPResponse {
 			got = &addr
@@ -411,15 +411,15 @@ func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
 	assert.Equal(t, "gmail.com", got.Domain, "Address domain part had wrong value")
 }
 
-// Test "MAIL FROM" acts on BeforeMailAccepted event result.
-func TestBeforeMailAcceptedEventResponse(t *testing.T) {
+// Test "MAIL FROM" acts on BeforeMailFromAccepted event result.
+func TestBeforeMailFromAcceptedEventResponse(t *testing.T) {
 	ds := test.NewStore()
 	extHost := extension.NewHost()
 	server := setupSMTPServer(ds, extHost)
 
 	var shouldReturn *event.SMTPResponse
 	var gotEvent *event.AddressParts
-	extHost.Events.BeforeMailAccepted.AddListener(
+	extHost.Events.BeforeMailFromAccepted.AddListener(
 		"test",
 		func(addr event.AddressParts) *event.SMTPResponse {
 			gotEvent = &addr

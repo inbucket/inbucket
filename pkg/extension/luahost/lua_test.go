@@ -105,10 +105,10 @@ func TestAfterMessageStored(t *testing.T) {
 	test.AssertNotified(t, notify)
 }
 
-func TestBeforeMailAccepted(t *testing.T) {
+func TestBeforeMailFromAccepted(t *testing.T) {
 	// Register lua event listener.
 	script := `
-		function inbucket.before.mail_accepted(localpart, domain)
+		function inbucket.before.mail_from_accepted(localpart, domain)
 			if localpart == "from" and domain == "test" then
 				logger.info("allowing message", {})
 				return smtp.allow()
@@ -125,7 +125,7 @@ func TestBeforeMailAccepted(t *testing.T) {
 
 	// Send event to be accepted.
 	addr := &event.AddressParts{Local: "from", Domain: "test"}
-	got := extHost.Events.BeforeMailAccepted.Emit(addr)
+	got := extHost.Events.BeforeMailFromAccepted.Emit(addr)
 	want := event.ActionAllow
 	require.NotNil(t, got, "Expected result from Emit()")
 	if got.Action != want {
@@ -134,7 +134,7 @@ func TestBeforeMailAccepted(t *testing.T) {
 
 	// Send event to be denied.
 	addr = &event.AddressParts{Local: "reject", Domain: "me"}
-	got = extHost.Events.BeforeMailAccepted.Emit(addr)
+	got = extHost.Events.BeforeMailFromAccepted.Emit(addr)
 	want = event.ActionDeny
 	require.NotNil(t, got, "Expected result from Emit()")
 	if got.Action != want {

@@ -106,8 +106,8 @@ func (h *Host) wireFunctions(logger zerolog.Logger, ls *lua.LState) {
 	if ib.After.MessageStored != nil {
 		events.AfterMessageStored.AddListener(listenerName, h.handleAfterMessageStored)
 	}
-	if ib.Before.MailAccepted != nil {
-		events.BeforeMailAccepted.AddListener(listenerName, h.handleBeforeMailAccepted)
+	if ib.Before.MailFromAccepted != nil {
+		events.BeforeMailFromAccepted.AddListener(listenerName, h.handleBeforeMailFromAccepted)
 	}
 	if ib.Before.MessageStored != nil {
 		events.BeforeMessageStored.AddListener(listenerName, h.handleBeforeMessageStored)
@@ -151,8 +151,8 @@ func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
 	}
 }
 
-func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *event.SMTPResponse {
-	logger, ls, ib, ok := h.prepareInbucketFuncCall("before.mail_accepted")
+func (h *Host) handleBeforeMailFromAccepted(addr event.AddressParts) *event.SMTPResponse {
+	logger, ls, ib, ok := h.prepareInbucketFuncCall("before.mail_from_accepted")
 	if !ok {
 		return nil
 	}
@@ -160,7 +160,7 @@ func (h *Host) handleBeforeMailAccepted(addr event.AddressParts) *event.SMTPResp
 
 	logger.Debug().Msgf("Calling Lua function with %+v", addr)
 	if err := ls.CallByParam(
-		lua.P{Fn: ib.Before.MailAccepted, NRet: 1, Protect: true},
+		lua.P{Fn: ib.Before.MailFromAccepted, NRet: 1, Protect: true},
 		lua.LString(addr.Local),
 		lua.LString(addr.Domain),
 	); err != nil {

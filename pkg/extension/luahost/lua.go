@@ -151,18 +151,17 @@ func (h *Host) handleAfterMessageStored(msg event.MessageMetadata) {
 	}
 }
 
-func (h *Host) handleBeforeMailFromAccepted(addr event.AddressParts) *event.SMTPResponse {
+func (h *Host) handleBeforeMailFromAccepted(session event.SMTPSession) *event.SMTPResponse {
 	logger, ls, ib, ok := h.prepareInbucketFuncCall("before.mail_from_accepted")
 	if !ok {
 		return nil
 	}
 	defer h.pool.putState(ls)
 
-	logger.Debug().Msgf("Calling Lua function with %+v", addr)
+	logger.Debug().Msgf("Calling Lua function with %+v", session)
 	if err := ls.CallByParam(
 		lua.P{Fn: ib.Before.MailFromAccepted, NRet: 1, Protect: true},
-		lua.LString(addr.Local),
-		lua.LString(addr.Domain),
+		wrapSMTPSession(ls, &session),
 	); err != nil {
 		logger.Error().Err(err).Msg("Failed to call Lua function")
 		return nil

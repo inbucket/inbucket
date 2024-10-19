@@ -108,8 +108,8 @@ func TestAfterMessageStored(t *testing.T) {
 func TestBeforeMailFromAccepted(t *testing.T) {
 	// Register lua event listener.
 	script := `
-		function inbucket.before.mail_from_accepted(localpart, domain)
-			if localpart == "from" and domain == "test" then
+		function inbucket.before.mail_from_accepted(session)
+			if session.from.address == "from@example.com" then
 				logger.info("allowing message", {})
 				return smtp.allow()
 			else
@@ -123,22 +123,30 @@ func TestBeforeMailFromAccepted(t *testing.T) {
 		consoleLogger, extHost, strings.NewReader(test.LuaInit+script), "test.lua")
 	require.NoError(t, err)
 
-	// Send event to be accepted.
-	addr := &event.AddressParts{Local: "from", Domain: "test"}
-	got := extHost.Events.BeforeMailFromAccepted.Emit(addr)
-	want := event.ActionAllow
-	require.NotNil(t, got, "Expected result from Emit()")
-	if got.Action != want {
-		t.Errorf("Got %v, wanted %v for addr %v", got.Action, want, addr)
+	{
+		// Send event to be accepted.
+		session := event.SMTPSession{
+			From: &mail.Address{Name: "", Address: "from@example.com"},
+		}
+		got := extHost.Events.BeforeMailFromAccepted.Emit(&session)
+		want := event.ActionAllow
+		require.NotNil(t, got, "Expected result from Emit()")
+		if got.Action != want {
+			t.Errorf("Got %v, wanted %v for addr %v", got.Action, want, session.From)
+		}
 	}
 
-	// Send event to be denied.
-	addr = &event.AddressParts{Local: "reject", Domain: "me"}
-	got = extHost.Events.BeforeMailFromAccepted.Emit(addr)
-	want = event.ActionDeny
-	require.NotNil(t, got, "Expected result from Emit()")
-	if got.Action != want {
-		t.Errorf("Got %v, wanted %v for addr %v", got.Action, want, addr)
+	{
+		// Send event to be denied.
+		session := event.SMTPSession{
+			From: &mail.Address{Name: "", Address: "from@reject.com"},
+		}
+		got := extHost.Events.BeforeMailFromAccepted.Emit(&session)
+		want := event.ActionDeny
+		require.NotNil(t, got, "Expected result from Emit()")
+		if got.Action != want {
+			t.Errorf("Got %v, wanted %v for addr %v", got.Action, want, session.From)
+		}
 	}
 }
 

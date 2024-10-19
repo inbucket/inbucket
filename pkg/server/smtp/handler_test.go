@@ -385,17 +385,17 @@ Hi!
 	_, _, _ = c.ReadCodeLine(221)
 }
 
-// Tests "MAIL FROM" emits BeforeMailAccepted event.
-func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
+// Tests "MAIL FROM" emits BeforeMailFromAccepted event.
+func TestBeforeMailFromAcceptedEventEmitted(t *testing.T) {
 	ds := test.NewStore()
 	extHost := extension.NewHost()
 	server := setupSMTPServer(ds, extHost)
 
-	var got *event.AddressParts
-	extHost.Events.BeforeMailAccepted.AddListener(
+	var got *event.SMTPSession
+	extHost.Events.BeforeMailFromAccepted.AddListener(
 		"test",
-		func(addr event.AddressParts) *event.SMTPResponse {
-			got = &addr
+		func(session event.SMTPSession) *event.SMTPResponse {
+			got = &session
 			return &event.SMTPResponse{Action: event.ActionDefer}
 		})
 
@@ -407,22 +407,22 @@ func TestBeforeMailAcceptedEventEmitted(t *testing.T) {
 	playSession(t, server, script)
 
 	assert.NotNil(t, got, "BeforeMailListener did not receive Address")
-	assert.Equal(t, "john", got.Local, "Address local part had wrong value")
-	assert.Equal(t, "gmail.com", got.Domain, "Address domain part had wrong value")
+	assert.Equal(t, "john@gmail.com", got.From.Address, "Address had wrong value")
 }
 
-// Test "MAIL FROM" acts on BeforeMailAccepted event result.
-func TestBeforeMailAcceptedEventResponse(t *testing.T) {
+// Test "MAIL FROM" acts on BeforeMailFromAccepted event result.
+func TestBeforeMailFromAcceptedEventResponse(t *testing.T) {
 	ds := test.NewStore()
 	extHost := extension.NewHost()
 	server := setupSMTPServer(ds, extHost)
 
 	var shouldReturn *event.SMTPResponse
-	var gotEvent *event.AddressParts
-	extHost.Events.BeforeMailAccepted.AddListener(
+	var gotEvent *event.SMTPSession
+
+	extHost.Events.BeforeMailFromAccepted.AddListener(
 		"test",
-		func(addr event.AddressParts) *event.SMTPResponse {
-			gotEvent = &addr
+		func(session event.SMTPSession) *event.SMTPResponse {
+			gotEvent = &session
 			return shouldReturn
 		})
 
@@ -462,7 +462,7 @@ func TestBeforeMailAcceptedEventResponse(t *testing.T) {
 				{"QUIT", 221}}
 			playSession(t, server, script)
 
-			assert.NotNil(t, gotEvent, "BeforeMailListener did not receive Address")
+			assert.NotNil(t, gotEvent, "BeforeMailFromAccepted did not receive event")
 		})
 	}
 }

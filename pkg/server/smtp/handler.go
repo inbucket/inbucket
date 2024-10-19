@@ -408,7 +408,7 @@ func (s *Session) parseMailFromCmd(arg string) {
 	s.logger.Debug().Msgf("Mail sender is %v", from)
 
 	// Parse from address.
-	localpart, domain, err := policy.ParseEmailAddress(from)
+	_, domain, err := policy.ParseEmailAddress(from)
 	s.logger.Debug().Msgf("Origin domain is %v", domain)
 	if from != "" && err != nil {
 		s.send("501 Bad sender address syntax")
@@ -446,10 +446,17 @@ func (s *Session) parseMailFromCmd(arg string) {
 		}
 	}
 
+	// Parse origin (from) address.
+	origin, err := s.addrPolicy.ParseOrigin(from)
+	if err != nil {
+		s.send("501 Bad origin address syntax")
+		s.logger.Warn().Str("from", from).Err(err).Msg("Bad address as MAIL arg")
+		return
+	}
+
 	// Process through extensions.
 	extAction := event.ActionDefer
-	extResult := s.extHost.Events.BeforeMailAccepted.Emit(
-		&event.AddressParts{Local: localpart, Domain: domain})
+	extResult := s.extHost.Events.BeforeMailFromAccepted.Emit(&event.SMTPSession{From: &origin.Address})
 	if extResult != nil {
 		extAction = extResult.Action
 	}
@@ -460,12 +467,6 @@ func (s *Session) parseMailFromCmd(arg string) {
 	}
 
 	// Sender was permitted by an extension, or no extension rejected it.
-	origin, err := s.addrPolicy.ParseOrigin(from)
-	if err != nil {
-		s.send("501 Bad origin address syntax")
-		s.logger.Warn().Str("from", from).Err(err).Msg("Bad address as MAIL arg")
-		return
-	}
 	s.from = origin
 	// Ignore ShouldAccept if extensions explicitly allowed this From.
 	if extAction == event.ActionDefer && !s.from.ShouldAccept() {

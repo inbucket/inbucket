@@ -122,6 +122,7 @@ func (s *StoreManager) Deliver(
 				To:      inbound.To,
 				Date:    now,
 				Subject: inbound.Subject,
+				Size:    inbound.Size,
 			},
 			Reader: io.MultiReader(strings.NewReader(recvd), bytes.NewReader(source)),
 		}

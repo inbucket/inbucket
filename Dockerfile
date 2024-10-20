@@ -16,7 +16,7 @@ FROM golang:1.23-alpine3.20 as backend
 RUN apk add --no-cache --virtual .build-deps g++ git make
 WORKDIR /build
 COPY . .
-ENV CGO_ENABLED 0
+ENV CGO_ENABLED=0
 RUN make clean deps
 RUN go build -o inbucket \
   -ldflags "-X 'main.version=$(git describe --tags --always)' -X 'main.date=$(date -Iseconds)'" \
@@ -33,16 +33,16 @@ COPY etc/docker/defaults/greeting.html defaults
 COPY etc/docker/defaults/start-inbucket.sh /
 
 # Configuration
-ENV INBUCKET_SMTP_DISCARDDOMAINS bitbucket.local
-ENV INBUCKET_SMTP_TIMEOUT 30s
-ENV INBUCKET_POP3_TIMEOUT 30s
-ENV INBUCKET_WEB_GREETINGFILE /config/greeting.html
-ENV INBUCKET_WEB_COOKIEAUTHKEY secret-inbucket-session-cookie-key
-ENV INBUCKET_WEB_UIDIR ui
-ENV INBUCKET_STORAGE_TYPE file
-ENV INBUCKET_STORAGE_PARAMS path:/storage
-ENV INBUCKET_STORAGE_RETENTIONPERIOD 72h
-ENV INBUCKET_STORAGE_MAILBOXMSGCAP 300
+ENV INBUCKET_SMTP_DISCARDDOMAINS=bitbucket.local
+ENV INBUCKET_SMTP_TIMEOUT=30s
+ENV INBUCKET_POP3_TIMEOUT=30s
+ENV INBUCKET_WEB_GREETINGFILE=/config/greeting.html
+ENV INBUCKET_WEB_COOKIEAUTHKEY=secret-inbucket-session-cookie-key
+ENV INBUCKET_WEB_UIDIR=ui
+ENV INBUCKET_STORAGE_TYPE=file
+ENV INBUCKET_STORAGE_PARAMS=path:/storage
+ENV INBUCKET_STORAGE_RETENTIONPERIOD=72h
+ENV INBUCKET_STORAGE_MAILBOXMSGCAP=300
 
 # Healthcheck
 HEALTHCHECK --interval=5s --timeout=5s --retries=3 CMD /bin/sh -c 'wget localhost:$(echo ${INBUCKET_WEB_ADDR:-0.0.0.0:9000}|cut -d: -f2) -q -O - >/dev/null'

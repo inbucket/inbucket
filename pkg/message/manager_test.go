@@ -312,7 +312,7 @@ func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 		origin,
 		[]*policy.Recipient{recip},
 		"Received: xyz\n",
-		[]byte("From: from@example.com\n\ntest email"),
+		[]byte("From: from@example.com\nSubject: events\n\ntest email."),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -321,6 +321,17 @@ func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, got, "No event received, or it was nil")
 	assertMessageCount(t, sm, "to@example.com", 1)
+
+	// Verify event content.
+	assert.Equal(t, "to@example.com", got.Mailbox)
+	assert.Equal(t, "from@example.com", got.From.Address)
+
+	assert.WithinDuration(t, time.Now(), got.Date, 5*time.Second)
+	assert.Equal(t, "events", got.Subject, nil)
+	assert.Equal(t, int64(51), got.Size)
+
+	require.Len(t, got.To, 1)
+	assert.Equal(t, "to@example.com", got.To[0].Address)
 }
 
 func TestDeliverBeforeAndAfterMessageStoredEvents(t *testing.T) {

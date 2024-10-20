@@ -408,6 +408,7 @@ func TestBeforeMailFromAcceptedEventEmitted(t *testing.T) {
 
 	assert.NotNil(t, got, "BeforeMailListener did not receive Address")
 	assert.Equal(t, "john@gmail.com", got.From.Address, "Address had wrong value")
+	assert.Equal(t, "pipe", got.RemoteAddr, "RemoteAddr had wrong value")
 }
 
 // Test "MAIL FROM" acts on BeforeMailFromAccepted event result.
@@ -492,6 +493,7 @@ func TestBeforeRcptToAcceptedSingleEventEmitted(t *testing.T) {
 	require.NotNil(t, got, "BeforeRcptToListener did not receive SMTPSession")
 	require.NotNil(t, got.From)
 	require.NotNil(t, got.To)
+	assert.Equal(t, "pipe", got.RemoteAddr, "RemoteAddr had wrong value")
 	assert.Equal(t, "john@gmail.com", got.From.Address)
 	assert.Len(t, got.To, 1)
 	assert.Equal(t, "user@gmail.com", got.To[0].Address)

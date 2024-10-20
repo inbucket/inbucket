@@ -116,7 +116,11 @@ type Session struct {
 // NewSession creates a new Session for the given connection
 func NewSession(server *Server, id int, conn net.Conn, logger zerolog.Logger) *Session {
 	reader := bufio.NewReader(conn)
-	host, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+
+	remoteHost := conn.RemoteAddr().String()
+	if host, _, err := net.SplitHostPort(remoteHost); err == nil {
+		remoteHost = host
+	}
 
 	session := &Session{
 		Server:     server,
@@ -124,7 +128,7 @@ func NewSession(server *Server, id int, conn net.Conn, logger zerolog.Logger) *S
 		conn:       conn,
 		state:      GREET,
 		reader:     reader,
-		remoteHost: host,
+		remoteHost: remoteHost,
 		recipients: make([]*policy.Recipient, 0),
 		logger:     logger,
 		debug:      server.config.Debug,
@@ -454,9 +458,14 @@ func (s *Session) parseMailFromCmd(arg string) {
 		return
 	}
 
+	// Add from to extSession for inspection.
+	extSession := s.extSession()
+	addrCopy := origin.Address
+	extSession.From = &addrCopy
+
 	// Process through extensions.
 	extAction := event.ActionDefer
-	extResult := s.extHost.Events.BeforeMailFromAccepted.Emit(&event.SMTPSession{From: &origin.Address})
+	extResult := s.extHost.Events.BeforeMailFromAccepted.Emit(extSession)
 	if extResult != nil {
 		extAction = extResult.Action
 	}
@@ -711,7 +720,11 @@ func (s *Session) ooSeq(cmd string) {
 
 // extSession builds an SMTPSession for extensions.
 func (s *Session) extSession() *event.SMTPSession {
-	from := s.from.Address
+	var from *mail.Address
+	if s.from != nil {
+		addr := s.from.Address
+		from = &addr
+	}
 	to := make([]*mail.Address, 0, len(s.recipients))
 	for _, recip := range s.recipients {
 		addr := recip.Address
@@ -719,7 +732,8 @@ func (s *Session) extSession() *event.SMTPSession {
 	}
 
 	return &event.SMTPSession{
-		From: &from,
-		To:   to,
+		From:       from,
+		To:         to,
+		RemoteAddr: s.remoteHost,
 	}
 }

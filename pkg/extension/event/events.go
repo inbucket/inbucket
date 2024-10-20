@@ -50,6 +50,7 @@ type SMTPResponse struct {
 
 // SMTPSession captures SMTP `MAIL FROM` & `RCPT TO` values prior to mail DATA being received.
 type SMTPSession struct {
-	From *mail.Address
-	To   []*mail.Address
+	From       *mail.Address
+	To         []*mail.Address
+	RemoteAddr string
 }

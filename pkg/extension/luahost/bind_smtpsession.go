@@ -47,20 +47,22 @@ func checkSMTPSession(ls *lua.LState, pos int) *event.SMTPSession {
 // Gets a field value from SMTPSession user object.  This emulates a Lua table,
 // allowing `msg.subject` instead of a Lua object syntax of `msg:subject()`.
 func smtpSessionIndex(ls *lua.LState) int {
-	m := checkSMTPSession(ls, 1)
+	session := checkSMTPSession(ls, 1)
 	field := ls.CheckString(2)
 
 	// Push the requested field's value onto the stack.
 	switch field {
 	case "from":
-		ls.Push(wrapMailAddress(ls, m.From))
+		ls.Push(wrapMailAddress(ls, session.From))
 	case "to":
 		lt := &lua.LTable{}
-		for _, v := range m.To {
+		for _, v := range session.To {
 			addr := v
 			lt.Append(wrapMailAddress(ls, addr))
 		}
 		ls.Push(lt)
+	case "remote_addr":
+		ls.Push(lua.LString(session.RemoteAddr))
 	default:
 		// Unknown field.
 		ls.Push(lua.LNil)

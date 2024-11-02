@@ -6,6 +6,20 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Lua scripting additions:
+  - Add `SMTPSession` and `BeforeRcptToAccepted` event (#541)
+  - Add `SMTPResponse` type for extensions (#539)
+  - Add `RemoteAddr` to `SMTPSession` (#548)
+- Context support for REST client (#496)
+
+### Fixed
+- Rename Lua `BeforeMailAccepted`, change args (#547)
+- pop3: Prevent STLS cmd triggered crashes (#516)
+- ui: date-format version, fixes yarn build (#508)
+- rework client example to omit `log.Fatal`, breaks defer (#489)
+- Rest Client: Allow relative URLs (#477)
+
 
 ## [v3.1.0-beta2] - 2024-02-05
 

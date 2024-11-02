@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [v3.1.0-beta3] - 2024-11-02
+
 ### Added
 - Lua scripting additions:
   - Add `SMTPSession` and `BeforeRcptToAccepted` event (#541)
@@ -367,7 +370,8 @@ No change from beta1.
   specific message.
 
 
-[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.1.0-beta2...main
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.1.0-beta3...main
+[v3.1.0-beta3]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta2...v3.1.0-beta3
 [v3.1.0-beta2]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta1...v3.1.0-beta2
 [v3.1.0-beta1]: https://github.com/inbucket/inbucket/compare/v3.0.4...v3.1.0-beta1
 [v3.0.4]:       https://github.com/inbucket/inbucket/compare/v3.0.3...v3.0.4

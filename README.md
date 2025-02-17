@@ -30,6 +30,13 @@ Inbucket has automated [Docker Image] builds via Docker Hub.  The `latest` tag
 tracks our tagged releases, and `edge` tracks our potentially unstable
 `main` branch.
 
+Start the docker image by running:
+
+```
+docker run -d --name inbucket -p 9000:9000 -p 2500:2500 -p 1100:1100 inbucket/inbucket
+```
+
+Then point your browser to [localhost:9000](http://localhost:9000/)
 
 ## Building from Source
 

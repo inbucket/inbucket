@@ -75,6 +75,11 @@ func (a *Addressing) NewRecipient(address string) (*Recipient, error) {
 // ParseOrigin parses an address into a Origin. This is used for parsing MAIL FROM argument,
 // not To headers.
 func (a *Addressing) ParseOrigin(address string) (*Origin, error) {
+	if address == "" {
+		return &Origin{
+			addrPolicy: a,
+		}, nil
+	}
 	local, domain, err := ParseEmailAddress(address)
 	if err != nil {
 		return nil, err

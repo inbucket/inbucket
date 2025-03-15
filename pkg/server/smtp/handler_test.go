@@ -85,14 +85,14 @@ func TestEmptyEnvelope(t *testing.T) {
 	// Test out some empty envelope without blanks
 	script := []scriptStep{
 		{"HELO localhost", 250},
-		{"MAIL FROM:<>", 501},
+		{"MAIL FROM:<>", 250},
 	}
 	playSession(t, server, script)
 
 	// Test out some empty envelope with blanks
 	script = []scriptStep{
 		{"HELO localhost", 250},
-		{"MAIL FROM: <>", 501},
+		{"MAIL FROM: <>", 250},
 	}
 	playSession(t, server, script)
 }

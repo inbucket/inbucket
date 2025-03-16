@@ -112,7 +112,7 @@ func (s *StoreManager) Deliver(
 	for _, mb := range inbound.Mailboxes {
 		// Append recipient and timestamp to generated Received header.
 		recvd := fmt.Sprintf("%s  for <%s>; %s\r\n", recvdHeader, mb, tstamp)
-
+		returnPath := fmt.Sprintf("Return-Path: <%s>\r\n", from.Address.Address)
 		// Deliver message.
 		logger.Debug().Str("mailbox", mb).Msg("Delivering message")
 		delivery := &Delivery{
@@ -124,7 +124,7 @@ func (s *StoreManager) Deliver(
 				Subject: inbound.Subject,
 				Size:    inbound.Size,
 			},
-			Reader: io.MultiReader(strings.NewReader(recvd), bytes.NewReader(source)),
+			Reader: io.MultiReader(strings.NewReader(returnPath), strings.NewReader(recvd), bytes.NewReader(source)),
 		}
 		id, err := s.Store.AddMessage(delivery)
 		if err != nil {

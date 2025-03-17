@@ -411,18 +411,6 @@ func (s *Session) parseMailFromCmd(arg string) {
 	from := m[1]
 	s.logger.Debug().Msgf("Mail sender is %v", from)
 
-	// Parse from address.
-	_, domain, err := policy.ParseEmailAddress(from)
-	s.logger.Debug().Msgf("Origin domain is %v", domain)
-	if from != "" && err != nil {
-		s.send("501 Bad sender address syntax")
-		s.logger.Warn().Msgf("Bad address as MAIL arg: %q, %s", from, err)
-		return
-	}
-	if from == "" {
-		from = "unspecified"
-	}
-
 	// Parse ESMTP parameters.
 	if m[2] != "" {
 		// Here the client may put BODY=8BITMIME, but Inbucket already
@@ -480,7 +468,7 @@ func (s *Session) parseMailFromCmd(arg string) {
 	// Ignore ShouldAccept if extensions explicitly allowed this From.
 	if extAction == event.ActionDefer && !s.from.ShouldAccept() {
 		s.send("501 Unauthorized domain")
-		s.logger.Warn().Msgf("Bad domain sender %s", domain)
+		s.logger.Warn().Msgf("Bad domain sender %s", origin.Domain)
 		return
 	}
 

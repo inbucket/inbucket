@@ -78,6 +78,11 @@ func TestGreetState(t *testing.T) {
 	}
 }
 
+// Messages sent with a null reverse-path are unusual,
+// but valid. They are used for delivery status
+// notifications, and also for some sorts of auto-responder
+// as part of bounce storm mitigation.
+// Sections 3.6.3 and  4.5.5 of RFC 5321 discuss them.
 func TestEmptyEnvelope(t *testing.T) {
 	ds := test.NewStore()
 	server := setupSMTPServer(ds, extension.NewHost())

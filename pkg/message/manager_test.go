@@ -501,6 +501,38 @@ func TestMailboxForAddress(t *testing.T) {
 	assert.Equal(t, addr, got, "FullNaming mode should return a full address for mailbox")
 }
 
+func TestReturnPath(t *testing.T) {
+	sm, _ := testStoreManager()
+
+	recvdHeader := "Received: xyz\n"
+	msgSource := `From: from@example.com
+To: u1@example.com
+Subject: return path
+
+test email`
+
+	// Deliver message.
+	origin, _ := sm.AddrPolicy.ParseOrigin("821from@example.com")
+	recipient, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	err := sm.Deliver(origin, []*policy.Recipient{recipient}, recvdHeader, []byte(msgSource))
+	require.NoError(t, err)
+
+	// Find message ID.
+	msgs, err := sm.GetMetadata("u1@example.com")
+	require.NoError(t, err, "Failed to read mailbox")
+	require.Len(t, msgs, 1, "Unexpected mailbox len")
+	id := msgs[0].ID
+
+	// Read back and verify source.
+	r, err := sm.SourceReader("u1@example.com", id)
+	require.NoError(t, err, "SourceReader must succeed")
+	gotBytes, err := io.ReadAll(r)
+	require.NoError(t, err, "Failed to read source")
+
+	got := string(gotBytes)
+	assert.Contains(t, got, "Return-Path: <821from@example.com>\r\n", "Source should contain return-path")
+}
+
 // Returns an empty StoreManager and extension Host pair, configured for testing.
 func testStoreManager() (*message.StoreManager, *extension.Host) {
 	extHost := extension.NewHost()

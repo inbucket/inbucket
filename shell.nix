@@ -1,4 +1,6 @@
-{ pkgs ? import <nixpkgs> { } }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 let
   scripts = {
     # Quick test script.
@@ -22,7 +24,7 @@ pkgs.mkShell {
     elmPackages.elm-json
     elmPackages.elm-language-server
     elmPackages.elm-test
-    go_1_21
+    go_1_24
     golangci-lint
     golint
     gopls

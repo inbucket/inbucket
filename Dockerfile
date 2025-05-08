@@ -2,7 +2,7 @@
 
 ### Build frontend
 # Due to no official elm compiler for arm; build frontend with amd64.
-FROM --platform=linux/amd64 node:20 as frontend
+FROM --platform=linux/amd64 node:20 AS frontend
 RUN npm install -g node-gyp
 WORKDIR /build
 COPY . .
@@ -12,7 +12,7 @@ RUN yarn install --frozen-lockfile --non-interactive
 RUN yarn run build
 
 ### Build backend
-FROM golang:1.23-alpine3.20 as backend
+FROM golang:1.24-alpine3.21 AS backend
 RUN apk add --no-cache --virtual .build-deps g++ git make
 WORKDIR /build
 COPY . .
@@ -23,7 +23,7 @@ RUN go build -o inbucket \
   -v ./cmd/inbucket
 
 ### Run in minimal image
-FROM alpine:3.20
+FROM alpine:3.21
 RUN apk --no-cache add tzdata
 WORKDIR /opt/inbucket
 RUN mkdir bin defaults ui

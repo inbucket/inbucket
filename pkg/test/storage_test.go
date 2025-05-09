@@ -31,7 +31,6 @@ func TestStoreStubMailboxAddGetVisit(t *testing.T) {
 		{mailbox: "box3", count: 3},
 	}
 	for _, tc := range tcs {
-		tc := tc
 		t.Run(tc.mailbox, func(t *testing.T) {
 			var err error
 

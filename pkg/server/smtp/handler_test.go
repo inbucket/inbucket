@@ -455,7 +455,6 @@ func TestBeforeMailFromAcceptedEventResponse(t *testing.T) {
 	}
 
 	for name, tc := range tcs {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			// Reset event listener.
 			shouldReturn = &tc.eventRes
@@ -624,7 +623,6 @@ func TestBeforeRcptToAcceptedEventResponse(t *testing.T) {
 	}
 
 	for name, tc := range tcs {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			// Reset event listener.
 			shouldReturn = &tc.eventRes

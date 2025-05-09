@@ -70,7 +70,7 @@ func (m *ManagerStub) MarkSeen(mailbox, id string) error {
 	}
 	for _, msg := range m.mailboxes[mailbox] {
 		if msg.ID == id {
-			msg.MessageMetadata.Seen = true
+			msg.Seen = true
 			return nil
 		}
 	}

@@ -1,5 +1,4 @@
-run:
-  timeout: 5m
+version: "2"
 linters:
   enable:
     - asasalint
@@ -10,29 +9,17 @@ linters:
     - contextcheck
     - copyloopvar
     - decorder
-    # - dupl
-    # - dupword
     - durationcheck
     - errchkjson
     - errname
-    # - errorlint
-    # - exhaustive
-    # - forcetypeassert
     - ginkgolinter
     - gocheckcompilerdirectives
-    # - gochecknoinits
     - gochecksumtype
     - gocritic
-    # - godot
-    # - goerr113
-    - gofmt
-    # - gofumpt
     - goheader
-    - goimports
     - gomoddirectives
     - gomodguard
     - goprintffuncname
-    # - gosec
     - gosmopolitan
     - grouper
     - importas
@@ -44,8 +31,6 @@ linters:
     - misspell
     - musttag
     - nilerr
-    # - nilnil
-    # - nlreturn
     - noctx
     - nolintlint
     - nosprintfhostport
@@ -55,24 +40,43 @@ linters:
     - promlinter
     - protogetter
     - reassign
-    # - revive
     - rowserrcheck
     - sloglint
-    - stylecheck
+    - staticcheck
     - tagliatelle
     - testableexamples
     - testifylint
     - thelper
     - tparallel
-    # - unconvert
     - unparam
     - usestdlibvars
     - usetesting
     - wastedassign
     - whitespace
     - zerologlint
-linters-settings:
-  tagliatelle:
-    case:
-      rules:
-        json: kebab
+  settings:
+    tagliatelle:
+      case:
+        rules:
+          json: kebab
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

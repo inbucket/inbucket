@@ -300,7 +300,7 @@ func (s *Session) greetHandler(cmd string, arg string) {
 		s.send("250-" + readyBanner)
 		s.send("250-8BITMIME")
 		s.send("250-AUTH PLAIN LOGIN")
-		if s.Server.config.TLSEnabled && !s.Server.config.ForceTLS && s.Server.tlsConfig != nil && s.tlsState == nil {
+		if s.config.TLSEnabled && !s.config.ForceTLS && s.tlsConfig != nil && s.tlsState == nil {
 			s.send("250-STARTTLS")
 		}
 		s.send(fmt.Sprintf("250 SIZE %v", s.config.MaxMessageBytes))
@@ -338,7 +338,7 @@ func (s *Session) passwordHandler() {
 func (s *Session) readyHandler(cmd string, arg string) {
 	switch cmd {
 	case "STARTTLS":
-		if !s.Server.config.TLSEnabled {
+		if !s.config.TLSEnabled {
 			// Invalid command since TLS unconfigured.
 			s.logger.Debug().Msgf("454 TLS unavailable on the server")
 			s.send("454 TLS unavailable on the server")
@@ -354,7 +354,7 @@ func (s *Session) readyHandler(cmd string, arg string) {
 
 		// Start TLS connection handshake.
 		s.send("220 STARTTLS")
-		tlsConn := tls.Server(s.conn, s.Server.tlsConfig)
+		tlsConn := tls.Server(s.conn, s.tlsConfig)
 		s.conn = tlsConn
 		s.text = textproto.NewConn(s.conn)
 		s.tlsState = new(tls.ConnectionState)

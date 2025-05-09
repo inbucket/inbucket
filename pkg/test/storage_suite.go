@@ -379,7 +379,7 @@ func testPurge(s storeSuite) {
 		}
 		gotEvents = append(gotEvents, ev)
 	}
-	assert.Equal(s, len(subjects), len(gotEvents),
+	assert.Len(s, gotEvents, len(subjects),
 		"expected delete event for each message in mailbox")
 }
 

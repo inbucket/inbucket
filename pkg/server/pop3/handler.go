@@ -214,7 +214,7 @@ func (s *Session) authorizationHandler(cmd string, args []string) {
 		s.enterState(QUIT)
 
 	case "STLS":
-		if !s.Server.config.TLSEnabled || s.Server.config.ForceTLS {
+		if !s.config.TLSEnabled || s.config.ForceTLS {
 			// Invalid command since TLS unconfigured.
 			s.logger.Debug().Msgf("-ERR TLS unavailable on the server")
 			s.send("-ERR TLS unavailable on the server")
@@ -230,7 +230,7 @@ func (s *Session) authorizationHandler(cmd string, args []string) {
 
 		// Start TLS connection handshake.
 		s.send("+OK Begin TLS Negotiation")
-		tlsConn := tls.Server(s.conn, s.Server.tlsConfig)
+		tlsConn := tls.Server(s.conn, s.tlsConfig)
 		if err := tlsConn.Handshake(); err != nil {
 			s.logger.Error().Msgf("-ERR TLS handshake failed %v", err)
 			s.ooSeq(cmd)

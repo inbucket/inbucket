@@ -8,6 +8,7 @@ linters:
     - bodyclose
     - containedctx
     - contextcheck
+    - copyloopvar
     - decorder
     # - dupl
     # - dupword
@@ -16,7 +17,6 @@ linters:
     - errname
     # - errorlint
     # - exhaustive
-    - exportloopref
     # - forcetypeassert
     - ginkgolinter
     - gocheckcompilerdirectives
@@ -60,7 +60,6 @@ linters:
     - sloglint
     - stylecheck
     - tagliatelle
-    - tenv
     - testableexamples
     - testifylint
     - thelper
@@ -68,6 +67,7 @@ linters:
     # - unconvert
     - unparam
     - usestdlibvars
+    - usetesting
     - wastedassign
     - whitespace
     - zerologlint

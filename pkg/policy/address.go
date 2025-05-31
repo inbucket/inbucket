@@ -274,7 +274,7 @@ func parseEmailAddress(address string) (local string, domain string, err error) 
 	inCharQuote := false
 	inStringQuote := false
 LOOP:
-	for i := 0; i < len(address); i++ {
+	for i := range len(address) {
 		c := address[i]
 		switch {
 		case ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'):
@@ -380,7 +380,7 @@ func parseMailboxName(localPart string) (result string, err error) {
 	}
 	result = strings.ToLower(localPart)
 	invalid := make([]byte, 0, 10)
-	for i := 0; i < len(result); i++ {
+	for i := range len(result) {
 		c := result[i]
 		switch {
 		case 'a' <= c && c <= 'z':

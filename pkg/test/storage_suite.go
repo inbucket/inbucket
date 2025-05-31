@@ -139,7 +139,7 @@ func testMetadata(s storeSuite) {
 // testContent generates some binary content and makes sure it is correctly retrieved.
 func testContent(s storeSuite) {
 	content := make([]byte, 5000)
-	for i := 0; i < len(content); i++ {
+	for i := range content {
 		content[i] = byte(i % 256)
 	}
 	mailbox := "testmailbox"
@@ -388,7 +388,7 @@ func testMsgCap(s storeSuite) {
 	mbCap := 10
 	mailbox := "captain"
 
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		subj := fmt.Sprintf("subject %v", i)
 		DeliverToStore(s.T, s.store, mailbox, subj, time.Now())
 		msgs, err := s.store.GetMessages(mailbox)
@@ -401,10 +401,7 @@ func testMsgCap(s storeSuite) {
 		}
 
 		// Check that the first (oldest) message is correct.
-		first := i - mbCap + 1
-		if first < 0 {
-			first = 0
-		}
+		first := max(i-mbCap+1, 0)
 		firstSubj := fmt.Sprintf("subject %v", first)
 		if firstSubj != msgs[0].Subject() {
 			s.Errorf("Got subject %q, wanted first subject: %q", msgs[0].Subject(), firstSubj)
@@ -415,7 +412,7 @@ func testMsgCap(s storeSuite) {
 // testNoMsgCap verfies a cap of 0 is not enforced.
 func testNoMsgCap(s storeSuite) {
 	mailbox := "captain"
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		subj := fmt.Sprintf("subject %v", i)
 		DeliverToStore(s.T, s.store, mailbox, subj, time.Now())
 		GetAndCountMessages(s.T, s.store, mailbox, i+1)

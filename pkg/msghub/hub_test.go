@@ -81,7 +81,7 @@ func TestHubZeroLen(t *testing.T) {
 	hub := New(0, extension.NewHost())
 	go hub.Start(ctx)
 	m := event.MessageMetadata{}
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		hub.Dispatch(m)
 	}
 	// Ensures Hub doesn't panic
@@ -93,7 +93,7 @@ func TestHubZeroListeners(t *testing.T) {
 	hub := New(5, extension.NewHost())
 	go hub.Start(ctx)
 	m := event.MessageMetadata{}
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		hub.Dispatch(m)
 	}
 	// Ensures Hub doesn't panic
@@ -178,7 +178,7 @@ func TestHubHistoryReplay(t *testing.T) {
 
 	// Broadcast 3 messages with no listeners
 	msgs := make([]event.MessageMetadata, 3)
-	for i := 0; i < len(msgs); i++ {
+	for i := range msgs {
 		msgs[i] = event.MessageMetadata{
 			Subject: fmt.Sprintf("subj %v", i),
 		}
@@ -203,7 +203,7 @@ func TestHubHistoryReplay(t *testing.T) {
 		t.Fatal("Timeout:", l2)
 	}
 
-	for i := 0; i < len(msgs); i++ {
+	for i := range msgs {
 		got := l2.messages[i].Subject
 		want := msgs[i].Subject
 		if got != want {
@@ -222,7 +222,7 @@ func TestHubHistoryDelete(t *testing.T) {
 
 	// Broadcast 3 messages with no listeners
 	msgs := make([]event.MessageMetadata, 3)
-	for i := 0; i < len(msgs); i++ {
+	for i := range msgs {
 		msgs[i] = event.MessageMetadata{
 			Mailbox: "hub",
 			ID:      strconv.Itoa(i),
@@ -253,7 +253,7 @@ func TestHubHistoryDelete(t *testing.T) {
 	}
 
 	want := []string{"subj 0", "subj 2"}
-	for i := 0; i < len(want); i++ {
+	for i := range want {
 		got := l2.messages[i].Subject
 		if got != want[i] {
 			t.Errorf("msg[%v].Subject == %q, want %q", i, got, want[i])
@@ -271,7 +271,7 @@ func TestHubHistoryReplayWrap(t *testing.T) {
 
 	// Broadcast more messages than the hub can hold
 	msgs := make([]event.MessageMetadata, 20)
-	for i := 0; i < len(msgs); i++ {
+	for i := range msgs {
 		msgs[i] = event.MessageMetadata{
 			Subject: fmt.Sprintf("subj %v", i),
 		}
@@ -296,7 +296,7 @@ func TestHubHistoryReplayWrap(t *testing.T) {
 		t.Fatal("Timeout:", l2)
 	}
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		got := l2.messages[i].Subject
 		want := msgs[i+15].Subject
 		if got != want {
@@ -326,7 +326,7 @@ func TestHubHistoryReplayWrapAfterDelete(t *testing.T) {
 
 	// Broadcast more messages than the hub can hold.
 	msgs := make([]event.MessageMetadata, 10)
-	for i := 0; i < len(msgs); i++ {
+	for i := range msgs {
 		msgs[i] = event.MessageMetadata{
 			Mailbox: "first",
 			ID:      strconv.Itoa(i),
@@ -343,7 +343,7 @@ func TestHubHistoryReplayWrapAfterDelete(t *testing.T) {
 	hub.Delete("first", "7")
 
 	// Broadcast another set of messages.
-	for i := 0; i < len(msgs); i++ {
+	for i := range msgs {
 		msgs[i] = event.MessageMetadata{
 			Mailbox: "second",
 			ID:      strconv.Itoa(i),

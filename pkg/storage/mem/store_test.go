@@ -37,7 +37,7 @@ func TestMaxSize(t *testing.T) {
 	for _, mailbox := range boxes {
 		go func(mailbox string) {
 			size := int64(0)
-			for i := 0; i < n; i++ {
+			for range n {
 				_, nbytes := test.DeliverToStore(t, s, mailbox, "subject", time.Now())
 				size += nbytes
 			}

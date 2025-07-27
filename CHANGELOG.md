@@ -7,6 +7,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [v3.1.0] - 2025-07-27
+
+### Added
+- Note in logs that a missing Lua script is not an error (#575)
+
+### Fixed
+- Accept and handle emails sent with an empty 821.From (#561)
+
+
 ## [v3.1.0-beta3] - 2024-11-02
 
 ### Added
@@ -370,7 +379,8 @@ No change from beta1.
   specific message.
 
 
-[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.1.0-beta3...main
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.1.0...main
+[v3.1.0]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta3...v3.1.0
 [v3.1.0-beta3]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta2...v3.1.0-beta3
 [v3.1.0-beta2]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta1...v3.1.0-beta2
 [v3.1.0-beta1]: https://github.com/inbucket/inbucket/compare/v3.0.4...v3.1.0-beta1
@@ -409,7 +419,7 @@ No change from beta1.
     - Add new GitHub `/compare` link
     - Update previous tag version for *Unreleased* 
 3.  Run tests
-4.  Update goreleaser, and then test cross-compile: `goreleaser --snapshot`
+4.  Update goreleaser, and then test cross-compile: `goreleaser release --snapshot --clean`
 5.  Commit changes and merge release PR into main
 6.  Create new release via GitHub, use CHANGELOG release notes, tag `vX.Y.Z`
 7.  Push tags and wait for

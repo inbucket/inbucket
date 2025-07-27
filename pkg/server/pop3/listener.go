@@ -120,7 +120,7 @@ func (s *Server) serve(ctx context.Context) {
 		} else {
 			tempDelay = 0
 			s.wg.Add(1)
-			go s.startSession(sid, conn)
+			go s.startSession(ctx, sid, conn)
 		}
 	}
 }

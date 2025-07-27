@@ -130,6 +130,11 @@ func NewServer(conf *config.Root, mm message.Manager, mh *msghub.Hub) *Server {
 
 // Start begins listening for HTTP requests
 func (s *Server) Start(ctx context.Context, readyFunc func()) {
+	var (
+		err       error
+		listenCfg net.ListenConfig
+	)
+
 	server = &http.Server{
 		Addr:         rootConfig.Web.Addr,
 		Handler:      requestLoggingWrapper(Router),
@@ -140,8 +145,11 @@ func (s *Server) Start(ctx context.Context, readyFunc func()) {
 	// We don't use ListenAndServe because it lacks a way to close the listener
 	log.Info().Str("module", "web").Str("phase", "startup").Str("addr", server.Addr).
 		Msg("HTTP listening on tcp4")
-	var err error
-	listener, err = net.Listen("tcp", server.Addr)
+
+	// This context is only used while the listener is resolving our address.
+	listenCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	listener, err = listenCfg.Listen(listenCtx, "tcp", server.Addr)
 	if err != nil {
 		log.Error().Str("module", "web").Str("phase", "startup").Err(err).
 			Msg("HTTP failed to start TCP4 listener")

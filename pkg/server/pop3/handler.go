@@ -2,6 +2,7 @@ package pop3
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -101,7 +102,7 @@ func (s *Session) String() string {
  *  4. If bad cmd, respond error
  *  5. Goto 2
  */
-func (s *Server) startSession(id int, conn net.Conn) {
+func (s *Server) startSession(ctx context.Context, id int, conn net.Conn) {
 	logger := log.With().Str("module", "pop3").Str("remote", conn.RemoteAddr().String()).
 		Int("session", id).Logger()
 	logger.Debug().Msgf("ForceTLS: %t", s.config.ForceTLS)
@@ -165,7 +166,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 			// Send command to handler for current state
 			switch ssn.state {
 			case AUTHORIZATION:
-				ssn.authorizationHandler(cmd, arg)
+				ssn.authorizationHandler(ctx, cmd, arg)
 				continue
 			case TRANSACTION:
 				ssn.transactionHandler(cmd, arg)
@@ -206,7 +207,7 @@ func (s *Server) startSession(id int, conn net.Conn) {
 }
 
 // AUTHORIZATION state
-func (s *Session) authorizationHandler(cmd string, args []string) {
+func (s *Session) authorizationHandler(ctx context.Context, cmd string, args []string) {
 	switch cmd {
 	case "QUIT":
 		s.send("+OK Goodnight and good luck")
@@ -229,9 +230,11 @@ func (s *Session) authorizationHandler(cmd string, args []string) {
 		s.logger.Debug().Msg("Initiating TLS context.")
 
 		// Start TLS connection handshake.
+		tlsCtx, cancel := context.WithTimeout(ctx, s.config.Timeout)
+		defer cancel()
 		s.send("+OK Begin TLS Negotiation")
 		tlsConn := tls.Server(s.conn, s.tlsConfig)
-		if err := tlsConn.Handshake(); err != nil {
+		if err := tlsConn.HandshakeContext(tlsCtx); err != nil {
 			s.logger.Error().Msgf("-ERR TLS handshake failed %v", err)
 			s.ooSeq(cmd)
 		}

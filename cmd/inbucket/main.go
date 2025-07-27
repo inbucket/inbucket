@@ -37,7 +37,7 @@ func init() {
 	startTime.Set(time.Now().UnixNano() / 1000000)
 
 	// Goroutine count for status page.
-	expvar.Publish("goroutines", expvar.Func(func() interface{} {
+	expvar.Publish("goroutines", expvar.Func(func() any {
 		return runtime.NumGoroutine()
 	}))
 

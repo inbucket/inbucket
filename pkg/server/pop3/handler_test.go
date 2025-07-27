@@ -302,7 +302,7 @@ func setupPOPServer(t *testing.T, ds storage.Store, tls bool, forceTLS bool) *Se
 	cfg := config.POP3{
 		Addr:     "127.0.0.1:2500",
 		Domain:   "inbucket.local",
-		Timeout:  5,
+		Timeout:  5 * time.Second,
 		Debug:    true,
 		ForceTLS: forceTLS,
 	}
@@ -344,7 +344,7 @@ func setupPOPSession(t *testing.T, server *Server) net.Conn {
 	// Start the session.
 	server.wg.Add(1)
 	sessionNum++
-	go server.startSession(sessionNum, &mockConn{serverConn})
+	go server.startSession(context.Background(), sessionNum, &mockConn{serverConn})
 
 	return clientConn
 }

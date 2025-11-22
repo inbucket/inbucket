@@ -24,7 +24,7 @@ pkgs.mkShell {
     elmPackages.elm-json
     elmPackages.elm-language-server
     elmPackages.elm-test
-    go_1_24
+    go_1_25
     golangci-lint
     golint
     gopls

@@ -1,8 +1,6 @@
 module github.com/inbucket/inbucket/v3
 
-go 1.23.0
-
-toolchain go1.24.2
+go 1.25.0
 
 require (
 	github.com/cjoudrey/gluahttp v0.0.0-20201111170219-25003d9adfa9

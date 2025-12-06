@@ -9,11 +9,7 @@ on:
 jobs:
   linux-go-build:
     runs-on: ubuntu-latest
-    name: Linux Go ${{ matrix.go }} build
-    strategy:
-      matrix:
-        go:
-          - '1.25'
+    name: Linux Go build
     steps:
       - uses: actions/checkout@v6
         with:
@@ -21,7 +17,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: ${{ matrix.go }}
+          go-version-file: '.go-version'
           check-latest: true
       - name: Build and test
         run: |
@@ -31,7 +27,7 @@ jobs:
         uses: shogo82148/actions-goveralls@v1
         with:
           path-to-profile: profile.cov
-          flag-name: Linux-Go-${{ matrix.go }}
+          flag-name: Linux-Go
           parallel: true
 
   windows-go-build:
@@ -44,7 +40,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version-file: '.go-version'
       - name: Build
         run: go build ./...
       - name: Test

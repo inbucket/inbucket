@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [v3.1.1] - 2025-12-06
+
+### Fixed
+- Go version update for CVE-2025-47907
+- Removed broken Windows arm7 build (#589)
+
+
 ## [v3.1.0] - 2025-07-27
 
 ### Added
@@ -379,7 +386,8 @@ No change from beta1.
   specific message.
 
 
-[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.1.0...main
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.1.1...main
+[v3.1.1]: https://github.com/inbucket/inbucket/compare/v3.1.0...v3.1.1
 [v3.1.0]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta3...v3.1.0
 [v3.1.0-beta3]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta2...v3.1.0-beta3
 [v3.1.0-beta2]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta1...v3.1.0-beta2

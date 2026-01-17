@@ -328,43 +328,41 @@ export SUPABASE_INBUCKET_STORAGE_PATH=/path/to/email/storage
 | Phase | Description | Effort |
 |-------|-------------|--------|
 | Phase 1 | Extract storage layer | 2-4 hours |
-| Phase 2 | SMTP server (using go-smtp) | 4-8 hours |
-| Phase 3 | Message parsing | 2-4 hours |
-| Phase 4 | Integration API | 2-4 hours |
-| Testing | Unit + integration tests | 4-8 hours |
-| **Total** | | **14-28 hours** |
+| Phase 2 | SMTP server (using go-smtp) | 3-5 hours |
+| Phase 3 | Message parsing | 1-2 hours |
+| Phase 4 | Integration API | 1-2 hours |
+| Testing | Unit + integration tests | 2-4 hours |
+| **Total** | | **9-17 hours** |
+
+*Note: Reduced from original estimate due to simplified scope (no REST API, no retention, no POP3).*
 
 ---
 
-## Open Questions
+## Decisions (Resolved)
 
-1. **Does Supabase CLI need the Web UI?**
-   - If yes, this approach won't work (UI is tightly coupled)
-   - If no, we only need SMTP + programmatic access
+| Question | Decision | Impact |
+|----------|----------|--------|
+| Web UI needed? | ❌ No | Skip `pkg/server/web` entirely |
+| POP3 support? | ❌ No | Skip `pkg/server/pop3` entirely |
+| Message persistence? | ✅ Yes | Use file-based storage |
+| REST API compatibility? | ❌ No | Users read emails from disk directly |
+| Retention policy? | ❌ No | Users delete emails manually |
 
-2. **POP3 support needed?**
-   - Likely not for local dev testing
-   - Can be omitted to simplify
+### Simplified Scope
 
-3. ~~**Message persistence across CLI restarts?**~~
-   - ✅ **Resolved:** Yes, using file-based storage with configurable path
-
-4. **REST API compatibility?**
-   - Does Supabase have tooling that calls inbucket's REST API?
-   - If yes, we may need to expose compatible HTTP endpoints
-   - Alternative: Provide Go API for direct access within CLI
-
-5. **Retention policy?**
-   - Should old emails be automatically deleted after a period?
-   - Original inbucket supports `INBUCKET_STORAGE_RETENTIONPERIOD`
-   - May want to implement similar for file storage cleanup
+With these decisions, the implementation is minimal:
+- **SMTP server** - Accept incoming emails
+- **File storage** - Persist to disk
+- **No HTTP/REST** - Not needed
+- **No POP3** - Not needed
+- **No retention scanner** - Not needed
 
 ---
 
 ## Next Steps
 
-1. Confirm requirements with Supabase CLI team
+1. ~~Confirm requirements with Supabase CLI team~~ ✅ Done
 2. Prototype Phase 1 (storage extraction)
 3. Prototype Phase 2 (minimal SMTP with go-smtp)
-4. Evaluate binary size impact
-5. Decide on final approach
+4. Integrate into Supabase CLI
+5. Test with existing Supabase email workflows

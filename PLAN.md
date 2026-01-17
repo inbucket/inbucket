@@ -26,7 +26,7 @@ This document outlines a plan to extract minimal components from Inbucket so the
 Embed a minimal email testing capability directly in the Supabase CLI binary, providing:
 1. SMTP server to receive emails
 2. API/interface to read received emails
-3. In-memory storage (no persistence needed for local dev)
+3. File-based storage with configurable location (persists across CLI restarts)
 
 ---
 
@@ -36,11 +36,11 @@ Embed a minimal email testing capability directly in the Supabase CLI binary, pr
 
 | Package | Purpose | Dependencies | Effort |
 |---------|---------|--------------|--------|
-| `pkg/storage/mem` | In-memory email storage | `pkg/extension` (can stub) | Low |
+| `pkg/storage/file` | File-based email storage | `pkg/extension` (can stub), `pkg/stringutil` | Low |
 | `pkg/storage` | Storage interface | Minimal | Low |
 | `pkg/message` | Message parsing/metadata | `pkg/storage`, `pkg/policy` | Low |
 | `pkg/policy` | Address validation | Minimal | Low |
-| `pkg/rest/client` | REST client | None | N/A (not needed) |
+| `pkg/stringutil` | Mailbox name hashing | Minimal | Low |
 
 ### Non-Extractable (Tight Coupling)
 
@@ -103,9 +103,10 @@ supabase-cli
 ├── internal/
 │   └── inbucket/           # Extracted/adapted inbucket code
 │       ├── storage.go      # Storage interface
-│       ├── mem_store.go    # In-memory implementation
+│       ├── file_store.go   # File-based storage implementation
 │       ├── smtp.go         # Minimal SMTP server
 │       ├── message.go      # Message types
+│       ├── hash.go         # Mailbox name hashing (from stringutil)
 │       └── server.go       # Embeddable server entry point
 ```
 
@@ -117,14 +118,17 @@ package inbucket
 // Config for the embedded email server
 type Config struct {
     SMTPAddr    string // e.g., "127.0.0.1:54325"
-    MaxMessages int    // Per-mailbox cap
-    MaxSizeKB   int64  // Total storage cap
+    StoragePath string // e.g., "/path/to/emails" or from env var
+    MaxMessages int    // Per-mailbox cap (default: 500)
 }
+
+// Environment variable for storage path configuration
+// SUPABASE_INBUCKET_STORAGE_PATH=/path/to/emails
 
 // Server is an embeddable email testing server
 type Server struct {
     config  Config
-    store   *MemStore
+    store   *FileStore
     smtp    *SMTPServer
 }
 
@@ -178,8 +182,10 @@ type Message struct {
 
 1. **Copy minimal storage code**
    - `pkg/storage/storage.go` → Interface definitions
-   - `pkg/storage/mem/store.go` → In-memory implementation
-   - `pkg/storage/mem/message.go` → Message struct
+   - `pkg/storage/file/fstore.go` → File-based storage implementation
+   - `pkg/storage/file/fmessage.go` → File message struct
+   - `pkg/storage/file/mbox.go` → Mailbox directory handling
+   - `pkg/stringutil/stringutil.go` → Mailbox name hashing
 
 2. **Remove extension dependency**
    - The `extension.Host` is used for event emission
@@ -187,7 +193,25 @@ type Message struct {
 
 3. **Simplify configuration**
    - Replace `config.Storage` with simple struct
-   - Remove environment variable parsing
+   - Add environment variable support for storage path:
+     ```go
+     // StoragePath resolution order:
+     // 1. Explicit config value
+     // 2. SUPABASE_INBUCKET_STORAGE_PATH env var
+     // 3. Default: ~/.supabase/inbucket or $SUPABASE_WORKDIR/inbucket
+     ```
+
+4. **File storage structure**
+   ```
+   $STORAGE_PATH/
+   └── mail/
+       └── {hash[0:3]}/
+           └── {hash[0:6]}/
+               └── {full_hash}/
+                   ├── index.gob          # Message metadata index
+                   ├── 20240115T143022-0001.raw  # Raw email
+                   └── 20240115T143055-0002.raw  # Raw email
+   ```
 
 ### Phase 2: Extract/Adapt SMTP Server
 
@@ -233,8 +257,10 @@ Create the high-level `Server` type that:
 | Source File | Target | Changes Needed |
 |-------------|--------|----------------|
 | `pkg/storage/storage.go` | `storage.go` | Remove `FromConfig`, simplify |
-| `pkg/storage/mem/store.go` | `mem_store.go` | Remove extension events, simplify config |
-| `pkg/storage/mem/message.go` | `message.go` | Keep as-is |
+| `pkg/storage/file/fstore.go` | `file_store.go` | Remove extension events, add env var config |
+| `pkg/storage/file/fmessage.go` | `message.go` | Keep as-is |
+| `pkg/storage/file/mbox.go` | `mbox.go` | Keep as-is |
+| `pkg/stringutil/stringutil.go` | `hash.go` | Extract `HashMailboxName` only |
 | `pkg/message/delivery.go` | `delivery.go` | Simplify, remove policy |
 | `pkg/server/smtp/` | `smtp.go` | Heavy refactor or rewrite with go-smtp |
 
@@ -267,6 +293,8 @@ inbucket:
   ports:
     - "54324:9000"   # Web UI
     - "54325:2500"   # SMTP
+  volumes:
+    - ./volumes/inbucket:/storage
 ```
 
 ### After (Embedded)
@@ -274,12 +302,23 @@ inbucket:
 // In supabase start command
 emailServer := inbucket.New(inbucket.Config{
     SMTPAddr:    "127.0.0.1:54325",
-    MaxMessages: 100,
+    StoragePath: os.Getenv("SUPABASE_INBUCKET_STORAGE_PATH"), // or default
+    MaxMessages: 500,
 })
 if err := emailServer.Start(ctx); err != nil {
     return err
 }
 defer emailServer.Stop()
+```
+
+### Environment Variable Configuration
+```bash
+# Set custom storage location
+export SUPABASE_INBUCKET_STORAGE_PATH=/path/to/email/storage
+
+# Or use default locations:
+# - Linux/macOS: ~/.supabase/inbucket
+# - Or relative to project: .supabase/inbucket
 ```
 
 ---
@@ -307,13 +346,18 @@ defer emailServer.Stop()
    - Likely not for local dev testing
    - Can be omitted to simplify
 
-3. **Message persistence across CLI restarts?**
-   - Probably not needed for local dev
-   - In-memory storage is sufficient
+3. ~~**Message persistence across CLI restarts?**~~
+   - ✅ **Resolved:** Yes, using file-based storage with configurable path
 
 4. **REST API compatibility?**
    - Does Supabase have tooling that calls inbucket's REST API?
-   - If yes, we may need to expose compatible endpoints
+   - If yes, we may need to expose compatible HTTP endpoints
+   - Alternative: Provide Go API for direct access within CLI
+
+5. **Retention policy?**
+   - Should old emails be automatically deleted after a period?
+   - Original inbucket supports `INBUCKET_STORAGE_RETENTIONPERIOD`
+   - May want to implement similar for file storage cleanup
 
 ---
 

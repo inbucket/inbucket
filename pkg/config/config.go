@@ -82,6 +82,7 @@ type SMTP struct {
 	AcceptDomains       []string      `desc:"Domains to accept mail for"`
 	RejectDomains       []string      `desc:"Domains to reject mail for"`
 	DefaultStore        bool          `required:"true" default:"true" desc:"Store all mail by default?"`
+	AllowDomains 		[]string 	  `desc:"Domains to allow mail for"`
 	StoreDomains        []string      `desc:"Domains to store mail for"`
 	DiscardDomains      []string      `desc:"Domains to discard mail for"`
 	RejectOriginDomains []string      `desc:"Domains to reject mail from"`
@@ -133,6 +134,7 @@ func Process() (*Root, error) {
 	stringutil.SliceToLower(c.SMTP.AcceptDomains)
 	stringutil.SliceToLower(c.SMTP.RejectDomains)
 	stringutil.SliceToLower(c.SMTP.StoreDomains)
+	stringutil.SliceToLower(c.SMTP.AllowDomains)
 	stringutil.SliceToLower(c.SMTP.DiscardDomains)
 	stringutil.SliceToLower(c.SMTP.RejectOriginDomains)
 	return c, err

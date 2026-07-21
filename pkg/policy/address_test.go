@@ -513,3 +513,74 @@ func TestRecipientAddress(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldAcceptOriginDomain(t *testing.T) {
+	// Test AllowDomains feature.
+	ap := &policy.Addressing{
+		Config: &config.Root{
+			SMTP: config.SMTP{
+				AllowDomains: []string{"cyblance.com"},
+			},
+		},
+	}
+
+	testCases := []struct {
+		domain string
+		want   bool
+	}{
+
+		{domain: "cyblance.com", want: true},
+		{domain: "CYBLANCE.COM", want: true},
+		{domain: "company.com", want: false},
+		{domain: "COMPANY.COM", want: false},
+		{domain: "gmail.com", want: false},
+		{domain: "GMAIL.COM", want: false},
+		{domain: "hotmail.com", want: false},
+		{domain: "HOTMAIL.COM", want: false}, 
+		{domain: "yahoo.com", want: false},
+		{domain: "YAHOO.COM", want: false},
+		{domain: "example.com", want: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.domain, func(t *testing.T) {
+			got := ap.ShouldAcceptOriginDomain(tc.domain)
+			if got != tc.want {
+				t.Errorf("Got %v for %q, want %v", got, tc.domain, tc.want)
+			}
+		})
+	}
+
+	// Test RejectOriginDomains still works when AllowDomains is empty.
+	ap = &policy.Addressing{
+		Config: &config.Root{
+			SMTP: config.SMTP{
+				RejectOriginDomains: []string{"spam.com"},
+			},
+		},
+	}
+
+	testCases = []struct {
+		domain string
+		want   bool
+	}{
+		{domain: "cyblance.com", want: true},
+		{domain: "CYBLANCE.COM", want: true},
+		{domain: "company.com", want: true},
+		{domain: "COMPANY.COM", want: true},
+		{domain: "spam.com", want: false},
+		{domain: "SPAM.COM", want: false},
+		{domain: "gmail.com", want: true},
+		{domain: "hotmail.com", want: true},
+		{domain: "yahoo.com", want: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run("reject_"+tc.domain, func(t *testing.T) {
+			got := ap.ShouldAcceptOriginDomain(tc.domain)
+			if got != tc.want {
+				t.Errorf("Got %v for %q, want %v", got, tc.domain, tc.want)
+			}
+		})
+	}
+}

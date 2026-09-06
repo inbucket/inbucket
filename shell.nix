@@ -28,9 +28,9 @@ pkgs.mkShell {
     golangci-lint
     golint
     gopls
-    nodejs_20
-    nodePackages.node-gyp
-    nodePackages.yarn
+    nodejs_22
+    node-gyp
+    yarn
     rpm
     swaks
 

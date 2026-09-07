@@ -55,6 +55,7 @@ func (s *StoreManager) Deliver(
 	// Parse envelope headers.
 	header, err := enmime.DecodeHeaders(source)
 	if err != nil {
+		logger.Error().Err(err).Msg("Failed to parse message headers")
 		return err
 	}
 

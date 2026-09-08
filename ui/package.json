@@ -17,14 +17,14 @@
   "browserslist": "defaults",
   "dependencies": {},
   "devDependencies": {
-    "@fortawesome/fontawesome-free": "^5.15.3",
-    "@parcel/packager-raw-url": "^2.11.0",
-    "@parcel/transformer-elm": "^2.11.0",
-    "@parcel/transformer-webmanifest": "^2.11.0",
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "@parcel/packager-raw-url": "^2.16.4",
+    "@parcel/transformer-elm": "^2.16.4",
+    "@parcel/transformer-webmanifest": "^2.16.4",
     "@webcomponents/webcomponentsjs": "^2.5.0",
     "opensans-npm-webfont": "^1.0.0",
-    "parcel": "^2.11.0",
-    "parcel-namer-rewrite": ">=2.10.3-rc.2"
+    "parcel": "^2.16.4",
+    "parcel-namer-rewrite": "^2.16.4"
   },
   "optionalDependencies": {
     "elm": "^0.19.1-6"

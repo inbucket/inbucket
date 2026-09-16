@@ -293,101 +293,21 @@ func (s *Session) transactionHandler(cmd string, args []string) {
 		}
 		s.send(fmt.Sprintf("+OK %v %v", count, size))
 	case "LIST":
-		if len(args) > 1 {
-			s.logger.Warn().Msgf("LIST command had more than 1 argument")
-			s.send("-ERR LIST command must have zero or one argument")
-			return
-		}
-		if len(args) == 1 {
-			msgNum, err := strconv.ParseInt(args[0], 10, 32)
-			if err != nil {
-				s.logger.Warn().Msgf("LIST command argument was not an integer")
-				s.send("-ERR LIST command requires an integer argument")
-				return
-			}
-			if msgNum < 1 {
-				s.logger.Warn().Msgf("LIST command argument was less than 1")
-				s.send("-ERR LIST argument must be greater than 0")
-				return
-			}
-			if int(msgNum) > len(s.messages) {
-				s.logger.Warn().Msgf("LIST command argument was greater than number of messages")
-				s.send("-ERR LIST argument must not exceed the number of messages")
-				return
-			}
-			if !s.retain[msgNum-1] {
-				s.logger.Warn().Msgf("Client tried to LIST a message it had deleted")
-				s.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
-				return
-			}
-			s.send(fmt.Sprintf("+OK %v %v", msgNum, s.messages[msgNum-1].Size()))
-		} else {
-			s.send(fmt.Sprintf("+OK Listing %v messages", s.msgCount))
-			for i, msg := range s.messages {
-				if s.retain[i] {
-					s.send(fmt.Sprintf("%v %v", i+1, msg.Size()))
-				}
-			}
-			s.send(".")
-		}
+		s.listMessages("LIST", args, func(m storage.Message) string {
+			return strconv.FormatInt(m.Size(), 10)
+		})
 	case "UIDL":
-		if len(args) > 1 {
-			s.logger.Warn().Msgf("UIDL command had more than 1 argument")
-			s.send("-ERR UIDL command must have zero or one argument")
-			return
-		}
-		if len(args) == 1 {
-			msgNum, err := strconv.ParseInt(args[0], 10, 32)
-			if err != nil {
-				s.logger.Warn().Msgf("UIDL command argument was not an integer")
-				s.send("-ERR UIDL command requires an integer argument")
-				return
-			}
-			if msgNum < 1 {
-				s.logger.Warn().Msgf("UIDL command argument was less than 1")
-				s.send("-ERR UIDL argument must be greater than 0")
-				return
-			}
-			if int(msgNum) > len(s.messages) {
-				s.logger.Warn().Msgf("UIDL command argument was greater than number of messages")
-				s.send("-ERR UIDL argument must not exceed the number of messages")
-				return
-			}
-			if !s.retain[msgNum-1] {
-				s.logger.Warn().Msgf("Client tried to UIDL a message it had deleted")
-				s.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
-				return
-			}
-			s.send(fmt.Sprintf("+OK %v %v", msgNum, s.messages[msgNum-1].ID()))
-		} else {
-			s.send(fmt.Sprintf("+OK Listing %v messages", s.msgCount))
-			for i, msg := range s.messages {
-				if s.retain[i] {
-					s.send(fmt.Sprintf("%v %v", i+1, msg.ID()))
-				}
-			}
-			s.send(".")
-		}
+		s.listMessages("UIDL", args, func(m storage.Message) string {
+			return m.ID()
+		})
 	case "DELE":
 		if len(args) != 1 {
 			s.logger.Warn().Msgf("DELE command had invalid number of arguments")
 			s.send("-ERR DELE command requires a single argument")
 			return
 		}
-		msgNum, err := strconv.ParseInt(args[0], 10, 32)
-		if err != nil {
-			s.logger.Warn().Msgf("DELE command argument was not an integer")
-			s.send("-ERR DELE command requires an integer argument")
-			return
-		}
-		if msgNum < 1 {
-			s.logger.Warn().Msgf("DELE command argument was less than 1")
-			s.send("-ERR DELE argument must be greater than 0")
-			return
-		}
-		if int(msgNum) > len(s.messages) {
-			s.logger.Warn().Msgf("DELE command argument was greater than number of messages")
-			s.send("-ERR DELE argument must not exceed the number of messages")
+		msgNum, ok := s.validateMsgNum("DELE", "DELE", args[0])
+		if !ok {
 			return
 		}
 		if s.retain[msgNum-1] {
@@ -404,49 +324,25 @@ func (s *Session) transactionHandler(cmd string, args []string) {
 			s.send("-ERR RETR command requires a single argument")
 			return
 		}
-		msgNum, err := strconv.ParseInt(args[0], 10, 32)
-		if err != nil {
-			s.logger.Warn().Msgf("RETR command argument was not an integer")
-			s.send("-ERR RETR command requires an integer argument")
-			return
-		}
-		if msgNum < 1 {
-			s.logger.Warn().Msgf("RETR command argument was less than 1")
-			s.send("-ERR RETR argument must be greater than 0")
-			return
-		}
-		if int(msgNum) > len(s.messages) {
-			s.logger.Warn().Msgf("RETR command argument was greater than number of messages")
-			s.send("-ERR RETR argument must not exceed the number of messages")
+		msgNum, ok := s.validateMsgNum("RETR", "RETR", args[0])
+		if !ok {
 			return
 		}
 		s.send(fmt.Sprintf("+OK %v bytes follows", s.messages[msgNum-1].Size()))
-		s.sendMessage(s.messages[msgNum-1])
+		s.sendMessageLines(s.messages[msgNum-1], -1)
 	case "TOP":
 		if len(args) != 2 {
 			s.logger.Warn().Msgf("TOP command had invalid number of arguments")
 			s.send("-ERR TOP command requires two arguments")
 			return
 		}
-		msgNum, err := strconv.ParseInt(args[0], 10, 32)
-		if err != nil {
-			s.logger.Warn().Msgf("TOP command first argument was not an integer")
-			s.send("-ERR TOP command requires an integer argument")
-			return
-		}
-		if msgNum < 1 {
-			s.logger.Warn().Msgf("TOP command first argument was less than 1")
-			s.send("-ERR TOP first argument must be greater than 0")
-			return
-		}
-		if int(msgNum) > len(s.messages) {
-			s.logger.Warn().Msgf("TOP command first argument was greater than number of messages")
-			s.send("-ERR TOP first argument must not exceed the number of messages")
+		msgNum, ok := s.validateMsgNum("TOP", "TOP first", args[0])
+		if !ok {
 			return
 		}
 
 		var lines int64
-		lines, err = strconv.ParseInt(args[1], 10, 32)
+		lines, err := strconv.ParseInt(args[1], 10, 32)
 		if err != nil {
 			s.logger.Warn().Msgf("TOP command second argument was not an integer")
 			s.send("-ERR TOP command requires an integer argument")
@@ -458,7 +354,7 @@ func (s *Session) transactionHandler(cmd string, args []string) {
 			return
 		}
 		s.send("+OK Top of message follows")
-		s.sendMessageTop(s.messages[msgNum-1], int(lines))
+		s.sendMessageLines(s.messages[msgNum-1], int(lines))
 	case "QUIT":
 		s.send("+OK We will process your deletes")
 		s.processDeletes()
@@ -475,41 +371,65 @@ func (s *Session) transactionHandler(cmd string, args []string) {
 	}
 }
 
-// Send the contents of the message to the client
-func (s *Session) sendMessage(msg storage.Message) {
-	reader, err := msg.Source()
-	if err != nil {
-		s.logger.Error().Msgf("Failed to read message for RETR command")
-		s.send("-ERR Failed to RETR that message, internal error")
+// listMessages implements the LIST and UIDL commands, which differ only in
+// the value reported for each message.
+func (s *Session) listMessages(cmd string, args []string, value func(m storage.Message) string) {
+	if len(args) > 1 {
+		s.logger.Warn().Msgf("%v command had more than 1 argument", cmd)
+		s.send(fmt.Sprintf("-ERR %v command must have zero or one argument", cmd))
 		return
 	}
-	defer func() {
-		if err := reader.Close(); err != nil {
-			s.logger.Error().Msgf("Failed to close message: %v", err)
+	if len(args) == 1 {
+		msgNum, ok := s.validateMsgNum(cmd, cmd, args[0])
+		if !ok {
+			return
 		}
-	}()
-
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Lines starting with . must be prefixed with another .
-		if strings.HasPrefix(line, ".") {
-			line = "." + line
+		if !s.retain[msgNum-1] {
+			s.logger.Warn().Msgf("Client tried to %v a message it had deleted", cmd)
+			s.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
+			return
 		}
-		s.send(line)
-	}
-
-	if err = scanner.Err(); err != nil {
-		s.logger.Error().Msgf("Failed to read message for RETR command")
-		s.send(".")
-		s.send("-ERR Failed to RETR that message, internal error")
+		s.send(fmt.Sprintf("+OK %v %v", msgNum, value(s.messages[msgNum-1])))
 		return
+	}
+	s.send(fmt.Sprintf("+OK Listing %v messages", s.msgCount))
+	for i, msg := range s.messages {
+		if s.retain[i] {
+			s.send(fmt.Sprintf("%v %v", i+1, value(msg)))
+		}
 	}
 	s.send(".")
 }
 
-// Send the headers plus the top N lines to the client
-func (s *Session) sendMessageTop(msg storage.Message, lineCount int) {
+// validateMsgNum parses arg as a message number and range-checks it against
+// the messages in the mailbox, sending a -ERR response and returning ok=false
+// when invalid. cmd labels the command in responses; argLabel labels the
+// argument (e.g. "RETR", "TOP first").
+func (s *Session) validateMsgNum(cmd, argLabel, arg string) (msgNum int, ok bool) {
+	n, err := strconv.ParseInt(arg, 10, 32)
+	if err != nil {
+		s.logger.Warn().Msgf("%v command argument was not an integer", cmd)
+		s.send(fmt.Sprintf("-ERR %v command requires an integer argument", cmd))
+		return 0, false
+	}
+	if n < 1 {
+		s.logger.Warn().Msgf("%v argument was less than 1", argLabel)
+		s.send(fmt.Sprintf("-ERR %v argument must be greater than 0", argLabel))
+		return 0, false
+	}
+	if int(n) > len(s.messages) {
+		s.logger.Warn().Msgf("%v argument was greater than number of messages", argLabel)
+		s.send(fmt.Sprintf("-ERR %v argument must not exceed the number of messages", argLabel))
+		return 0, false
+	}
+	return int(n), true
+}
+
+// sendMessageLines sends the raw contents of msg to the client, dot-stuffing
+// any lines that begin with a period. If maxBodyLines is negative the entire
+// message is sent; otherwise the headers (and separating blank line) plus at
+// most maxBodyLines lines of the body are sent.
+func (s *Session) sendMessageLines(msg storage.Message, maxBodyLines int) {
 	reader, err := msg.Source()
 	if err != nil {
 		s.logger.Error().Msgf("Failed to read message for RETR command")
@@ -531,17 +451,13 @@ func (s *Session) sendMessageTop(msg storage.Message, lineCount int) {
 			line = "." + line
 		}
 		if inBody {
-			// Check if we need to send anymore lines
-			if lineCount < 1 {
+			if maxBodyLines >= 0 && maxBodyLines < 1 {
 				break
-			} else {
-				lineCount--
 			}
-		} else {
-			if line == "" {
-				// We've hit the end of the header
-				inBody = true
-			}
+			maxBodyLines--
+		} else if line == "" {
+			// We've hit the end of the header
+			inBody = true
 		}
 		s.send(line)
 	}

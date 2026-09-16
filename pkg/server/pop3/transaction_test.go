@@ -452,19 +452,20 @@ func TestTransactionRetrArgumentErrors(t *testing.T) {
 	}
 }
 
-// Documents current behavior: RFC 1939 requires a negative status indicator
-// when RETR refers to a message marked as deleted, but the handler does not
-// check the retain flag. Flagged for a follow-up fix.
-func TestTransactionRetrDeletedMessage(t *testing.T) {
+// RFC 1939 §5: a RETR message-number may NOT refer to a message marked as
+// deleted; the server responds with a negative status indicator.
+func TestTransactionRetrDeletedMessageRejected(t *testing.T) {
 	ds := newMemStore(t)
-	test.DeliverToStore(t, ds, "mailbox", "One", time.Now())
-	_, size2 := test.DeliverToStore(t, ds, "mailbox", "Two", time.Now())
+	_, size1 := test.DeliverToStore(t, ds, "mailbox", "One", time.Now())
+	test.DeliverToStore(t, ds, "mailbox", "Two", time.Now())
 	server := setupPOPServer(t, ds, false, false)
 
 	script := slices.Concat(loginSteps(2), []scriptStep{
 		{"DELE 2", []string{"+OK Deleted message 2"}},
-		{"RETR 2", []string{fmt.Sprintf("+OK %v bytes follows", size2),
-			"To: somebody@host", "From: somebodyelse@host", "Subject: Two", "", "Test Body", "."}},
+		{"RETR 2", []string{"-ERR You deleted message 2"}},
+		// A retained message still downloads fine.
+		{"RETR 1", []string{fmt.Sprintf("+OK %v bytes follows", size1),
+			"To: somebody@host", "From: somebodyelse@host", "Subject: One", "", "Test Body", "."}},
 		{"QUIT", []string{"+OK We will process your deletes"}},
 	})
 	playPOP3Session(t, server, script)
@@ -514,18 +515,16 @@ func TestTransactionTopArgumentErrors(t *testing.T) {
 	}
 }
 
-// Documents current behavior: RFC 1939 (TOP, section 7) requires a negative
-// status indicator when TOP refers to a message marked as deleted, but the
-// handler does not check the retain flag. Flagged for a follow-up fix.
-func TestTransactionTopDeletedMessage(t *testing.T) {
+// RFC 1939 §7 (TOP): a message-number may NOT refer to a message marked as
+// deleted.
+func TestTransactionTopDeletedMessageRejected(t *testing.T) {
 	ds := newMemStore(t)
 	test.DeliverToStore(t, ds, "mailbox", "One", time.Now())
 	server := setupPOPServer(t, ds, false, false)
 
 	script := slices.Concat(loginSteps(1), []scriptStep{
 		{"DELE 1", []string{"+OK Deleted message 1"}},
-		{"TOP 1 0", []string{"+OK Top of message follows",
-			"To: somebody@host", "From: somebodyelse@host", "Subject: One", "", "."}},
+		{"TOP 1 0", []string{"-ERR You deleted message 1"}},
 		{"QUIT", []string{"+OK We will process your deletes"}},
 	})
 	playPOP3Session(t, server, script)

@@ -288,6 +288,51 @@ func TestForceTLS(t *testing.T) {
 	}
 }
 
+// RFC 2595 §4: after the +OK response to STLS, a TLS negotiation begins
+// immediately and the client must not issue further commands until it
+// completes. A failed negotiation is therefore fatal to the session: the
+// server must not keep the session running on the dead connection.
+func TestSTLSHandshakeFailure(t *testing.T) {
+	ds := test.NewStore()
+	server := setupPOPServer(t, ds, true, false)
+	pipe := setupPOPSession(t, server)
+	c := textproto.NewConn(pipe)
+	defer func() {
+		_ = c.Close()
+		server.Drain()
+	}()
+
+	reply, err := c.ReadLine()
+	if err != nil {
+		t.Fatalf("Reading initial line failed %v", err)
+	}
+	if !strings.HasPrefix(reply, "+OK") {
+		t.Fatalf("Initial line is not +OK")
+	}
+
+	if err := c.PrintfLine("STLS"); err != nil {
+		t.Fatalf("Failed to send STLS; %v.", err)
+	}
+	reply, err = c.ReadLine()
+	if err != nil {
+		t.Fatalf("Reading STLS reply line failed %v", err)
+	}
+	if !strings.HasPrefix(reply, "+OK") {
+		t.Fatalf("STLS failed: %s", reply)
+	}
+
+	// Send bytes that cannot begin a TLS handshake.
+	if _, err := pipe.Write([]byte("this is not a TLS handshake\r\n")); err != nil {
+		t.Fatalf("Failed to write garbage; %v.", err)
+	}
+
+	// The server must terminate the session without further responses.
+	_, err = c.ReadLine()
+	if err == nil {
+		t.Fatal("Expected connection close after failed handshake")
+	}
+}
+
 // net.Pipe does not implement deadlines
 type mockConn struct {
 	net.Conn

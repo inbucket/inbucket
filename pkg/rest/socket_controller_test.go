@@ -337,3 +337,74 @@ func TestMonitorUpgradeFailedV2(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 400, w.Code)
 }
+
+// assertNoMoreEvents fails the test if any further events are queued on the channel.
+func assertNoMoreEvents[T any](t *testing.T, c chan T) {
+	t.Helper()
+	select {
+	case ev := <-c:
+		t.Fatalf("unexpected event: %v", ev)
+	default:
+	}
+}
+
+func TestMsgListenerWatches(t *testing.T) {
+	testCases := []struct {
+		name    string
+		mailbox string // listener watch; "" watches all mailboxes
+		event   string // mailbox of the incoming event
+		want    bool
+	}{
+		{name: "all watcher matches any mailbox", mailbox: "", event: "anything", want: true},
+		{name: "watched mailbox matches", mailbox: "watched", event: "watched", want: true},
+		{name: "other mailbox filtered", mailbox: "watched", event: "other", want: false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ml := &msgListener[string]{mailbox: tc.mailbox}
+			assert.Equal(t, tc.want, ml.watches(tc.event))
+		})
+	}
+}
+
+func TestMsgListenerReceiveFiltersAndShapes(t *testing.T) {
+	hub := startMsgHub(t)
+	ml := newMsgListener(hub, "watched",
+		func(msg event.MessageMetadata) string { return "stored:" + msg.Mailbox + "/" + msg.ID },
+		func(mailbox, id string) string { return "deleted:" + mailbox + "/" + id })
+
+	require.NoError(t, ml.Receive(testMetadata("other", "0001")))
+	require.NoError(t, ml.Receive(testMetadata("watched", "0002")))
+	require.NoError(t, ml.Delete("other", "0003"))
+	require.NoError(t, ml.Delete("watched", "0004"))
+
+	// Events for other mailboxes are filtered; payloads are shaped by the transforms.
+	assert.Equal(t, "stored:watched/0002", <-ml.c)
+	assert.Equal(t, "deleted:watched/0004", <-ml.c)
+	assertNoMoreEvents(t, ml.c)
+}
+
+func TestMsgListenerNilDeletedDropsDeletes(t *testing.T) {
+	hub := startMsgHub(t)
+	ml := newMsgListener(hub, "watched",
+		func(msg event.MessageMetadata) string { return "stored:" + msg.ID },
+		nil) // socketv1 API ignores deletions
+
+	require.NoError(t, ml.Receive(testMetadata("watched", "0001")))
+	require.NoError(t, ml.Delete("watched", "0001"))
+
+	assert.Equal(t, "stored:0001", <-ml.c)
+	assertNoMoreEvents(t, ml.c)
+}
+
+func TestMsgListenerCloseIdempotent(t *testing.T) {
+	hub := startMsgHub(t)
+	ml := newMsgListener(hub, "",
+		func(msg event.MessageMetadata) string { return "stored" }, nil)
+
+	ml.Close()
+	ml.Close() // second close must not double-close the event channel
+
+	_, ok := <-ml.c
+	assert.False(t, ok, "event channel should be closed")
+}

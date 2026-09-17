@@ -1,6 +1,7 @@
 package pop3
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -101,8 +102,8 @@ func newMemStore(t *testing.T) storage.Store {
 }
 
 // deliverRaw stores a message with the exact raw content provided, returning
-// its ID and size.
-func deliverRaw(t *testing.T, store storage.Store, mailbox, raw string) (string, int64) {
+// its size.
+func deliverRaw(t *testing.T, store storage.Store, mailbox, raw string) int64 {
 	t.Helper()
 
 	delivery := &message.Delivery{
@@ -112,9 +113,9 @@ func deliverRaw(t *testing.T, store storage.Store, mailbox, raw string) (string,
 		},
 		Reader: io.NopCloser(strings.NewReader(raw)),
 	}
-	id, err := store.AddMessage(delivery)
+	_, err := store.AddMessage(delivery)
 	require.NoError(t, err)
-	return id, int64(len(raw))
+	return int64(len(raw))
 }
 
 // fakeMsg is a storage.Message with canned metadata, used to exercise RETR/TOP
@@ -532,7 +533,7 @@ func TestTransactionTopDeletedMessage(t *testing.T) {
 
 func TestTransactionRetrDotStuffing(t *testing.T) {
 	ds := newMemStore(t)
-	_, size := deliverRaw(t, ds, "mailbox", "Subject: dots\r\n\r\n.leading\r\n..double\r\n.\r\nplain\r\n")
+	size := deliverRaw(t, ds, "mailbox", "Subject: dots\r\n\r\n.leading\r\n..double\r\n.\r\nplain\r\n")
 	server := setupPOPServer(t, ds, false, false)
 
 	script := slices.Concat(loginSteps(1), []scriptStep{
@@ -763,4 +764,80 @@ func TestNewServerCertificateError(t *testing.T) {
 		TLSPrivKey: "/nonexistent/key.pem",
 	}, test.NewStore())
 	require.Error(t, err)
+}
+
+// TestValidateMsgNum exercises the shared message-number validation helper
+// directly.
+func TestValidateMsgNum(t *testing.T) {
+	server := setupPOPServer(t, newMemStore(t), false, false)
+
+	serverConn, clientConn := net.Pipe()
+	t.Cleanup(func() { _ = clientConn.Close() })
+
+	// Drain server->client output so sends do not block.
+	output := make(chan string, 16)
+	go func() {
+		sc := bufio.NewScanner(clientConn)
+		for sc.Scan() {
+			output <- sc.Text()
+		}
+		close(output)
+	}()
+
+	ssn := NewSession(server, 1, &mockConn{serverConn}, zerolog.New(zerolog.NewTestWriter(t)))
+	ssn.messages = make([]storage.Message, 3)
+	ssn.retainAll()
+
+	tcs := []struct {
+		name     string
+		arg      string
+		wantNum  int
+		wantOK   bool
+		wantSend string
+	}{
+		{name: "first message", arg: "1", wantNum: 1, wantOK: true},
+		{name: "last message", arg: "3", wantNum: 3, wantOK: true},
+		{name: "not an integer", arg: "x", wantSend: "-ERR TEST command requires an integer argument"},
+		{name: "integer overflow", arg: "9999999999999", wantSend: "-ERR TEST command requires an integer argument"},
+		{name: "zero", arg: "0", wantSend: "-ERR TEST argument must be greater than 0"},
+		{name: "negative", arg: "-1", wantSend: "-ERR TEST argument must be greater than 0"},
+		{name: "exceeds message count", arg: "4", wantSend: "-ERR TEST argument must not exceed the number of messages"},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			num, ok := ssn.validateMsgNum("TEST", "TEST", tc.arg)
+			assert.Equal(t, tc.wantOK, ok)
+			assert.Equal(t, tc.wantNum, num)
+
+			if tc.wantSend != "" {
+				select {
+				case line := <-output:
+					assert.Equal(t, tc.wantSend, line)
+				case <-time.After(time.Second):
+					t.Error("expected an error response")
+				}
+			}
+		})
+	}
+}
+
+// TestTopUnlimitedLinesMatchesRetr guards the shared implementation of RETR
+// and TOP: a TOP line limit larger than the message must produce the same
+// output as RETR.
+func TestTopUnlimitedLinesMatchesRetr(t *testing.T) {
+	ds := newMemStore(t)
+	size := deliverRaw(t, ds, "mailbox", "Subject: equivalence\r\n\r\nline 1\r\nline 2\r\n.leading\r\n")
+	server := setupPOPServer(t, ds, false, false)
+
+	body := []string{"Subject: equivalence", "", "line 1", "line 2", "..leading", "."}
+	retrExpect := slices.Concat([]string{fmt.Sprintf("+OK %v bytes follows", size)}, body)
+	topExpect := slices.Concat([]string{"+OK Top of message follows"}, body)
+
+	script := slices.Concat(loginSteps(1), []scriptStep{
+		{"RETR 1", retrExpect},
+		{"TOP 1 999999", topExpect},
+		{"QUIT", []string{"+OK We will process your deletes"}},
+	})
+	playPOP3Session(t, server, script)
 }

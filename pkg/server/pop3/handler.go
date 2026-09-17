@@ -235,8 +235,11 @@ func (s *Session) authorizationHandler(ctx context.Context, cmd string, args []s
 		s.send("+OK Begin TLS Negotiation")
 		tlsConn := tls.Server(s.conn, s.tlsConfig)
 		if err := tlsConn.HandshakeContext(tlsCtx); err != nil {
-			s.logger.Error().Msgf("-ERR TLS handshake failed %v", err)
-			s.ooSeq(cmd)
+			// RFC 2595 §4: the negotiation must complete before any further
+			// commands are sent, so a failure is fatal to the session.
+			s.logger.Error().Msgf("TLS handshake failed: %v", err)
+			s.enterState(QUIT)
+			return
 		}
 		s.conn = tlsConn
 		s.reader = bufio.NewReader(tlsConn)
@@ -328,6 +331,11 @@ func (s *Session) transactionHandler(cmd string, args []string) {
 		if !ok {
 			return
 		}
+		if !s.retain[msgNum-1] {
+			s.logger.Warn().Msgf("Client tried to RETR a message it had deleted")
+			s.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
+			return
+		}
 		s.send(fmt.Sprintf("+OK %v bytes follows", s.messages[msgNum-1].Size()))
 		s.sendMessageLines(s.messages[msgNum-1], -1)
 	case "TOP":
@@ -351,6 +359,11 @@ func (s *Session) transactionHandler(cmd string, args []string) {
 		if lines < 0 {
 			s.logger.Warn().Msgf("TOP command second argument was negative")
 			s.send("-ERR TOP second argument must be non-negative")
+			return
+		}
+		if !s.retain[msgNum-1] {
+			s.logger.Warn().Msgf("Client tried to TOP a message it had deleted")
+			s.send(fmt.Sprintf("-ERR You deleted message %v", msgNum))
 			return
 		}
 		s.send("+OK Top of message follows")

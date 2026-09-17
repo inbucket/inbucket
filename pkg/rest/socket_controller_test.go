@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http/httptest"
 	"net/mail"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -399,12 +400,198 @@ func TestMsgListenerNilDeletedDropsDeletes(t *testing.T) {
 
 func TestMsgListenerCloseIdempotent(t *testing.T) {
 	hub := startMsgHub(t)
-	ml := newMsgListener(hub, "",
-		func(msg event.MessageMetadata) string { return "stored" }, nil)
+	ml := newMsgListener(hub, "watched",
+		func(msg event.MessageMetadata) string { return "stored" },
+		func(mailbox, id string) string { return "deleted" })
 
 	ml.Close()
-	ml.Close() // second close must not double-close the event channel
+	ml.Close() // second close must not panic or double-close the done channel
 
-	_, ok := <-ml.c
-	assert.False(t, ok, "event channel should be closed")
+	// Close is exactly-once: the done channel ends delivery and the write pump.
+	select {
+	case <-ml.done:
+	default:
+		t.Fatal("done channel should be closed after Close")
+	}
+
+	// Closed listeners either deliver into the never-again-read queue or report closed;
+	// both outcomes are terminal, as the hub-actor send races the done channel.
+	err := ml.Receive(testMetadata("watched", "0001"))
+	if err != nil {
+		require.ErrorIs(t, err, errListenerClosed)
+	}
+	err = ml.Delete("watched", "0001")
+	if err != nil {
+		require.ErrorIs(t, err, errListenerClosed)
+	}
+}
+
+func TestMsgListenerCloseFullQueue(t *testing.T) {
+	// A disconnecting client may leave a full event queue behind; Close must still
+	// deregister the listener, or the hub actor blocks on its next Receive into the full
+	// queue forever, wedging all monitor dispatch.  Regression: the old check-then-act
+	// select mistook the buffered events for a closed-channel signal and skipped
+	// RemoveListener entirely.
+	hub := startMsgHub(t)
+	ml := newMsgListener(hub, "watched",
+		func(msg event.MessageMetadata) string { return "stored:" + msg.ID }, nil)
+
+	// Fill the event queue (capacity 100) with no reader draining it.
+	for i := range 100 {
+		hub.Dispatch(testMetadata("watched", strconv.Itoa(i)))
+	}
+	hub.Sync()
+
+	ml.Close()
+	hub.Sync()
+
+	// The backlog remains queued, but the listener is deregistered: dispatch must not
+	// block the hub, and must not be delivered.  Pre-fix, the no-op Close left the
+	// listener registered, so the dispatch was delivered (and the next dispatch would
+	// have wedged the actor inside Receive).
+	backlog, _ := drainEvents(ml.c)
+	assert.Equal(t, 100, backlog, "backlog should remain queued after Close")
+
+	hub.Dispatch(testMetadata("watched", "after-close"))
+	hub.Sync()
+
+	count, _ := drainEvents(ml.c)
+	assert.Equal(t, 0, count, "closed listener must not receive further events")
+}
+
+// drainEvents reads buffered events from c until it is empty; it reports how many events
+// were drained and whether the channel was found closed.  A receive from a closed channel
+// succeeds immediately, so a plain select-default loop would never terminate on one.
+func drainEvents[T any](c chan T) (count int, closed bool) {
+	for {
+		select {
+		case _, ok := <-c:
+			if !ok {
+				return count, true
+			}
+			count++
+		default:
+			return count, false
+		}
+	}
+}
+
+// blockingListener stalls the hub actor inside Receive until released.
+type blockingListener struct {
+	release chan struct{}
+}
+
+func (l *blockingListener) Receive(msg event.MessageMetadata) error {
+	<-l.release
+	return nil
+}
+
+func (l *blockingListener) Delete(mailbox string, id string) error {
+	return nil
+}
+
+func TestMsgListenerCloseConcurrent(t *testing.T) {
+	// The read and write pumps both call Close when the connection drops, so Close must be
+	// safe to call concurrently.  Regression: the check-then-act select let both callers
+	// through the default branch and panicked with "close of closed channel" on the second
+	// close.
+	//
+	// Deterministic reproduction: a blocking listener stalls the hub actor mid-dispatch,
+	// and enough further dispatches are queued to keep the hub op queue (capacity 100)
+	// full.  Every concurrent Close then blocks inside RemoveListener -- already past its
+	// check of the listener state -- before any of them can proceed.  Releasing the actor
+	// lets it process the pending RemoveListeners, resuming all the blocked closers at
+	// once.
+	hub := startMsgHub(t)
+	blocker := &blockingListener{release: make(chan struct{})}
+	hub.AddListener(blocker)
+	ml := newMsgListener(hub, "watched",
+		func(msg event.MessageMetadata) string { return "stored:" + msg.ID },
+		func(mailbox, id string) string { return "deleted:" + id })
+
+	const queued = 101 // 1 dispatch stalls the actor; 100 fill the hub op queue
+	for i := range queued {
+		hub.Dispatch(testMetadata("watched", strconv.Itoa(i)))
+	}
+
+	// The stalled dispatch may have delivered 0 or 1 events to ml (listener iteration
+	// order is random); drain whatever arrived so the queue is empty when the closers
+	// check it.
+	drainEvents(ml.c)
+
+	const callers = 8
+	done := make(chan struct{}, callers) // ensure capacity so we do not block population
+	for range callers {
+		go func() {
+			ml.Close()
+			done <- struct{}{}
+		}()
+	}
+	// Give every closer time to block inside RemoveListener before the actor resumes;
+	// otherwise their ops interleave with the queued dispatches and the reproduction
+	// becomes timing-dependent.
+	time.Sleep(50 * time.Millisecond)
+
+	close(blocker.release)
+	for range callers {
+		<-done
+	}
+
+	// Events racing in before the hub processed the RemoveListeners may sit in the queue,
+	// but once it has (Sync), the listener must be deregistered: later dispatches are
+	// neither delivered to it nor blocking the hub.
+	hub.Sync()
+	drainEvents(ml.c)
+	hub.Dispatch(testMetadata("watched", "after-close"))
+	hub.Sync()
+	count, _ := drainEvents(ml.c)
+	assert.Equal(t, 0, count, "closed listener must not receive further events")
+}
+
+func TestMsgListenerCloseUnblocksHub(t *testing.T) {
+	// Close must unblock a hub actor stuck sending into the listener's full event queue:
+	// a slow monitor client disconnecting with a backlog of events would otherwise wedge
+	// every hub dispatch.  (With the original close(ml.c) approach, this
+	// send-on-closed-channel panicked inside the actor instead.)
+	hub := startMsgHub(t)
+	blocker := &blockingListener{release: make(chan struct{})}
+	hub.AddListener(blocker)
+	ml := newMsgListener(hub, "watched",
+		func(msg event.MessageMetadata) string { return "stored:" + msg.ID }, nil)
+
+	// Stall the actor, then queue enough dispatches to fill both the hub op queue and the
+	// listener's event queue once deliveries resume.
+	const queued = 101 // 1 dispatch stalls the actor; 100 fill the hub op queue
+	for i := range queued {
+		hub.Dispatch(testMetadata("watched", strconv.Itoa(i)))
+	}
+	drainEvents(ml.c) // drop the 0 or 1 events delivered before the actor stalled
+	close(blocker.release)
+
+	// Once the queued dispatches fill the event queue, the next dispatch blocks the actor
+	// inside Receive; run it from its own goroutine so the test can proceed to Close.
+	dispatched := make(chan struct{}, 1)
+	go func() {
+		hub.Dispatch(testMetadata("watched", "one-too-many"))
+		dispatched <- struct{}{}
+	}()
+
+	ml.Close()
+
+	// The blocked send must abort and the hub must keep processing.
+	synced := make(chan struct{}, 1)
+	go func() {
+		hub.Sync()
+		synced <- struct{}{}
+	}()
+	select {
+	case <-synced:
+	case <-time.After(5 * time.Second):
+		t.Fatal("hub actor still wedged after Close")
+	}
+	select {
+	case <-dispatched:
+	case <-time.After(5 * time.Second):
+		t.Fatal("dispatch still blocked after Close")
+	}
 }

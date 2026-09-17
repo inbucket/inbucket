@@ -1,7 +1,9 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -43,9 +45,11 @@ var upgrader = websocket.Upgrader{
 type msgListener[T any] struct {
 	hub       *msghub.Hub
 	c         chan T
-	mailbox   string // Name of mailbox to monitor, "" == all mailboxes
+	done      chan struct{} // Closed by Close; stops event delivery and the write pump
+	mailbox   string        // Name of mailbox to monitor, "" == all mailboxes
 	toStored  func(msg event.MessageMetadata) T
 	toDeleted func(mailbox string, id string) T
+	closeOnce sync.Once
 }
 
 // newMsgListener creates a listener and registers it with the hub.  The optional mailbox
@@ -59,6 +63,7 @@ func newMsgListener[T any](
 	ml := &msgListener[T]{
 		hub:       hub,
 		c:         make(chan T, socketChanLen),
+		done:      make(chan struct{}),
 		mailbox:   mailbox,
 		toStored:  toStored,
 		toDeleted: toDeleted,
@@ -72,13 +77,22 @@ func (ml *msgListener[T]) watches(mailbox string) bool {
 	return ml.mailbox == "" || ml.mailbox == mailbox
 }
 
-// Receive handles an incoming message.
+// errListenerClosed is returned by Receive/Delete after Close; the hub removes listeners
+// that return errors, providing deregistration even if RemoveListener has not run yet.
+var errListenerClosed = errors.New("monitor listener closed")
+
+// Receive handles an incoming message.  If the listener is closed while its event queue is
+// full, the enqueue is abandoned rather than blocking the hub actor forever.
 func (ml *msgListener[T]) Receive(msg event.MessageMetadata) error {
 	if !ml.watches(msg.Mailbox) {
 		return nil
 	}
-	ml.c <- ml.toStored(msg)
-	return nil
+	select {
+	case ml.c <- ml.toStored(msg):
+		return nil
+	case <-ml.done:
+		return errListenerClosed
+	}
 }
 
 // Delete handles a deleted message.
@@ -86,19 +100,24 @@ func (ml *msgListener[T]) Delete(mailbox string, id string) error {
 	if ml.toDeleted == nil || !ml.watches(mailbox) {
 		return nil
 	}
-	ml.c <- ml.toDeleted(mailbox, id)
-	return nil
+	select {
+	case ml.c <- ml.toDeleted(mailbox, id):
+		return nil
+	case <-ml.done:
+		return errListenerClosed
+	}
 }
 
-// Close removes the listener registration and closes the event queue.
+// Close removes the listener registration and stops event delivery.  Safe for concurrent
+// use: the read and write pumps both invoke it when the connection drops.  The event queue
+// is not closed: RemoveListener returns once the op is queued, not processed, so a
+// concurrent hub-actor send into the queue could otherwise panic on the close; the done
+// channel ends delivery and unblocks any such send.
 func (ml *msgListener[T]) Close() {
-	select {
-	case <-ml.c:
-		// Already closed
-	default:
+	ml.closeOnce.Do(func() {
 		ml.hub.RemoveListener(ml)
-		close(ml.c)
-	}
+		close(ml.done)
+	})
 }
 
 // socketReadPump makes sure the websocket client is still connected, discarding any messages
@@ -140,9 +159,9 @@ func socketReadPump(conn *websocket.Conn, closeFn func()) {
 	}
 }
 
-// socketWritePump relays events from c to the peer as JSON messages until c is closed, sending
-// pings while idle to keep the connection alive.  closeFn is invoked on exit.
-func socketWritePump[T any](c chan T, conn *websocket.Conn, closeFn func()) {
+// socketWritePump relays events from c to the peer as JSON messages until done is closed,
+// sending pings while idle to keep the connection alive.  closeFn is invoked on exit.
+func socketWritePump[T any](c chan T, done <-chan struct{}, conn *websocket.Conn, closeFn func()) {
 	slog := log.With().Str("module", "rest").Str("proto", "WebSocket").
 		Str("remote", conn.RemoteAddr().String()).Logger()
 
@@ -168,6 +187,10 @@ func socketWritePump[T any](c chan T, conn *websocket.Conn, closeFn func()) {
 				// Write failed
 				return
 			}
+		case <-done:
+			// Listener closed, exit
+			_ = conn.WriteMessage(websocket.CloseMessage, []byte{})
+			return
 		case <-ticker.C:
 			// Send ping
 			if err := conn.SetWriteDeadline(time.Now().Add(socketWriteWait)); err != nil {
@@ -205,7 +228,7 @@ func serveMonitor[T any](
 		Str("remote", conn.RemoteAddr().String()).Msg("Upgraded to WebSocket")
 	// Create, register listener; then interact with conn.
 	ml := newListener(hub, mailbox)
-	go socketWritePump(ml.c, conn, ml.Close)
+	go socketWritePump(ml.c, ml.done, conn, ml.Close)
 	socketReadPump(conn, ml.Close)
 	return nil
 }

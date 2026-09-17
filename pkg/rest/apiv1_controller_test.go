@@ -11,6 +11,7 @@ import (
 
 	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	"github.com/inbucket/inbucket/v3/pkg/message"
+	"github.com/inbucket/inbucket/v3/pkg/msghub"
 	"github.com/inbucket/inbucket/v3/pkg/test"
 	"github.com/jhillyerd/enmime/v2"
 )
@@ -18,7 +19,7 @@ import (
 func TestRestMailboxList(t *testing.T) {
 	// Setup
 	mm := test.NewManager()
-	logbuf := setupWebServer(mm)
+	logbuf := setupWebServer(mm, &msghub.Hub{})
 
 	// Test invalid mailbox name
 	w, err := testRestGet("http://localhost/api/v1/mailbox/foo%20bar")
@@ -122,7 +123,7 @@ func TestRestMailboxList(t *testing.T) {
 func TestRestMessage(t *testing.T) {
 	// Setup
 	mm := test.NewManager()
-	logbuf := setupWebServer(mm)
+	logbuf := setupWebServer(mm, &msghub.Hub{})
 
 	// Test invalid mailbox name
 	w, err := testRestGet("http://localhost/api/v1/mailbox/foo%20bar/0001")
@@ -244,7 +245,7 @@ func TestRestMessage(t *testing.T) {
 
 func TestRestMarkSeen(t *testing.T) {
 	mm := test.NewManager()
-	logbuf := setupWebServer(mm)
+	logbuf := setupWebServer(mm, &msghub.Hub{})
 	// Create some messages.
 	tzPDT := time.FixedZone("PDT", -7*3600)
 	tzPST := time.FixedZone("PST", -8*3600)

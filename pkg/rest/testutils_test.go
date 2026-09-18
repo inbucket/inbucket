@@ -51,7 +51,7 @@ func testRestPatch(url string, body string) (*httptest.ResponseRecorder, error) 
 	return w, nil
 }
 
-func setupWebServer(mm message.Manager) *bytes.Buffer {
+func setupWebServer(mm message.Manager, hub *msghub.Hub) *bytes.Buffer {
 	// Capture log output
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
@@ -63,7 +63,7 @@ func setupWebServer(mm message.Manager) *bytes.Buffer {
 		},
 	}
 	SetupRoutes(web.Router.PathPrefix("/api/").Subrouter())
-	web.NewServer(cfg, mm, &msghub.Hub{})
+	web.NewServer(cfg, mm, hub)
 
 	return buf
 }

@@ -595,3 +595,84 @@ func TestMsgListenerCloseUnblocksHub(t *testing.T) {
 		t.Fatal("dispatch still blocked after Close")
 	}
 }
+
+func TestMsgListenerCloseFullHubOpQueue(t *testing.T) {
+	// Regression (PR #623 review): with the hub actor blocked inside this listener's
+	// Receive (full event queue) and the hub op queue (capacity 100) also full,
+	// RemoveListener cannot enqueue.  Close must therefore close done before queueing the
+	// removal: with the removal queued first, execution never reached close(ml.done) -- the
+	// only operation able to release the actor -- and Close deadlocked under the same
+	// slow-client condition while concurrent dispatchers kept the hub queue saturated.
+	hub := startMsgHub(t)
+	blocker := &blockingListener{release: make(chan struct{})}
+	hub.AddListener(blocker)
+	ml := newMsgListener(hub, "watched",
+		func(msg event.MessageMetadata) string { return "stored:" + msg.ID }, nil)
+
+	// Stall the actor inside the blocker, then fill the hub op queue behind it: the first
+	// dispatch wedges the actor, the next 100 fill the queue.  The stalled dispatch may
+	// have delivered 0 or 1 events to ml (listener iteration order is random); drain
+	// whatever arrived so the counts below are stable.
+	for i := range 101 {
+		hub.Dispatch(testMetadata("watched", strconv.Itoa(i)))
+	}
+	drainEvents(ml.c)
+
+	// Once the blocker is released, a dispatcher goroutine keeps the op queue saturated:
+	// every slot the actor frees is refilled, so by the time the event queue (capacity 100)
+	// fills and the actor wedges inside Receive, the op queue is full again and the
+	// dispatcher is blocked on its next enqueue.  150 refills exceed the ~102 slots freed
+	// until the wedge, leaving spare dispatches to top the queue up.
+	dispatched := make(chan struct{})
+	go func() {
+		defer close(dispatched)
+		for i := range 150 {
+			hub.Dispatch(testMetadata("watched", strconv.Itoa(100+i)))
+		}
+	}()
+	close(blocker.release)
+
+	// Wait for the wedge: the event queue is full and nothing drains it.  The sleep lets
+	// the dispatcher refill the one slot the wedging op vacated and block itself.
+	require.Eventually(t, func() bool {
+		return len(ml.c) == socketChanLen
+	}, monitorTestTimeout, time.Millisecond, "event queue should fill and wedge the hub actor")
+	time.Sleep(50 * time.Millisecond)
+
+	// Close must return despite the wedged actor and the saturated op queue.
+	closed := make(chan struct{})
+	go func() {
+		ml.Close()
+		close(closed)
+	}()
+	select {
+	case <-closed:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Close deadlocked: hub actor blocked in Receive with a full op queue")
+	}
+
+	// The released actor must drain the saturated op queue: the dispatcher completes and
+	// the hub answers Sync again.
+	select {
+	case <-dispatched:
+	case <-time.After(5 * time.Second):
+		t.Fatal("dispatches still blocked after Close")
+	}
+	synced := make(chan struct{}, 1)
+	go func() {
+		hub.Sync()
+		synced <- struct{}{}
+	}()
+	select {
+	case <-synced:
+	case <-time.After(5 * time.Second):
+		t.Fatal("hub actor still wedged after Close")
+	}
+
+	// The listener is deregistered: later dispatches are not delivered to it.
+	drainEvents(ml.c)
+	hub.Dispatch(testMetadata("watched", "after-close"))
+	hub.Sync()
+	count, _ := drainEvents(ml.c)
+	assert.Equal(t, 0, count, "closed listener must not receive further events")
+}

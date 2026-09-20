@@ -109,14 +109,20 @@ func (ml *msgListener[T]) Delete(mailbox string, id string) error {
 }
 
 // Close removes the listener registration and stops event delivery.  Safe for concurrent
-// use: the read and write pumps both invoke it when the connection drops.  The event queue
-// is not closed: RemoveListener returns once the op is queued, not processed, so a
-// concurrent hub-actor send into the queue could otherwise panic on the close; the done
-// channel ends delivery and unblocks any such send.
+// use: the read and write pumps both invoke it when the connection drops.  The done channel
+// is closed before the removal is queued: a hub actor blocked in this listener's Receive or
+// Delete is released first, so it keeps draining the hub op queue and the removal can be
+// queued even when that queue is full.  The event queue is not closed: RemoveListener
+// returns once the op is queued, not processed, so a concurrent hub-actor send into the
+// queue could otherwise panic on the close; the done channel ends delivery and unblocks
+// any such send.
 func (ml *msgListener[T]) Close() {
 	ml.closeOnce.Do(func() {
-		ml.hub.RemoveListener(ml)
+		// Release a hub actor blocked in Receive or Delete before queueing the removal:
+		// with the removal queued first, a full hub op queue would block it here forever,
+		// never reaching the close below -- the only operation able to release the actor.
 		close(ml.done)
+		ml.hub.RemoveListener(ml)
 	})
 }
 

@@ -484,6 +484,229 @@ func TestValidateLocal(t *testing.T) {
 	}
 }
 
+// TestParseOrigin verifies Origin values returned by Addressing.ParseOrigin.
+// This function parses a MAIL FROM path, not a From header. See rfc5321#section-4.1.2
+func TestParseOrigin(t *testing.T) {
+	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
+
+	tests := map[string]struct {
+		input     string
+		address   string
+		localPart string
+		domain    string
+	}{
+		"null sender":       {input: "", address: "", localPart: "", domain: ""},
+		"common":            {input: "user@example.com", address: "user@example.com", localPart: "user", domain: "example.com"},
+		"with label":        {input: "user+mailbox@example.com", address: "user+mailbox@example.com", localPart: "user+mailbox", domain: "example.com"},
+		"case preserved":    {input: "User@Example.COM", address: "User@Example.COM", localPart: "User", domain: "Example.COM"},
+		"special chars":     {input: "a!#$%&'*@example.com", address: "a!#$%&'*@example.com", localPart: "a!#$%&'*", domain: "example.com"},
+		"ipv4":              {input: "user@[127.0.0.1]", address: "user@[127.0.0.1]", localPart: "user", domain: "[127.0.0.1]"},
+		"route domain":      {input: "@route.com:user@example.com", address: "@route.com:user@example.com", localPart: "user", domain: "example.com"},
+		"quoted local part": {input: `"first last"@example.com`, address: `"first last"@example.com`, localPart: "first last", domain: "example.com"},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			o, err := localPolicy.ParseOrigin(tc.input)
+			if err != nil {
+				t.Fatalf("Parse of %q failed: %v", tc.input, err)
+			}
+
+			if got, want := o.Address.Address, tc.address; got != want {
+				t.Errorf("Got Address: %q, want: %q", got, want)
+			}
+			if got, want := o.LocalPart, tc.localPart; got != want {
+				t.Errorf("Got LocalPart: %q, want: %q", got, want)
+			}
+			if got, want := o.Domain, tc.domain; got != want {
+				t.Errorf("Got Domain: %q, want: %q", got, want)
+			}
+		})
+	}
+}
+
+func TestParseOriginInvalid(t *testing.T) {
+	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
+
+	testCases := []struct {
+		input, msg string
+	}{
+		{"first last@example.com", "Space not permitted"},
+		{"user@bad..domain.com", "Invalid domain not permitted"},
+		{"user@-bad.com", "Domain cannot start with hyphen"},
+		{"user", "Bare local part without domain"},
+		{"@route.comuser@example.com", "Unterminated forward-path route"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			if o, err := localPolicy.ParseOrigin(tc.input); err == nil {
+				t.Errorf("Didn't get an error while parsing origin %q: %s (got %#v)", tc.input, tc.msg, o)
+			}
+		})
+	}
+}
+
+func TestShouldAcceptOriginDomain(t *testing.T) {
+	// Patterns are matched against the lowercased input domain; config.Process() is
+	// responsible for lowercasing the pattern list itself.
+	ap := &policy.Addressing{
+		Config: &config.Root{
+			SMTP: config.SMTP{
+				RejectOriginDomains: []string{"*.deny.com", "deny.com", "evil?om"},
+			},
+		},
+	}
+	testCases := []struct {
+		domain string
+		want   bool
+	}{
+		{domain: "foo.com", want: true},
+		{domain: "deny.com", want: false},
+		{domain: "DENY.com", want: false},
+		// Wildcard subdomain matches, at any depth, but not the bare domain.
+		{domain: "a.deny.com", want: false},
+		{domain: "b.a.deny.com", want: false},
+		{domain: "deny.com.org", want: true},
+		// Single-character wildcards match exactly one character.
+		{domain: "evilcom", want: false},
+		{domain: "evilaom", want: false},
+		{domain: "evilaacom", want: true},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.domain, func(t *testing.T) {
+			got := ap.ShouldAcceptOriginDomain(tc.domain)
+			if got != tc.want {
+				t.Errorf("Got %v for %q, want: %v", got, tc.domain, tc.want)
+			}
+		})
+	}
+
+	// With no RejectOriginDomains configured, every origin is accepted.
+	noRestrictions := &policy.Addressing{
+		Config: &config.Root{
+			SMTP: config.SMTP{RejectDomains: []string{"deny.com"}},
+		},
+	}
+	if !noRestrictions.ShouldAcceptOriginDomain("deny.com") {
+		t.Errorf("Got false for %q with no RejectOriginDomains configured, want: true", "deny.com")
+	}
+
+	// An un-lowercased pattern does not match a lowercased domain: it is up to
+	// config.Process() to normalize pattern lists.
+	upperPattern := &policy.Addressing{
+		Config: &config.Root{
+			SMTP: config.SMTP{RejectOriginDomains: []string{"DENY.com"}},
+		},
+	}
+	if !upperPattern.ShouldAcceptOriginDomain("deny.com") {
+		t.Errorf("Got false for %q against un-lowercased pattern, want: true", "deny.com")
+	}
+}
+
+// TestOriginShouldAccept drives ParseOrigin and ShouldAccept together, as the
+// SMTP server does when handling a MAIL FROM argument.
+func TestOriginShouldAccept(t *testing.T) {
+	ap := &policy.Addressing{
+		Config: &config.Root{
+			SMTP: config.SMTP{
+				RejectOriginDomains: []string{"*.spam.com"},
+			},
+		},
+	}
+
+	tests := map[string]struct {
+		input string
+		want  bool
+	}{
+		"null sender": {input: "", want: true},
+		"accepted":    {input: "user@example.com", want: true},
+		"rejected":    {input: "user@mail.spam.com", want: false},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			o, err := ap.ParseOrigin(tc.input)
+			if err != nil {
+				t.Fatalf("Parse of %q failed: %v", tc.input, err)
+			}
+			if got := o.ShouldAccept(); got != tc.want {
+				t.Errorf("Got ShouldAccept %v for %q, want: %v", got, tc.input, tc.want)
+			}
+		})
+	}
+}
+
+// TestRecipientShouldAcceptStore drives NewRecipient with ShouldAccept and
+// ShouldStore together, as the SMTP server does when handling a RCPT TO argument.
+func TestRecipientShouldAcceptStore(t *testing.T) {
+	ap := &policy.Addressing{
+		Config: &config.Root{
+			MailboxNaming: config.FullNaming,
+			SMTP: config.SMTP{
+				DefaultAccept: true,
+				RejectDomains: []string{"reject.com"},
+				DefaultStore:  false,
+				StoreDomains:  []string{"keep.com"},
+			},
+		},
+	}
+
+	tests := map[string]struct {
+		input      string
+		wantAccept bool
+		wantStore  bool
+	}{
+		"accepted and kept":   {input: "user@keep.com", wantAccept: true, wantStore: true},
+		"accepted, discarded": {input: "user@example.com", wantAccept: true, wantStore: false},
+		"rejected":            {input: "user@REJECT.com", wantAccept: false, wantStore: false},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			r, err := ap.NewRecipient(tc.input)
+			if err != nil {
+				t.Fatalf("Parse of %q failed: %v", tc.input, err)
+			}
+			if got := r.ShouldAccept(); got != tc.wantAccept {
+				t.Errorf("Got ShouldAccept %v for %q, want: %v", got, tc.input, tc.wantAccept)
+			}
+			if got := r.ShouldStore(); got != tc.wantStore {
+				t.Errorf("Got ShouldStore %v for %q, want: %v", got, tc.input, tc.wantStore)
+			}
+		})
+	}
+}
+
+// TestNewRecipientInvalid verifies error paths of Addressing.NewRecipient.
+func TestNewRecipientInvalid(t *testing.T) {
+	testCases := []struct {
+		name   string
+		policy policy.Addressing
+		input  string
+		msg    string
+	}{
+		{
+			name:   "invalid address",
+			policy: policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}},
+			input:  "user@bad..domain.com",
+			msg:    "Invalid domain should fail ParseEmailAddress",
+		},
+		{
+			name:   "unknown mailbox naming",
+			policy: policy.Addressing{Config: &config.Root{}},
+			input:  "user@example.com",
+			msg:    "Unknown MailboxNaming should fail ExtractMailbox",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if r, err := tc.policy.NewRecipient(tc.input); err == nil {
+				t.Errorf("Didn't get an error while parsing recipient %q: %s (got %#v)", tc.input, tc.msg, r)
+			}
+		})
+	}
+}
+
 // TestRecipientAddress verifies the Recipient.Address values returned by Addressing.NewRecipient.
 // This function parses a RCPT TO path, not a To header. See rfc5321#section-4.1.2
 func TestRecipientAddress(t *testing.T) {

@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -101,6 +102,9 @@ func TestGetCertificateKeepsPreviousOnFailure(t *testing.T) {
 // TestGetCertificateSymlinkSwap mirrors how the kubelet updates a mounted Secret: the files are
 // symlinks through a ..data symlink, which is atomically repointed at a new directory.
 func TestGetCertificateSymlinkSwap(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows cannot rename over an existing directory symlink")
+	}
 	dir := t.TempDir()
 	writePairFiles(t, filepath.Join(dir, "v1", "cert.pem"), filepath.Join(dir, "v1", "key.pem"), "a", 1)
 	require.NoError(t, os.Symlink("v1", filepath.Join(dir, "..data")))

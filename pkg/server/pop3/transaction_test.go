@@ -3,12 +3,15 @@ package pop3
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/mail"
 	"net/textproto"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -763,6 +766,52 @@ func TestNewServerCertificateError(t *testing.T) {
 		TLSPrivKey: "/nonexistent/key.pem",
 	}, test.NewStore())
 	require.Error(t, err)
+}
+
+// TestForceTLSServesRotatedCertificate verifies that replacing the certificate files on disk
+// changes the certificate presented by later sessions, without restarting the server.
+func TestForceTLSServesRotatedCertificate(t *testing.T) {
+	dir := t.TempDir()
+	certPath, keyPath := filepath.Join(dir, "cert.pem"), filepath.Join(dir, "key.pem")
+	writeKeyPair := func(version int) []byte {
+		cert, privKey, err := generateCertificate(t)
+		require.NoError(t, err)
+		mtime := time.Date(2026, 1, 1, 0, 0, version, 0, time.UTC)
+		require.NoError(t, os.WriteFile(certPath, certToPem(cert), 0o600))
+		require.NoError(t, os.WriteFile(keyPath, privKeyToPem(privKey), 0o600))
+		require.NoError(t, os.Chtimes(certPath, mtime, mtime))
+		require.NoError(t, os.Chtimes(keyPath, mtime, mtime))
+		return cert
+	}
+	first := writeKeyPair(1)
+
+	server, err := NewServer(config.POP3{
+		Addr:       "127.0.0.1:0",
+		Domain:     "inbucket.local",
+		Timeout:    5 * time.Second,
+		ForceTLS:   true,
+		TLSEnabled: true,
+		TLSCert:    certPath,
+		TLSPrivKey: keyPath,
+	}, test.NewStore())
+	require.NoError(t, err)
+	t.Cleanup(server.Drain)
+
+	// peerCertificate starts a session and returns the certificate the server presents.
+	peerCertificate := func() []byte {
+		tlsConn := tls.Client(setupPOPSession(t, server), &tls.Config{InsecureSkipVerify: true})
+		defer func() { _ = tlsConn.Close() }()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		require.NoError(t, tlsConn.HandshakeContext(ctx))
+		// Read the greeting so the server is waiting on input when the client closes.
+		readPOP3Greeting(t, textproto.NewConn(tlsConn))
+		return tlsConn.ConnectionState().PeerCertificates[0].Raw
+	}
+
+	assert.Equal(t, first, peerCertificate())
+	second := writeKeyPair(2)
+	assert.Equal(t, second, peerCertificate())
 }
 
 // TestValidateMsgNum exercises the shared message-number validation helper

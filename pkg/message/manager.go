@@ -1,10 +1,12 @@
 package message
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
 	"net/mail"
+	"net/textproto"
 	"strings"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/inbucket/inbucket/v3/pkg/policy"
 	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/jhillyerd/enmime/v2"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -53,7 +56,7 @@ func (s *StoreManager) Deliver(
 	logger := log.With().Str("module", "message").Logger()
 
 	// Parse envelope headers.
-	header, err := enmime.DecodeHeaders(source)
+	header, err := decodeHeaders(source, &logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to parse message headers")
 		return err
@@ -92,6 +95,7 @@ func (s *StoreManager) Deliver(
 		To:        toAddrs,
 		Subject:   subject,
 		Size:      int64(len(source)),
+		Header:    header,
 	}
 
 	extResult := s.ExtHost.Events.BeforeMessageStored.Emit(inbound)
@@ -217,4 +221,34 @@ func MakeMetadata(m storage.Message) *event.MessageMetadata {
 		Size:    m.Size(),
 		Seen:    m.Seen(),
 	}
+}
+
+// decodeHeaders returns the headers of an RFC 822 message with RFC 2047 encoded words decoded.
+// Header parse warnings and errors are logged, io errors are returned.
+func decodeHeaders(source []byte, logger *zerolog.Logger) (textproto.MIMEHeader, error) {
+	collector := &headerErrorCollector{logger: logger}
+	header, err := enmime.ReadHeader(bufio.NewReader(bytes.NewReader(source)), collector)
+	if err != nil {
+		return nil, err
+	}
+	for key, values := range header {
+		for i, value := range values {
+			header[key][i] = enmime.DecodeRFC2047(value)
+		}
+	}
+
+	return header, nil
+}
+
+// headerErrorCollector logs header parse problems reported by enmime.
+type headerErrorCollector struct {
+	logger *zerolog.Logger
+}
+
+func (c *headerErrorCollector) AddError(name string, detailFmt string, args ...any) {
+	c.logger.Warn().Str("error", name).Msgf(detailFmt, args...)
+}
+
+func (c *headerErrorCollector) AddWarning(name string, detailFmt string, args ...any) {
+	c.logger.Debug().Str("warning", name).Msgf(detailFmt, args...)
 }

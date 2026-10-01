@@ -85,6 +85,8 @@ func inboundMessageIndex(ls *lua.LState) int {
 		ls.Push(lua.LString(m.Subject))
 	case "size":
 		ls.Push(lua.LNumber(m.Size))
+	case "header":
+		ls.Push(wrapMIMEHeader(ls, m.Header))
 	default:
 		// Unknown field.
 		ls.Push(lua.LNil)
@@ -127,6 +129,8 @@ func inboundMessageNewIndex(ls *lua.LState) int {
 		m.Subject = ls.CheckString(3)
 	case "size":
 		ls.RaiseError("size is read-only")
+	case "header":
+		ls.RaiseError("header is read-only")
 	default:
 		ls.RaiseError("invalid index %q", index)
 	}

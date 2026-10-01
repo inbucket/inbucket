@@ -48,6 +48,7 @@ func (lp *statePool) newState() (*lua.LState, error) {
 	registerInbucketTypes(ls)
 	registerMailAddressType(ls)
 	registerMessageMetadataType(ls)
+	registerMIMEHeaderType(ls)
 	registerSMTPResponseType(ls)
 	registerSMTPSessionType(ls)
 

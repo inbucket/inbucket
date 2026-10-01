@@ -2,6 +2,7 @@ package event
 
 import (
 	"net/mail"
+	"net/textproto"
 	"time"
 )
 
@@ -27,6 +28,7 @@ type InboundMessage struct {
 	To        []*mail.Address
 	Subject   string
 	Size      int64
+	Header    textproto.MIMEHeader
 }
 
 // MessageMetadata contains the basic header data for a message event.

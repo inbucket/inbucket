@@ -2,6 +2,7 @@ package luahost_test
 
 import (
 	"net/mail"
+	"net/textproto"
 	"strings"
 	"testing"
 	"time"
@@ -161,6 +162,10 @@ func TestBeforeMessageStored(t *testing.T) {
 		},
 		Subject: "inbound subj",
 		Size:    42,
+		Header: textproto.MIMEHeader{
+			"Subject":       {"inbound subj"},
+			"X-Spam-Status": {"Yes, score=7.5"},
+		},
 	}
 
 	// Register lua event listener.
@@ -179,6 +184,8 @@ func TestBeforeMessageStored(t *testing.T) {
 			assert_eq(msg.to[2].address, "to2@example.com")
 			assert_eq(msg.subject, "inbound subj")
 			assert_eq(msg.size, 42, "msg.size")
+			assert_eq(msg.header["X-Spam-Status"], "Yes, score=7.5", "msg.header")
+			assert_eq(msg.header["X-Missing"], nil, "msg.header missing")
 			notify:send(asserts_ok)
 
 			-- Generate response.

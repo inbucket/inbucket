@@ -6,6 +6,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Lua scripting additions:
+  - Add read-only `header` to `before.message_stored` messages
+
 
 ## [v3.1.1] - 2025-12-06
 

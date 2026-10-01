@@ -146,6 +146,80 @@ test email`),
 	assert.Equal(t, int64(84), got.Size, "Size not equal")
 }
 
+func TestDeliverEmitsBeforeMessageStoredEventHeader(t *testing.T) {
+	sm, extHost := testStoreManager()
+
+	// Register function to receive event.
+	var got *event.InboundMessage
+	extHost.Events.BeforeMessageStored.AddListener(
+		"test",
+		func(msg event.InboundMessage) *event.InboundMessage {
+			got = &msg
+			return nil
+		})
+
+	// Deliver a message with non-envelope, RFC 2047 encoded, folded and repeated headers.
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	if err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip},
+		"Received: xyz\n",
+		[]byte(`Received: from mail.example.org (mail.example.org [192.0.2.25])
+	by mx.example.com (Postfix) with ESMTPS id 84E6927
+	for <u1@example.com>; Fri, 02 Oct 2026 08:43:39 +0000 (UTC)
+Authentication-Results: mx.example.com;
+	dkim=fail header.d=example.org header.s=sel header.b=sfwMAvKT;
+	spf=pass (mx.example.com: domain of "bounces+1=u1@send.example.org" designates 192.0.2.25 as permitted sender) smtp.mailfrom="bounces+1=u1@send.example.org";
+	dmarc=fail reason="SPF not aligned (relaxed), DKIM not aligned (relaxed)" header.from=example.com (policy=reject)
+X-Rspamd-Queue-Id: 84E6927
+X-Spamd-Result: default: False [7.54 / 6.00];
+	DMARC_POLICY_REJECT(2.00)[example.com : SPF not aligned (relaxed), DKIM not aligned (relaxed),reject];
+	R_DKIM_REJECT(1.00)[example.org:s=sel];
+	FORGED_SENDER(0.30)[from@example.com,bounces+1=u1@send.example.org];
+	R_SPF_ALLOW(-0.20)[+ip4:192.0.2.0/24];
+	MIME_TRACE(0.00)[0:+,1:+,2:~];
+	RCPT_COUNT_ONE(0.00)[1];
+	ARC_NA(0.00)[]
+X-Spam-Status: Yes, score=7.54
+From: from@example.com
+To: u1@example.com
+Subject: =?UTF-8?Q?caf=C3=A9?=
+Received: by mail.example.org id abc123; Fri, 02 Oct 2026 08:43:38 +0000
+
+test email`),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	require.NotNil(t, got, "BeforeMessageStored listener did not receive InboundMessage")
+	assert.Equal(t, "café", got.Subject, "Subject not decoded")
+	assert.Equal(t, "café", got.Header.Get("Subject"), "Header Subject not decoded")
+	assert.Equal(t, "Yes, score=7.54", got.Header.Get("x-spam-status"), "X-Spam-Status not equal")
+	assert.Equal(t,
+		"default: False [7.54 / 6.00];"+
+			" DMARC_POLICY_REJECT(2.00)[example.com : SPF not aligned (relaxed), DKIM not aligned (relaxed),reject];"+
+			" R_DKIM_REJECT(1.00)[example.org:s=sel];"+
+			" FORGED_SENDER(0.30)[from@example.com,bounces+1=u1@send.example.org];"+
+			" R_SPF_ALLOW(-0.20)[+ip4:192.0.2.0/24];"+
+			" MIME_TRACE(0.00)[0:+,1:+,2:~];"+
+			" RCPT_COUNT_ONE(0.00)[1];"+
+			" ARC_NA(0.00)[]",
+		got.Header.Get("X-Spamd-Result"), "folded X-Spamd-Result not unfolded")
+	assert.Equal(t,
+		"mx.example.com;"+
+			" dkim=fail header.d=example.org header.s=sel header.b=sfwMAvKT;"+
+			` spf=pass (mx.example.com: domain of "bounces+1=u1@send.example.org" designates 192.0.2.25 as permitted sender) smtp.mailfrom="bounces+1=u1@send.example.org";`+
+			` dmarc=fail reason="SPF not aligned (relaxed), DKIM not aligned (relaxed)" header.from=example.com (policy=reject)`,
+		got.Header.Get("Authentication-Results"), "folded Authentication-Results not unfolded")
+	assert.Equal(t, []string{
+		"from mail.example.org (mail.example.org [192.0.2.25])" +
+			" by mx.example.com (Postfix) with ESMTPS id 84E6927" +
+			" for <u1@example.com>; Fri, 02 Oct 2026 08:43:39 +0000 (UTC)",
+		"by mail.example.org id abc123; Fri, 02 Oct 2026 08:43:38 +0000",
+	}, got.Header.Values("Received"), "Received not equal")
+}
+
 func TestDeliverEmitsBeforeMessageStoredEventRcptTo(t *testing.T) {
 	sm, extHost := testStoreManager()
 

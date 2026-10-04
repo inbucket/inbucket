@@ -21,6 +21,7 @@ import (
 	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/inbucket/inbucket/v3/pkg/test"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNoTLS(t *testing.T) {
@@ -242,6 +243,33 @@ func TestDupStartTLS(t *testing.T) {
 	}
 	if !strings.HasPrefix(reply, "-ERR") {
 		t.Fatalf("STAT failed: %s", reply)
+	}
+}
+
+// TestSTLSPerSession verifies that STLS state belongs to each session: a
+// completed STLS negotiation must not affect later sessions on the same server.
+func TestSTLSPerSession(t *testing.T) {
+	server := setupPOPServer(t, test.NewStore(), true, false)
+
+	for i := 1; i <= 2; i++ {
+		serverConn, clientConn := net.Pipe()
+		startPOP3Session(t, server, &mockConn{serverConn})
+		t.Cleanup(func() { _ = clientConn.Close() })
+
+		c := textproto.NewConn(clientConn)
+		readPOP3Greeting(t, c)
+		playPOP3Script(t, c, []scriptStep{
+			{"CAPA", []string{"+OK Capability list follows", "TOP", "USER", "UIDL", "IMPLEMENTATION Inbucket", "STLS", "."}},
+			{"STLS", []string{"+OK Begin TLS Negotiation"}},
+		})
+
+		tlsConn := tls.Client(clientConn, &tls.Config{InsecureSkipVerify: true})
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		require.NoErrorf(t, tlsConn.HandshakeContext(ctx), "session %d: TLS handshake", i)
+		cancel()
+		playPOP3Script(t, textproto.NewConn(tlsConn), []scriptStep{
+			{"QUIT", []string{"+OK Goodnight and good luck"}},
+		})
 	}
 }
 

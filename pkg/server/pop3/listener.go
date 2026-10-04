@@ -21,7 +21,6 @@ type Server struct {
 	wg        *sync.WaitGroup // Waitgroup tracking sessions.
 	notify    chan error      // Notify on fatal error.
 	tlsConfig *tls.Config     // TLS encryption configuration.
-	tlsState  *tls.ConnectionState
 }
 
 // NewServer creates a new, unstarted, POP3 server.

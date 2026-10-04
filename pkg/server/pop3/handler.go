@@ -60,19 +60,20 @@ var commands = map[string]bool{
 
 // Session defines an active POP3 session
 type Session struct {
-	*Server                      // Reference to the server we belong to.
-	id         int               // Session ID number.
-	conn       net.Conn          // Our network connection.
-	remoteHost string            // IP address of client.
-	sendError  error             // Used to bail out of read loop on send error.
-	state      State             // Current session state.
-	reader     *bufio.Reader     // Buffered reader for our net conn.
-	user       string            // Mailbox name.
-	messages   []storage.Message // Slice of messages in mailbox.
-	retain     []bool            // Messages to retain upon UPDATE (true=retain).
-	msgCount   int               // Number of undeleted messages.
-	logger     zerolog.Logger    // Session specific logger.
-	debug      bool              // Print network traffic to stdout.
+	*Server                         // Reference to the server we belong to.
+	id         int                  // Session ID number.
+	conn       net.Conn             // Our network connection.
+	remoteHost string               // IP address of client.
+	sendError  error                // Used to bail out of read loop on send error.
+	state      State                // Current session state.
+	reader     *bufio.Reader        // Buffered reader for our net conn.
+	user       string               // Mailbox name.
+	messages   []storage.Message    // Slice of messages in mailbox.
+	retain     []bool               // Messages to retain upon UPDATE (true=retain).
+	msgCount   int                  // Number of undeleted messages.
+	logger     zerolog.Logger       // Session specific logger.
+	debug      bool                 // Print network traffic to stdout.
+	tlsState   *tls.ConnectionState // TLS connection state, nil until TLS is set up.
 }
 
 // NewSession creates a new POP3 session
@@ -107,11 +108,12 @@ func (s *Server) startSession(ctx context.Context, id int, conn net.Conn) {
 		Int("session", id).Logger()
 	logger.Debug().Msgf("ForceTLS: %t", s.config.ForceTLS)
 	connToClose := conn
+	var tlsState *tls.ConnectionState
 	if s.config.ForceTLS {
 		logger.Debug().Msg("Setting up TLS for ForceTLS")
 		tlsConn := tls.Server(conn, s.tlsConfig)
-		s.tlsState = new(tls.ConnectionState)
-		*s.tlsState = tlsConn.ConnectionState()
+		tlsState = new(tls.ConnectionState)
+		*tlsState = tlsConn.ConnectionState()
 		conn = tlsConn
 	}
 
@@ -127,6 +129,7 @@ func (s *Server) startSession(ctx context.Context, id int, conn net.Conn) {
 	}()
 
 	ssn := NewSession(s, id, conn, logger)
+	ssn.tlsState = tlsState
 	ssn.send(fmt.Sprintf("+OK Inbucket POP3 server ready <%v.%v@%v>", os.Getpid(),
 		time.Now().Unix(), s.config.Domain))
 
@@ -144,7 +147,7 @@ func (s *Server) startSession(ctx context.Context, id int, conn net.Conn) {
 				ssn.send("USER")
 				ssn.send("UIDL")
 				ssn.send("IMPLEMENTATION Inbucket")
-				if s.tlsConfig != nil && s.tlsState == nil && !s.config.ForceTLS {
+				if s.tlsConfig != nil && ssn.tlsState == nil && !s.config.ForceTLS {
 					ssn.send("STLS")
 				}
 				ssn.send(".")

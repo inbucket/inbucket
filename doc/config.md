@@ -243,11 +243,13 @@ to the public internet.
 
 Enable the STARTTLS option for opportunistic TLS support
 
-Inbucket checks the certificate and private key files on each TLS handshake and
-reloads them when either file changes, so renewed certificates (for example from
-cert-manager) take effect without a restart.  If a reload fails, Inbucket logs a
-warning and keeps serving the previous certificate.  The same applies to the
-POP3 TLS files.
+Inbucket checks the certificate and private key files on each full TLS handshake
+and reloads them when either file changes, so renewed certificates (for example
+from cert-manager) take effect without a restart.  Clients that resume an
+earlier TLS session keep that session's certificate until their next full
+handshake.  If a reload fails, Inbucket logs a warning, keeps serving the
+previous certificate, and tries again when the files change or after 30 seconds.
+The same applies to the POP3 TLS files.
 
 - Default: `false`
 - Values: `true` or `false`

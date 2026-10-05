@@ -11,6 +11,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// retryInterval is the minimum time between attempts to reload a key pair that failed to load
+// while its files are unchanged, such as when a chmod or chown fixes its permissions.
+const retryInterval = 30 * time.Second
+
 // fileState identifies a version of a file by its modification time and size.
 type fileState struct {
 	modTime time.Time
@@ -20,20 +24,29 @@ type fileState struct {
 // Reloader serves a certificate and private key loaded from files, reloading them when either
 // file changes. It is safe for concurrent use.
 type Reloader struct {
-	certFile string         // X509 public certificate file.
-	keyFile  string         // X509 private key file.
-	logger   zerolog.Logger // Logger for reload events.
+	certFile      string           // X509 public certificate file.
+	keyFile       string           // X509 private key file.
+	logger        zerolog.Logger   // Logger for reload events.
+	retryInterval time.Duration    // Minimum time between retries of a failed, unchanged pair.
+	now           func() time.Time // Clock used to schedule retries.
 
 	mu        sync.Mutex       // Guards the fields below.
 	cert      *tls.Certificate // Last successfully loaded key pair.
 	certState fileState        // State of certFile at the last load attempt.
 	keyState  fileState        // State of keyFile at the last load attempt.
+	failedAt  time.Time        // Time of the last failed load attempt, zero after a success.
 }
 
 // NewReloader loads the key pair from certFile and keyFile, returning an error if it cannot be
 // loaded.
 func NewReloader(certFile, keyFile string, logger zerolog.Logger) (*Reloader, error) {
-	r := &Reloader{certFile: certFile, keyFile: keyFile, logger: logger}
+	r := &Reloader{
+		certFile:      certFile,
+		keyFile:       keyFile,
+		logger:        logger,
+		retryInterval: retryInterval,
+		now:           time.Now,
+	}
 	certState, keyState, err := r.stat()
 	if err != nil {
 		return nil, err
@@ -49,35 +62,39 @@ func NewReloader(certFile, keyFile string, logger zerolog.Logger) (*Reloader, er
 }
 
 // GetCertificate returns the current key pair, reloading it first if either file changed since
-// the last load attempt. A failed reload is logged, and the previously loaded key pair is served
-// until the files change again. It matches the signature of tls.Config.GetCertificate.
+// the last load attempt, or if the last attempt failed and retryInterval has elapsed. Failures
+// are logged and the previous key pair is served. crypto/tls calls it on full handshakes only.
 func (r *Reloader) GetCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	// On error, stat returns zero states, so repeated stat failures count as unchanged files.
 	certState, keyState, err := r.stat()
-	if err != nil {
-		r.logger.Warn().Err(err).Msg("Failed to check X509 KeyPair files, serving previous certificate")
-		return r.cert, nil
-	}
-	if certState == r.certState && keyState == r.keyState {
+	changed := certState != r.certState || keyState != r.keyState
+	retryDue := !r.failedAt.IsZero() && r.now().Sub(r.failedAt) >= r.retryInterval
+	if !changed && !retryDue {
 		return r.cert, nil
 	}
 
-	// Record the attempt even if it fails, so a bad pair is retried only after another change.
 	r.certState = certState
 	r.keyState = keyState
-	cert, err := tls.LoadX509KeyPair(r.certFile, r.keyFile)
-	if err != nil {
-		r.logger.Warn().Err(err).Msg("Failed to reload X509 KeyPair, serving previous certificate")
-		return r.cert, nil
+	if err == nil {
+		var cert tls.Certificate
+		cert, err = tls.LoadX509KeyPair(r.certFile, r.keyFile)
+		if err == nil {
+			r.cert = &cert
+			r.failedAt = time.Time{}
+			r.logger.Info().Msg("Reloaded X509 KeyPair")
+			return r.cert, nil
+		}
 	}
-	r.cert = &cert
-	r.logger.Info().Msg("Reloaded X509 KeyPair")
+	r.failedAt = r.now()
+	r.logger.Warn().Err(err).Msg("Failed to reload X509 KeyPair, serving previous certificate")
 	return r.cert, nil
 }
 
-// stat returns the current state of the certificate and key files.
+// stat returns the current state of the certificate and key files, or zero states and an error
+// if either cannot be read.
 func (r *Reloader) stat() (certState, keyState fileState, err error) {
 	certState, err = statFile(r.certFile)
 	if err != nil {

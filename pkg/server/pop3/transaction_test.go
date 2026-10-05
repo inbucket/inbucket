@@ -769,7 +769,8 @@ func TestNewServerCertificateError(t *testing.T) {
 }
 
 // TestForceTLSServesRotatedCertificate verifies that replacing the certificate files on disk
-// changes the certificate presented by later sessions, without restarting the server.
+// changes the certificate presented by later full handshakes, without restarting the server,
+// while a client resuming an earlier TLS session keeps that session's certificate.
 func TestForceTLSServesRotatedCertificate(t *testing.T) {
 	dir := t.TempDir()
 	certPath, keyPath := filepath.Join(dir, "cert.pem"), filepath.Join(dir, "key.pem")
@@ -797,21 +798,34 @@ func TestForceTLSServesRotatedCertificate(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(server.Drain)
 
-	// peerCertificate starts a session and returns the certificate the server presents.
-	peerCertificate := func() []byte {
-		tlsConn := tls.Client(setupPOPSession(t, server), &tls.Config{InsecureSkipVerify: true})
+	// peerCertificate starts a session and returns the certificate the server presents, and
+	// whether the TLS session was resumed.
+	peerCertificate := func(tlsConfig *tls.Config) ([]byte, bool) {
+		tlsConn := tls.Client(setupPOPSession(t, server), tlsConfig)
 		defer func() { _ = tlsConn.Close() }()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		require.NoError(t, tlsConn.HandshakeContext(ctx))
-		// Read the greeting so the server is waiting on input when the client closes.
+		// Read the greeting so the server is waiting on input when the client closes. Reading
+		// also processes the session ticket the server sends after the handshake.
 		readPOP3Greeting(t, textproto.NewConn(tlsConn))
-		return tlsConn.ConnectionState().PeerCertificates[0].Raw
+		state := tlsConn.ConnectionState()
+		return state.PeerCertificates[0].Raw, state.DidResume
 	}
+	fresh := &tls.Config{InsecureSkipVerify: true}
+	caching := &tls.Config{InsecureSkipVerify: true, ClientSessionCache: tls.NewLRUClientSessionCache(1)}
 
-	assert.Equal(t, first, peerCertificate())
+	cert, _ := peerCertificate(fresh)
+	assert.Equal(t, first, cert)
+	cert, _ = peerCertificate(caching)
+	assert.Equal(t, first, cert)
+
 	second := writeKeyPair(2)
-	assert.Equal(t, second, peerCertificate())
+	cert, _ = peerCertificate(fresh)
+	assert.Equal(t, second, cert, "full handshake after rotation")
+	cert, resumed := peerCertificate(caching)
+	assert.True(t, resumed, "caching client should resume its session")
+	assert.Equal(t, first, cert, "resumed session after rotation")
 }
 
 // TestValidateMsgNum exercises the shared message-number validation helper

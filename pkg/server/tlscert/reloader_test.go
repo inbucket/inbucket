@@ -1,6 +1,7 @@
 package tlscert
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -97,6 +99,57 @@ func TestGetCertificateKeepsPreviousOnFailure(t *testing.T) {
 			assert.Equal(t, "c", commonName(t, r))
 		})
 	}
+}
+
+// TestGetCertificateRetriesUnchangedFiles covers a pair that fails to load and is then fixed
+// without changing its files' modification time or size, as a chmod or chown would.
+func TestGetCertificateRetriesUnchangedFiles(t *testing.T) {
+	dir := t.TempDir()
+	certFile, keyFile := filepath.Join(dir, "cert.pem"), filepath.Join(dir, "key.pem")
+	writePairFiles(t, certFile, keyFile, "a", 1)
+
+	r, err := NewReloader(certFile, keyFile, testLogger(t))
+	require.NoError(t, err)
+	now := time.Now()
+	r.now = func() time.Time { return now }
+
+	// The new key is unreadable on the first attempt.
+	certB, keyB := generatePair(t, "b")
+	writeFile(t, certFile, certB, 2)
+	writeFile(t, keyFile, bytes.Repeat([]byte("x"), len(keyB)), 2)
+	assert.Equal(t, "a", commonName(t, r))
+
+	// Fixing the key leaves its modification time and size unchanged.
+	writeFile(t, keyFile, keyB, 2)
+	assert.Equal(t, "a", commonName(t, r), "retried before retryInterval elapsed")
+
+	now = now.Add(r.retryInterval)
+	assert.Equal(t, "b", commonName(t, r))
+}
+
+// TestGetCertificateFailureWarnings verifies that a persistent failure is attempted, and logged,
+// at most once per retryInterval.
+func TestGetCertificateFailureWarnings(t *testing.T) {
+	dir := t.TempDir()
+	certFile, keyFile := filepath.Join(dir, "cert.pem"), filepath.Join(dir, "key.pem")
+	writePairFiles(t, certFile, keyFile, "a", 1)
+
+	var logs bytes.Buffer
+	r, err := NewReloader(certFile, keyFile, zerolog.New(&logs))
+	require.NoError(t, err)
+	now := time.Now()
+	r.now = func() time.Time { return now }
+	warnings := func() int { return strings.Count(logs.String(), "Failed to reload X509 KeyPair") }
+
+	require.NoError(t, os.Remove(certFile))
+	for range 3 {
+		assert.Equal(t, "a", commonName(t, r))
+	}
+	assert.Equal(t, 1, warnings())
+
+	now = now.Add(r.retryInterval)
+	assert.Equal(t, "a", commonName(t, r))
+	assert.Equal(t, 2, warnings())
 }
 
 // TestGetCertificateSymlinkSwap mirrors how the kubelet updates a mounted Secret: the files are

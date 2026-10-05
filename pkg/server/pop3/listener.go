@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/inbucket/inbucket/v3/pkg/config"
+	"github.com/inbucket/inbucket/v3/pkg/server/tlscert"
 	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/rs/zerolog/log"
 )
@@ -28,14 +29,13 @@ func NewServer(pop3Config config.POP3, store storage.Store) (*Server, error) {
 	slog := log.With().Str("module", "pop3").Str("phase", "tls").Logger()
 	tlsConfig := &tls.Config{}
 	if pop3Config.TLSEnabled {
-		var err error
-		tlsConfig.Certificates = make([]tls.Certificate, 1)
-		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(pop3Config.TLSCert, pop3Config.TLSPrivKey)
+		reloader, err := tlscert.NewReloader(pop3Config.TLSCert, pop3Config.TLSPrivKey, slog)
 		if err != nil {
 			slog.Error().Msgf("Failed loading X509 KeyPair: %v", err)
 			return nil, fmt.Errorf("failed to configure TLS; %v", err)
 			// Do not silently turn off Security.
 		}
+		tlsConfig.GetCertificate = reloader.GetCertificate
 		slog.Debug().Msg("TLS config available")
 	} else {
 		tlsConfig = nil

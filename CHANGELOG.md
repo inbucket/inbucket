@@ -6,6 +6,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Lua scripts can register extra message headers to decode via the new
+  `inbucket.config.decode_headers` setting, and read them from the new
+  `inbound_message.header` field (#627)
+
 
 ## [v3.1.1] - 2025-12-06
 

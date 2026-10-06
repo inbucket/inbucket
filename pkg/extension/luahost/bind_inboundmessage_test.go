@@ -2,6 +2,7 @@ package luahost
 
 import (
 	"net/mail"
+	"net/textproto"
 	"testing"
 
 	"github.com/inbucket/inbucket/v3/pkg/extension/event"
@@ -20,6 +21,10 @@ func TestInboundMessageGetters(t *testing.T) {
 		},
 		Subject: "subj1",
 		Size:    42,
+		Headers: textproto.MIMEHeader{
+			"Subject":       {"subj1"},
+			"X-Spam-Status": {"Yes"},
+		},
 	}
 	script := `
 		assert(msg, "msg should not be nil")
@@ -27,6 +32,10 @@ func TestInboundMessageGetters(t *testing.T) {
 		assert_eq(msg.mailboxes, {"mb1", "mb2"})
 		assert_eq(msg.subject, "subj1")
 		assert_eq(msg.size, 42, "msg.size")
+
+		assert_eq(msg.header.subject, "subj1")
+		assert_eq(msg.header["x-spam-status"], "Yes")
+		assert(msg.header["x-not-registered"] == nil, "unregistered header should be nil")
 
 		assert_eq(msg.from.name, "name1", "from.name")
 		assert_eq(msg.from.address, "addr1", "from.address")
@@ -41,8 +50,24 @@ func TestInboundMessageGetters(t *testing.T) {
 	ls, _ := test.NewLuaState()
 	registerInboundMessageType(ls)
 	registerMailAddressType(ls)
+	registerHeaderType(ls)
 	ls.SetGlobal("msg", wrapInboundMessage(ls, want))
 	require.NoError(t, ls.DoString(script))
+}
+
+func TestInboundMessageHeaderReadOnly(t *testing.T) {
+	script := `
+		msg.header = {}
+	`
+
+	got := &event.InboundMessage{}
+	ls, _ := test.NewLuaState()
+	registerInboundMessageType(ls)
+	registerHeaderType(ls)
+	ls.SetGlobal("msg", wrapInboundMessage(ls, got))
+	err := ls.DoString(script)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "header is read-only")
 }
 
 func TestInboundMessageSetters(t *testing.T) {

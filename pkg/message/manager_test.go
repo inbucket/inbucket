@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/mail"
+	"net/textproto"
 	"strings"
 	"testing"
 	"time"
@@ -104,6 +105,64 @@ func TestDeliverRespectsRecipientPolicy(t *testing.T) {
 	// Expect empty mailbox for nostore domain.
 	assertMessageCount(t, sm, "u1@nostore.com", 0)
 	assertMessageCount(t, sm, "u2@example.com", 1)
+}
+
+// Delivers a message with an X-Spam-Status header, capturing the
+// InboundMessage event seen by a listener.
+func deliverWithSpamHeader(t *testing.T, sm *message.StoreManager, extHost *extension.Host) event.InboundMessage {
+	t.Helper()
+
+	var got event.InboundMessage
+	extHost.Events.BeforeMessageStored.AddListener(
+		"test",
+		func(msg event.InboundMessage) *event.InboundMessage {
+			got = msg
+			return nil
+		})
+
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip1, _ := sm.AddrPolicy.NewRecipient("u1@example.com")
+	if err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip1},
+		"Received: xyz\r\n",
+		[]byte("From: from@example.com\nSubject: tsub\nX-Spam-Status: Yes\nX-Not-Registered: no\n\ntest email"),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	return got
+}
+
+func TestDeliverDecodesExtraHeaders(t *testing.T) {
+	sm, extHost := testStoreManager()
+	sm.ExtraDecodeHeaders = []string{"x-spam-status"} // Not canonical on purpose.
+
+	got := deliverWithSpamHeader(t, sm, extHost)
+
+	// Registered extra header is decoded, with a canonical key.
+	assert.Equal(t, "Yes", got.Headers.Get("X-Spam-Status"))
+
+	// Default set is still decoded.
+	assert.Equal(t, "tsub", got.Headers.Get("Subject"))
+	assert.Equal(t, "from@example.com", got.Headers.Get("From"))
+
+	// Unregistered headers are not decoded.
+	_, ok := got.Headers[textproto.CanonicalMIMEHeaderKey("X-Not-Registered")]
+	assert.False(t, ok, "unregistered header should not be decoded")
+}
+
+func TestDeliverDefaultHeaderSetOnly(t *testing.T) {
+	sm, extHost := testStoreManager()
+
+	got := deliverWithSpamHeader(t, sm, extHost)
+
+	// Without registration, the extra header stays undecoded.
+	_, ok := got.Headers[textproto.CanonicalMIMEHeaderKey("X-Spam-Status")]
+	assert.False(t, ok, "unregistered header should not be decoded")
+
+	// Defaults are present.
+	assert.Equal(t, "tsub", got.Headers.Get("Subject"))
 }
 
 func TestDeliverEmitsBeforeMessageStoredEventToHeader(t *testing.T) {

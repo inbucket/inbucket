@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/mail"
+	"net/textproto"
 	"strings"
 	"time"
 
@@ -41,6 +42,9 @@ type StoreManager struct {
 	AddrPolicy *policy.Addressing
 	Store      storage.Store
 	ExtHost    *extension.Host
+	// ExtraDecodeHeaders names message headers beyond the default set to
+	// decode and expose to extensions via event.InboundMessage.Headers.
+	ExtraDecodeHeaders []string
 }
 
 // Deliver submits a new message to the store.
@@ -53,7 +57,7 @@ func (s *StoreManager) Deliver(
 	logger := log.With().Str("module", "message").Logger()
 
 	// Parse envelope headers.
-	header, err := enmime.DecodeHeaders(source)
+	header, err := enmime.DecodeHeaders(source, s.ExtraDecodeHeaders...)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to parse message headers")
 		return err
@@ -92,6 +96,7 @@ func (s *StoreManager) Deliver(
 		To:        toAddrs,
 		Subject:   subject,
 		Size:      int64(len(source)),
+		Headers:   textproto.MIMEHeader(header),
 	}
 
 	extResult := s.ExtHost.Events.BeforeMessageStored.Emit(inbound)

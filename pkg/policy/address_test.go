@@ -525,6 +525,7 @@ func TestParseOrigin(t *testing.T) {
 	}
 }
 
+// TestParseOriginInvalid verifies Addressing.ParseOrigin rejects malformed MAIL FROM paths.
 func TestParseOriginInvalid(t *testing.T) {
 	localPolicy := policy.Addressing{Config: &config.Root{MailboxNaming: config.LocalNaming}}
 
@@ -546,6 +547,8 @@ func TestParseOriginInvalid(t *testing.T) {
 	}
 }
 
+// TestShouldAcceptOriginDomain verifies origin-domain rejection patterns, including
+// wildcards and case handling.
 func TestShouldAcceptOriginDomain(t *testing.T) {
 	// Patterns are matched against the lowercased input domain; config.Process() is
 	// responsible for lowercasing the pattern list itself.
@@ -580,6 +583,28 @@ func TestShouldAcceptOriginDomain(t *testing.T) {
 			}
 		})
 	}
+
+	// Wildcard-only pattern: `*.deny.com` matches subdomains at any depth, but not the
+	// bare domain - operators must list that separately.
+	wildcardOnly := &policy.Addressing{
+		Config: &config.Root{
+			SMTP: config.SMTP{RejectOriginDomains: []string{"*.deny.com"}},
+		},
+	}
+	t.Run("wildcard only", func(t *testing.T) {
+		for _, tc := range []struct {
+			domain string
+			want   bool
+		}{
+			{domain: "deny.com", want: true},
+			{domain: "a.deny.com", want: false},
+			{domain: "b.a.deny.com", want: false},
+		} {
+			if got := wildcardOnly.ShouldAcceptOriginDomain(tc.domain); got != tc.want {
+				t.Errorf("Got %v for %q, want: %v", got, tc.domain, tc.want)
+			}
+		}
+	})
 
 	// With no RejectOriginDomains configured, every origin is accepted.
 	noRestrictions := &policy.Addressing{

@@ -2,7 +2,8 @@
 
 ### Build frontend
 # Due to no official elm compiler for arm; build frontend with amd64.
-FROM --platform=linux/amd64 node:20 AS frontend
+ARG FRONTEND_PLATFORM=linux/amd64
+FROM --platform=${FRONTEND_PLATFORM} node:20 AS frontend
 RUN npm install -g node-gyp
 WORKDIR /build
 COPY . .

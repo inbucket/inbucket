@@ -20,7 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - Update Go and UI dependencies (#615, #617, #631)
-- GitHub Actions: bump checkout, setup-go, setup-node, and Docker actions (#612, #613, #614, #599, #600, #601, #602)
+- GitHub Actions: bump checkout, setup-go, setup-node, and Docker actions (#612, #613, #614, #598, #599, #600, #601, #602)
 
 
 ## [v3.1.1] - 2025-12-06

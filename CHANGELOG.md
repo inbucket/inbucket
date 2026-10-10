@@ -7,6 +7,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [v3.2.0] - 2026-10-10
+
+### Added
+- Reload TLS certificates when their files change (#625)
+
+### Fixed
+- pop3: Track STLS state per session instead of per server (#626)
+- pop3: Reject deleted messages and failed TLS handshakes (#620)
+- rest: Make WebSocket monitor listener teardown safe under concurrency (#623)
+- Fix outdated swaks syntax and log DecodeHeader failures (#616)
+
+### Changed
+- Update Go and UI dependencies (#615, #617, #631)
+- GitHub Actions: bump checkout, setup-go, setup-node, and Docker actions (#612, #613, #614, #598, #599, #600, #601, #602)
+
+
 ## [v3.1.1] - 2025-12-06
 
 ### Fixed
@@ -386,7 +402,8 @@ No change from beta1.
   specific message.
 
 
-[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.1.1...main
+[Unreleased]:   https://github.com/inbucket/inbucket/compare/v3.2.0...main
+[v3.2.0]: https://github.com/inbucket/inbucket/compare/v3.1.1...v3.2.0
 [v3.1.1]: https://github.com/inbucket/inbucket/compare/v3.1.0...v3.1.1
 [v3.1.0]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta3...v3.1.0
 [v3.1.0-beta3]: https://github.com/inbucket/inbucket/compare/v3.1.0-beta2...v3.1.0-beta3

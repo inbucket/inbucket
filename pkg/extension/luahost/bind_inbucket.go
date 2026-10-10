@@ -15,6 +15,7 @@ const (
 
 // Inbucket is the primary Lua interface data structure.
 type Inbucket struct {
+	Config InbucketConfig
 	After  InbucketAfterFuncs
 	Before InbucketBeforeFuncs
 }
@@ -42,6 +43,9 @@ func registerInbucketTypes(ls *lua.LState) {
 	// inbucket global var.
 	ud := wrapInbucket(ls, &Inbucket{})
 	ls.SetGlobal(inbucketName, ud)
+
+	// inbucket.config type.
+	registerInbucketConfigType(ls)
 
 	// inbucket.after type.
 	mt = ls.NewTypeMetatable(inbucketAfterName)
@@ -131,6 +135,8 @@ func inbucketIndex(ls *lua.LState) int {
 
 	// Push the requested field's value onto the stack.
 	switch field {
+	case "config":
+		ls.Push(wrapInbucketConfig(ls, &ib.Config))
 	case "after":
 		ls.Push(wrapInbucketAfter(ls, &ib.After))
 	case "before":

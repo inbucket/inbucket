@@ -2,6 +2,7 @@ package event
 
 import (
 	"net/mail"
+	"net/textproto"
 	"time"
 )
 
@@ -27,6 +28,16 @@ type InboundMessage struct {
 	To        []*mail.Address
 	Subject   string
 	Size      int64
+	// Headers contains the decoded message headers: the default set (Date,
+	// Subject, Sender, From, To, CC, BCC) plus any additional names registered
+	// by a Lua script via inbucket.config.decode_headers.
+	//
+	// The same map is shared with every BeforeMessageStored listener; mutations
+	// made by a Go listener are visible to listeners that run after it.  Sender
+	// supplied values are untrusted: headers such as Authentication-Results and
+	// X-Spam-Status should only drive decisions when the deployment controls
+	// their provenance.
+	Headers textproto.MIMEHeader
 }
 
 // MessageMetadata contains the basic header data for a message event.

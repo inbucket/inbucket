@@ -50,7 +50,15 @@ func FullAssembly(conf *config.Root) (*Services, error) {
 	addrPolicy := &policy.Addressing{Config: conf}
 	// Configure shared components.
 	msgHub := msghub.New(conf.Web.MonitorHistory, extHost)
-	mmanager := &message.StoreManager{AddrPolicy: addrPolicy, Store: store, ExtHost: extHost}
+	mmanager := &message.StoreManager{
+		AddrPolicy: addrPolicy,
+		Store:      store,
+		ExtHost:    extHost,
+	}
+	if luaHost != nil {
+		// Lua scripts may register extra headers to decode.
+		mmanager.ExtraDecodeHeaders = luaHost.ScriptConfig().DecodeHeaders
+	}
 
 	// Start Retention scanner.
 	retentionScanner := storage.NewRetentionScanner(conf.Storage, store)

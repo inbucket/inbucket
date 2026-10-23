@@ -41,6 +41,33 @@ func TestLogger(t *testing.T) {
 	assert.Contains(t, output.String(), "_test log entry_")
 }
 
+func TestScriptConfigDecodeHeaders(t *testing.T) {
+	script := `
+		inbucket.config.decode_headers = {
+			"X-Spam-Status",
+			"Authentication-Results",
+		}
+	`
+	extHost := extension.NewHost()
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost,
+		strings.NewReader(script), "test.lua")
+	require.NoError(t, err)
+
+	assert.Equal(t,
+		[]string{"X-Spam-Status", "Authentication-Results"},
+		luaHost.ScriptConfig().DecodeHeaders)
+}
+
+func TestScriptConfigDefault(t *testing.T) {
+	script := ``
+	extHost := extension.NewHost()
+	luaHost, err := luahost.NewFromReader(consoleLogger, extHost,
+		strings.NewReader(script), "test.lua")
+	require.NoError(t, err)
+
+	assert.Empty(t, luaHost.ScriptConfig().DecodeHeaders)
+}
+
 func TestAfterMessageDeleted(t *testing.T) {
 	// Register lua event listener, setup notify channel.
 	script := `

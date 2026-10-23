@@ -21,9 +21,10 @@ var ErrNoScript error = errors.New("no script file present")
 
 // Host of Lua extensions.
 type Host struct {
-	extHost    *extension.Host
-	pool       *statePool
-	logContext zerolog.Context
+	extHost      *extension.Host
+	pool         *statePool
+	logContext   zerolog.Context
+	scriptConfig InbucketConfig
 }
 
 // New constructs a new Lua Host, pre-compiling the source.
@@ -74,6 +75,7 @@ func NewFromReader(logger zerolog.Logger, extHost *extension.Host, r io.Reader, 
 	h := &Host{extHost: extHost, pool: pool, logContext: logger.With()}
 	if ls, err := pool.getState(); err == nil {
 		h.wireFunctions(startLogger, ls)
+		h.readScriptConfig(startLogger, ls)
 
 		// State creation works, put it back.
 		pool.putState(ls)
@@ -88,6 +90,28 @@ func NewFromReader(logger zerolog.Logger, extHost *extension.Host, r io.Reader, 
 // in newly created LStates.
 func (h *Host) CreateChannel(name string) chan lua.LValue {
 	return h.pool.createChannel(name)
+}
+
+// ScriptConfig returns the Inbucket settings set by the Lua script at startup.
+func (h *Host) ScriptConfig() InbucketConfig {
+	return h.scriptConfig
+}
+
+// readScriptConfig captures the settings the script set on `inbucket.config`.
+// The script is re-run for each additional pooled LState, but config is only
+// captured here, from the first; scripts must set it deterministically.
+func (h *Host) readScriptConfig(logger zerolog.Logger, ls *lua.LState) {
+	ib, err := getInbucket(ls)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to get inbucket global")
+		return
+	}
+
+	h.scriptConfig = ib.Config
+	if len(h.scriptConfig.DecodeHeaders) > 0 {
+		logger.Info().Strs("headers", h.scriptConfig.DecodeHeaders).
+			Msg("Captured Lua script config")
+	}
 }
 
 // Detects global lua event listener functions and wires them up.

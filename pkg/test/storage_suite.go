@@ -45,6 +45,8 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 		{"size", testSize, config.Storage{}},
 		{"seen", testSeen, config.Storage{}},
 		{"delete", testDelete, config.Storage{}},
+		{"delete latest", testDeleteLatest, config.Storage{}},
+		{"delete unknown", testDeleteUnknown, config.Storage{}},
 		{"purge", testPurge, config.Storage{}},
 		{"cap=10", testMsgCap, config.Storage{MailboxMsgCap: 10}},
 		{"cap=0", testNoMsgCap, config.Storage{MailboxMsgCap: 0}},
@@ -347,6 +349,51 @@ func testDelete(s storeSuite) {
 		if got != want {
 			s.Errorf("Got subject %q, want %q", got, want)
 		}
+	}
+}
+
+// testDeleteLatest confirms that deleting the pseudo-id `latest` removes the most recent message,
+// mirroring GetMessage(mailbox, "latest").
+func testDeleteLatest(s storeSuite) {
+	mailbox := "fred"
+	subjects := []string{"alpha", "bravo", "charlie"}
+	for _, subj := range subjects {
+		DeliverToStore(s.T, s.store, mailbox, subj, time.Now())
+	}
+
+	// Deleting `latest` removes the most recent message ("charlie").
+	require.NoError(s, s.store.RemoveMessage(mailbox, "latest"))
+	msgs := GetAndCountMessages(s.T, s.store, mailbox, 2)
+	for i, want := range []string{"alpha", "bravo"} {
+		if got := msgs[i].Subject(); got != want {
+			s.Errorf("Got subject %q, want %q", got, want)
+		}
+	}
+
+	// Deleting `latest` again removes the new latest ("bravo").
+	require.NoError(s, s.store.RemoveMessage(mailbox, "latest"))
+	msgs = GetAndCountMessages(s.T, s.store, mailbox, 1)
+	if got := msgs[0].Subject(); got != "alpha" {
+		s.Errorf("Got subject %q, want %q", got, "alpha")
+	}
+
+	// The final delete removes the last message.
+	require.NoError(s, s.store.RemoveMessage(mailbox, "latest"))
+	GetAndCountMessages(s.T, s.store, mailbox, 0)
+
+	// Deleting `latest` from an empty mailbox reports ErrNotExist.
+	if err := s.store.RemoveMessage(mailbox, "latest"); err != storage.ErrNotExist {
+		s.Errorf("Got error %v, want %v", err, storage.ErrNotExist)
+	}
+}
+
+// testDeleteUnknown confirms deleting an unknown id reports ErrNotExist instead of silently
+// succeeding.
+func testDeleteUnknown(s storeSuite) {
+	mailbox := "fred"
+	DeliverToStore(s.T, s.store, mailbox, "alpha", time.Now())
+	if err := s.store.RemoveMessage(mailbox, "does-not-exist"); err != storage.ErrNotExist {
+		s.Errorf("Got error %v, want %v", err, storage.ErrNotExist)
 	}
 }
 

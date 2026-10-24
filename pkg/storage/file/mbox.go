@@ -67,6 +67,12 @@ func (mb *mbox) removeMessage(id string) error {
 			return err
 		}
 	}
+	if id == "latest" {
+		if len(mb.messages) == 0 {
+			return storage.ErrNotExist
+		}
+		id = mb.messages[len(mb.messages)-1].ID()
+	}
 	var msg *Message
 	for i, m := range mb.messages {
 		if id == m.ID() {

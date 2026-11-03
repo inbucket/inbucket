@@ -7,6 +7,7 @@ import (
 	"net/mail"
 	"time"
 
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	"github.com/inbucket/inbucket/v3/pkg/storage"
 )
 
@@ -19,6 +20,7 @@ type Message struct {
 	to      []*mail.Address
 	date    time.Time
 	subject string
+	labels  []event.Label
 	source  []byte
 	seen    bool
 	el      *list.Element // This message in Store.messages
@@ -54,3 +56,6 @@ func (m *Message) Size() int64 { return int64(len(m.source)) }
 
 // Seen returns the message seen flag.
 func (m *Message) Seen() bool { return m.seen }
+
+// Labels returns the labels attached to the message.
+func (m *Message) Labels() []event.Label { return m.labels }

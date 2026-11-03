@@ -10,6 +10,7 @@ import (
 
 	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/inbucket/inbucket/v3/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 )
 
 var (
@@ -46,6 +47,7 @@ type Message interface {
 	Source() (io.ReadCloser, error)
 	Size() int64
 	Seen() bool
+	Labels() []event.Label
 }
 
 // FromConfig creates an instance of the Store based on the provided configuration.

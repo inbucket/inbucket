@@ -87,6 +87,8 @@ func inboundMessageIndex(ls *lua.LState) int {
 		ls.Push(lua.LNumber(m.Size))
 	case "header":
 		ls.Push(wrapHeader(ls, m.Headers))
+	case "labels":
+		ls.Push(wrapLabels(m.Labels))
 	default:
 		// Unknown field.
 		ls.Push(lua.LNil)
@@ -131,9 +133,76 @@ func inboundMessageNewIndex(ls *lua.LState) int {
 		ls.RaiseError("size is read-only")
 	case "header":
 		ls.RaiseError("header is read-only")
+	case "labels":
+		m.Labels = checkLabels(ls, 3)
 	default:
 		ls.RaiseError("invalid index %q", index)
 	}
 
 	return 0
+}
+
+// Converts labels to a Lua array of `{name, description, color}` tables.
+func wrapLabels(labels []event.Label) *lua.LTable {
+	lt := &lua.LTable{}
+	for _, label := range labels {
+		entry := &lua.LTable{}
+		entry.RawSetString("name", lua.LString(label.Name))
+		entry.RawSetString("description", lua.LString(label.Description))
+		entry.RawSetString("color", lua.LString(label.Color))
+		lt.Append(entry)
+	}
+
+	return lt
+}
+
+// Checks there is an array of label tables or nil at stack position `pos`, else throws Lua
+// error.  Each label must have a non-empty `name` string and may have `description` and `color`
+// strings.
+func checkLabels(ls *lua.LState, pos int) []event.Label {
+	if ls.Get(pos) == lua.LNil {
+		return nil
+	}
+	lt := ls.CheckTable(pos)
+	keys := 0
+	lt.ForEach(func(_, _ lua.LValue) { keys++ })
+	if keys != lt.Len() {
+		ls.ArgError(pos, "labels must be an array of label tables")
+		return nil
+	}
+
+	labels := make([]event.Label, 0, lt.Len())
+	for i := 1; i <= lt.Len(); i++ {
+		entry, ok := lt.RawGetInt(i).(*lua.LTable)
+		if !ok {
+			ls.ArgError(pos, fmt.Sprintf("labels[%d] must be a table", i))
+			return nil
+		}
+
+		name, ok := entry.RawGetString("name").(lua.LString)
+		if !ok || name == "" {
+			ls.ArgError(pos, fmt.Sprintf("labels[%d].name must be a non-empty string", i))
+			return nil
+		}
+
+		label := event.Label{Name: string(name)}
+		for _, field := range []string{"description", "color"} {
+			switch fv := entry.RawGetString(field).(type) {
+			case *lua.LNilType:
+			case lua.LString:
+				if field == "description" {
+					label.Description = string(fv)
+				} else {
+					label.Color = string(fv)
+				}
+			default:
+				ls.ArgError(pos, fmt.Sprintf("labels[%d].%s must be a string", i, field))
+				return nil
+			}
+		}
+
+		labels = append(labels, label)
+	}
+
+	return labels
 }

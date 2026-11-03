@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/inbucket/inbucket/v3/pkg/rest/model"
 	"github.com/inbucket/inbucket/v3/pkg/server/web"
 	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/inbucket/inbucket/v3/pkg/stringutil"
@@ -71,6 +72,7 @@ func MailboxMessage(w http.ResponseWriter, req *http.Request, ctx *web.Context) 
 			PosixMillis: msg.Date.UnixNano() / 1000000,
 			Size:        msg.Size,
 			Seen:        msg.Seen,
+			Labels:      model.NewJSONMessageLabelsV1(msg.Labels),
 			Header:      msg.Header(),
 			Text:        web.TextToHTML(msg.Text()),
 			HTML:        htmlBody,

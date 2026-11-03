@@ -1,6 +1,7 @@
 module Page.Monitor exposing (Model, Msg, init, update, view)
 
 import Api
+import Label
 import Data.MessageHeader exposing (MessageHeader)
 import Data.MonitorEvent as MonitorEvent
 import Data.Session exposing (Session)
@@ -177,7 +178,12 @@ viewMessage zone message =
         [ td [] [ shortDate zone message.date ]
         , td [ class "desktop" ] [ text message.from ]
         , td [] [ text message.mailbox ]
-        , td [] [ text message.subject ]
+        , td [ class "subject" ]
+            [ div [ class "subject-row" ]
+                [ span [ class "subject-text" ] [ text message.subject ]
+                , Label.view message.labels
+                ]
+            ]
         ]
 
 

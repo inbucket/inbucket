@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/mail"
 	"net/textproto"
+	"slices"
 	"strings"
 	"time"
 
@@ -129,6 +130,7 @@ func (s *StoreManager) Deliver(
 				Date:    now,
 				Subject: inbound.Subject,
 				Size:    inbound.Size,
+				Labels:  slices.Clone(inbound.Labels),
 			},
 			Reader: io.MultiReader(strings.NewReader(returnPath), strings.NewReader(recvd), bytes.NewReader(source)),
 		}
@@ -221,5 +223,6 @@ func MakeMetadata(m storage.Message) *event.MessageMetadata {
 		Subject: m.Subject(),
 		Size:    m.Size(),
 		Seen:    m.Seen(),
+		Labels:  m.Labels(),
 	}
 }

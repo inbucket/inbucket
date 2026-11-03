@@ -38,6 +38,16 @@ type InboundMessage struct {
 	// X-Spam-Status should only drive decisions when the deployment controls
 	// their provenance.
 	Headers textproto.MIMEHeader
+	// Labels are tags attached to the message by an extension.
+	Labels []Label
+}
+
+// Label is a short tag attached to a message, with an optional longer description.
+// Color is any CSS color; when empty the UI uses its default label color.
+type Label struct {
+	Name        string
+	Description string
+	Color       string
 }
 
 // MessageMetadata contains the basic header data for a message event.
@@ -50,6 +60,7 @@ type MessageMetadata struct {
 	Subject string
 	Size    int64
 	Seen    bool
+	Labels  []Label
 }
 
 // SMTPResponse describes the response to an SMTP policy check.

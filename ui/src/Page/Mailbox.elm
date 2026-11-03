@@ -1,8 +1,9 @@
 module Page.Mailbox exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
+import Label
 import Data.Message as Message exposing (Message)
-import Data.MessageHeader exposing (MessageHeader)
+import Data.MessageHeader as MessageHeader exposing (MessageHeader)
 import Data.Session exposing (Session)
 import DateFormat as DF
 import DateFormat.Relative as Relative
@@ -587,6 +588,7 @@ messageChip model selected message =
         [ div [ class "subject" ] [ text message.subject ]
         , div [ class "from" ] [ text message.from ]
         , div [ class "date" ] [ relativeDate model message.date ]
+        , Label.view message.labels
         ]
 
 
@@ -625,11 +627,21 @@ viewMessage serveUrl zone message bodyMode =
             , dd [] [ verboseDate zone message.date ]
             , dt [] [ text "Subject:" ]
             , dd [] [ text message.subject ]
+            , headerLabels message.labels
             ]
         , messageErrors message
         , messageBody message bodyMode
         , attachments serveUrl message
         ]
+
+
+headerLabels : List MessageHeader.Label -> Html Msg
+headerLabels labels =
+    if List.isEmpty labels then
+        text ""
+
+    else
+        div [ class "message-header-labels" ] [ Label.view labels ]
 
 
 messageErrors : Message -> Html Msg

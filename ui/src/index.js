@@ -1,6 +1,4 @@
-import '@fortawesome/fontawesome-free/css/all.css'
 import '@webcomponents/webcomponentsjs/webcomponents-bundle'
-import 'opensans-npm-webfont'
 import { Elm } from './Main.elm'
 import './monitorMessages'
 import './renderedHtml'

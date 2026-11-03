@@ -1,23 +1,28 @@
 package webui
 
-import "time"
+import (
+	"time"
+
+	"github.com/inbucket/inbucket/v3/pkg/rest/model"
+)
 
 // jsonMessage formats message data for the UI.
 type jsonMessage struct {
-	Mailbox     string              `json:"mailbox"`
-	ID          string              `json:"id"`
-	From        string              `json:"from"`
-	To          []string            `json:"to"`
-	Subject     string              `json:"subject"`
-	Date        time.Time           `json:"date"`
-	PosixMillis int64               `json:"posix-millis"`
-	Size        int64               `json:"size"`
-	Seen        bool                `json:"seen"`
-	Header      map[string][]string `json:"header"`
-	Text        string              `json:"text"`
-	HTML        string              `json:"html"`
-	Attachments []*jsonAttachment   `json:"attachments"`
-	Errors      []*jsonMIMEError    `json:"errors"`
+	Mailbox     string                      `json:"mailbox"`
+	ID          string                      `json:"id"`
+	From        string                      `json:"from"`
+	To          []string                    `json:"to"`
+	Subject     string                      `json:"subject"`
+	Date        time.Time                   `json:"date"`
+	PosixMillis int64                       `json:"posix-millis"`
+	Size        int64                       `json:"size"`
+	Seen        bool                        `json:"seen"`
+	Labels      []*model.JSONMessageLabelV1 `json:"labels,omitempty"`
+	Header      map[string][]string         `json:"header"`
+	Text        string                      `json:"text"`
+	HTML        string                      `json:"html"`
+	Attachments []*jsonAttachment           `json:"attachments"`
+	Errors      []*jsonMIMEError            `json:"errors"`
 }
 
 // jsonAttachment formats attachment data for the UI.

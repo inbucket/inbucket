@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,6 +23,7 @@ type Message struct {
 	Fsubject string
 	Fsize    int64
 	Fseen    bool
+	Flabels  []event.Label
 }
 
 // newMessage creates a new FileMessage object and sets the Date and ID fields.
@@ -101,4 +103,9 @@ func (m *Message) Source() (reader io.ReadCloser, err error) {
 // Seen returns the seen flag value.
 func (m *Message) Seen() bool {
 	return m.Fseen
+}
+
+// Labels returns the labels attached to the message.
+func (m *Message) Labels() []event.Label {
+	return m.Flabels
 }

@@ -73,6 +73,8 @@ func messageMetadataIndex(ls *lua.LState) int {
 		ls.Push(lua.LString(m.Subject))
 	case "size":
 		ls.Push(lua.LNumber(m.Size))
+	case "labels":
+		ls.Push(wrapLabels(m.Labels))
 	default:
 		// Unknown field.
 		ls.Push(lua.LNil)

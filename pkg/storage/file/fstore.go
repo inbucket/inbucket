@@ -135,6 +135,7 @@ func (fs *Store) AddMessage(m storage.Message) (id string, err error) {
 	fm.Fto = m.To()
 	fm.Fsize = size
 	fm.Fsubject = m.Subject()
+	fm.Flabels = m.Labels()
 	mb.messages = append(mb.messages, fm)
 	if err := mb.writeIndex(); err != nil {
 		// Try to remove the file.

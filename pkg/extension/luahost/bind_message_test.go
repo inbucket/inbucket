@@ -20,9 +20,14 @@ func TestMessageMetadataGetters(t *testing.T) {
 		Date:    time.Date(2001, time.February, 3, 4, 5, 6, 0, time.UTC),
 		Subject: "subj1",
 		Size:    42,
+		Labels:  []event.Label{{Name: "Urgent", Description: "X-Priority: 1"}},
 	}
 	script := `
 		assert(msg, "msg should not be nil")
+
+		assert_eq(#msg.labels, 1, "#msg.labels")
+		assert_eq(msg.labels[1].name, "Urgent", "labels[1].name")
+		assert_eq(msg.labels[1].description, "X-Priority: 1", "labels[1].description")
 
 		assert_eq(msg.mailbox, "mb1")
 		assert_eq(msg.id, "id1")

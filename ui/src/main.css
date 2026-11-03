@@ -414,6 +414,73 @@ h3 {
   width: 100%;
 }
 
+.message-labels {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.message-label {
+  background-color: var(--well-bg-color);
+  background-image: var(--well-bg-image);
+  border: 1px solid var(--well-border);
+  border-radius: 10px;
+  color: var(--primary-color);
+  display: inline-block;
+  font-size: 75%;
+  font-weight: bold;
+  line-height: 1.5;
+  max-width: 12em;
+  overflow: hidden;
+  padding: 1px 0.75em;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.message-label-colored {
+  background-image: none;
+  color: #000;
+}
+
+@media (prefers-color-scheme: dark) {
+  .message-label {
+    color: var(--btn-default-color);
+  }
+}
+
+tr:focus .message-label,
+.message-list-entry:focus .message-label {
+  border-color: var(--focused-color);
+}
+
+/* Gives the row a definite height so the subject cell's content can fill it. */
+.monitor tbody tr {
+  height: 1px;
+}
+
+.monitor td.subject {
+  height: inherit;
+}
+
+.monitor td.subject .subject-row {
+  column-gap: 0.75em;
+  display: flex;
+  flex-wrap: wrap;
+  height: 100%;
+  row-gap: 4px;
+}
+
+.monitor td.subject .subject-text {
+  align-self: flex-start;
+}
+
+.monitor td.subject .message-labels {
+  align-self: flex-end;
+  margin-left: auto;
+}
+
 .monitor th {
   background: var(--bg-color);
   border-bottom: 2px solid var(--border-color);

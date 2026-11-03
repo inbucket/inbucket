@@ -1,6 +1,7 @@
 module Data.Message exposing (Attachment, Message, attachmentDecoder, decoder)
 
 import Data.Date exposing (date)
+import Data.MessageHeader exposing (Label, labelDecoder)
 import Json.Decode exposing (Decoder, bool, int, list, string, succeed)
 import Json.Decode.Pipeline exposing (optional, required)
 import Time exposing (Posix)
@@ -15,6 +16,7 @@ type alias Message =
     , date : Posix
     , size : Int
     , seen : Bool
+    , labels : List Label
     , text : String
     , html : String
     , attachments : List Attachment
@@ -47,6 +49,7 @@ decoder =
         |> required "posix-millis" date
         |> required "size" int
         |> required "seen" bool
+        |> optional "labels" (list labelDecoder) []
         |> required "text" string
         |> required "html" string
         |> required "attachments" (list attachmentDecoder)

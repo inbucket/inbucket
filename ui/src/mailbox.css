@@ -138,6 +138,11 @@
   font-size: 85%;
 }
 
+.message-list-entry .message-labels {
+  display: flex;
+  margin-top: 4px;
+}
+
 .message-header {
   border: 1px solid var(--border-color);
   border-radius: 4px;
@@ -156,6 +161,10 @@
   padding-left: 10px;
 }
 
+.message-header-labels {
+  margin-top: 4px;
+}
+
 @media screen and (min-width: 1000px) {
   .message-header {
     display: grid;
@@ -169,6 +178,10 @@
 
   .message-header dd {
     grid-column: 2;
+  }
+
+  .message-header-labels {
+    grid-column: 1 / -1;
   }
 }
 

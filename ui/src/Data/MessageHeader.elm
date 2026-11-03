@@ -1,4 +1,4 @@
-module Data.MessageHeader exposing (MessageHeader, decoder)
+module Data.MessageHeader exposing (Label, MessageHeader, labelDecoder, decoder)
 
 import Data.Date exposing (date)
 import Json.Decode exposing (Decoder, bool, int, list, string, succeed)
@@ -15,6 +15,14 @@ type alias MessageHeader =
     , date : Posix
     , size : Int
     , seen : Bool
+    , labels : List Label
+    }
+
+
+type alias Label =
+    { name : String
+    , description : String
+    , color : String
     }
 
 
@@ -29,3 +37,12 @@ decoder =
         |> required "posix-millis" date
         |> required "size" int
         |> required "seen" bool
+        |> optional "labels" (list labelDecoder) []
+
+
+labelDecoder : Decoder Label
+labelDecoder =
+    succeed Label
+        |> required "name" string
+        |> optional "description" string ""
+        |> optional "color" string ""

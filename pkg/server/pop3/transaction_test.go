@@ -138,6 +138,7 @@ func (m *fakeMsg) Date() time.Time                { return time.Time{} }
 func (m *fakeMsg) Subject() string                { return "fake" }
 func (m *fakeMsg) Size() int64                    { return m.size }
 func (m *fakeMsg) Seen() bool                     { return false }
+func (m *fakeMsg) Labels() []event.Label          { return nil }
 func (m *fakeMsg) Source() (io.ReadCloser, error) { return m.source() }
 
 // readDeadlineErrorConn fails SetReadDeadline, to exercise the read error

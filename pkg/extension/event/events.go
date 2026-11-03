@@ -60,6 +60,7 @@ type MessageMetadata struct {
 	Subject string
 	Size    int64
 	Seen    bool
+	Labels  []Label
 }
 
 // SMTPResponse describes the response to an SMTP policy check.

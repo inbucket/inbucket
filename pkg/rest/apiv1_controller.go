@@ -40,6 +40,7 @@ func MailboxListV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 			PosixMillis: msg.Date.UnixNano() / 1000000,
 			Size:        msg.Size,
 			Seen:        msg.Seen,
+			Labels:      model.NewJSONMessageLabelsV1(msg.Labels),
 		}
 	}
 	return web.RenderJSON(w, jmessages)
@@ -88,6 +89,7 @@ func MailboxShowV1(w http.ResponseWriter, req *http.Request, ctx *web.Context) (
 			PosixMillis: msg.Date.UnixNano() / 1000000,
 			Size:        msg.Size,
 			Seen:        msg.Seen,
+			Labels:      model.NewJSONMessageLabelsV1(msg.Labels),
 			Header:      msg.Header(),
 			Body: &model.JSONMessageBodyV1{
 				Text: msg.Text(),

@@ -73,6 +73,7 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 		to:      message.To(),
 		date:    message.Date(),
 		subject: message.Subject(),
+		labels:  message.Labels(),
 	}
 	s.withMailbox(message.Mailbox(), true, func(mb *mbox) {
 		// Generate message ID.

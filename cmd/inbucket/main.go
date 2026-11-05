@@ -141,8 +141,8 @@ signalLoop:
 				svcCancel()
 				break signalLoop
 			}
-		case <-services.Notify():
-			log.Info().Str("phase", "shutdown").Msg("Shutting down due to service failure")
+		case err := <-services.Notify():
+			log.Error().Err(err).Str("phase", "shutdown").Msg("Shutting down due to service failure")
 			svcCancel()
 			break signalLoop
 		}

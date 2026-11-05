@@ -187,10 +187,21 @@ func (s *Store) removeMessage(mailbox, id string) *Message {
 
 // RemoveMessage deletes a single message.
 func (s *Store) RemoveMessage(mailbox, id string) error {
-	m := s.removeMessage(mailbox, id)
-	if m != nil {
-		s.enforcerRemove(m)
+	if id == "latest" {
+		ms, err := s.GetMessages(mailbox)
+		if err != nil {
+			return err
+		}
+		if len(ms) == 0 {
+			return storage.ErrNotExist
+		}
+		id = ms[len(ms)-1].ID()
 	}
+	m := s.removeMessage(mailbox, id)
+	if m == nil {
+		return storage.ErrNotExist
+	}
+	s.enforcerRemove(m)
 	return nil
 }
 

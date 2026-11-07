@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/mail"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -47,6 +48,7 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 		{"delete", testDelete, config.Storage{}},
 		{"delete latest", testDeleteLatest, config.Storage{}},
 		{"delete unknown", testDeleteUnknown, config.Storage{}},
+		{"delete latest concurrent", testDeleteLatestConcurrent, config.Storage{}},
 		{"purge", testPurge, config.Storage{}},
 		{"cap=10", testMsgCap, config.Storage{MailboxMsgCap: 10}},
 		{"cap=0", testNoMsgCap, config.Storage{MailboxMsgCap: 0}},
@@ -395,6 +397,40 @@ func testDeleteUnknown(s storeSuite) {
 	if err := s.store.RemoveMessage(mailbox, "does-not-exist"); err != storage.ErrNotExist {
 		s.Errorf("Got error %v, want %v", err, storage.ErrNotExist)
 	}
+}
+
+// testDeleteLatestConcurrent confirms that concurrent deletions of the pseudo-id `latest` each
+// remove a distinct message, rather than racing to resolve and delete the same one.
+func testDeleteLatestConcurrent(s storeSuite) {
+	mailbox := "fred"
+	const count = 8
+	for i := range count {
+		DeliverToStore(s.T, s.store, mailbox, fmt.Sprintf("concurrent %v", i), time.Now())
+	}
+	GetAndCountMessages(s.T, s.store, mailbox, count)
+
+	// Collect errors via channel; FailNow must run on the test goroutine.
+	errs := make(chan error, count)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for range count {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			if err := s.store.RemoveMessage(mailbox, "latest"); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	close(start) // Release all goroutines at once.
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		s.Errorf("concurrent RemoveMessage(latest): %v", err)
+	}
+
+	GetAndCountMessages(s.T, s.store, mailbox, 0)
 }
 
 // testPurge makes sure mailboxes can be purged.

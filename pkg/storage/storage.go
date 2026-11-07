@@ -27,6 +27,7 @@ var (
 type Store interface {
 	// AddMessage stores the message, message ID and Size will be ignored.
 	AddMessage(message Message) (id string, err error)
+	// GetMessage returns the specified message, or ErrNotExist if it does not exist.
 	GetMessage(mailbox, id string) (Message, error)
 	GetMessages(mailbox string) ([]Message, error)
 	MarkSeen(mailbox, id string) error

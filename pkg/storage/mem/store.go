@@ -187,20 +187,27 @@ func (s *Store) removeMessage(mailbox, id string) *Message {
 
 // RemoveMessage deletes a single message.
 func (s *Store) RemoveMessage(mailbox, id string) error {
-	if id == "latest" {
-		ms, err := s.GetMessages(mailbox)
-		if err != nil {
-			return err
+	var m *Message
+	s.withMailbox(mailbox, true, func(mb *mbox) {
+		if id == "latest" {
+			// Resolve the newest message under the same lock used to delete it;
+			// resolving separately would let concurrent callers pick the same id.
+			for _, msg := range mb.messages {
+				if m == nil || msg.index > m.index {
+					m = msg
+				}
+			}
+		} else {
+			m = mb.messages[id]
 		}
-		if len(ms) == 0 {
-			return storage.ErrNotExist
+		if m != nil {
+			delete(mb.messages, m.id)
 		}
-		id = ms[len(ms)-1].ID()
-	}
-	m := s.removeMessage(mailbox, id)
+	})
 	if m == nil {
 		return storage.ErrNotExist
 	}
+	s.extHost.Events.AfterMessageDeleted.Emit(message.MakeMetadata(m))
 	s.enforcerRemove(m)
 	return nil
 }

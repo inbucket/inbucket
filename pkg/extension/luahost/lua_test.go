@@ -2,6 +2,7 @@ package luahost_test
 
 import (
 	"net/mail"
+	"net/textproto"
 	"strings"
 	"testing"
 	"time"
@@ -188,6 +189,7 @@ func TestBeforeMessageStored(t *testing.T) {
 		},
 		Subject: "inbound subj",
 		Size:    42,
+		Headers: textproto.MIMEHeader{"X-Spam-Status": {"Yes, score=7.54"}},
 	}
 
 	// Register lua event listener.
@@ -206,6 +208,8 @@ func TestBeforeMessageStored(t *testing.T) {
 			assert_eq(msg.to[2].address, "to2@example.com")
 			assert_eq(msg.subject, "inbound subj")
 			assert_eq(msg.size, 42, "msg.size")
+			assert_eq(msg.header["X-Spam-Status"], "Yes, score=7.54", "msg.header")
+			assert_eq(#msg.labels, 0, "msg.labels should start empty")
 			notify:send(asserts_ok)
 
 			-- Generate response.
@@ -217,6 +221,10 @@ func TestBeforeMessageStored(t *testing.T) {
 				address.new("To2 Res", "res2@example.com"),
 			}
 			res.subject = "res subj"
+			res.labels = {
+				{ name = "Urgent", description = "X-Priority: 1", color = "tomato" },
+				{ name = "Newsletter" },
+			}
 			return res
 		end
 	`
@@ -243,6 +251,10 @@ func TestBeforeMessageStored(t *testing.T) {
 		},
 		Subject: "res subj",
 		Size:    0,
+		Labels: []event.Label{
+			{Name: "Urgent", Description: "X-Priority: 1", Color: "tomato"},
+			{Name: "Newsletter"},
+		},
 	}
 	assert.Equal(t, want, got, "Response InboundMessage did not match")
 }

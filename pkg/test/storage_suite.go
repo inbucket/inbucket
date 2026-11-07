@@ -42,6 +42,7 @@ func StoreSuite(t *testing.T, factory StoreFactory) {
 		{"content", testContent, config.Storage{}},
 		{"delivery order", testDeliveryOrder, config.Storage{}},
 		{"latest", testLatest, config.Storage{}},
+		{"get not found", testGetNotFound, config.Storage{}},
 		{"naming", testNaming, config.Storage{}},
 		{"size", testSize, config.Storage{}},
 		{"seen", testSeen, config.Storage{}},
@@ -233,6 +234,18 @@ func testLatest(s storeSuite) {
 	want := "echo"
 	if got != want {
 		s.Errorf("Got subject %q, want %q", got, want)
+	}
+}
+
+// testGetNotFound confirms GetMessage reports ErrNotExist for an unknown id (with
+// messages present) and for `latest` in an empty mailbox, on every backend.
+func testGetNotFound(s storeSuite) {
+	DeliverToStore(s.T, s.store, "fred", "alpha", time.Now())
+	if _, err := s.store.GetMessage("fred", "does-not-exist"); err != storage.ErrNotExist {
+		s.Errorf("Got error %v, want %v", err, storage.ErrNotExist)
+	}
+	if _, err := s.store.GetMessage("empty", "latest"); err != storage.ErrNotExist {
+		s.Errorf("Got error %v, want %v", err, storage.ErrNotExist)
 	}
 }
 

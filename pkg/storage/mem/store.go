@@ -95,16 +95,16 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 	return id, err
 }
 
-// GetMessage gets a mesage.
+// GetMessage gets a message, returning storage.ErrNotExist if it is not found.
 func (s *Store) GetMessage(mailbox, id string) (m storage.Message, err error) {
 	if id == "latest" {
-		ms, err := s.GetMessages(mailbox)
-		if err != nil {
-			return nil, err
+		ms, lerr := s.GetMessages(mailbox)
+		if lerr != nil {
+			return nil, lerr
 		}
 		count := len(ms)
 		if count == 0 {
-			return nil, nil
+			return nil, storage.ErrNotExist
 		}
 		return ms[count-1], nil
 	}
@@ -115,7 +115,10 @@ func (s *Store) GetMessage(mailbox, id string) (m storage.Message, err error) {
 			m = nil
 		}
 	})
-	return m, err
+	if m == nil {
+		return nil, storage.ErrNotExist
+	}
+	return m, nil
 }
 
 // GetMessages gets a list of messages.

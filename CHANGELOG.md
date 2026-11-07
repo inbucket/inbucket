@@ -11,7 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   `inbucket.config.decode_headers` setting, and read them from the new
   `inbound_message.header` field (#627)
 - Lua scripts can attach labels to a message via the new `inbound_message.labels`
-  field in `before.message_stored` (#627)
+  field in `before.message_stored` (#635)
 
 
 ## [v3.2.0] - 2026-10-10

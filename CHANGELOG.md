@@ -12,6 +12,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   `inbound_message.header` field (#627)
 - Lua scripts can attach labels to a message via the new `inbound_message.labels`
   field in `before.message_stored` (#635)
+- Message labels are stored with the message, returned by the REST API, and
+  shown in the mailbox list, message view and monitor (#636)
 
 
 ## [v3.2.0] - 2026-10-10

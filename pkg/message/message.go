@@ -105,3 +105,8 @@ func (d *Delivery) Source() (io.ReadCloser, error) {
 func (d *Delivery) Seen() bool {
 	return d.Meta.Seen
 }
+
+// Labels getter.
+func (d *Delivery) Labels() []event.Label {
+	return d.Meta.Labels
+}

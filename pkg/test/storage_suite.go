@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/mail"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -84,6 +85,7 @@ func testMetadata(s storeSuite) {
 	}
 	date := time.Now()
 	subject := "fantastic test subject line"
+	labels := []event.Label{{Name: "Urgent", Description: "X-Priority: 1", Color: "tomato"}, {Name: "Newsletter"}}
 	content := "doesn't matter"
 	delivery := &message.Delivery{
 		Meta: event.MessageMetadata{
@@ -94,6 +96,7 @@ func testMetadata(s storeSuite) {
 			Date:    date,
 			Subject: subject,
 			Seen:    false,
+			Labels:  labels,
 		},
 		Reader: strings.NewReader(content),
 	}
@@ -138,6 +141,9 @@ func testMetadata(s storeSuite) {
 	}
 	if sm.Seen() {
 		s.Errorf("got seen %v, want: false", sm.Seen())
+	}
+	if !reflect.DeepEqual(sm.Labels(), labels) {
+		s.Errorf("got labels %v, want: %v", sm.Labels(), labels)
 	}
 }
 

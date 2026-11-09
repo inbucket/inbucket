@@ -393,6 +393,42 @@ func TestDeliverEmitsAfterMessageStoredEvent(t *testing.T) {
 	assert.Equal(t, "to@example.com", got.To[0].Address)
 }
 
+func TestDeliverStoresLabelsFromBeforeMessageStoredEvent(t *testing.T) {
+	sm, extHost := testStoreManager()
+
+	labels := []event.Label{{Name: "Urgent", Description: "X-Priority: 1"}, {Name: "Newsletter"}}
+	extHost.Events.BeforeMessageStored.AddListener(
+		"test",
+		func(msg event.InboundMessage) *event.InboundMessage {
+			msg.Labels = labels
+			return &msg
+		})
+	listener := extHost.Events.AfterMessageStored.AsyncTestListener("manager", 1)
+
+	origin, _ := sm.AddrPolicy.ParseOrigin("from@example.com")
+	recip, _ := sm.AddrPolicy.NewRecipient("to@example.com")
+	if err := sm.Deliver(
+		origin,
+		[]*policy.Recipient{recip},
+		"Received: xyz\n",
+		[]byte("From: from@example.com\nSubject: label\n\ntest email."),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// Labels reach the after event.
+	got, err := listener()
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, labels, got.Labels, "AfterMessageStored labels")
+
+	// Labels are stored with the message.
+	metas, err := sm.GetMetadata("to@example.com")
+	require.NoError(t, err)
+	require.Len(t, metas, 1)
+	assert.Equal(t, labels, metas[0].Labels, "stored labels")
+}
+
 func TestDeliverBeforeAndAfterMessageStoredEvents(t *testing.T) {
 	sm, extHost := testStoreManager()
 

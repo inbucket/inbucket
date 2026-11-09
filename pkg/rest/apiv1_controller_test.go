@@ -61,6 +61,10 @@ func TestRestMailboxList(t *testing.T) {
 		To:      []*mail.Address{{Name: "", Address: "to1@host"}},
 		Subject: "subject 1",
 		Date:    time.Date(2012, 2, 1, 10, 11, 12, 253, tzPST),
+		Labels: []event.Label{
+			{Name: "Urgent", Description: "X-Priority: 1", Color: "tomato"},
+			{Name: "Newsletter"},
+		},
 	}
 	meta2 := event.MessageMetadata{
 		Mailbox: "good",
@@ -102,6 +106,10 @@ func TestRestMailboxList(t *testing.T) {
 	decodedNumberEquals(t, result, "[0]/posix-millis", 1328119872000)
 	decodedNumberEquals(t, result, "[0]/size", 0)
 	decodedBoolEquals(t, result, "[0]/seen", false)
+	decodedStringEquals(t, result, "[0]/labels/[0]/name", "Urgent")
+	decodedStringEquals(t, result, "[0]/labels/[0]/description", "X-Priority: 1")
+	decodedStringEquals(t, result, "[0]/labels/[0]/color", "tomato")
+	decodedStringEquals(t, result, "[0]/labels/[1]/name", "Newsletter")
 	decodedStringEquals(t, result, "[1]/mailbox", "good")
 	decodedStringEquals(t, result, "[1]/id", "0002")
 	decodedStringEquals(t, result, "[1]/from", "<from2@host>")
@@ -111,6 +119,9 @@ func TestRestMailboxList(t *testing.T) {
 	decodedNumberEquals(t, result, "[1]/posix-millis", 1341162672000)
 	decodedNumberEquals(t, result, "[1]/size", 0)
 	decodedBoolEquals(t, result, "[1]/seen", false)
+	if _, ok := result[1].(map[string]interface{})["labels"]; ok {
+		t.Error("Expected no labels key on message without labels")
+	}
 
 	if t.Failed() {
 		// Wait for handler to finish logging

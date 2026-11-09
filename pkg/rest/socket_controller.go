@@ -250,5 +250,6 @@ func metadataToHeader(msg *event.MessageMetadata) *model.JSONMessageHeaderV1 {
 		Date:        msg.Date,
 		PosixMillis: msg.Date.UnixNano() / 1000000,
 		Size:        msg.Size,
+		Labels:      model.NewJSONMessageLabelsV1(msg.Labels),
 	}
 }

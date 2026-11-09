@@ -1,14 +1,19 @@
 package mem
 
 import (
+	"net/mail"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/inbucket/inbucket/v3/pkg/config"
 	"github.com/inbucket/inbucket/v3/pkg/extension"
+	"github.com/inbucket/inbucket/v3/pkg/extension/event"
+	"github.com/inbucket/inbucket/v3/pkg/message"
 	"github.com/inbucket/inbucket/v3/pkg/storage"
 	"github.com/inbucket/inbucket/v3/pkg/test"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,6 +25,36 @@ func TestSuite(t *testing.T) {
 			destroy := func() {}
 			return s, destroy, nil
 		})
+}
+
+// TestAddMessageCopiesLabels verifies the store copies the delivery's labels
+// slice; a caller or AfterMessageStored listener mutating the original slice
+// after storage must not alter the stored message or race with readers.
+func TestAddMessageCopiesLabels(t *testing.T) {
+	s, _ := New(config.Storage{}, extension.NewHost())
+
+	labels := []event.Label{{Name: "Urgent", Description: "X-Priority: 1"}, {Name: "Newsletter"}}
+	delivery := &message.Delivery{
+		Meta: event.MessageMetadata{
+			Mailbox: "fred",
+			From:    &mail.Address{Address: "from@example.com"},
+			To:      []*mail.Address{{Address: "fred@example.com"}},
+			Date:    time.Now(),
+			Subject: "labels",
+			Labels:  labels,
+		},
+		Reader: strings.NewReader("test email"),
+	}
+	_, err := s.AddMessage(delivery)
+	require.NoError(t, err, "AddMessage() must succeed")
+
+	// Simulate a listener mutating the delivered labels after the store call.
+	labels[0].Name = "Mutated"
+
+	sm, err := s.GetMessage("fred", "1")
+	require.NoError(t, err, "GetMessage() must succeed")
+	assert.Equal(t, []event.Label{{Name: "Urgent", Description: "X-Priority: 1"}, {Name: "Newsletter"}},
+		sm.Labels(), "stored labels must not alias the delivered slice")
 }
 
 // TestMessageList verifies the operation of the global message list: mem.Store.messages.

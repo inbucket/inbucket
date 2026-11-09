@@ -3,6 +3,7 @@ package mem
 import (
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strconv"
 	"sync"
@@ -73,7 +74,7 @@ func (s *Store) AddMessage(message storage.Message) (id string, err error) {
 		to:      message.To(),
 		date:    message.Date(),
 		subject: message.Subject(),
-		labels:  message.Labels(),
+		labels:  slices.Clone(message.Labels()),
 	}
 	s.withMailbox(message.Mailbox(), true, func(mb *mbox) {
 		// Generate message ID.
